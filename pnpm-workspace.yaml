@@ -3,4 +3,7 @@ packages:
   - packages/*
 
 # Refuse dependencies whose `engines` exclude the current Node version.
+allowBuilds:
+  lefthook: true
+
 engineStrict: true
