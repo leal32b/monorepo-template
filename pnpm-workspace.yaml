@@ -1,0 +1,6 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Refuse dependencies whose `engines` exclude the current Node version.
+engineStrict: true
