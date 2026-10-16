@@ -51,5 +51,10 @@ Folders appear only when their phase of the plan reaches them.
 
 ## Definition of done
 
-Each phase ends green and committed. As gates are introduced they join this list
-(`pnpm lint && pnpm typecheck && pnpm test` first; boundaries, knip and e2e later).
+Each phase ends green and committed. Today:
+
+```bash
+pnpm lint && pnpm typecheck && pnpm test
+```
+
+As gates are introduced (boundaries, knip, e2e) they join this list.
