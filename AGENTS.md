@@ -54,7 +54,9 @@ Folders appear only when their phase of the plan reaches them.
 Each phase ends green and committed. Today:
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm test
+pnpm lint && pnpm typecheck && pnpm test:coverage
 ```
+
+Coverage thresholds are 100% from the start.
 
 As gates are introduced (boundaries, knip, e2e) they join this list.
