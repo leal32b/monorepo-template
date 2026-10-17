@@ -1,4 +1,4 @@
-import { healthResponseSchema, healthResponseSchema as sut } from './health'
+import { healthResponseSchema } from './health'
 
 const valid = {
   status: 'ok',
@@ -12,7 +12,7 @@ describe('healthResponseSchema', () => {
   })
 
   it('rejects a status other than "ok"', () => {
-    const result = sut.safeParse({
+    const result = healthResponseSchema.safeParse({
       ...valid,
       status: 'down'
     })
@@ -21,7 +21,7 @@ describe('healthResponseSchema', () => {
   })
 
   it('rejects a timestamp that is not an ISO 8601 date-time', () => {
-    const result = sut.safeParse({
+    const result = healthResponseSchema.safeParse({
       ...valid,
       timestamp: 'yesterday'
     })
