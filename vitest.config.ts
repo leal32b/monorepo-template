@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    projects: ['packages/*'],
+    projects: ['apps/*', 'packages/*'],
     passWithNoTests: true,
     coverage: {
       thresholds: { 100: true }
