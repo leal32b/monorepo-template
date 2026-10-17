@@ -1,5 +1,5 @@
 import type { AddressInfo } from 'node:net'
-import { apiProblemSchema } from '@template/contracts'
+import { apiProblemSchema } from '@repo/contracts'
 import pino from 'pino'
 import { ConflictException } from '#libs/exceptions/exception.base'
 import { sendJson } from './json'

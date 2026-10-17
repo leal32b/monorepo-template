@@ -46,7 +46,7 @@ Folders appear only when their phase of the plan reaches them.
 - **API:** plain `node:http`, no Express/Fastify; domain is pure (no I/O, clock or randomness);
   use cases in `commands|queries/<use-case>/`; `GET` never writes.
 - **Web:** FSD, imports go downwards only, slices exposed through `index.ts`.
-- **Contracts:** every request/response is a Zod schema in `@template/contracts`.
+- **Contracts:** every request/response is a Zod schema in `@repo/contracts`.
 - **Database:** Postgres ([ADR 0003](docs/adr/0003-postgres-as-the-database.md)).
 - **Language:** code, comments and docs in English; conversation with the owner in pt-BR.
 

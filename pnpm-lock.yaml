@@ -199,7 +199,7 @@ importers:
 
   apps/api:
     dependencies:
-      '@template/contracts':
+      '@repo/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       pino:
