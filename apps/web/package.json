@@ -12,7 +12,8 @@
   "dependencies": {
     "@repo/contracts": "workspace:*",
     "@solidjs/router": "^1.0.0",
-    "solid-js": "^1.9.17"
+    "solid-js": "^1.9.17",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.10",

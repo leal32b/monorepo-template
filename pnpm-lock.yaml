@@ -236,6 +236,9 @@ importers:
       solid-js:
         specifier: ^1.9.17
         version: 1.9.17
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@solidjs/testing-library':
         specifier: ^0.8.10
