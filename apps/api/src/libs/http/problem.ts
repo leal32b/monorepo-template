@@ -1,4 +1,4 @@
-import { STATUS_CODES } from 'node:http'
+import { type ServerResponse, STATUS_CODES } from 'node:http'
 import type { ApiProblem } from '@template/contracts'
 import {
   ArgumentInvalidException,
@@ -9,19 +9,31 @@ import {
 
 export type ProblemFieldError = { path: string; message: string }
 
+export const PROBLEM_CONTENT_TYPE = 'application/problem+json; charset=utf-8'
+
 /** An error that maps to an HTTP problem response. Anything else becomes a 500. */
 export class HttpProblem extends Error {
   readonly status: number
   readonly code: string
   readonly detail: string | undefined
   readonly errors: ProblemFieldError[] | undefined
+  readonly headers: Record<string, string>
 
-  constructor(status: number, code: string, options: { detail?: string; errors?: ProblemFieldError[] } = {}) {
+  constructor(
+    status: number,
+    code: string,
+    options: {
+      detail?: string
+      errors?: ProblemFieldError[]
+      headers?: Record<string, string>
+    } = {}
+  ) {
     super(options.detail ?? code)
     this.status = status
     this.code = code
     this.detail = options.detail
     this.errors = options.errors
+    this.headers = options.headers ?? {}
   }
 
   toJSON(requestId?: string): ApiProblem {
@@ -64,4 +76,14 @@ export function toProblem(error: unknown): { problem: HttpProblem; expected: boo
     }),
     expected: true
   }
+}
+
+export function sendProblem(res: ServerResponse, problem: HttpProblem, requestId: string): void {
+  const payload = JSON.stringify(problem.toJSON(requestId))
+  res.writeHead(problem.status, {
+    ...problem.headers,
+    'Content-Type': PROBLEM_CONTENT_TYPE,
+    'Content-Length': Buffer.byteLength(payload)
+  })
+  res.end(payload)
 }
