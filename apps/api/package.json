@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@template/contracts": "workspace:*",
-    "pino": "^10.4.0"
+    "pino": "^10.4.0",
+    "zod": "^4.6.7"
   }
 }
