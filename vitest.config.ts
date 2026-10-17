@@ -2,7 +2,10 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    // Without packages: the empty suite should not fail.
-    passWithNoTests: true
+    projects: ['packages/*'],
+    passWithNoTests: true,
+    coverage: {
+      thresholds: { 100: true }
+    }
   }
 })
