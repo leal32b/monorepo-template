@@ -1,5 +1,5 @@
 import { healthResponseSchema } from '@template/contracts'
-import { FixedClock } from '../../../../libs/adapters/fixed-clock'
+import { FixedClock } from '#libs/adapters/fixed-clock'
 import { GetHealthService } from './get-health.service'
 
 describe('GetHealthService', () => {

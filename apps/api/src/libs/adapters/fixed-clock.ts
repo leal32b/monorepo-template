@@ -1,4 +1,4 @@
-import type { Clock } from '../ports/clock.port'
+import type { Clock } from '#libs/ports/clock.port'
 
 export class FixedClock implements Clock {
   private time: number

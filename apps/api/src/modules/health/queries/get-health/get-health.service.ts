@@ -1,5 +1,5 @@
 import type { HealthResponse } from '@template/contracts'
-import type { Clock } from '../../../../libs/ports/clock.port'
+import type { Clock } from '#libs/ports/clock.port'
 
 export class GetHealthService {
   constructor(
