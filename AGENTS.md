@@ -41,7 +41,8 @@ Folders appear only when their phase of the plan reaches them.
 ## Fixed conventions
 
 - **Node.js 24**, **pnpm** workspaces without a task runner ([ADR 0002](docs/adr/0002-pnpm-workspaces-without-a-task-runner.md)).
-- **TypeScript**, **Biome** (not ESLint/Prettier), **Vitest**.
+- **TypeScript**, **Biome** (not ESLint/Prettier), **Vitest**. `@types/node` stays on the major of `.node-version`.
+- **Imports:** aliases are Node subpath imports (`#libs/...`) inside a package ([ADR 0009](docs/adr/0009-subpath-imports-for-aliases.md)); a package declares every dependency it imports.
 - **API:** plain `node:http`, no Express/Fastify; domain is pure (no I/O, clock or randomness);
   use cases in `commands|queries/<use-case>/`; `GET` never writes.
 - **Web:** FSD, imports go downwards only, slices exposed through `index.ts`.
@@ -54,9 +55,10 @@ Folders appear only when their phase of the plan reaches them.
 Each phase ends green and committed. Today:
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm test:coverage
+pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm lint:deps
 ```
 
 Coverage thresholds are 100% from the start.
 
-As gates are introduced (boundaries, knip, e2e) they join this list.
+As gates are introduced (knip, e2e) they join this list. Architecture rules are in
+[ADR 0006](docs/adr/0006-api-architecture.md) and [ADR 0008](docs/adr/0008-architecture-boundaries-with-dependency-cruiser.md).
