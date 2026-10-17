@@ -11,9 +11,9 @@ Legend: 🟦 Sonnet is enough · 🟥 use Opus (a decision that is expensive to 
 | 1 | `packages/contracts` | `Health` Zod schema + inferred type, first TDD cycle | 🟦 |
 | 2 | API walking skeleton | `node:http` pipeline, error/problem format, `health` module, composition root, `Clock`/`IdGenerator` ports, dependency-cruiser + domain-purity gates, contract integration test | 🟦 |
 | 3 | Web walking skeleton | Vite + Solid + router, FSD, Steiger, API client validating contracts, status page, i18n (en + pt-BR) | 🟦 |
-| 4 | Database, CI, deploy | Postgres (Neon), migrations, repository port + in-memory fake, GitHub Actions, API + web deployed, `/health` reading the DB in production | 🟥 |
+| 4 | Database, CI, deploy | Postgres (Neon), migrations, CORS/OPTIONS/HEAD, production build of the API, repository port + in-memory fake, GitHub Actions, API + web deployed, `/health` reading the DB in production | 🟥 |
 | 5 | Minimal UI package | Tokens, Button, Input, Field on Kobalte + UnoCSS, design-system-first rule | 🟦 |
-| 6 | Auth and authorization | `identity` module, sessions, tenants (organization + member + role), guards, login/register screens, 401/403 handling, threat model | 🟥 |
+| 6 | Auth and authorization | JSON body reading (size limit, content type, schema validation), `identity` module, sessions, tenants (organization + member + role), guards, login/register screens, 401/403 handling, threat model | 🟥 |
 | 7 | Reference vertical module | A small tenant-scoped CRUD end to end (contract → domain → API → web → e2e); the mould for future modules | 🟦 |
 | 8 | E2E and quality | Playwright flow + axe, knip, coverage ratchet, deploy after green CI | 🟦 |
 | 9 | Hardening and template use | Env validation, SECURITY.md, observability basics, "how to start a SaaS from this template" | 🟦 |

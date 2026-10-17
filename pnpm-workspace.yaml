@@ -4,6 +4,8 @@ packages:
 
 # Refuse dependencies whose `engines` exclude the current Node version.
 allowBuilds:
+  '@swc/core': false
+  esbuild: true
   lefthook: true
 
 engineStrict: true

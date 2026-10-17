@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#*": "./src/*.ts"
+  },
   "exports": {
     ".": "./src/index.ts"
   },
@@ -14,6 +17,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }

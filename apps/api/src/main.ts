@@ -1,0 +1,40 @@
+import pino from 'pino'
+import { createApp } from '#app/create-app'
+import { createShutdown } from '#app/shutdown'
+import { type ApiEnv, EnvError, loadEnv } from '#config/env'
+import { SystemClock } from '#libs/adapters/system-clock'
+
+let env: ApiEnv
+try {
+  env = loadEnv(process.env)
+} catch (error) {
+  if (!(error instanceof EnvError)) throw error
+  console.error(error.message)
+  process.exit(1)
+}
+
+const logger = pino({ level: env.logLevel })
+const server = createApp({ clock: new SystemClock(), logger, serviceName: 'api' })
+const shutdown = createShutdown({ server, logger, timeoutMs: 10_000 })
+
+server.on('error', (error) => {
+  logger.fatal({ err: error }, 'API cannot listen')
+  process.exit(1)
+})
+server.listen(env.port, env.host, () => {
+  logger.info({ url: `http://${env.host}:${env.port}` }, 'API listening')
+})
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    void shutdown(signal).then(() => process.exit(0))
+  })
+}
+
+// A bug if reached: log it, drain what is in flight and exit with an error status.
+const crash = (kind: string) => (error: unknown) => {
+  logger.fatal({ err: error }, kind)
+  void shutdown(kind).finally(() => process.exit(1))
+}
+process.on('unhandledRejection', crash('unhandled rejection'))
+process.on('uncaughtException', crash('uncaught exception'))

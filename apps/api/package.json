@@ -1,0 +1,25 @@
+{
+  "name": "@template/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts | pino-pretty"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "pino-pretty": "^13.2.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@template/contracts": "workspace:*",
+    "pino": "^10.4.0",
+    "zod": "^4.6.7"
+  }
+}
