@@ -56,10 +56,11 @@ describe('createShutdown', () => {
 
     release()
     const response = await pending
+    // Once the last request ends, the idle keep-alive connection must not hold the shutdown.
+    await vi.waitFor(() => expect(finished).toBe(true), { timeout: 1_000 })
     await shutdown
 
     expect(response.status).toBe(200)
-    expect(finished).toBe(true)
   })
 
   it('forces the connections closed when the drain takes too long', async () => {
