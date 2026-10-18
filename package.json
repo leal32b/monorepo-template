@@ -12,6 +12,7 @@
     "lint:deps": "depcruise apps packages",
     "format": "biome check --write .",
     "typecheck": "pnpm -r typecheck && tsc -p tsconfig.json",
+    "dev": "pnpm --parallel --filter @repo/api --filter @repo/web dev",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
