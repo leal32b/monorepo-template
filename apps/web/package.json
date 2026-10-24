@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@repo/contracts": "workspace:*",
+    "@solid-primitives/i18n": "^2.2.1",
     "@solidjs/router": "^1.0.0",
     "solid-js": "^1.9.17",
     "zod": "^4.6.7"
