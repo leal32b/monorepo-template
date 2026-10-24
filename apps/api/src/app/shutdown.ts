@@ -23,8 +23,11 @@ export function createShutdown({ server, logger, timeoutMs }: ShutdownOptions) {
         logger.warn({ timeoutMs }, 'drain timed out, closing connections')
         server.closeAllConnections()
       }, timeoutMs)
+      // A connection becomes idle only when its last request ends, so sweep until the server closes.
+      const sweep = setInterval(() => server.closeIdleConnections(), 100)
       server.close(() => {
         clearTimeout(timer)
+        clearInterval(sweep)
         resolve()
       })
       server.closeIdleConnections()

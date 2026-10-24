@@ -1,5 +1,5 @@
 {
-  "name": "@template/api",
+  "name": "@repo/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "vitest": "^5.0.5"
   },
   "dependencies": {
-    "@template/contracts": "workspace:*",
+    "@repo/contracts": "workspace:*",
     "pino": "^10.4.0",
     "zod": "^4.6.7"
   }

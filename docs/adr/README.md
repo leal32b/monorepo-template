@@ -14,3 +14,5 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0007](0007-http-pipeline-on-node-http.md) | HTTP pipeline on plain `node:http` | accepted |
 | [0008](0008-architecture-boundaries-with-dependency-cruiser.md) | Architecture boundaries enforced by dependency-cruiser | accepted |
 | [0009](0009-subpath-imports-for-aliases.md) | Subpath imports (`#...`) for path aliases | accepted |
+| [0010](0010-web-architecture-feature-sliced-design.md) | Structure the web app with Feature-Sliced Design, checked by Steiger | accepted |
+| [0011](0011-typed-i18n-dictionaries.md) | Typed i18n dictionaries with @solid-primitives/i18n | accepted |

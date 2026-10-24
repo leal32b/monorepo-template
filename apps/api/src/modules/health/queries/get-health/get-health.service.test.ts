@@ -1,4 +1,4 @@
-import { healthResponseSchema } from '@template/contracts'
+import { healthResponseSchema } from '@repo/contracts'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { GetHealthService } from './get-health.service'
 

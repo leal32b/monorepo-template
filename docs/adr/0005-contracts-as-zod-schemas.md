@@ -20,11 +20,11 @@ unnoticed. Where is the shape defined, and who checks it?
 
 1. Plain TypeScript types shared between apps.
 2. OpenAPI document + generated clients and types.
-3. Zod schemas in `@template/contracts`, types inferred with `z.infer`.
+3. Zod schemas in `@repo/contracts`, types inferred with `z.infer`.
 
 ## Decision outcome
 
-Chosen option 3. Every request and response is a Zod schema exported by `@template/contracts`;
+Chosen option 3. Every request and response is a Zod schema exported by `@repo/contracts`;
 its type is `z.infer` of the schema, so schema and type cannot diverge. The API validates
 requests at the edge and tests validate responses against the same schemas; the web validates
 what it receives. Zod 4 implements Standard Schema, which keeps the door open to other consumers.
@@ -32,6 +32,9 @@ what it receives. Zod 4 implements Standard Schema, which keeps the door open to
 Conventions:
 
 - One file per area (`health.ts`), exported only through `src/index.ts`.
+- Internal packages use the neutral scope `@repo/*` (`@repo/api`, `@repo/contracts`...): it says
+  "internal to this repository, never published" and never needs renaming in a SaaS derived
+  from the template.
 - The package declares `sideEffects: false` so bundlers can tree-shake it.
 - For now `exports` points at `src/index.ts`; how it is built for production is decided with the
   API build (Phase 2 / 4).

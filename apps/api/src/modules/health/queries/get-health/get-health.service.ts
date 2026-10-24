@@ -1,4 +1,4 @@
-import type { HealthResponse } from '@template/contracts'
+import type { HealthResponse } from '@repo/contracts'
 import type { Clock } from '#libs/ports/clock.port'
 
 export class GetHealthService {

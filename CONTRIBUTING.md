@@ -14,6 +14,10 @@ pnpm lint        # Biome
 pnpm format      # Biome, write
 pnpm typecheck
 pnpm test
+pnpm test:coverage  # 100% thresholds
+pnpm lint:deps      # import graph rules (dependency-cruiser)
+pnpm lint:fsd       # Feature-Sliced Design (Steiger)
+pnpm dev            # API :3001 + web :5173
 ```
 
 ## Workflow

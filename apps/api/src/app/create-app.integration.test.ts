@@ -1,5 +1,5 @@
 import type { AddressInfo } from 'node:net'
-import { apiProblemSchema, healthResponseSchema } from '@template/contracts'
+import { apiProblemSchema, healthResponseSchema } from '@repo/contracts'
 import pino from 'pino'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { createApp } from './create-app'

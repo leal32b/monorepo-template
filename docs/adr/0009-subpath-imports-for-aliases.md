@@ -27,7 +27,7 @@ the runtime and the tooling agree without configuration.
 
 Convention: inside the same use-case folder, short relative imports (`./get-health.service`);
 across folders, the alias (`#libs/...`, `#modules/...`, `#app/...`, `#config/...`). Aliases are
-local to a package; only workspace package names (`@template/*`) cross packages.
+local to a package; only workspace package names (`@repo/*`) cross packages.
 
 ### Consequences
 

@@ -1,5 +1,5 @@
 import { type ServerResponse, STATUS_CODES } from 'node:http'
-import type { ApiProblem } from '@template/contracts'
+import type { ApiProblem } from '@repo/contracts'
 import {
   ArgumentInvalidException,
   ConflictException,

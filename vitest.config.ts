@@ -6,7 +6,7 @@ export default defineConfig({
     passWithNoTests: true,
     coverage: {
       include: ['apps/*/src/**/*.ts', 'packages/*/src/**/*.ts'],
-      exclude: ['**/*.test.ts', '**/*.port.ts', 'apps/*/src/main.ts'],
+      exclude: ['**/*.test.ts', '**/*.port.ts', '**/index.ts', '**/test-setup.ts', '**/main.{ts,tsx}'],
       thresholds: { 100: true }
     }
   }

@@ -104,6 +104,13 @@ module.exports = {
       to: { path: '^apps/api/src/(modules|app)/' }
     },
     {
+      name: 'apps-are-independent',
+      comment: 'Apps talk over HTTP and share only packages (contracts); they never import each other.',
+      severity: 'error',
+      from: { path: '^apps/([^/]+)/' },
+      to: { path: '^apps/', pathNot: '^apps/$1/' }
+    },
+    {
       name: 'packages-not-to-apps',
       comment: 'Packages are consumed by apps, never the other way round.',
       severity: 'error',

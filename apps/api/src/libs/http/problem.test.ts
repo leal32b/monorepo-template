@@ -1,4 +1,4 @@
-import { apiProblemSchema } from '@template/contracts'
+import { apiProblemSchema } from '@repo/contracts'
 import {
   ArgumentInvalidException,
   ConflictException,
