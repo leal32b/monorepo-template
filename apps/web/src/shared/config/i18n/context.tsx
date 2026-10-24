@@ -1,11 +1,15 @@
 import * as i18n from '@solid-primitives/i18n'
-import { createContext, createMemo, createSignal, type ParentProps, useContext } from 'solid-js'
+import { createContext, createEffect, createMemo, createSignal, type ParentProps, useContext } from 'solid-js'
 import { type Locale, messages } from './messages'
 
 function createI18n(initial: Locale) {
   const [locale, setLocale] = createSignal(initial)
   const dictionary = createMemo(() => i18n.flatten(messages[locale()]))
   const t = i18n.translator(dictionary, i18n.resolveTemplate)
+  // Screen readers, hyphenation and browser translation all read <html lang>.
+  createEffect(() => {
+    document.documentElement.lang = locale()
+  })
   return { locale, setLocale, t }
 }
 

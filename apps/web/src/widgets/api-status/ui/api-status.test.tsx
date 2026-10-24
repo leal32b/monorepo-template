@@ -1,14 +1,17 @@
 import { render, screen } from '@solidjs/testing-library'
 import { ApiProvider, createApiClient } from '#shared/api'
+import { I18nProvider, type Locale } from '#shared/config'
 import { ApiStatus } from './api-status'
 
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z' }
 
-function renderWith(fetch: () => Promise<Response>) {
+function renderWith(fetch: () => Promise<Response>, locale: Locale = 'en') {
   render(() => (
-    <ApiProvider client={createApiClient({ fetch })}>
-      <ApiStatus />
-    </ApiProvider>
+    <I18nProvider locale={locale}>
+      <ApiProvider client={createApiClient({ fetch })}>
+        <ApiStatus />
+      </ApiProvider>
+    </I18nProvider>
   ))
 }
 
@@ -62,5 +65,11 @@ describe('ApiStatus', () => {
     renderWith(async () => ({}) as Response)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
+  })
+
+  it('speaks the language of the provider', async () => {
+    renderWith(async () => Response.json(health), 'pt-BR')
+
+    expect(await screen.findByText(/A API está no ar/)).toBeInTheDocument()
   })
 })

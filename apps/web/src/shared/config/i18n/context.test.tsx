@@ -56,4 +56,25 @@ describe('I18nProvider', () => {
 
     expect(() => render(() => <Orphan />)).toThrow('useI18n must be used inside an I18nProvider')
   })
+
+  it('sets the document language and keeps it in sync', () => {
+    const Switcher = () => {
+      const { setLocale } = useI18n()
+      return (
+        <button type="button" onClick={() => setLocale('pt-BR')}>
+          switch
+        </button>
+      )
+    }
+    render(() => (
+      <I18nProvider locale="en">
+        <Switcher />
+      </I18nProvider>
+    ))
+    expect(document.documentElement.lang).toBe('en')
+
+    screen.getByRole('button').click()
+
+    expect(document.documentElement.lang).toBe('pt-BR')
+  })
 })
