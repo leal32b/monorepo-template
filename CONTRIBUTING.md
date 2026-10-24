@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-nvm use        # Node 24 (.nvmrc / .node-version)
+nvm use        # Node 26 (.nvmrc / .node-version)
 pnpm install   # also installs the Git hooks
 ```
 
