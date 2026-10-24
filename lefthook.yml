@@ -16,6 +16,13 @@ commit-msg:
       run: pnpm exec commitlint --edit {1}
 
 pre-push:
+  parallel: true
   commands:
-    verify:
-      run: pnpm typecheck && pnpm test
+    typecheck:
+      run: pnpm typecheck
+    test:
+      run: pnpm test
+    deps:
+      run: pnpm lint:deps
+    fsd:
+      run: pnpm lint:fsd

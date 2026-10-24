@@ -35,7 +35,11 @@ Chosen option 1, run by `pnpm lint:deps` (config: `.dependency-cruiser.cjs`).
 | `api-modules-talk-through-index` | A module reaches another only through its `index.ts` |
 | `api-domain-is-pure`, `api-domain-no-io-builtins` | Domain imports no outer layer and no I/O or crypto built-ins |
 | `api-use-cases-depend-on-ports` | Use cases and controllers depend on `*.port.ts`, not on adapters |
+| `apps-are-independent` | An app never imports another app (they share only packages) |
 | `packages-not-to-apps` | Packages never import apps |
+
+FSD rules for the web are not here: Steiger is their single authority
+([ADR 0010](0010-web-architecture-feature-sliced-design.md)).
 
 dependency-cruiser parses TypeScript with `@swc/core` (`parser: 'swc'`) because it does not
 support the TypeScript 7 compiler API yet; swc keeps type-only imports, so type cycles are still

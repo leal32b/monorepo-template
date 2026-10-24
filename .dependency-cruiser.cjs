@@ -104,69 +104,11 @@ module.exports = {
       to: { path: '^apps/api/src/(modules|app)/' }
     },
     {
-      name: 'web-fsd-shared',
-      comment: 'FSD: shared/ imports nothing above it.',
+      name: 'apps-are-independent',
+      comment: 'Apps talk over HTTP and share only packages (contracts); they never import each other.',
       severity: 'error',
-      from: { path: '^apps/web/src/shared/' },
-      to: { path: '^apps/web/src/(entities|features|widgets|pages|app)/' }
-    },
-    {
-      name: 'web-fsd-entities',
-      comment: 'FSD: entities/ may import only shared/.',
-      severity: 'error',
-      from: { path: '^apps/web/src/entities/' },
-      to: { path: '^apps/web/src/(features|widgets|pages|app)/' }
-    },
-    {
-      name: 'web-fsd-features',
-      comment: 'FSD: features/ may import only entities/ and shared/.',
-      severity: 'error',
-      from: { path: '^apps/web/src/features/' },
-      to: { path: '^apps/web/src/(widgets|pages|app)/' }
-    },
-    {
-      name: 'web-fsd-widgets',
-      comment: 'FSD: widgets/ may import only features/, entities/ and shared/.',
-      severity: 'error',
-      from: { path: '^apps/web/src/widgets/' },
-      to: { path: '^apps/web/src/(pages|app)/' }
-    },
-    {
-      name: 'web-fsd-pages',
-      comment: 'FSD: pages/ must not import app/.',
-      severity: 'error',
-      from: { path: '^apps/web/src/pages/' },
-      to: { path: '^apps/web/src/app/' }
-    },
-    {
-      name: 'web-fsd-no-cross-slice',
-      comment: 'FSD: slices of the same layer do not import each other.',
-      severity: 'error',
-      from: { path: '^apps/web/src/(entities|features|widgets|pages)/([^/]+)/' },
-      to: { path: '^apps/web/src/$1/', pathNot: '^apps/web/src/$1/$2/' }
-    },
-    {
-      name: 'web-fsd-public-api',
-      comment: 'A slice is reached only through its index.ts, never through its internals.',
-      severity: 'error',
-      from: {
-        path: '^apps/web/src/(entities|features|widgets|pages|shared)/([^/]+)/',
-        pathNot: NOT_PRODUCTION
-      },
-      to: {
-        path: '^apps/web/src/(entities|features|widgets|pages|shared)/[^/]+/',
-        pathNot: ['^apps/web/src/$1/$2/', '^apps/web/src/[^/]+/[^/]+/index\\.ts$']
-      }
-    },
-    {
-      name: 'web-fsd-public-api-from-app',
-      comment: 'app/ and main.tsx also reach slices only through their index.ts.',
-      severity: 'error',
-      from: { path: '^apps/web/src/(app/|main\\.tsx$)' },
-      to: {
-        path: '^apps/web/src/(entities|features|widgets|pages|shared)/[^/]+/',
-        pathNot: '^apps/web/src/[^/]+/[^/]+/index\\.ts$'
-      }
+      from: { path: '^apps/([^/]+)/' },
+      to: { path: '^apps/', pathNot: '^apps/$1/' }
     },
     {
       name: 'packages-not-to-apps',
