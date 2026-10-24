@@ -7,6 +7,7 @@
     "#*": "./src/*/index.ts"
   },
   "scripts": {
+    "lint:fsd": "steiger ./src",
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview",
@@ -19,9 +20,11 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@feature-sliced/steiger-plugin": "^0.8.0",
     "@solidjs/testing-library": "^0.8.10",
     "@testing-library/jest-dom": "^7.0.1",
     "happy-dom": "^21.0.3",
+    "steiger": "^0.8.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vite-plugin-solid": "^2.11.14",
