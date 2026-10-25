@@ -23,6 +23,16 @@ export type RouteMatch =
 
 const splitPath = (path: string): string[] => path.split('/').filter(Boolean)
 
+/** A GET route also answers HEAD: same handler, and Node drops the body (RFC 9110, section 9.3.2). */
+const serves = (routeMethod: string, requestMethod: string): boolean =>
+  routeMethod === requestMethod || (requestMethod === 'HEAD' && routeMethod === 'GET')
+
+/** What `Allow` lists: the registered methods, HEAD wherever GET is, and OPTIONS on every known path. */
+function allowed(registered: string[]): string[] {
+  const methods = registered.flatMap((method) => (method === 'GET' ? ['GET', 'HEAD'] : [method]))
+  return [...new Set([...methods, 'OPTIONS'])]
+}
+
 function decode(segment: string): string {
   try {
     return decodeURIComponent(segment)
@@ -76,7 +86,7 @@ export class HttpRouter {
     for (const route of this.#routes) {
       const raw = matchSegments(route.segments, parts)
       if (!raw) continue
-      if (route.method !== method) {
+      if (!serves(route.method, method)) {
         pattern = route.pattern
         allow.push(route.method)
         continue
@@ -85,6 +95,6 @@ export class HttpRouter {
       return { kind: 'found', pattern: route.pattern, handler: route.handler, params }
     }
     if (allow.length === 0) return { kind: 'not-found' }
-    return { kind: 'method-not-allowed', pattern, allow }
+    return { kind: 'method-not-allowed', pattern, allow: allowed(allow) }
   }
 }

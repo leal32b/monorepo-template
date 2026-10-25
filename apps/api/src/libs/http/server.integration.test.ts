@@ -56,8 +56,37 @@ describe('HTTP server', () => {
     const response = await fetch(`${url}/hello`, { method: 'POST' })
 
     expect(response.status).toBe(405)
-    expect(response.headers.get('allow')).toBe('GET')
+    expect(response.headers.get('allow')).toBe('GET, HEAD, OPTIONS')
     expect(apiProblemSchema.parse(await response.json()).code).toBe('method_not_allowed')
+  })
+
+  it('answers HEAD like GET, with the same headers and no body', async () => {
+    const url = await start((router) => router.get('/hello', ok))
+
+    const response = await fetch(`${url}/hello`, { method: 'HEAD' })
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('application/json; charset=utf-8')
+    expect(response.headers.get('content-length')).toBe('17') // {"hello":"world"}
+    expect(await response.text()).toBe('')
+  })
+
+  it('answers OPTIONS on a known path with 204 and the Allow header', async () => {
+    const url = await start((router) => router.get('/hello', ok))
+
+    const response = await fetch(`${url}/hello`, { method: 'OPTIONS' })
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get('allow')).toBe('GET, HEAD, OPTIONS')
+    expect(await response.text()).toBe('')
+  })
+
+  it('answers OPTIONS on an unknown path with 404', async () => {
+    const url = await start(() => {})
+
+    const response = await fetch(`${url}/nope`, { method: 'OPTIONS' })
+
+    expect(response.status).toBe(404)
   })
 
   it('answers a malformed path encoding as 400', async () => {

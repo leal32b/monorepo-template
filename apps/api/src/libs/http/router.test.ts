@@ -55,7 +55,7 @@ describe('HttpRouter', () => {
     expect(router.match('DELETE', '/api/projects')).toEqual({
       kind: 'method-not-allowed',
       pattern: '/api/projects',
-      allow: ['GET', 'POST']
+      allow: ['GET', 'HEAD', 'POST', 'OPTIONS']
     })
   })
 
@@ -86,5 +86,17 @@ describe('HttpRouter', () => {
     expect(() => router.match('GET', '/api/projects/%E0%A4%A')).toThrow(
       expect.objectContaining({ status: 400, code: 'invalid_path' })
     )
+  })
+
+  it('answers HEAD with the GET handler of the path', () => {
+    const router = new HttpRouter()
+    router.get('/api/health', handler)
+
+    expect(router.match('HEAD', '/api/health')).toEqual({
+      kind: 'found',
+      pattern: '/api/health',
+      handler,
+      params: {}
+    })
   })
 })
