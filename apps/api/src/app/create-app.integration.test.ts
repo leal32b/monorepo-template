@@ -6,7 +6,12 @@ import { createApp } from './create-app'
 
 describe('API', () => {
   const clock = new FixedClock(new Date('2026-10-17T12:00:00.000Z'))
-  const server = createApp({ clock, logger: pino({ level: 'silent' }), serviceName: 'api' })
+  const server = createApp({
+    clock,
+    logger: pino({ level: 'silent' }),
+    serviceName: 'api',
+    corsOrigins: ['https://app.example.com']
+  })
   let url: string
 
   beforeAll(async () => {
@@ -32,5 +37,11 @@ describe('API', () => {
 
     expect(response.status).toBe(405)
     expect(apiProblemSchema.parse(await response.json()).code).toBe('method_not_allowed')
+  })
+
+  it('lets the configured web origin read /api/health', async () => {
+    const response = await fetch(`${url}/api/health`, { headers: { Origin: 'https://app.example.com' } })
+
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://app.example.com')
   })
 })

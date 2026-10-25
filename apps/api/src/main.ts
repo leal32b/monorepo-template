@@ -14,7 +14,7 @@ try {
 }
 
 const logger = pino({ level: env.logLevel })
-const server = createApp({ clock: new SystemClock(), logger, serviceName: 'api' })
+const server = createApp({ clock: new SystemClock(), logger, serviceName: 'api', corsOrigins: env.corsOrigins })
 const shutdown = createShutdown({ server, logger, timeoutMs: 10_000 })
 
 server.on('error', (error) => {

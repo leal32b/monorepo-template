@@ -11,16 +11,18 @@ export type AppDeps = {
   clock: Clock
   logger: Logger
   serviceName: string
+  /** Web origins allowed to read responses (ADR 0015); `[]` means same origin only. */
+  corsOrigins: readonly string[]
 }
 
 /**
  * Composition root: the only place that knows concrete classes. It gives each use case exactly
  * the ports it needs and each controller its single use case.
  */
-export function createApp({ clock, logger, serviceName }: AppDeps): Server {
+export function createApp({ clock, logger, serviceName, corsOrigins }: AppDeps): Server {
   const router = new HttpRouter()
   registerRoutes(router, {
     getHealth: new GetHealthController(new GetHealthService(clock, serviceName))
   })
-  return createHttpServer({ router, logger })
+  return createHttpServer({ router, logger, corsOrigins })
 }

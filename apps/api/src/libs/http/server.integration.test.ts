@@ -1,6 +1,6 @@
 import type { AddressInfo } from 'node:net'
 import { apiProblemSchema } from '@repo/contracts'
-import pino from 'pino'
+import pino, { type Logger } from 'pino'
 import { ConflictException } from '#libs/exceptions/exception.base'
 import { sendJson } from './json'
 import { type HttpHandler, HttpRouter } from './router'
@@ -12,10 +12,15 @@ class NameTaken extends ConflictException {
 
 const closers: Array<() => Promise<void>> = []
 
-async function start(register: (router: HttpRouter) => void, logger = pino({ level: 'silent' })) {
+type StartOptions = { logger?: Logger; corsOrigins?: readonly string[] }
+
+async function start(
+  register: (router: HttpRouter) => void,
+  { logger = pino({ level: 'silent' }), corsOrigins = [] }: StartOptions = {}
+) {
   const router = new HttpRouter()
   register(router)
-  const server = createHttpServer({ router, logger })
+  const server = createHttpServer({ router, logger, corsOrigins })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())))
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`
@@ -146,7 +151,7 @@ describe('HTTP server', () => {
         router.get('/hello', () => {
           throw new Error('db password is hunter2')
         }),
-      logger
+      { logger }
     )
 
     const response = await fetch(`${url}/hello`)
@@ -161,7 +166,7 @@ describe('HTTP server', () => {
   it('writes one access-log line per request, without headers or bodies', async () => {
     const logger = pino({ level: 'silent' })
     const info = vi.spyOn(logger, 'info')
-    const url = await start((router) => router.get('/items/:id', ok), logger)
+    const url = await start((router) => router.get('/items/:id', ok), { logger })
 
     await fetch(`${url}/items/7`, { headers: { Authorization: 'secret-token' } })
     await vi.waitFor(() => expect(info).toHaveBeenCalledTimes(1))
@@ -174,7 +179,7 @@ describe('HTTP server', () => {
   it('logs a rejected request as a warning', async () => {
     const logger = pino({ level: 'silent' })
     const warn = vi.spyOn(logger, 'warn')
-    const url = await start(() => {}, logger)
+    const url = await start(() => {}, { logger })
 
     await fetch(`${url}/nope`)
     await vi.waitFor(() => expect(warn).toHaveBeenCalledTimes(1))
@@ -195,5 +200,75 @@ describe('HTTP server', () => {
     )
 
     await expect(fetch(`${url}/hello`).then((response) => response.text())).rejects.toThrow()
+  })
+})
+
+describe('CORS', () => {
+  const origin = 'https://app.example.com'
+
+  it('lets an allowed origin read the response and its request id', async () => {
+    const url = await start((router) => router.get('/hello', ok), { corsOrigins: [origin] })
+
+    const response = await fetch(`${url}/hello`, { headers: { Origin: origin } })
+
+    expect(response.headers.get('access-control-allow-origin')).toBe(origin)
+    expect(response.headers.get('access-control-expose-headers')).toBe('X-Request-Id')
+    expect(response.headers.get('vary')).toBe('Origin')
+  })
+
+  it('lets an allowed origin read error responses too', async () => {
+    const url = await start(() => {}, { corsOrigins: [origin] })
+
+    const response = await fetch(`${url}/nope`, { headers: { Origin: origin } })
+
+    expect(response.status).toBe(404)
+    expect(response.headers.get('access-control-allow-origin')).toBe(origin)
+  })
+
+  it('sends no CORS headers to an origin outside the allowlist, but still serves it', async () => {
+    const url = await start((router) => router.get('/hello', ok), { corsOrigins: [origin] })
+
+    const response = await fetch(`${url}/hello`, { headers: { Origin: 'https://evil.example' } })
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('access-control-allow-origin')).toBeNull()
+    expect(response.headers.get('vary')).toBe('Origin')
+  })
+
+  const preflight = { 'Access-Control-Request-Method': 'GET' }
+
+  it('answers a preflight from an allowed origin with the methods and headers it may use', async () => {
+    const url = await start((router) => router.get('/hello', ok), { corsOrigins: [origin] })
+
+    const response = await fetch(`${url}/hello`, { method: 'OPTIONS', headers: { Origin: origin, ...preflight } })
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get('access-control-allow-origin')).toBe(origin)
+    expect(response.headers.get('access-control-allow-methods')).toBe('GET, HEAD, OPTIONS')
+    expect(response.headers.get('access-control-allow-headers')).toBe('Content-Type, X-Request-Id')
+    expect(response.headers.get('access-control-max-age')).toBe('600')
+  })
+
+  it('answers a preflight from another origin without granting anything', async () => {
+    const url = await start((router) => router.get('/hello', ok), { corsOrigins: [origin] })
+
+    const response = await fetch(`${url}/hello`, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://evil.example', ...preflight }
+    })
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get('access-control-allow-origin')).toBeNull()
+    expect(response.headers.get('access-control-allow-methods')).toBeNull()
+  })
+
+  it('treats OPTIONS without Access-Control-Request-Method as a plain OPTIONS', async () => {
+    const url = await start((router) => router.get('/hello', ok), { corsOrigins: [origin] })
+
+    const response = await fetch(`${url}/hello`, { method: 'OPTIONS', headers: { Origin: origin } })
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get('allow')).toBe('GET, HEAD, OPTIONS')
+    expect(response.headers.get('access-control-allow-methods')).toBeNull()
   })
 })
