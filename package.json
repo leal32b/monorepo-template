@@ -13,6 +13,7 @@
     "lint:fsd": "pnpm --filter @repo/web lint:fsd",
     "format": "biome check --write .",
     "typecheck": "pnpm -r typecheck && tsc -p tsconfig.json",
+    "db": "pnpm --filter @repo/api db",
     "dev": "pnpm --parallel --filter @repo/api --filter @repo/web dev",
     "test": "vitest run",
     "test:watch": "vitest",

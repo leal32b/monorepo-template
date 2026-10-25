@@ -5,6 +5,7 @@ export default defineProject({
     name: { label: 'api', color: 'green' },
     environment: 'node',
     globals: true,
-    include: ['src/**/*.test.ts']
+    include: ['src/**/*.test.ts'],
+    exclude: ['src/**/*.db.test.ts']
   }
 })

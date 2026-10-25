@@ -8,10 +8,15 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "dev": "tsx watch src/main.ts | pino-pretty"
+    "db": "pglite-server --db=.data --port=5433",
+    "migrate": "tsx --env-file-if-exists=.env src/migrate.ts",
+    "dev": "pnpm migrate && tsx watch --env-file-if-exists=.env src/main.ts | pino-pretty"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.11",
+    "@electric-sql/pglite-socket": "^0.2.14",
     "@types/node": "^26.6.5",
+    "@types/pg": "^8.23.1",
     "pino-pretty": "^13.2.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
@@ -19,6 +24,8 @@
   },
   "dependencies": {
     "@repo/contracts": "workspace:*",
+    "kysely": "^0.29.7",
+    "pg": "^8.23.1",
     "pino": "^10.4.0",
     "zod": "^4.6.7"
   }

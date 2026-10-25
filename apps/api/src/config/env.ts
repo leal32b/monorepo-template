@@ -13,6 +13,7 @@ function isOrigin(value: string): boolean {
 }
 
 const envSchema = z.object({
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   HOST: z.string().min(1).default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
@@ -29,6 +30,8 @@ const envSchema = z.object({
 })
 
 export type ApiEnv = {
+  /** Postgres connection string (ADR 0013). It holds the password: never log it. */
+  databaseUrl: string
   host: string
   port: number
   logLevel: (typeof LOG_LEVELS)[number]
@@ -49,6 +52,6 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
   if (!result.success) {
     throw new EnvError([...new Set(result.error.issues.map((issue) => String(issue.path[0])))])
   }
-  const { HOST, PORT, LOG_LEVEL, CORS_ORIGINS } = result.data
-  return { host: HOST, port: PORT, logLevel: LOG_LEVEL, corsOrigins: CORS_ORIGINS }
+  const { DATABASE_URL, HOST, PORT, LOG_LEVEL, CORS_ORIGINS } = result.data
+  return { databaseUrl: DATABASE_URL, host: HOST, port: PORT, logLevel: LOG_LEVEL, corsOrigins: CORS_ORIGINS }
 }
