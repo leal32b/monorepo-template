@@ -9,6 +9,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "db": "pglite-server --db=.data --port=5433",
+    "db:stop": "pid=$(lsof -tiTCP:5433 -sTCP:LISTEN) && kill -TERM $pid",
     "migrate": "tsx --env-file-if-exists=.env src/migrate.ts",
     "dev": "pnpm migrate && tsx watch --env-file-if-exists=.env src/main.ts | pino-pretty"
   },
