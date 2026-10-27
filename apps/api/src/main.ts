@@ -3,6 +3,7 @@ import { createApp } from '#app/create-app'
 import { createShutdown } from '#app/shutdown'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
+import { createDatabase, createPool } from '#libs/database/database'
 
 let env: ApiEnv
 try {
@@ -14,8 +15,15 @@ try {
 }
 
 const logger = pino({ level: env.logLevel })
-const server = createApp({ clock: new SystemClock(), logger, serviceName: 'api', corsOrigins: env.corsOrigins })
-const shutdown = createShutdown({ server, logger, timeoutMs: 10_000 })
+const db = createDatabase(createPool(env.databaseUrl, logger))
+const server = createApp({
+  clock: new SystemClock(),
+  logger,
+  serviceName: 'api',
+  corsOrigins: env.corsOrigins,
+  db
+})
+const shutdown = createShutdown({ server, logger, timeoutMs: 10_000, release: () => db.destroy() })
 
 server.on('error', (error) => {
   logger.fatal({ err: error }, 'API cannot listen')

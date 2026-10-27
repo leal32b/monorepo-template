@@ -3,7 +3,7 @@ import { ApiProvider, createApiClient } from '#shared/api'
 import { I18nProvider, type Locale } from '#shared/config'
 import { ApiStatus } from './api-status'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z' }
+const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 function renderWith(fetch: () => Promise<Response>, locale: Locale = 'en') {
   render(() => (
@@ -71,5 +71,11 @@ describe('ApiStatus', () => {
     renderWith(async () => Response.json(health), 'pt-BR')
 
     expect(await screen.findByText(/A API está no ar/)).toBeInTheDocument()
+  })
+
+  it('tells that the database is down when the API answers degraded', async () => {
+    renderWith(async () => Response.json({ ...health, status: 'degraded', database: 'down' }, { status: 503 }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The API is up, but its database is not answering')
   })
 })
