@@ -20,7 +20,8 @@ module.exports = {
       comment: 'Every import must resolve to a file or a declared package.',
       severity: 'error',
       from: {},
-      to: { couldNotResolve: true }
+      // Vite virtual modules (virtual:uno.css) exist only inside the bundler.
+      to: { couldNotResolve: true, pathNot: '^virtual:' }
     },
     {
       name: 'no-non-package-json',
@@ -102,6 +103,13 @@ module.exports = {
       severity: 'error',
       from: { path: '^apps/api/src/libs/' },
       to: { path: '^apps/api/src/(modules|app)/' }
+    },
+    {
+      name: 'web-composes-the-design-system',
+      comment: 'The web app composes @repo/ui (ADR 0017): a missing component is added there, not built from Kobalte.',
+      severity: 'error',
+      from: { path: '^apps/web/' },
+      to: { path: '@kobalte/' }
     },
     {
       name: 'apps-are-independent',

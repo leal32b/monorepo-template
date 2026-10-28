@@ -1,3 +1,4 @@
+import 'virtual:uno.css'
 import { render } from 'solid-js/web'
 import { createApiClient } from '#shared/api'
 import { detectLocale, readWebEnv } from '#shared/config'

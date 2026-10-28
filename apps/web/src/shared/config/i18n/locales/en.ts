@@ -10,7 +10,8 @@ export const en = {
     unexpected: 'The API answered something unexpected.',
     error: 'The API answered an error.',
     errorWithCode: 'The API answered an error ({{code}}).',
-    unknown: 'Something went wrong.'
+    unknown: 'Something went wrong.',
+    checkAgain: 'Check again'
   }
 }
 

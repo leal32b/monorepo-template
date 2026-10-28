@@ -48,6 +48,10 @@ Folders appear only when their phase of the plan reaches them.
 - **Web:** FSD checked by Steiger ([ADR 0010](docs/adr/0010-web-architecture-feature-sliced-design.md)):
   imports go downwards only, slices and `shared` segments are reached through their `index.ts`.
 - **`index.ts` files contain re-exports only** (they are excluded from coverage).
+- **UI:** screens compose `@repo/ui` ([ADR 0017](docs/adr/0017-build-the-web-ui-from-the-design-system-first.md));
+  a missing component is added there, with tests. Colours are roles only (`bg-primary`,
+  `text-muted-foreground`), held to WCAG contrast ([ADR 0016](docs/adr/0016-design-system-on-kobalte-and-unocss.md));
+  no Kobalte import and no literal colour in `apps/web`.
 - **i18n:** UI text lives in typed dictionaries, one file per language ([ADR 0011](docs/adr/0011-typed-i18n-dictionaries.md)).
 - **Contracts:** every request/response is a Zod schema in `@repo/contracts`.
 - **Database:** Postgres ([ADR 0003](docs/adr/0003-postgres-as-the-database.md)).
@@ -64,6 +68,7 @@ pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm lint:deps && pnpm lint
 Coverage thresholds are 100% from the start.
 
 As gates are introduced (knip, e2e) they join this list. Architecture rules are in
-[ADR 0006](docs/adr/0006-api-architecture.md), [ADR 0008](docs/adr/0008-architecture-boundaries-with-dependency-cruiser.md)
-and [ADR 0010](docs/adr/0010-web-architecture-feature-sliced-design.md). `pre-push` runs typecheck,
+[ADR 0006](docs/adr/0006-api-architecture.md), [ADR 0008](docs/adr/0008-architecture-boundaries-with-dependency-cruiser.md),
+[ADR 0010](docs/adr/0010-web-architecture-feature-sliced-design.md) and
+[ADR 0017](docs/adr/0017-build-the-web-ui-from-the-design-system-first.md). `pre-push` runs typecheck,
 tests, `lint:deps` and `lint:fsd` in parallel.

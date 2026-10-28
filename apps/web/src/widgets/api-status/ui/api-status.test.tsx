@@ -78,4 +78,22 @@ describe('ApiStatus', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The API is up, but its database is not answering')
   })
+
+  it('checks again when asked, but not while a check is running', async () => {
+    const fetch = vi
+      .fn<() => Promise<Response>>()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(Response.json(health))
+    renderWith(fetch)
+    const button = screen.getByRole('button', { name: 'Check again' })
+
+    expect(button).toBeDisabled()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Cannot reach the API')
+    expect(button).toBeEnabled()
+
+    button.click()
+
+    expect(await screen.findByText(/API is up/)).toBeInTheDocument()
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
 })

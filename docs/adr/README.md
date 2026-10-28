@@ -20,3 +20,5 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0013](0013-kysely-and-plain-sql-migrations.md) | Access Postgres with Kysely and migrate with plain SQL files | accepted |
 | [0014](0014-hosting-and-deploy-from-github-actions.md) | Host on Neon, Render and Cloudflare, deployed from GitHub Actions | accepted |
 | [0015](0015-cross-origin-access-with-a-cors-allowlist.md) | Serve the web origin with a CORS allowlist, `OPTIONS` and `HEAD` | accepted |
+| [0016](0016-design-system-on-kobalte-and-unocss.md) | Build the design system on Kobalte and UnoCSS, consumed from source | accepted |
+| [0017](0017-build-the-web-ui-from-the-design-system-first.md) | Build the web UI from the design system first | accepted |
