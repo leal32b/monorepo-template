@@ -21,7 +21,7 @@ pre-push:
     typecheck:
       run: pnpm typecheck
     test:
-      run: pnpm test
+      run: pnpm test:coverage
     deps:
       run: pnpm lint:deps
     fsd:
