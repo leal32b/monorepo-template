@@ -23,4 +23,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0016](0016-design-system-on-kobalte-and-unocss.md) | Build the design system on Kobalte and UnoCSS, consumed from source | accepted |
 | [0017](0017-build-the-web-ui-from-the-design-system-first.md) | Build the web UI from the design system first | accepted |
 | [0018](0018-take-the-migration-lock-inside-each-transaction.md) | Take the migration lock inside each migration's transaction | accepted |
-| [0019](0019-reach-the-api-through-the-web-worker.md) | Reach the API through the web Worker, on the web origin | accepted |
+| [0019](0019-reach-the-api-through-the-web-worker.md) | Reach the API through the web Worker, on the web origin | accepted; cookie prefix superseded by [0020](0020-authenticate-with-better-auth.md), client IP header by [0022](0022-accept-api-requests-only-from-the-web-worker.md) |
+| [0020](0020-authenticate-with-better-auth.md) | Authenticate with Better Auth, behind our own ports | accepted |
+| [0021](0021-send-email-through-a-provider-neutral-port.md) | Send email through a provider-neutral port | accepted |
+| [0022](0022-accept-api-requests-only-from-the-web-worker.md) | Accept API requests only from the web Worker | accepted |

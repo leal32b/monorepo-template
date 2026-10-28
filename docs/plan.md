@@ -14,8 +14,9 @@ Legend: 🟦 Sonnet is enough · 🟥 use Opus (a decision that is expensive to 
 | 4 | Database, CI, deploy | Postgres (Neon) via Kysely, plain SQL migrations, PGlite in tests, CORS/OPTIONS/HEAD, esbuild bundle + container image, `DatabaseProbe` port + fake, `/health` reading the DB (503 when degraded) and `/health/live`, GitHub Actions CI, deploy after green CI (API on Render, web on Cloudflare) | 🟥 |
 | 5 | Minimal UI package | `@repo/ui` consumed from source: colour roles over a private palette held to WCAG contrast by a test, dark via `prefers-color-scheme`, a UnoCSS preset that offers only role colours, Button, Input and Field on Kobalte; status page with a "Check again" Button; design-system-first checks (no Kobalte and no literal colours in the web app) | 🟦 |
 | 5.5 | Pre-auth review | Coverage gate measures `.tsx` (Solid HMR off in tests) and runs on pre-push; boundary rules as allowlists (`libs/database` guarded, no npm package in the domain); migration lock per transaction, safe behind any pooler; one pnpm catalog for every version; immutable cache for hashed assets and baseline security headers, checked by the deploy smoke test; session path decided; README | 🟥 |
-| 6 | Auth and authorization | JSON body reading (size limit, content type, schema validation), `identity` module, first repository port + in-memory fake, the web Worker proxying `/api/*` ([ADR 0019](adr/0019-reach-the-api-through-the-web-worker.md)), sessions in a first-party cookie, tenants (organization + member + role), guards, login/register screens, 401/403 handling, threat model (CSRF checked by `Origin`), full CSP | 🟥 |
-| 7 | Reference vertical module | A small tenant-scoped CRUD end to end (contract → domain → API → web → e2e); the mould for future modules | 🟦 |
+| 6 | Authentication | [Threat model](security/threat-model.md); the web Worker proxying `/api/*` with a shared secret ([ADR 0019](adr/0019-reach-the-api-through-the-web-worker.md), [ADR 0022](adr/0022-accept-api-requests-only-from-the-web-worker.md)), 404 for missing assets, full CSP; JSON body reading (size limit, content type, schema validation), CSRF checked by `Sec-Fetch-Site`/`Origin`, API security headers; email through a port with log and Resend adapters ([ADR 0021](adr/0021-send-email-through-a-provider-neutral-port.md)); Better Auth at `/api/auth/*` ([ADR 0020](adr/0020-authenticate-with-better-auth.md)): email and password with a confirmed email, password reset, Google sign-in, TOTP and backup codes, rate limiting, migrations in the `auth` schema; a current-session port and a 401 guard; sign-up, sign-in, email confirmation, password reset, MFA and account security screens; weekly `pnpm audit` in CI | 🟥 |
+| 6.5 | Organizations and authorization | Better Auth's organization plugin: organizations, members, roles and custom permissions, invitations by email; a tenant guard on the path (`/api/organizations/:id/...`: 404 for non-members, 403 without the permission); organization screens (create, switch, members, invite, accept) | 🟥 |
+| 7 | Reference vertical module | A small tenant-scoped CRUD end to end (contract → domain → API → web → e2e), with the first repository port and its in-memory fake; the mould for future modules | 🟦 |
 | 8 | E2E and quality | Playwright flow + axe, knip, coverage ratchet, bundle budget (settles `zod` against `zod/mini`) | 🟦 |
 | 9 | Hardening and template use | SECURITY.md, observability basics, "how to start a SaaS from this template" | 🟦 |
 
@@ -38,10 +39,15 @@ option).
   ([ADR 0017](adr/0017-build-the-web-ui-from-the-design-system-first.md)).
 - Session path: the web Worker proxies `/api/*`, so the session cookie is first-party on the
   default hostnames ([ADR 0019](adr/0019-reach-the-api-through-the-web-worker.md)).
-- Auth: decided at the start of Phase 6 (library vs. own implementation), in an ADR.
+- Auth: Better Auth at `/api/auth/*`, behind our own ports, with its organization plugin in
+  Phase 6.5 ([ADR 0020](adr/0020-authenticate-with-better-auth.md)); the API accepts only the web
+  Worker ([ADR 0022](adr/0022-accept-api-requests-only-from-the-web-worker.md)); email goes
+  through a provider-neutral port ([ADR 0021](adr/0021-send-email-through-a-provider-neutral-port.md)).
+  Threats and accepted risks: [threat model](security/threat-model.md).
 - Tool versions: one pnpm catalog in `pnpm-workspace.yaml`, set from what is stable on the day.
-  Updates are checked by hand (`pnpm outdated -r`, `pnpm audit --audit-level high`); Dependabot
-  cannot read the pnpm 12 lockfile.
+  Updates are checked by hand (`pnpm outdated -r`); Dependabot cannot read the pnpm 12 lockfile.
+  From Phase 6, a weekly `pnpm audit --audit-level high` runs in CI, because authentication now
+  comes from a library.
 - Versioning: an annotated tag per phase (`v0.5.0` for Phase 5), no release tooling.
 
 ## Waiting for a trigger
