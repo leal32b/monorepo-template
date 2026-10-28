@@ -12,6 +12,7 @@ export const ptBR: Messages = {
     unexpected: 'A API respondeu algo inesperado.',
     error: 'A API respondeu com erro.',
     errorWithCode: 'A API respondeu com erro ({{code}}).',
-    unknown: 'Algo deu errado.'
+    unknown: 'Algo deu errado.',
+    checkAgain: 'Verificar de novo'
   }
 }
