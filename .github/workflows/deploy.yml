@@ -155,7 +155,14 @@ jobs:
           workingDirectory: apps/web
           packageManager: pnpm
           command: deploy
-      - name: Smoke test the page
+      - name: Smoke test the page and its headers
         env:
           WEB_URL: ${{ steps.deploy.outputs.deployment-url }}
-        run: curl --fail --silent --show-error --retry 3 --retry-all-errors "$WEB_URL/" > /dev/null
+        run: |
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --retry 3 --retry-all-errors --dump-header headers.txt --output index.html "$WEB_URL/"
+          # The headers come from apps/web/public/_headers: a deploy that drops them fails here.
+          grep -qi '^x-content-type-options: nosniff' headers.txt || { echo "::error::/ lacks X-Content-Type-Options"; exit 1; }
+          asset=$(grep -o '/assets/[^"]*\.js' index.html | head -1)
+          curl --fail --silent --show-error --head "$WEB_URL$asset" | grep -qi '^cache-control:.*immutable' \
+            || { echo "::error::$asset is not cached as immutable"; exit 1; }
