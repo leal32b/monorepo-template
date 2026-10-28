@@ -1,9 +1,10 @@
-import { healthResponseSchema } from './health'
+import { healthResponseSchema, livenessResponseSchema } from './health'
 
 const valid = {
   status: 'ok',
   service: 'api',
-  timestamp: '2026-10-16T12:00:00.000Z'
+  timestamp: '2026-10-16T12:00:00.000Z',
+  database: 'up'
 }
 
 describe('healthResponseSchema', () => {
@@ -11,13 +12,19 @@ describe('healthResponseSchema', () => {
     expect(healthResponseSchema.safeParse(valid).success).toBe(true)
   })
 
-  it('rejects a status other than "ok"', () => {
-    const result = healthResponseSchema.safeParse({
-      ...valid,
-      status: 'down'
-    })
+  it('accepts a degraded response when the database is down', () => {
+    expect(healthResponseSchema.safeParse({ ...valid, status: 'degraded', database: 'down' }).success).toBe(true)
+  })
 
-    expect(result.success).toBe(false)
+  it.each([
+    { status: 'ok', database: 'down' },
+    { status: 'degraded', database: 'up' }
+  ])('rejects the inconsistent pair %o', (pair) => {
+    expect(healthResponseSchema.safeParse({ ...valid, ...pair }).success).toBe(false)
+  })
+
+  it('rejects an unknown status', () => {
+    expect(healthResponseSchema.safeParse({ ...valid, status: 'down' }).success).toBe(false)
   })
 
   it('rejects a timestamp that is not an ISO 8601 date-time', () => {
@@ -27,5 +34,15 @@ describe('healthResponseSchema', () => {
     })
 
     expect(result.success).toBe(false)
+  })
+})
+
+describe('livenessResponseSchema', () => {
+  it('accepts { status: "ok" }', () => {
+    expect(livenessResponseSchema.safeParse({ status: 'ok' }).success).toBe(true)
+  })
+
+  it('rejects anything else', () => {
+    expect(livenessResponseSchema.safeParse({ status: 'degraded' }).success).toBe(false)
   })
 })

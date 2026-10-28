@@ -2,10 +2,11 @@ packages:
   - apps/*
   - packages/*
 
-# Refuse dependencies whose `engines` exclude the current Node version.
 allowBuilds:
   '@swc/core': false
   esbuild: true
   lefthook: true
+  workerd: false
 
+# Refuse dependencies whose `engines` exclude the current Node version.
 engineStrict: true

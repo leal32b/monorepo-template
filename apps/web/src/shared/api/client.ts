@@ -28,11 +28,16 @@ export type ApiClientOptions = {
   baseUrl?: string
 }
 
+export type GetOptions = {
+  /** Error statuses whose body is still part of the contract: validated by the schema and returned. */
+  accept?: readonly number[]
+}
+
 /** The JSON body of a response, or `undefined` when it is not JSON. */
 const readJson = (response: Response): Promise<unknown> => response.json().catch(() => undefined)
 
 export function createApiClient({ fetch, baseUrl = '' }: ApiClientOptions) {
-  async function get<T>(path: string, schema: z.ZodType<T>): Promise<T> {
+  async function get<T>(path: string, schema: z.ZodType<T>, { accept = [] }: GetOptions = {}): Promise<T> {
     let response: Response
     try {
       response = await fetch(`${baseUrl}${path}`, {
@@ -45,7 +50,7 @@ export function createApiClient({ fetch, baseUrl = '' }: ApiClientOptions) {
 
     const body = await readJson(response)
 
-    if (!response.ok) {
+    if (!response.ok && !accept.includes(response.status)) {
       const problem = apiProblemSchema.safeParse(body)
       throw new ApiError('http', `The API answered ${response.status}.`, {
         status: response.status,

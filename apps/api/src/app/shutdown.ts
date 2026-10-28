@@ -6,14 +6,17 @@ export type ShutdownOptions = {
   logger: Logger
   /** How long in-flight requests may take before their connections are cut. */
   timeoutMs: number
+  /** Frees what requests used (the database pool), once none is in flight. */
+  release?: () => Promise<void>
 }
 
 /**
  * Graceful shutdown: stop accepting connections, let in-flight requests finish, drop idle
- * keep-alive connections, and cut whatever is still open after `timeoutMs`.
+ * keep-alive connections, and cut whatever is still open after `timeoutMs`. Then `release`
+ * runs once; its failure is logged so the process can still exit.
  * Idempotent: every call returns the same promise.
  */
-export function createShutdown({ server, logger, timeoutMs }: ShutdownOptions) {
+export function createShutdown({ server, logger, timeoutMs, release = async () => {} }: ShutdownOptions) {
   let shuttingDown: Promise<void> | undefined
 
   return (reason: string): Promise<void> => {
@@ -32,6 +35,8 @@ export function createShutdown({ server, logger, timeoutMs }: ShutdownOptions) {
       })
       server.closeIdleConnections()
     })
+      .then(release)
+      .catch((err: unknown) => logger.error({ err }, 'releasing resources failed'))
     return shuttingDown
   }
 }

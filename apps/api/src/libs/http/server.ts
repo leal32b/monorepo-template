@@ -1,15 +1,18 @@
 import { randomUUID } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Logger } from 'pino'
+import { applyCors, preflightHeaders } from './cors'
 import { HttpProblem, sendProblem, toProblem } from './problem'
 import type { HttpRouter } from './router'
 
 export type HttpServerOptions = {
   router: HttpRouter
   logger: Logger
+  /** Web origins allowed to read responses (ADR 0015). None by default: same origin only. */
+  corsOrigins?: readonly string[]
 }
 
-type RequestInfo = { id: string; route: string | null; path: string }
+type RequestInfo = { id: string; route: string | null; path: string; corsAllowed: boolean }
 
 const REQUEST_ID = /^[\w.-]{1,128}$/
 
@@ -27,19 +30,24 @@ function pathOf(req: IncomingMessage): string {
 }
 
 /**
- * The HTTP pipeline, in order: request id, routing (404, 405), handler, error boundary.
+ * The HTTP pipeline, in order: request id, CORS, routing (404, 405, OPTIONS), handler, error boundary.
  * Every failure ends as an RFC 9457 problem response; nothing escapes as an unhandled rejection.
  * One access-log line is written per request; headers and bodies are never logged.
  */
-export function createHttpServer({ router, logger }: HttpServerOptions): Server {
+export function createHttpServer({ router, logger, corsOrigins = [] }: HttpServerOptions): Server {
+  const allowlist = new Set(corsOrigins)
   async function dispatch(req: IncomingMessage, res: ServerResponse, request: RequestInfo) {
     const match = router.match(req.method as string, request.path)
     if (match.kind === 'not-found') throw new HttpProblem(404, 'not_found')
     request.route = match.pattern
     if (match.kind === 'method-not-allowed') {
-      throw new HttpProblem(405, 'method_not_allowed', {
-        headers: { Allow: match.allow.join(', ') }
-      })
+      const allow = match.allow.join(', ')
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, { Allow: allow, ...preflightHeaders(req, request.corsAllowed, allow) })
+        res.end()
+        return
+      }
+      throw new HttpProblem(405, 'method_not_allowed', { headers: { Allow: allow } })
     }
     await match.handler(req, res, { params: match.params, requestId: request.id })
   }
@@ -49,9 +57,11 @@ export function createHttpServer({ router, logger }: HttpServerOptions): Server 
     const request: RequestInfo = {
       id: incomingRequestId(req) ?? randomUUID(),
       route: null,
-      path: pathOf(req)
+      path: pathOf(req),
+      corsAllowed: false
     }
     res.setHeader('X-Request-Id', request.id)
+    request.corsAllowed = applyCors(req, res, allowlist)
 
     res.on('finish', () => {
       const line = {

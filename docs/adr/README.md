@@ -16,3 +16,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0009](0009-subpath-imports-for-aliases.md) | Subpath imports (`#...`) for path aliases | accepted |
 | [0010](0010-web-architecture-feature-sliced-design.md) | Structure the web app with Feature-Sliced Design, checked by Steiger | accepted |
 | [0011](0011-typed-i18n-dictionaries.md) | Typed i18n dictionaries with @solid-primitives/i18n | accepted |
+| [0012](0012-bundle-the-api-with-esbuild.md) | Bundle the API with esbuild for production | accepted |
+| [0013](0013-kysely-and-plain-sql-migrations.md) | Access Postgres with Kysely and migrate with plain SQL files | accepted |
+| [0014](0014-hosting-and-deploy-from-github-actions.md) | Host on Neon, Render and Cloudflare, deployed from GitHub Actions | accepted |
+| [0015](0015-cross-origin-access-with-a-cors-allowlist.md) | Serve the web origin with a CORS allowlist, `OPTIONS` and `HEAD` | accepted |

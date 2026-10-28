@@ -24,7 +24,10 @@ export function ApiStatus() {
   return (
     <Switch fallback={<p role="status">{t('apiStatus.checking')}</p>}>
       <Match when={health.error}>{(error) => <p role="alert">{describe(error())}</p>}</Match>
-      <Match when={health()}>
+      <Match when={health()?.status === 'degraded'}>
+        <p role="alert">{t('apiStatus.degraded')}</p>
+      </Match>
+      <Match when={health()?.status === 'ok' && health()}>
         {(data) => <p role="status">{t('apiStatus.up', { service: data().service, timestamp: data().timestamp })}</p>}
       </Match>
     </Switch>

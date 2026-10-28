@@ -1,7 +1,7 @@
 import { healthResponseSchema } from '@repo/contracts'
 import { ApiError, createApiClient } from './client'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z' }
+const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -94,5 +94,21 @@ describe('createApiClient', () => {
     const error = await failureOf(client.get('/api/health', healthResponseSchema))
 
     expect(error.kind).toBe('contract')
+  })
+
+  it('returns the body of an accepted error status once it satisfies the schema', async () => {
+    const degraded = { ...health, status: 'degraded', database: 'down' }
+    const client = createApiClient({ fetch: async () => json(degraded, 503) })
+
+    expect(await client.get('/api/health', healthResponseSchema, { accept: [503] })).toEqual(degraded)
+  })
+
+  it('fails with kind "contract" when an accepted error status does not satisfy the schema', async () => {
+    const client = createApiClient({ fetch: async () => new Response('Service Unavailable', { status: 503 }) })
+
+    const error = await failureOf(client.get('/api/health', healthResponseSchema, { accept: [503] }))
+
+    expect(error.kind).toBe('contract')
+    expect(error.status).toBe(503)
   })
 })

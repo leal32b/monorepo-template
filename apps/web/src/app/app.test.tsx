@@ -4,7 +4,7 @@ import { App } from './app'
 
 describe('App', () => {
   it('serves the home page at the root route, in the given language, with the given API client', async () => {
-    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z' }
+    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
     const client = createApiClient({ fetch: async () => Response.json(health) })
 
     render(() => <App client={client} locale="en" />)

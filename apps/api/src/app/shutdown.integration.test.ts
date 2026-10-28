@@ -80,11 +80,57 @@ describe('createShutdown', () => {
     expect(await pending).toBeInstanceOf(Error)
   })
 
-  it('is idempotent: a second call returns the same shutdown', async () => {
+  it('is idempotent: a second call returns the same shutdown and releases once', async () => {
     const { server } = await start(() => {})
-    const shutdown = createShutdown({ server, logger, timeoutMs: 1_000 })
+    const release = vi.fn(async () => {})
+    const shutdown = createShutdown({ server, logger, timeoutMs: 1_000, release })
 
     expect(shutdown('SIGTERM')).toBe(shutdown('SIGINT'))
     await shutdown('SIGTERM')
+
+    expect(release).toHaveBeenCalledOnce()
+  })
+
+  it('releases resources only after the in-flight request has finished', async () => {
+    const events: string[] = []
+    let entered!: () => void
+    let release!: () => void
+    const handlerEntered = new Promise<void>((resolve) => (entered = resolve))
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    const { server, url } = await start((router) =>
+      router.get('/slow', async (_req, res) => {
+        entered()
+        await gate
+        sendJson(res, 200, { done: true })
+        events.push('request finished')
+      })
+    )
+    const pending = fetch(`${url}/slow`)
+    await handlerEntered
+
+    const shutdown = createShutdown({
+      server,
+      logger,
+      timeoutMs: 5_000,
+      release: async () => {
+        events.push('released')
+      }
+    })('test')
+    release()
+    await pending
+    await shutdown
+
+    expect(events).toEqual(['request finished', 'released'])
+  })
+
+  it('logs a failed release and still resolves, so the process can exit', async () => {
+    const { server } = await start(() => {})
+    const error = vi.spyOn(logger, 'error')
+    const failure = new Error('pool already ended')
+
+    await createShutdown({ server, logger, timeoutMs: 1_000, release: () => Promise.reject(failure) })('test')
+
+    expect(error).toHaveBeenCalledWith({ err: failure }, 'releasing resources failed')
+    error.mockRestore()
   })
 })

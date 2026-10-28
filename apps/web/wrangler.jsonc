@@ -1,0 +1,11 @@
+// Assets-only Worker: serves the Vite build, no Worker script (ADR 0014).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "monorepo-template-web",
+  "compatibility_date": "2026-10-28",
+  "assets": {
+    "directory": "./dist/",
+    // Paths that are not files get /index.html with 200, so client-side routes survive a reload.
+    "not_found_handling": "single-page-application"
+  }
+}

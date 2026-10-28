@@ -24,5 +24,12 @@
   },
   "[jsonc]": {
     "editor.defaultFormatter": "biomejs.biome"
-  }
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "files.insertFinalNewline": true
 }

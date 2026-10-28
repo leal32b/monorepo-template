@@ -1,3 +1,4 @@
+export { readWebEnv, type WebEnv } from './env/read-web-env'
 export { I18nProvider, useI18n } from './i18n/context'
 export { detectLocale } from './i18n/detect-locale'
 export type { Locale } from './i18n/messages'

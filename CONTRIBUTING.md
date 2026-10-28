@@ -3,8 +3,9 @@
 ## Setup
 
 ```bash
-nvm use        # Node 24 (.nvmrc / .node-version)
+nvm use        # Node 26 (.nvmrc / .node-version)
 pnpm install   # also installs the Git hooks
+cp apps/api/.env.example apps/api/.env
 ```
 
 ## Everyday commands
@@ -17,7 +18,8 @@ pnpm test
 pnpm test:coverage  # 100% thresholds
 pnpm lint:deps      # import graph rules (dependency-cruiser)
 pnpm lint:fsd       # Feature-Sliced Design (Steiger)
-pnpm dev            # API :3001 + web :5173
+pnpm db             # local Postgres (PGlite) on :5433, in its own terminal
+pnpm dev            # migrations, then API :3001 + web :5173
 ```
 
 ## Workflow
