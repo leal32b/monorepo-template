@@ -11,11 +11,11 @@ Legend: 🟦 Sonnet is enough · 🟥 use Opus (a decision that is expensive to 
 | 1 | `packages/contracts` | `Health` Zod schema + inferred type, first TDD cycle | 🟦 |
 | 2 | API walking skeleton | `node:http` pipeline, error/problem format, `health` module, composition root, `Clock`/`IdGenerator` ports, dependency-cruiser + domain-purity gates, contract integration test | 🟦 |
 | 3 | Web walking skeleton | Vite + Solid + router, FSD, Steiger, API client validating contracts, status page, i18n (en + pt-BR) | 🟦 |
-| 4 | Database, CI, deploy | Postgres (Neon), migrations, CORS/OPTIONS/HEAD, production build of the API, repository port + in-memory fake, GitHub Actions, API + web deployed, `/health` reading the DB in production | 🟥 |
+| 4 | Database, CI, deploy | Postgres (Neon) via Kysely, plain SQL migrations, PGlite in tests, CORS/OPTIONS/HEAD, esbuild bundle + container image, `DatabaseProbe` port + fake, `/health` reading the DB (503 when degraded) and `/health/live`, GitHub Actions CI, deploy after green CI (API on Render, web on Cloudflare) | 🟥 |
 | 5 | Minimal UI package | Tokens, Button, Input, Field on Kobalte + UnoCSS, design-system-first rule | 🟦 |
-| 6 | Auth and authorization | JSON body reading (size limit, content type, schema validation), `identity` module, sessions, tenants (organization + member + role), guards, login/register screens, 401/403 handling, threat model | 🟥 |
+| 6 | Auth and authorization | JSON body reading (size limit, content type, schema validation), `identity` module, , first repository port + in-memory fake, sessions, tenants (organization + member + role), guards, login/register screens, 401/403 handling, threat model | 🟥 |
 | 7 | Reference vertical module | A small tenant-scoped CRUD end to end (contract → domain → API → web → e2e); the mould for future modules | 🟦 |
-| 8 | E2E and quality | Playwright flow + axe, knip, coverage ratchet, deploy after green CI | 🟦 |
+| 8 | E2E and quality | Playwright flow + axe, knip, coverage ratchet | 🟦 |
 | 9 | Hardening and template use | Env validation, SECURITY.md, observability basics, "how to start a SaaS from this template" | 🟦 |
 
 ## Out of scope (specific to team-app)
@@ -27,7 +27,8 @@ option).
 ## Decisions taken
 
 - Database: Postgres ([ADR 0003](adr/0003-postgres-as-the-database.md)).
-- Hosting: web on a static host (Cloudflare Pages or Vercel), API on a free container host
-  (Render or Koyeb). Confirmed in Phase 4 against the free tiers of that day.
+- Data access: Kysely and plain SQL migrations, PGlite in tests ([ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)).
+- Hosting: Neon, Render and Cloudflare Workers, deployed from GitHub Actions after green CI
+  ([ADR 0014](adr/0014-hosting-and-deploy-from-github-actions.md)); free tiers checked on 2026-10-24.
 - Auth: decided at the start of Phase 6 (library vs. own implementation), in an ADR.
 - Tool versions: pinned in Phase 0 from what is stable on the day.
