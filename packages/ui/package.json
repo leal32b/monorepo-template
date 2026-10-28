@@ -18,23 +18,23 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "peerDependencies": {
-    "solid-js": "^1.9.17"
+    "solid-js": "catalog:"
   },
   "dependencies": {
-    "@kobalte/core": "^0.13.14",
-    "@unocss/preset-wind4": "^66.12.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^3.7.0"
+    "@kobalte/core": "catalog:",
+    "@unocss/preset-wind4": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "tailwind-merge": "catalog:"
   },
   "devDependencies": {
-    "@solidjs/testing-library": "^0.8.10",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@unocss/core": "^66.12.0",
-    "happy-dom": "^21.0.4",
-    "solid-js": "^1.9.17",
-    "typescript": "^7.0.2",
-    "vite-plugin-solid": "^2.11.14",
-    "vitest": "^5.0.5"
+    "@solidjs/testing-library": "catalog:",
+    "@testing-library/jest-dom": "catalog:",
+    "@unocss/core": "catalog:",
+    "happy-dom": "catalog:",
+    "solid-js": "catalog:",
+    "typescript": "catalog:",
+    "vite-plugin-solid": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -42,6 +42,7 @@ Folders appear only when their phase of the plan reaches them.
 
 - **Node.js 26**, **pnpm** workspaces without a task runner ([ADR 0002](docs/adr/0002-pnpm-workspaces-without-a-task-runner.md)).
 - **TypeScript**, **Biome** (not ESLint/Prettier), **Vitest**. `@types/node` stays on the major of `.node-version`.
+- **Versions** live in the pnpm catalog of `pnpm-workspace.yaml`; package.json files say `catalog:`.
 - **Imports:** aliases are Node subpath imports (`#libs/...`) inside a package ([ADR 0009](docs/adr/0009-subpath-imports-for-aliases.md)); a package declares every dependency it imports.
 - **API:** plain `node:http`, no Express/Fastify; domain is pure (no I/O, clock or randomness);
   use cases in `commands|queries/<use-case>/`; `GET` never writes.
