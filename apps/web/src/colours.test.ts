@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** A colour written by hand: hex, or a CSS colour function. */
+/** A colour written by hand: hex, or a CSS colour function (ADR 0017). */
 const literalColour = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix)\(/i
 
 /** The app's source, tests left out (they may describe colours). */

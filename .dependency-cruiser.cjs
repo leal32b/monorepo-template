@@ -106,7 +106,7 @@ module.exports = {
     },
     {
       name: 'web-composes-the-design-system',
-      comment: 'The web app composes @repo/ui; a missing component is added there, not built from Kobalte here.',
+      comment: 'The web app composes @repo/ui (ADR 0017): a missing component is added there, not built from Kobalte.',
       severity: 'error',
       from: { path: '^apps/web/' },
       to: { path: '@kobalte/' }
