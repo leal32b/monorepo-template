@@ -36,4 +36,9 @@ describe('presetUi', () => {
       expect(css).toMatch(new RegExp(`\\.text-${role}\\{[^}]*var\\(--ds-${role}\\)`))
     }
   })
+
+  it('has no colour but the roles, so a palette colour paints nothing', async () => {
+    expect(await generate('bg-blue-600 text-slate-500 border-red-700')).toBe('')
+    expect(await generate('bg-transparent')).toContain('.bg-transparent{background-color:transparent;}')
+  })
 })
