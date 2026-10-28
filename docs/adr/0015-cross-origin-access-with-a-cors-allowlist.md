@@ -1,6 +1,6 @@
 # 0015. Serve the web origin with a CORS allowlist, `OPTIONS` and `HEAD`
 
-- Status: accepted
+- Status: accepted; the production path is superseded by [0019](0019-reach-the-api-through-the-web-worker.md)
 - Date: 2026-10-24
 
 ## Context and problem statement

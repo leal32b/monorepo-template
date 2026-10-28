@@ -1,6 +1,6 @@
 # 0013. Access Postgres with Kysely and migrate with plain SQL files
 
-- Status: accepted
+- Status: accepted; the migration lock is superseded by [0018](0018-take-the-migration-lock-inside-each-transaction.md)
 - Date: 2026-10-24
 
 ## Context and problem statement

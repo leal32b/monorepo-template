@@ -3,7 +3,9 @@ pre-commit:
     biome:
       priority: 1
       glob: '*.{js,mjs,cjs,ts,jsx,tsx,json,jsonc,css,yml,yaml,md}'
-      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files} && git update-index --again
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      # Restage what Biome rewrote, so the commit holds the formatted files.
+      stage_fixed: true
     # Runs after Biome (it may rewrite files); only the tests that import a staged file.
     test:
       priority: 2
@@ -21,7 +23,7 @@ pre-push:
     typecheck:
       run: pnpm typecheck
     test:
-      run: pnpm test
+      run: pnpm test:coverage
     deps:
       run: pnpm lint:deps
     fsd:

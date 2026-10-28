@@ -17,8 +17,10 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0010](0010-web-architecture-feature-sliced-design.md) | Structure the web app with Feature-Sliced Design, checked by Steiger | accepted |
 | [0011](0011-typed-i18n-dictionaries.md) | Typed i18n dictionaries with @solid-primitives/i18n | accepted |
 | [0012](0012-bundle-the-api-with-esbuild.md) | Bundle the API with esbuild for production | accepted |
-| [0013](0013-kysely-and-plain-sql-migrations.md) | Access Postgres with Kysely and migrate with plain SQL files | accepted |
-| [0014](0014-hosting-and-deploy-from-github-actions.md) | Host on Neon, Render and Cloudflare, deployed from GitHub Actions | accepted |
-| [0015](0015-cross-origin-access-with-a-cors-allowlist.md) | Serve the web origin with a CORS allowlist, `OPTIONS` and `HEAD` | accepted |
+| [0013](0013-kysely-and-plain-sql-migrations.md) | Access Postgres with Kysely and migrate with plain SQL files | accepted; lock superseded by [0018](0018-take-the-migration-lock-inside-each-transaction.md) |
+| [0014](0014-hosting-and-deploy-from-github-actions.md) | Host on Neon, Render and Cloudflare, deployed from GitHub Actions | accepted; web Worker extended by [0019](0019-reach-the-api-through-the-web-worker.md) |
+| [0015](0015-cross-origin-access-with-a-cors-allowlist.md) | Serve the web origin with a CORS allowlist, `OPTIONS` and `HEAD` | accepted; production path superseded by [0019](0019-reach-the-api-through-the-web-worker.md) |
 | [0016](0016-design-system-on-kobalte-and-unocss.md) | Build the design system on Kobalte and UnoCSS, consumed from source | accepted |
 | [0017](0017-build-the-web-ui-from-the-design-system-first.md) | Build the web UI from the design system first | accepted |
+| [0018](0018-take-the-migration-lock-inside-each-transaction.md) | Take the migration lock inside each migration's transaction | accepted |
+| [0019](0019-reach-the-api-through-the-web-worker.md) | Reach the API through the web Worker, on the web origin | accepted |

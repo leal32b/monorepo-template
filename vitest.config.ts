@@ -5,7 +5,7 @@ export default defineConfig({
     projects: ['apps/*', 'packages/*', 'apps/api/vitest.db.config.ts'],
     passWithNoTests: true,
     coverage: {
-      include: ['apps/*/src/**/*.ts', 'packages/*/src/**/*.ts'],
+      include: ['apps/*/src/**/*.{ts,tsx}', 'packages/*/src/**/*.{ts,tsx}'],
       exclude: [
         '**/*.test.ts',
         '**/*.port.ts',
