@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { sql } from 'kysely'
+import { Kysely, PostgresDialect, sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
 import { createDatabase, createPool } from './database'
@@ -34,6 +34,18 @@ describe('runMigrations', () => {
     (await sql<{ count: number }>`select count(*)::int as count from pg_locks where locktype = 'advisory'`.execute(db))
       .rows[0]?.count
 
+  /** Statements sent while no transaction was open: a transaction pooler may run each on another connection. */
+  const outsideTransactions = (statements: string[]) => {
+    const outside: string[] = []
+    let open = false
+    for (const statement of statements) {
+      if (/^begin\b/i.test(statement)) open = true
+      else if (/^(commit|rollback)\b/i.test(statement)) open = false
+      else if (!open) outside.push(statement.trim())
+    }
+    return outside
+  }
+
   it('applies pending migrations in order and records each one', async () => {
     write('0001_create_items.sql', 'create table items (id int primary key);')
     write('0002_seed_items.sql', 'insert into items values (1); insert into items values (2);')
@@ -65,5 +77,22 @@ describe('runMigrations', () => {
 
     await expect(runMigrations(db, dir)).rejects.toThrow()
     expect(await advisoryLocks()).toBe(0)
+  })
+
+  it('runs every statement inside a transaction, as a transaction pooler requires', async () => {
+    const statements: string[] = []
+    const logged = new Kysely<unknown>({
+      dialect: new PostgresDialect({ pool: createPool(inject('databaseUrl'), pino({ level: 'silent' })) }),
+      log: (event) => {
+        statements.push(event.query.sql)
+      }
+    })
+    write('0001_create_items.sql', 'create table items (id int primary key);')
+
+    await runMigrations(logged, dir)
+    await logged.destroy()
+
+    expect(statements).toContain('begin')
+    expect(outsideTransactions(statements)).toEqual([])
   })
 })
