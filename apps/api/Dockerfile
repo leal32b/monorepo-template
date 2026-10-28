@@ -10,7 +10,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN npm install --global "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1]")"
 # Manifests first, so the install layer is cached until a dependency changes.
 COPY apps/api/package.json apps/api/
-COPY apps/web/package.json apps/web/
 COPY packages/contracts/package.json packages/contracts/
 RUN pnpm install --frozen-lockfile --filter @repo/api...
 COPY packages/contracts/src packages/contracts/src
