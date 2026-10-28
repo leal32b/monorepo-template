@@ -46,14 +46,17 @@ module.exports = {
     },
     {
       name: 'api-domain-is-pure',
-      comment: 'Domain code holds the rules: no HTTP, persistence, adapters, logging, use cases or wiring.',
+      comment:
+        'Domain code holds the rules: it imports its own domain, other modules through their index.ts and ' +
+        'libs/exceptions, and nothing else (no layer, no package). An allowlist, so a new folder starts forbidden.',
       severity: 'error',
-      from: { path: '^apps/api/src/modules/[^/]+/domain/' },
+      from: { path: '^apps/api/src/modules/([^/]+)/domain/', pathNot: NOT_PRODUCTION },
       to: {
-        path: [
-          '^apps/api/src/(app|config)/',
-          '^apps/api/src/libs/(http|db|log|adapters)/',
-          '^apps/api/src/modules/[^/]+/(database|infrastructure|application|commands|queries)/'
+        dependencyTypesNot: ['core'], // built-ins: api-domain-no-io-builtins
+        pathNot: [
+          '^apps/api/src/modules/$1/domain/',
+          '^apps/api/src/modules/[^/]+/index\\.ts$',
+          '^apps/api/src/libs/exceptions/'
         ]
       }
     },
@@ -79,15 +82,16 @@ module.exports = {
     },
     {
       name: 'api-use-cases-depend-on-ports',
-      comment: 'Use cases and controllers depend on ports (*.port.ts), never on repositories or adapters.',
+      comment: 'Use cases and controllers reach the database and adapters only through ports (*.port.ts).',
       severity: 'error',
       from: {
         path: '^apps/api/src/modules/[^/]+/(commands|queries|application)/',
         pathNot: NOT_PRODUCTION
       },
       to: {
-        path: ['^apps/api/src/modules/[^/]+/(database|infrastructure)/', '^apps/api/src/libs/(db|adapters)/'],
-        pathNot: '\\.port\\.ts$'
+        path: ['^apps/api/src/modules/[^/]+/(database|infrastructure)/', '^apps/api/src/libs/'],
+        // Of libs/, only what holds no infrastructure: an allowlist, so a new folder starts forbidden.
+        pathNot: ['\\.port\\.ts$', '^apps/api/src/libs/(ports|exceptions|http)/']
       }
     },
     {
