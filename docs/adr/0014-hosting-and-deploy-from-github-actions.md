@@ -1,6 +1,6 @@
 # 0014. Host on Neon, Render and Cloudflare, deployed from GitHub Actions
 
-- Status: accepted
+- Status: accepted; the web Worker gains an API proxy in [0019](0019-reach-the-api-through-the-web-worker.md)
 - Date: 2026-10-24
 
 ## Context and problem statement
