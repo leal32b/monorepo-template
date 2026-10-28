@@ -105,6 +105,13 @@ module.exports = {
       to: { path: '^apps/api/src/(modules|app)/' }
     },
     {
+      name: 'web-composes-the-design-system',
+      comment: 'The web app composes @repo/ui; a missing component is added there, not built from Kobalte here.',
+      severity: 'error',
+      from: { path: '^apps/web/' },
+      to: { path: '@kobalte/' }
+    },
+    {
       name: 'apps-are-independent',
       comment: 'Apps talk over HTTP and share only packages (contracts); they never import each other.',
       severity: 'error',
