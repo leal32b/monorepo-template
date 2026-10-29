@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@repo/contracts": "workspace:*",
+    "better-auth": "catalog:",
     "kysely": "catalog:",
     "pg": "catalog:",
     "pino": "catalog:",

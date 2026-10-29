@@ -3,6 +3,7 @@ import { apiProblemSchema, healthResponseSchema, livenessResponseSchema } from '
 import pino from 'pino'
 import { inject } from 'vitest'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { createDatabase, createPool } from '#libs/database/database'
 import { createApp } from './create-app'
 
@@ -10,10 +11,22 @@ const clock = new FixedClock(new Date('2026-10-17T12:00:00.000Z'))
 const logger = pino({ level: 'silent' })
 const webOrigin = 'https://app.example.com'
 const proxySecret = '0123456789abcdef'.repeat(4)
+const emailSender = new RecordingEmailSender()
+const authSecret = 'fedcba9876543210'.repeat(2)
 
 describe('API', () => {
   const db = createDatabase(createPool(inject('databaseUrl'), logger))
-  const server = createApp({ clock, logger, serviceName: 'api', webOrigin, corsOrigins: [webOrigin], proxySecret, db })
+  const server = createApp({
+    clock,
+    logger,
+    serviceName: 'api',
+    webOrigin,
+    corsOrigins: [webOrigin],
+    proxySecret,
+    db,
+    emailSender,
+    authSecret
+  })
   let url: string
 
   beforeAll(async () => {
@@ -84,7 +97,9 @@ describe('API without its database', () => {
     webOrigin,
     corsOrigins: [],
     proxySecret: undefined,
-    db
+    db,
+    emailSender,
+    authSecret
   })
   let url: string
 

@@ -42,10 +42,11 @@ Who writes these flows, and how does the rest of the API stay independent of tha
 
 Chosen option 1.
 
-**Mounting.** The composition root mounts `toNodeHandler(auth)` from `better-auth/node` at
-`/api/auth/*`. It runs after the request id, CORS and the Worker check
-([ADR 0022](0022-accept-api-requests-only-from-the-web-worker.md)). Better Auth reads its own
-request bodies, so our JSON body reader never runs on those paths.
+**Mounting.** The composition root mounts Better Auth's Fetch handler (`auth.handler`) at
+`/api/auth/*` through our bridge, `libs/http/fetch-handler.ts`. It runs after the request id, CORS,
+the Worker check ([ADR 0022](0022-accept-api-requests-only-from-the-web-worker.md)) and the origin
+check of writes. The bridge reads the body under our 1 MiB limit before Better Auth sees it:
+`toNodeHandler` from `better-auth/node` passes no size limit, so a chunked body would be read whole.
 
 **Boundary.**
 - Better Auth lives in `modules/identity/infrastructure/`.
@@ -61,8 +62,10 @@ schema in `@repo/contracts`". `AGENTS.md` records it when the code lands. Our ow
 their contracts.
 
 **Database.**
-- `npx auth generate` produces the tables as SQL, committed as plain migrations
-  ([ADR 0013](0013-kysely-and-plain-sql-migrations.md)) in a Postgres schema named `auth`.
+- Better Auth's generator (`getMigrations` from `better-auth/db/migration`, which its CLI runs)
+  produces the tables as SQL, committed as plain migrations
+  ([ADR 0013](0013-kysely-and-plain-sql-migrations.md)) in a Postgres schema named `auth`
+  (`database.schemaName`).
 - An upgrade that changes the schema comes with a new migration.
 
 **Configuration (the template's defaults):**

@@ -54,7 +54,11 @@ Folders appear only when their phase of the plan reaches them.
   `text-muted-foreground`), held to WCAG contrast ([ADR 0016](docs/adr/0016-design-system-on-kobalte-and-unocss.md));
   no Kobalte import and no literal colour in `apps/web`.
 - **i18n:** UI text lives in typed dictionaries, one file per language ([ADR 0011](docs/adr/0011-typed-i18n-dictionaries.md)).
-- **Contracts:** every request/response is a Zod schema in `@repo/contracts`.
+- **Contracts:** every request/response is a Zod schema in `@repo/contracts`, except `/api/auth/*`,
+  which keeps Better Auth's shapes ([ADR 0020](docs/adr/0020-authenticate-with-better-auth.md)).
+- **Auth:** `better-auth` stays in `modules/identity/infrastructure/` (dependency-cruiser checks it).
+  A route that needs a session calls `requireActor` from `#modules/identity/index` and gets an
+  `Actor` or a 401; it never refreshes the session.
 - **Database:** Postgres ([ADR 0003](docs/adr/0003-postgres-as-the-database.md)).
 - **Language:** code, comments and docs in English; conversation with the owner in pt-BR.
 

@@ -83,10 +83,18 @@ jobs:
           API_ORIGIN: ${{ vars.API_ORIGIN }}
           WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
           PROXY_SECRET: ${{ secrets.PROXY_SECRET }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
           IMAGE: ${{ needs.image.outputs.image }}
         run: |
-          if [ -z "$RENDER_SERVICE_ID" ] || [ -z "$API_ORIGIN" ] || [ -z "$WEB_ORIGIN" ] || [ -z "$PROXY_SECRET" ]; then
-            echo "::error::Set RENDER_SERVICE_ID, API_ORIGIN, WEB_ORIGIN and the PROXY_SECRET secret in the production environment."
+          # Names only: a secret's value is never printed.
+          missing=''
+          for name in RENDER_SERVICE_ID API_ORIGIN WEB_ORIGIN PROXY_SECRET BETTER_AUTH_SECRET RESEND_API_KEY EMAIL_FROM; do
+            [ -n "$(printenv "$name")" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Set these in the production environment:$missing"
             echo "::error::First deploy: create the Render service from $IMAGE, then re-run the failed jobs."
             exit 1
           fi
@@ -96,6 +104,9 @@ jobs:
           WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
           CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
           PROXY_SECRET: ${{ secrets.PROXY_SECRET }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
         run: |
           # PUT replaces the whole set: GitHub is the only source of the service variables.
           jq -n '[
@@ -104,6 +115,9 @@ jobs:
             {key: "CORS_ORIGINS", value: env.CORS_ORIGINS},
             {key: "PROXY_SECRET", value: env.PROXY_SECRET},
             {key: "LOG_LEVEL", value: "info"}
+            {key: "BETTER_AUTH_SECRET", value: env.BETTER_AUTH_SECRET},
+            {key: "RESEND_API_KEY", value: env.RESEND_API_KEY},
+            {key: "EMAIL_FROM", value: env.EMAIL_FROM},
           ]' | curl --fail-with-body --silent --show-error -X PUT "$RENDER_API/env-vars" \
       - name: Deploy the image and wait until it is live
         env:
@@ -198,3 +212,7 @@ jobs:
           # The API accepts the Worker's secret: an unknown path is a 404, not the 403 of a direct call.
           status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$WEB_URL/api/smoke-test")
           [ "$status" = 404 ] || { echo "::error::/api through the Worker answered $status, not 404"; exit 1; }
+          # Better Auth answers through the Worker, and the session guard refuses a visitor.
+          curl --fail-with-body --silent --show-error "$WEB_URL/api/auth/ok"
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$WEB_URL/api/me")
+          [ "$status" = 401 ] || { echo "::error::/api/me without a session answered $status, not 401"; exit 1; }
