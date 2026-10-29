@@ -28,8 +28,8 @@ export function assertAcceptableBody(req: IncomingMessage): void {
   if (Number(req.headers['content-length']) > BODY_LIMIT_BYTES) throw tooLarge()
 }
 
-/** The body as text, refused as soon as it passes the limit: a chunked body declares no length. */
-async function readText(req: IncomingMessage): Promise<string> {
+/** The raw body, refused as soon as it passes the limit: a chunked body declares no length. */
+export async function readBody(req: IncomingMessage): Promise<Buffer> {
   const chunks: Buffer[] = []
   let size = 0
   for await (const chunk of req as AsyncIterable<Buffer>) {
@@ -37,11 +37,11 @@ async function readText(req: IncomingMessage): Promise<string> {
     if (size > BODY_LIMIT_BYTES) throw tooLarge()
     chunks.push(chunk)
   }
-  return Buffer.concat(chunks).toString('utf8')
+  return Buffer.concat(chunks)
 }
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
-  const text = await readText(req)
+  const text = (await readBody(req)).toString('utf8')
   if (text.trim() === '') return {} // no body: the schema names the missing fields
   try {
     return JSON.parse(text)
