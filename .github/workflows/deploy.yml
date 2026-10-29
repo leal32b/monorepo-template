@@ -81,26 +81,30 @@ jobs:
         env:
           RENDER_SERVICE_ID: ${{ vars.RENDER_SERVICE_ID }}
           API_ORIGIN: ${{ vars.API_ORIGIN }}
+          WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
+          PROXY_SECRET: ${{ secrets.PROXY_SECRET }}
           IMAGE: ${{ needs.image.outputs.image }}
         run: |
-          if [ -z "$RENDER_SERVICE_ID" ] || [ -z "$API_ORIGIN" ]; then
-            echo "::error::Set RENDER_SERVICE_ID and API_ORIGIN in the production environment."
+          if [ -z "$RENDER_SERVICE_ID" ] || [ -z "$API_ORIGIN" ] || [ -z "$WEB_ORIGIN" ] || [ -z "$PROXY_SECRET" ]; then
+            echo "::error::Set RENDER_SERVICE_ID, API_ORIGIN, WEB_ORIGIN and the PROXY_SECRET secret in the production environment."
             echo "::error::First deploy: create the Render service from $IMAGE, then re-run the failed jobs."
             exit 1
           fi
       - name: Replace the service variables
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          WEB_ORIGIN: ${{ vars.WEB_ORIGIN }}
           CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+          PROXY_SECRET: ${{ secrets.PROXY_SECRET }}
         run: |
           # PUT replaces the whole set: GitHub is the only source of the service variables.
           jq -n '[
             {key: "DATABASE_URL", value: env.DATABASE_URL},
+            {key: "WEB_ORIGIN", value: env.WEB_ORIGIN},
             {key: "CORS_ORIGINS", value: env.CORS_ORIGINS},
+            {key: "PROXY_SECRET", value: env.PROXY_SECRET},
             {key: "LOG_LEVEL", value: "info"}
           ]' | curl --fail-with-body --silent --show-error -X PUT "$RENDER_API/env-vars" \
-            -H "Authorization: Bearer $RENDER_API_KEY" -H 'Content-Type: application/json' \
-            --data @- > /dev/null
       - name: Deploy the image and wait until it is live
         env:
           IMAGE: ${{ needs.image.outputs.image }}
@@ -122,13 +126,16 @@ jobs:
           done
           echo "::error::The deploy was not live after 10 minutes."
           exit 1
-      - name: Smoke test /api/health
+      - name: Smoke test /api/health and the Worker check
         env:
           API_ORIGIN: ${{ vars.API_ORIGIN }}
         run: |
           # Retries cover Neon waking from suspension.
           curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 \
             "$API_ORIGIN/api/health"
+          # Any other path answers only through the web Worker (ADR 0022).
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$API_ORIGIN/api/smoke-test")
+          [ "$status" = 403 ] || { echo "::error::a direct call to the API answered $status, not 403"; exit 1; }
 
   web:
     name: Deploy the web to Cloudflare
@@ -188,3 +195,6 @@ jobs:
           [ "$status" = 404 ] || { echo "::error::a missing asset answered $status, not 404"; exit 1; }
           # And /api/* reaches the API through the Worker. Retries cover Neon waking up.
           curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 "$WEB_URL/api/health"
+          # The API accepts the Worker's secret: an unknown path is a 404, not the 403 of a direct call.
+          status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$WEB_URL/api/smoke-test")
+          [ "$status" = 404 ] || { echo "::error::/api through the Worker answered $status, not 404"; exit 1; }

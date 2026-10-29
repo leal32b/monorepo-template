@@ -20,7 +20,9 @@ const server = createApp({
   clock: new SystemClock(),
   logger,
   serviceName: 'api',
+  webOrigin: env.webOrigin,
   corsOrigins: env.corsOrigins,
+  proxySecret: env.proxySecret,
   db
 })
 const shutdown = createShutdown({ server, logger, timeoutMs: 10_000, release: () => db.destroy() })
