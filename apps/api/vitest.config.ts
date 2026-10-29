@@ -6,6 +6,7 @@ export default defineProject({
     environment: 'node',
     globals: true,
     include: ['src/**/*.test.ts'],
-    exclude: ['src/**/*.db.test.ts']
+    exclude: ['src/**/*.db.test.ts'],
+    unstubGlobals: true
   }
 })
