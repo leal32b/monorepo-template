@@ -40,7 +40,9 @@ const envSchema = z
       .pipe(z.array(z.string().refine(isOrigin))),
     PROXY_SECRET: optional(z.string().min(32)),
     RESEND_API_KEY: optional(z.string()),
-    EMAIL_FROM: optional(z.string().regex(SENDER))
+    EMAIL_FROM: optional(z.string().regex(SENDER)),
+    GOOGLE_CLIENT_ID: optional(z.string()),
+    GOOGLE_CLIENT_SECRET: optional(z.string())
   })
   // Behind https the API is deployed, and only the web Worker may call it (ADR 0022).
   .refine((env) => env.PROXY_SECRET !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
@@ -52,6 +54,13 @@ const envSchema = z
   // Deployed, email must really go out: the log transport would drop it silently (ADR 0021).
   .refine((env) => env.RESEND_API_KEY !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
     path: ['RESEND_API_KEY']
+  })
+  // Google needs both, as Resend does.
+  .refine((env) => env.GOOGLE_CLIENT_ID !== undefined || env.GOOGLE_CLIENT_SECRET === undefined, {
+    path: ['GOOGLE_CLIENT_ID']
+  })
+  .refine((env) => env.GOOGLE_CLIENT_SECRET !== undefined || env.GOOGLE_CLIENT_ID === undefined, {
+    path: ['GOOGLE_CLIENT_SECRET']
   })
 
 /** How email leaves the API (ADR 0021): logged in development, or sent through Resend. */
@@ -72,6 +81,8 @@ export type ApiEnv = {
   /** Better Auth's secret (ADR 0020): it signs session cookies and encrypts secrets at rest. */
   authSecret: string
   email: EmailTransport
+  /** Google sign-in (ADR 0020): off unless both credentials are set. */
+  google: { clientId: string; clientSecret: string } | undefined
 }
 
 /** Names the invalid variables, never their values (a wrong value may be a secret). */
@@ -101,6 +112,10 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
     email:
       env.RESEND_API_KEY === undefined
         ? { kind: 'log' }
-        : { kind: 'resend', apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM as string }
+        : { kind: 'resend', apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM as string },
+    google:
+      env.GOOGLE_CLIENT_ID === undefined
+        ? undefined
+        : { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET as string }
   }
 }

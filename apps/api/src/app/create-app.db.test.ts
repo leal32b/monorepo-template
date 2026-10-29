@@ -25,7 +25,8 @@ describe('API', () => {
     proxySecret,
     db,
     emailSender,
-    authSecret
+    authSecret,
+    google: undefined
   })
   let url: string
 
@@ -99,7 +100,8 @@ describe('API without its database', () => {
     proxySecret: undefined,
     db,
     emailSender,
-    authSecret
+    authSecret,
+    google: undefined
   })
   let url: string
 

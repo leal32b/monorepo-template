@@ -66,7 +66,8 @@ their contracts.
   produces the tables as SQL, committed as plain migrations
   ([ADR 0013](0013-kysely-and-plain-sql-migrations.md)) in a Postgres schema named `auth`
   (`database.schemaName`).
-- An upgrade that changes the schema comes with a new migration.
+- An upgrade or a plugin that changes the schema comes with a new migration:
+  `pnpm --filter @repo/api auth:schema` prints the SQL it needs.
 
 **Configuration (the template's defaults):**
 
@@ -99,6 +100,10 @@ their contracts.
   - On only when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set.
   - It links to an existing account only when both Google and the account have confirmed the
     email: `requireLocalEmailVerified`, the default.
+  - A Google account whose email Google has not confirmed is refused (`user.validateUserInfo`).
+    Otherwise it could claim an address before its owner signs up.
+  - Errors of browser flows, such as a refused callback, land on the web's `/login?error=…`
+    (`onAPIError.errorURL`).
 - **MFA.**
   - The `twoFactor` plugin with TOTP and backup codes; the browser draws the QR code.
   - It guards email-and-password sign-in; Google sign-in relies on the Google account.

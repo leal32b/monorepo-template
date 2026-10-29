@@ -34,6 +34,8 @@ export type AppDeps = {
   emailSender: EmailSender
   /** Better Auth's secret (ADR 0020). */
   authSecret: string
+  /** Google sign-in credentials; `undefined` keeps Google off. */
+  google: { clientId: string; clientSecret: string } | undefined
 }
 
 /**
@@ -49,11 +51,12 @@ export function createApp({
   proxySecret,
   db,
   emailSender,
-  authSecret
+  authSecret,
+  google
 }: AppDeps): Server {
   const router = new HttpRouter()
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
-  const auth = createAuth({ db, logger, emailSender, webOrigin, secret: authSecret })
+  const auth = createAuth({ db, logger, emailSender, webOrigin, secret: authSecret, google })
   registerRoutes(router, {
     getHealth: new GetHealthController(new GetHealthService(clock, serviceName, databaseProbe)),
     getLiveness: new GetLivenessController(),

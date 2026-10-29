@@ -9,6 +9,7 @@ describe('loadEnv', () => {
   }
   const proxySecret = '0123456789abcdef'.repeat(4)
   const resend = { RESEND_API_KEY: 're_123', EMAIL_FROM: 'Acme <noreply@acme.example>' }
+  const google = { GOOGLE_CLIENT_ID: 'client-123.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'GOCSPX-secret' }
 
   it('uses safe defaults for everything but the database, the web origin and the auth secret', () => {
     expect(loadEnv({ ...required })).toEqual({
@@ -20,6 +21,7 @@ describe('loadEnv', () => {
       proxySecret: undefined,
       authSecret,
       email: { kind: 'log' },
+      google: undefined,
       databaseUrl: required.DATABASE_URL
     })
   })
@@ -123,6 +125,32 @@ describe('loadEnv', () => {
 
     expect(() => loadEnv(deployed)).toThrow(expect.objectContaining({ variables: ['RESEND_API_KEY'] }))
     expect(loadEnv({ ...deployed, ...resend }).email.kind).toBe('resend')
+  })
+
+  it('turns Google sign-in on when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (ADR 0020)', () => {
+    expect(loadEnv({ ...required, ...google }).google).toEqual({
+      clientId: 'client-123.apps.googleusercontent.com',
+      clientSecret: 'GOCSPX-secret'
+    })
+  })
+
+  it('treats empty Google credentials as unset', () => {
+    expect(loadEnv({ ...required, GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '' }).google).toBeUndefined()
+  })
+
+  it.each([
+    [
+      'GOOGLE_CLIENT_ID without GOOGLE_CLIENT_SECRET',
+      { GOOGLE_CLIENT_ID: google.GOOGLE_CLIENT_ID },
+      'GOOGLE_CLIENT_SECRET'
+    ],
+    [
+      'GOOGLE_CLIENT_SECRET without GOOGLE_CLIENT_ID',
+      { GOOGLE_CLIENT_SECRET: google.GOOGLE_CLIENT_SECRET },
+      'GOOGLE_CLIENT_ID'
+    ]
+  ])('rejects %s', (_case, credentials, variable) => {
+    expect(() => loadEnv({ ...required, ...credentials })).toThrow(expect.objectContaining({ variables: [variable] }))
   })
 
   it('names every invalid variable but never prints its value', () => {

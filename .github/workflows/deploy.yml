@@ -86,6 +86,8 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           IMAGE: ${{ needs.image.outputs.image }}
         run: |
           # Names only: a secret's value is never printed.
@@ -93,6 +95,9 @@ jobs:
           for name in RENDER_SERVICE_ID API_ORIGIN WEB_ORIGIN PROXY_SECRET BETTER_AUTH_SECRET RESEND_API_KEY EMAIL_FROM; do
             [ -n "$(printenv "$name")" ] || missing="$missing $name"
           done
+          # Google sign-in is optional, but needs both (ADR 0020).
+          if [ -n "$GOOGLE_CLIENT_ID" ] && [ -z "$GOOGLE_CLIENT_SECRET" ]; then missing="$missing GOOGLE_CLIENT_SECRET"; fi
+          if [ -z "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ]; then missing="$missing GOOGLE_CLIENT_ID"; fi
           if [ -n "$missing" ]; then
             echo "::error::Set these in the production environment:$missing"
             echo "::error::First deploy: create the Render service from $IMAGE, then re-run the failed jobs."
@@ -107,18 +112,27 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          # PUT replaces the whole set: GitHub is the only source of the service variables.
-          jq -n '[
+          # PUT replaces the whole set: GitHub is the only source of the service variables. The body is
+          # built first, so a jq error stops the step before Render is called.
+          body=$(jq -n '[
             {key: "DATABASE_URL", value: env.DATABASE_URL},
             {key: "WEB_ORIGIN", value: env.WEB_ORIGIN},
             {key: "CORS_ORIGINS", value: env.CORS_ORIGINS},
             {key: "PROXY_SECRET", value: env.PROXY_SECRET},
-            {key: "LOG_LEVEL", value: "info"}
             {key: "BETTER_AUTH_SECRET", value: env.BETTER_AUTH_SECRET},
             {key: "RESEND_API_KEY", value: env.RESEND_API_KEY},
             {key: "EMAIL_FROM", value: env.EMAIL_FROM},
-          ]' | curl --fail-with-body --silent --show-error -X PUT "$RENDER_API/env-vars" \
+            {key: "LOG_LEVEL", value: "info"}
+          ] + if env.GOOGLE_CLIENT_ID == "" then [] else [
+            {key: "GOOGLE_CLIENT_ID", value: env.GOOGLE_CLIENT_ID},
+            {key: "GOOGLE_CLIENT_SECRET", value: env.GOOGLE_CLIENT_SECRET}
+          ] end')
+          printf '%s' "$body" | curl --fail-with-body --silent --show-error -X PUT "$RENDER_API/env-vars" \
+            -H "Authorization: Bearer $RENDER_API_KEY" -H 'Content-Type: application/json' \
+            --data @- > /dev/null
       - name: Deploy the image and wait until it is live
         env:
           IMAGE: ${{ needs.image.outputs.image }}

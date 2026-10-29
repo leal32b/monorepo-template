@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth'
-import { haveIBeenPwned } from 'better-auth/plugins'
+import { haveIBeenPwned, twoFactor } from 'better-auth/plugins'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
 import { z } from 'zod'
@@ -16,13 +16,15 @@ export type AuthDeps = {
   webOrigin: string
   /** `BETTER_AUTH_SECRET`: signs the session cookies. */
   secret: string
+  /** Google sign-in, on only when it is configured (ADR 0020). */
+  google: { clientId: string; clientSecret: string } | undefined
 }
 
 /** The languages emails are written in: a sign-up in any other is refused. */
 const localeSchema = z.enum(Object.keys(emailTexts) as [Locale, ...Locale[]])
 
 /** Better Auth with the template's defaults (ADR 0020). */
-export function createAuth({ db, logger, emailSender, webOrigin, secret }: AuthDeps) {
+export function createAuth({ db, logger, emailSender, webOrigin, secret, google }: AuthDeps) {
   /** Not awaited, so a slow provider changes no response time; a failure is logged (ADR 0021). */
   const send = (kind: EmailKind, user: { email: string }, url: string) => {
     const { email, locale } = user as { email: string; locale: Locale } // `locale` is our additional field
@@ -36,11 +38,16 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret }: AuthD
     basePath: '/api/auth',
     secret,
     trustedOrigins: [webOrigin],
+    // Errors of browser flows, such as an OAuth callback, land on the sign-in page with `?error=`.
+    onAPIError: { errorURL: `${webOrigin}/login` },
     database: { db, type: 'postgres', schemaName: 'auth' },
     user: {
       additionalFields: {
         locale: { type: 'string', required: true, defaultValue: 'en', input: true, validator: { input: localeSchema } }
-      }
+      },
+      // T09: an account from a provider counts only with an email the provider has confirmed.
+      validateUserInfo: ({ user, source }) =>
+        source.method === 'oauth' && user.emailVerified !== true ? { error: 'email_not_verified' } : undefined
     },
     emailAndPassword: {
       enabled: true,
@@ -55,6 +62,8 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret }: AuthD
       // The same answer as a new sign-up; only the owner of the address learns of the attempt (T08).
       onExistingUserSignUp: async ({ user }) => send('alreadyRegistered', user, `${webOrigin}/login`)
     },
+    // Linked to an existing account only when both sides confirmed the email (requireLocalEmailVerified).
+    ...(google === undefined ? {} : { socialProviders: { google } }),
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
@@ -68,8 +77,12 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret }: AuthD
     // At `info` Better Auth logs email addresses.
     logger: { level: 'warn', log: (level, message, ...args) => logger[level]({ args }, message) },
     telemetry: { enabled: false },
-    // Fails closed: while the service cannot be reached, sign-up and password changes answer 500.
-    plugins: [haveIBeenPwned()]
+    plugins: [
+      // Fails closed: while the service cannot be reached, sign-up and password changes answer 500.
+      haveIBeenPwned(),
+      // TOTP and backup codes for email-and-password sign-in; the issuer names the app in authenticators.
+      twoFactor({ issuer: 'Monorepo Template' })
+    ]
   })
 }
 

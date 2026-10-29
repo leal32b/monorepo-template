@@ -26,7 +26,8 @@ const server = createApp({
   proxySecret: env.proxySecret,
   db,
   emailSender: createEmailSender(env.email, logger),
-  authSecret: env.authSecret
+  authSecret: env.authSecret,
+  google: env.google
 })
 const shutdown = createShutdown({ server, logger, timeoutMs: 10_000, release: () => db.destroy() })
 
