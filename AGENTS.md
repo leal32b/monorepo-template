@@ -32,6 +32,8 @@ Folders appear only when their phase of the plan reaches them.
 - **TDD.** A rule or a bug starts with a failing test (red), then the smallest change (green),
   then cleanup. Use the [`tdd-slice`](.claude/skills/tdd-slice/SKILL.md) skill.
 - **One decision, one ADR.** Use the [`write-adr`](.claude/skills/write-adr/SKILL.md) skill.
+- **Minimize support.** Any change, new or adjusted, that the end user sees or triggers goes
+  through the [`minimize-support`](.claude/skills/minimize-support/SKILL.md) skill.
 - **Minimal scope.** Only what the current phase asks for; no collateral refactors; no
   feature of the reference repository that the plan does not list.
 - **Commit only when asked.** Conventional Commits.
