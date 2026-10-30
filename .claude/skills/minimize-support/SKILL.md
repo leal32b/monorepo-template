@@ -46,8 +46,10 @@ feedback, visible state and a clear mapping between action and result.
 ## The response hierarchy
 
 1. **Eliminate**: the failure cannot exist (no step, no field, no choice to get wrong).
-2. **Prevent**: a constraint makes it impossible: a disabled submit until the form is valid, a
-   schema, a state the data model cannot represent. Prefer preventing (Shingo's control) to warning.
+2. **Prevent**: a constraint makes it impossible: a field that only takes digits, a button disabled
+   while its request is pending, a schema, a state the data model cannot represent. Prefer
+   preventing (Shingo's control) to warning. A submit disabled until the form is valid cannot say
+   why, so validate on submit instead (see the `design-system` skill).
 3. **Detect early**: inline validation, preview, dry run.
 4. **Make recoverable**: undo, trash, soft delete, versions. Better than a confirmation dialog,
    which becomes an automatic click.
