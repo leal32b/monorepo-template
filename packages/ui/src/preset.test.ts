@@ -41,4 +41,8 @@ describe('presetUi', () => {
     expect(await generate('bg-blue-600 text-slate-500 border-red-700')).toBe('')
     expect(await generate('bg-transparent')).toContain('.bg-transparent{background-color:transparent;}')
   })
+
+  it('keeps the scrollbar gutter, so a page that scrolls and one that does not line up', async () => {
+    expect(await generate('', { preflights: true })).toContain('html{scrollbar-gutter:stable}')
+  })
 })

@@ -10,4 +10,10 @@ describe('Input', () => {
     expect(input).toHaveClass('h-12')
     expect(input).not.toHaveClass('h-9')
   })
+
+  it('is 44px tall with 16px text on phones, so iOS does not zoom in, and compact from sm up', () => {
+    render(() => <Input aria-label="Search" />)
+
+    expect(screen.getByRole('textbox', { name: 'Search' })).toHaveClass('h-11', 'text-base', 'sm:h-9', 'sm:text-sm')
+  })
 })

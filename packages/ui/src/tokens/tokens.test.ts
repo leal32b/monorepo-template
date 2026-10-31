@@ -13,6 +13,7 @@ const pairs: [foreground: Role, background: Role, minimum: number][] = [
   ['secondary-foreground', 'secondary', 4.5],
   ['destructive-foreground', 'destructive', 4.5],
   ['border', 'background', 3],
+  ['muted-foreground', 'secondary', 3], // the password toggle's icon on its hover background
   ['ring', 'background', 3]
 ]
 
