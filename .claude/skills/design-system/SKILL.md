@@ -21,7 +21,8 @@ What a screen must handle when things go wrong comes from the `minimize-support`
 - Restraint: one typeface (the system stack), few text sizes, one radius (`rounded-md`), one
   border width, no shadows or gradients unless the design system adds them for everyone.
 - One accent: `primary` marks the single action a view is about. Everything else is `secondary`,
-  `outline` or `ghost`.
+  `outline` or `ghost`. A page of independent sections, such as the account page, is one view per
+  section: each section's own form may have its primary.
 - Whitespace on one scale (multiples of 4px), never a value picked for one screen.
 - Before adding something, ask whether removing something would solve it instead.
 
