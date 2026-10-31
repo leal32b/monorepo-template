@@ -8,11 +8,11 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 /** Better Auth's answer to every request: the same whether or not the address has an account (T08). */
 const asked = () => Response.json({ status: true })
 
-function renderForm(fetch = vi.fn<Fetch>(async () => asked())) {
+function renderForm(fetch = vi.fn<Fetch>(async () => asked()), email?: string) {
   render(() => (
     <I18nProvider locale="en">
       <AuthProvider client={createAuthClient({ fetch })}>
-        <RequestResetForm />
+        <RequestResetForm email={email} />
       </AuthProvider>
     </I18nProvider>
   ))
@@ -26,6 +26,16 @@ function renderForm(fetch = vi.fn<Fetch>(async () => asked())) {
 const type = (field: HTMLElement, value: string) => fireEvent.input(field, { target: { value } })
 
 describe('RequestResetForm', () => {
+  it('starts from the email it is given, and sends it as typed', async () => {
+    const { fetch, email, button } = renderForm(undefined, 'ada@example.com')
+
+    expect(email).toHaveValue('ada@example.com')
+    fireEvent.click(button)
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toMatchObject({ email: 'ada@example.com' })
+  })
+
   it('asks for the email of the account, the way password managers fill it in', () => {
     const { email } = renderForm()
 

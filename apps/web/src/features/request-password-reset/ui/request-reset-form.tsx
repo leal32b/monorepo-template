@@ -8,12 +8,13 @@ import { AuthFailureAlert } from '#shared/ui'
 /**
  * Asks for a link to choose a new password. The API answers the same whether or not the address has
  * an account (T08), so the screen says the link went out if there is one; it stays on the form, so
- * the user can fix the address or ask again (the API allows 3 a minute).
+ * the user can fix the address or ask again (the API allows 3 a minute). It starts from `email`, the
+ * one typed at the sign-in, when there is one.
  */
-export function RequestResetForm() {
+export function RequestResetForm(props: { email?: string | undefined }) {
   const auth = useAuth()
   const { t } = useI18n()
-  const [email, setEmail] = createSignal('')
+  const [email, setEmail] = createSignal(props.email ?? '')
   const [sentTo, setSentTo] = createSignal<string>()
   const [failure, setFailure] = createSignal<AuthFailure>()
   const [pending, setPending] = createSignal(false)
@@ -52,6 +53,7 @@ export function RequestResetForm() {
         name="email"
         type="email"
         autocomplete="username"
+        value={email()}
         onChange={setEmail}
         error={error()}
       />

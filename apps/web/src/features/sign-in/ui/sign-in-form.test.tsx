@@ -8,7 +8,7 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 /** Better Auth's answer to a sign-in without a second factor. */
 const signedIn = () => Response.json({ redirect: false, token: 'session', user: { id: 'u1' } })
 
-function renderForm(fetch = vi.fn<Fetch>(async () => signedIn())) {
+function renderForm(fetch = vi.fn<Fetch>(async () => signedIn()), notice?: string) {
   const onSignedIn = vi.fn()
   const onSecondStep = vi.fn()
   render(() => (
@@ -17,7 +17,13 @@ function renderForm(fetch = vi.fn<Fetch>(async () => signedIn())) {
         <SignInForm
           onSignedIn={onSignedIn}
           onSecondStep={onSecondStep}
+          notice={notice && <p role="note">{notice}</p>}
           resend={(email) => <button type="button">{`Send it again to ${email}`}</button>}
+          forgotPassword={(email) => (
+            <a href="/forgot-password" data-email={email()}>
+              Forgot your password?
+            </a>
+          )}
         />
       </AuthProvider>
     </I18nProvider>
@@ -39,6 +45,33 @@ function signIn() {
 }
 
 describe('SignInForm', () => {
+  it('offers a new password right under the password field, with the email typed so far', () => {
+    renderForm()
+    const link = screen.getByRole('link', { name: 'Forgot your password?' })
+
+    expect(follows(screen.getByLabelText('Password'), link)).toBe(true)
+    expect(follows(link, screen.getByRole('button', { name: 'Sign in' }))).toBe(true)
+    type(screen.getByRole('textbox', { name: 'Email' }), 'ada@example.com')
+    expect(link).toHaveAttribute('data-email', 'ada@example.com')
+  })
+
+  it("shows the page's notice below the button, where the answer to a sign-in takes its place", async () => {
+    renderForm(
+      vi.fn<Fetch>(async () => Response.json({ code: 'INVALID_EMAIL_OR_PASSWORD' }, { status: 401 })),
+      'This confirmation link has expired.'
+    )
+    const notice = screen.getByRole('note')
+    expect(follows(screen.getByRole('button', { name: 'Sign in' }), notice)).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(screen.getByRole('note')).toBeInTheDocument()
+
+    signIn()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The email or the password is wrong.')
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+
   it('asks for the email and the current password, the way password managers expect', () => {
     renderForm()
     const email = screen.getByRole('textbox', { name: 'Email' })

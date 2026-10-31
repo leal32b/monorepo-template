@@ -1,4 +1,4 @@
-import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
+import { createMemoryHistory, MemoryRouter, Route, useLocation } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
@@ -20,6 +20,7 @@ function renderPage(
         <AuthProvider client={createAuthClient({ fetch })}>
           <MemoryRouter history={history}>
             <Route path="/login" component={SignInPage} />
+            <Route path="/forgot-password" component={ForgotPassword} />
             <Route path="*" component={() => <p>Somewhere else</p>} />
           </MemoryRouter>
         </AuthProvider>
@@ -27,6 +28,12 @@ function renderPage(
     </I18nProvider>
   ))
   return history
+}
+
+/** Stands in for the forgot-password page: it says which email the sign-in carried over. */
+function ForgotPassword() {
+  const location = useLocation<{ email: string }>()
+  return <p>{`A new password for ${location.state?.email}`}</p>
 }
 
 const type = (field: HTMLElement, value: string) => fireEvent.input(field, { target: { value } })
@@ -48,10 +55,26 @@ describe('SignInPage', () => {
     expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute('href', '/signup')
   })
 
-  it('offers to reset a forgotten password', () => {
-    renderPage('/login')
+  it('offers a new password next to the password field, carrying the email typed so far, not in the URL', async () => {
+    const history = renderPage('/login')
+    type(screen.getByRole('textbox', { name: 'Email' }), 'ada@example.com')
 
-    expect(screen.getByRole('link', { name: 'Forgot your password?' })).toHaveAttribute('href', '/forgot-password')
+    fireEvent.click(screen.getByRole('link', { name: 'Forgot your password?' }))
+
+    expect(await screen.findByText('A new password for ada@example.com')).toBeInTheDocument()
+    expect(history.get()).toBe('/forgot-password')
+  })
+
+  it('says what it opened with below the button, where the answer to a sign-in takes its place', async () => {
+    renderPage('/login?error=INVALID_TOKEN', async () =>
+      Response.json({ code: 'INVALID_EMAIL_OR_PASSWORD' }, { status: 401 })
+    )
+    expect(screen.getByText(/This confirmation link has expired/)).toBeInTheDocument()
+
+    signIn()
+
+    expect(await screen.findByText(/email or the password is wrong/i)).toBeInTheDocument()
+    expect(screen.queryByText(/This confirmation link has expired/)).not.toBeInTheDocument()
   })
 
   it('after signing in, goes where the user was headed, and Back does not return to the form', async () => {
