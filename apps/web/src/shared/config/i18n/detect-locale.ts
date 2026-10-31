@@ -4,6 +4,7 @@ import type { Locale } from './messages'
 export function detectLocale(languages: readonly string[]): Locale {
   for (const language of languages) {
     const primary = language.toLowerCase().split('-')[0]
+    if (primary === 'es') return 'es'
     if (primary === 'pt') return 'pt-BR'
     if (primary === 'en') return 'en'
   }
