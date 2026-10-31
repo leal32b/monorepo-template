@@ -21,12 +21,15 @@ function renderForm() {
     }
     return (
       <form noValidate onSubmit={submit} onFocusOut={checks.recheck}>
-        <input
-          aria-label="Name"
-          value={name()}
-          aria-invalid={checks.problems().name ? 'true' : undefined}
-          onInput={(event) => setName(event.currentTarget.value)}
-        />
+        <div>
+          <input
+            aria-label="Name"
+            value={name()}
+            aria-invalid={checks.problems().name ? 'true' : undefined}
+            onInput={(event) => setName(event.currentTarget.value)}
+          />
+          <button type="button">Spell it</button>
+        </div>
         <input aria-label="Notes" />
         <button type="submit">Send</button>
         <button type="button" onClick={reset}>
@@ -68,6 +71,17 @@ describe('createFormChecks', () => {
     expect(name).toBeInvalid()
 
     fireEvent.focusOut(name, { relatedTarget: notes })
+    expect(name).not.toBeInvalid()
+  })
+
+  it('checks again on the way to a button beside the field, which an error below the field does not move', () => {
+    renderForm()
+    const name = screen.getByRole('textbox', { name: 'Name' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.input(name, { target: { value: 'Ada' } })
+    fireEvent.focusOut(name, { relatedTarget: screen.getByRole('button', { name: 'Spell it' }) })
+
     expect(name).not.toBeInvalid()
   })
 

@@ -5,9 +5,11 @@ export type Checked<V, P> = { ok: true; values: V } | { ok: false; problems: P }
 
 /**
  * How every form checks what was typed (the design-system skill): on submit, and again when a field
- * is left after that, never while typing. Not on the way to a button either: the press itself moves
- * focus, and errors coming or going above the button would move it from under the pointer, losing
- * the click. After a submit with problems, focus goes to the first field that has one.
+ * is left after that, never while typing. Not on the way to a button below either: the press itself
+ * moves focus, and errors coming or going above the button would move it from under the pointer,
+ * losing the click. A button beside the input, such as showing the password, sits in the input's own
+ * row, which an error below the field does not move, so leaving for it checks as usual. After a submit
+ * with problems, focus goes to the first field that has one.
  */
 export function createFormChecks<V, P>(validate: () => Checked<V, P>) {
   const [problems, setProblems] = createSignal<Partial<P>>({})
@@ -22,7 +24,10 @@ export function createFormChecks<V, P>(validate: () => Checked<V, P>) {
   return {
     problems,
     recheck(event: FocusEvent) {
-      if (submitted() && !(event.relatedTarget instanceof HTMLButtonElement)) check()
+      const next = event.relatedTarget
+      const left = event.target as Element
+      const toButtonBelow = next instanceof HTMLButtonElement && next.parentElement !== left.parentElement
+      if (submitted() && !toButtonBelow) check()
     },
     /** The values to send, or `undefined` after focusing the first field with a problem. */
     submit(form: HTMLFormElement): V | undefined {

@@ -70,8 +70,11 @@ Elements must not "tremble" between states or screens.
   minimum); a loading area shows a placeholder of the content's size.
 - **Field errors on submit.** Validate on submit (and on blur once a field was submitted), not on
   every keystroke, so the form does not jump while typing. Skip the blur check when focus moves to a
-  button: the press itself moves focus, and errors coming or going above the button move it from
-  under the pointer before the click lands, so the click is lost.
+  button below the field: the press itself moves focus, and errors coming or going above the button
+  move it from under the pointer before the click lands, so the click is lost. A button beside the
+  input (show password) does not move, so the check runs.
+- **An error takes the hint's place.** A field shows its hint or its error, never both: they often
+  say the same thing twice.
 - **Stable frame.** The layout keeps its scrollbar gutter (`scrollbar-gutter: stable` on `html`), so a
   page that scrolls and one that does not line up; fonts are the system stack, with no swap.
 

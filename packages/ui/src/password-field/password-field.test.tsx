@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@solidjs/testing-library'
+import { createSignal } from 'solid-js'
 import { PasswordField } from './password-field'
 
 describe('PasswordField', () => {
@@ -9,6 +10,15 @@ describe('PasswordField', () => {
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
     expect(toggle).toHaveClass('h-11', 'w-11', 'sm:h-9', 'sm:w-9')
+  })
+
+  it("keeps the toggle's hover inside the input's border: the whole button is pressed, a smaller chip lights up", () => {
+    render(() => <PasswordField label="Password" toggleLabel="Show password" />)
+    const toggle = screen.getByRole('button', { name: 'Show password' })
+
+    expect(toggle).toHaveClass('hover:bg-transparent')
+    expect(toggle).not.toHaveClass('hover:bg-secondary')
+    expect(toggle.firstElementChild).toHaveClass('size-8', 'group-hover:bg-secondary')
   })
 
   it('shows what was typed and hides it again, keeping the value', () => {
@@ -28,22 +38,27 @@ describe('PasswordField', () => {
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('reads its hint and its error with the input, and passes other attributes to it', () => {
+  it("reads its hint with the input, its error in the hint's place, and passes other attributes to it", () => {
+    const [error, setError] = createSignal<string | undefined>('Use at least 15 characters.')
     render(() => (
       <PasswordField
         label="New password"
         toggleLabel="Show password"
         description="At least 15 characters."
-        error="This password appeared in a data breach."
+        error={error()}
         autocomplete="new-password"
       />
     ))
     const input = screen.getByLabelText('New password')
 
     expect(input).toBeInvalid()
-    expect(input).toHaveAccessibleDescription(/At least 15 characters\./)
-    expect(input).toHaveAccessibleDescription(/This password appeared in a data breach\./)
+    expect(input).toHaveAccessibleDescription('Use at least 15 characters.')
+    expect(screen.queryByText('At least 15 characters.')).not.toBeInTheDocument()
     expect(input).toHaveAttribute('autocomplete', 'new-password')
+
+    setError(undefined)
+
+    expect(input).toHaveAccessibleDescription('At least 15 characters.')
   })
 
   it('reports what is typed', () => {

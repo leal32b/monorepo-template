@@ -23,6 +23,19 @@ describe('Field', () => {
     expect(screen.queryByText('Enter an email.')).not.toBeInTheDocument()
   })
 
+  it("puts an error in its hint's place, so the two never say the same thing twice", () => {
+    const [error, setError] = createSignal<string | undefined>('Enter an email, like ana@example.com.')
+    render(() => <Field label="Email" description="We never share it." error={error()} />)
+    const input = screen.getByRole('textbox', { name: 'Email' })
+
+    expect(input).toHaveAccessibleDescription('Enter an email, like ana@example.com.')
+    expect(screen.queryByText('We never share it.')).not.toBeInTheDocument()
+
+    setError(undefined)
+
+    expect(input).toHaveAccessibleDescription('We never share it.')
+  })
+
   it('reports what is typed', () => {
     const onChange = vi.fn()
     render(() => <Field label="Email" onChange={onChange} />)
