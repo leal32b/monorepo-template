@@ -47,6 +47,20 @@ describe('HttpRouter', () => {
     expect(router.match('GET', '/api/other')).toEqual({ kind: 'not-found' })
   })
 
+  it('matches the rest of the path with a trailing *, one segment or more', () => {
+    const router = new HttpRouter()
+    router.post('/api/auth/*', handler)
+
+    expect(router.match('POST', '/api/auth/sign-in/email')).toEqual({
+      kind: 'found',
+      pattern: '/api/auth/*',
+      handler,
+      params: {}
+    })
+    expect(router.match('POST', '/api/auth/sign-out').kind).toBe('found')
+    expect(router.match('POST', '/api/auth')).toEqual({ kind: 'not-found' })
+  })
+
   it('reports the allowed methods when the path exists with another method', () => {
     const router = new HttpRouter()
     router.get('/api/projects', handler)

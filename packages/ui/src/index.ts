@@ -1,4 +1,8 @@
+export { Alert, type AlertProps, type AlertVariantProps, alertVariants } from '#alert'
 export { Button, type ButtonProps, type ButtonVariantProps, buttonVariants } from '#button'
 export { Field, type FieldProps } from '#field'
 export { Input, type InputProps, inputClass } from '#input'
 export { cn } from '#libs'
+export { Link, type LinkProps, linkClass } from '#link'
+export { PasswordField, type PasswordFieldProps } from '#password-field'
+export { QrCode, type QrCodeProps } from '#qr-code'

@@ -44,4 +44,13 @@ describe('Button', () => {
     expect(button).toHaveClass('bg-destructive', 'h-8', 'px-6')
     expect(button).not.toHaveClass('px-3')
   })
+
+  it.each([
+    ['md', ['h-11', 'text-base', 'sm:h-9', 'sm:text-sm']],
+    ['lg', ['h-12', 'text-base', 'sm:h-10']]
+  ] as const)('is at least 44px tall on phones at size %s, and compact from sm up', (size, classes) => {
+    render(() => <Button size={size}>Save</Button>)
+
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass(...classes)
+  })
 })

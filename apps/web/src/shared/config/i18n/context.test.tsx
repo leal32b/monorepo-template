@@ -3,7 +3,7 @@ import { I18nProvider, useI18n } from './context'
 
 const Probe = () => {
   const { t } = useI18n()
-  return <p>{t('apiStatus.up', { service: 'api', timestamp: 'now' })}</p>
+  return <p>{t('apiStatus.up', { service: 'api', time: 'now' })}</p>
 }
 
 describe('I18nProvider', () => {

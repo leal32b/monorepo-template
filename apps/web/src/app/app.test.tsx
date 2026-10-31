@@ -1,15 +1,106 @@
 import { render, screen } from '@solidjs/testing-library'
-import { createApiClient } from '#shared/api'
+import { createApiClient, createAuthClient } from '#shared/api'
 import { App } from './app'
 
 describe('App', () => {
-  it('serves the home page at the root route, in the given language, with the given API client', async () => {
+  afterEach(() => window.history.replaceState(null, '', '/'))
+
+  it('serves the home page at the root route to whoever is signed in, with the given clients', async () => {
     const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-    const client = createApiClient({ fetch: async () => Response.json(health) })
+    const me = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }
+    const client = createApiClient({ fetch: async (path) => Response.json(path === '/api/me' ? me : health) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
 
-    render(() => <App client={client} locale="en" />)
+    render(() => <App client={client} auth={auth} locale="en" />)
 
+    expect(await screen.findByText('Signed in as Ada Lovelace')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monorepo template')
     expect(await screen.findByText(/The API is up/)).toBeInTheDocument()
+  })
+
+  it('sends a visitor without a session from the home page to sign in', async () => {
+    const client = createApiClient({ fetch: async () => Response.json({ code: 'unauthenticated' }, { status: 401 }) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
+    expect(window.location.search).toBe('?next=%2F')
+  })
+
+  it('serves the sign-up page at /signup', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/signup')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Create your account')
+  })
+
+  it('serves the sign-in page at /login', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/login')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sign in')
+  })
+
+  it('serves the second step of the sign-in at /login/two-factor', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/login/two-factor')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Two-step verification')
+  })
+
+  it('serves the request for a new password at /forgot-password', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/forgot-password')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Reset your password')
+  })
+
+  it('serves the choice of a new password at /reset-password', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/reset-password?token=t0k3n')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Choose a new password')
+  })
+
+  it('serves the account security, behind the sign-in, at /account', async () => {
+    const me = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }
+    const client = createApiClient({ fetch: async () => Response.json(me) })
+    const auth = createAuthClient({
+      fetch: async (input) =>
+        String(input).includes('/list-accounts')
+          ? Response.json([{ id: 'a1', providerId: 'credential' }])
+          : Response.json({ session: { id: 's1' }, user: { ...me, twoFactorEnabled: false } })
+    })
+    window.history.replaceState(null, '', '/account')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Account security' })).toBeInTheDocument()
+  })
+
+  it('answers an address that does not exist with a page that says so', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/settings')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Page not found')
   })
 })

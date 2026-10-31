@@ -1,5 +1,6 @@
 import pino from 'pino'
 import { createApp } from '#app/create-app'
+import { createEmailSender } from '#app/create-email-sender'
 import { createShutdown } from '#app/shutdown'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
@@ -20,8 +21,13 @@ const server = createApp({
   clock: new SystemClock(),
   logger,
   serviceName: 'api',
+  webOrigin: env.webOrigin,
   corsOrigins: env.corsOrigins,
-  db
+  proxySecret: env.proxySecret,
+  db,
+  emailSender: createEmailSender(env.email, logger),
+  authSecret: env.authSecret,
+  google: env.google
 })
 const shutdown = createShutdown({ server, logger, timeoutMs: 10_000, release: () => db.destroy() })
 

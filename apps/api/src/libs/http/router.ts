@@ -43,12 +43,16 @@ function decode(segment: string): string {
   }
 }
 
-/** Raw (still encoded) parameters when the path fits the pattern, otherwise `null`. */
+/**
+ * Raw (still encoded) parameters when the path fits the pattern, otherwise `null`. A last segment
+ * `*` takes the rest of the path, one segment or more: the handler reads it from the URL.
+ */
 function matchSegments(pattern: string[], parts: string[]): Record<string, string> | null {
   const params: Record<string, string> = {}
   for (const [i, segment] of pattern.entries()) {
     const part = parts[i]
     if (part === undefined) return null // the path is shorter than the pattern
+    if (segment === '*') return params
     if (segment.startsWith(':')) params[segment.slice(1)] = part
     else if (segment !== part) return null
   }

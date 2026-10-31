@@ -21,10 +21,11 @@ export const buttonVariants = cva(
         ghost: 'border-transparent bg-transparent text-foreground hover:bg-secondary',
         destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90'
       },
+      // Mobile first: the main sizes are 44px or taller on phones, a comfortable touch target.
       size: {
         sm: 'h-8 px-3 text-sm',
-        md: 'h-9 px-4 text-sm',
-        lg: 'h-10 px-6 text-base'
+        md: 'h-11 px-4 text-base sm:h-9 sm:text-sm',
+        lg: 'h-12 px-6 text-base sm:h-10'
       }
     },
     defaultVariants: { variant: 'secondary', size: 'md' }

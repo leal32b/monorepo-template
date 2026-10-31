@@ -8,9 +8,10 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "db": "pglite-server --db=.data --port=5433",
+    "db": "pglite-server --db=.data --port=5433 --max-connections=10",
     "db:stop": "pid=$(lsof -tiTCP:5433 -sTCP:LISTEN) && kill -TERM $pid",
     "migrate": "tsx --env-file-if-exists=.env src/migrate.ts",
+    "auth:schema": "tsx auth-schema.ts",
     "dev": "pnpm migrate && tsx watch --env-file-if-exists=.env src/main.ts | pino-pretty",
     "build": "node build.ts",
     "start": "node --enable-source-maps dist/migrate.js && node --enable-source-maps dist/main.js"
@@ -28,6 +29,7 @@
   },
   "dependencies": {
     "@repo/contracts": "workspace:*",
+    "better-auth": "catalog:",
     "kysely": "catalog:",
     "pg": "catalog:",
     "pino": "catalog:",

@@ -32,7 +32,9 @@ export const roles = [
   'secondary',
   'secondary-foreground',
   'destructive',
-  'destructive-foreground'
+  'destructive-foreground',
+  'qr',
+  'qr-foreground'
 ] as const
 
 export type Role = (typeof roles)[number]
@@ -50,7 +52,10 @@ const themes = {
     secondary: 'slate-100',
     'secondary-foreground': 'slate-900',
     destructive: 'red-700',
-    'destructive-foreground': 'white'
+    'destructive-foreground': 'white',
+    // A QR code stays dark on light in both themes: not every scanner reads one the other way round.
+    qr: 'white',
+    'qr-foreground': 'slate-950'
   },
   dark: {
     background: 'slate-950',
@@ -63,7 +68,9 @@ const themes = {
     secondary: 'slate-800',
     'secondary-foreground': 'slate-50',
     destructive: 'red-400',
-    'destructive-foreground': 'slate-950'
+    'destructive-foreground': 'slate-950',
+    qr: 'white',
+    'qr-foreground': 'slate-950'
   }
 } as const satisfies Record<string, Record<Role, Primitive>>
 

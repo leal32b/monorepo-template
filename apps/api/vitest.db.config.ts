@@ -8,6 +8,7 @@ export default defineProject({
     globals: true,
     include: ['src/**/*.db.test.ts'],
     globalSetup: ['./test/postgres.global-setup.ts'],
-    fileParallelism: false
+    fileParallelism: false,
+    unstubGlobals: true
   }
 })

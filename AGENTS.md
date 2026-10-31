@@ -32,6 +32,11 @@ Folders appear only when their phase of the plan reaches them.
 - **TDD.** A rule or a bug starts with a failing test (red), then the smallest change (green),
   then cleanup. Use the [`tdd-slice`](.claude/skills/tdd-slice/SKILL.md) skill.
 - **One decision, one ADR.** Use the [`write-adr`](.claude/skills/write-adr/SKILL.md) skill.
+- **Minimize support.** Any change, new or adjusted, that the end user sees or triggers goes
+  through the [`minimize-support`](.claude/skills/minimize-support/SKILL.md) skill.
+- **Design system.** A component in `packages/ui` or a screen in `apps/web`, new or changed,
+  follows the [`design-system`](.claude/skills/design-system/SKILL.md) skill: simple and coherent,
+  mobile first, with no layout shift.
 - **Minimal scope.** Only what the current phase asks for; no collateral refactors; no
   feature of the reference repository that the plan does not list.
 - **Commit only when asked.** Conventional Commits.
@@ -54,7 +59,11 @@ Folders appear only when their phase of the plan reaches them.
   `text-muted-foreground`), held to WCAG contrast ([ADR 0016](docs/adr/0016-design-system-on-kobalte-and-unocss.md));
   no Kobalte import and no literal colour in `apps/web`.
 - **i18n:** UI text lives in typed dictionaries, one file per language ([ADR 0011](docs/adr/0011-typed-i18n-dictionaries.md)).
-- **Contracts:** every request/response is a Zod schema in `@repo/contracts`.
+- **Contracts:** every request/response is a Zod schema in `@repo/contracts`, except `/api/auth/*`,
+  which keeps Better Auth's shapes ([ADR 0020](docs/adr/0020-authenticate-with-better-auth.md)).
+- **Auth:** `better-auth` stays in `modules/identity/infrastructure/` (dependency-cruiser checks it).
+  A route that needs a session calls `requireActor` from `#modules/identity/index` and gets an
+  `Actor` or a 401; it never refreshes the session.
 - **Database:** Postgres ([ADR 0003](docs/adr/0003-postgres-as-the-database.md)).
 - **Language:** code, comments and docs in English; conversation with the owner in pt-BR.
 

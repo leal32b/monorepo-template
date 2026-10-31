@@ -109,6 +109,15 @@ module.exports = {
       to: { path: '^apps/api/src/(modules|app)/' }
     },
     {
+      name: 'api-better-auth-stays-in-identity',
+      comment:
+        'Only the identity adapters know Better Auth (ADR 0020): the rest of the API sees our ports, so the ' +
+        'library can be replaced behind them.',
+      severity: 'error',
+      from: { path: '^apps/api/src/', pathNot: '^apps/api/src/modules/identity/infrastructure/' },
+      to: { path: '(^|/)node_modules/(@better-auth|better-auth)/' }
+    },
+    {
       name: 'web-composes-the-design-system',
       comment: 'The web app composes @repo/ui (ADR 0017): a missing component is added there, not built from Kobalte.',
       severity: 'error',

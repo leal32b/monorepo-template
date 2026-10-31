@@ -1,9 +1,12 @@
 # Headers Cloudflare adds to the static assets (https://developers.cloudflare.com/workers/static-assets/headers/).
+# They also reach index.html when the Worker serves it for a client-side route.
 
+# The CSP allows only this origin: no inline script or style, no other host. The API is on the
+# same origin (ADR 0019), so connect-src 'self' covers it.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
 
 # Vite puts a content hash in every file name under /assets: a new build is a new URL.
 /assets/*

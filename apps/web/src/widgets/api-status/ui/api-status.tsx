@@ -4,10 +4,13 @@ import { getHealth } from '#entities/health'
 import { ApiError, useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 
-/** Asks the API whether it is up and shows the answer, or why it could not be had; it can ask again. */
+/**
+ * Asks the API whether it is up and shows the answer, or why it could not be had; it can ask again.
+ * The time of the answer is shown in the reader's language and time zone.
+ */
 export function ApiStatus() {
   const api = useApi()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [health, { refetch }] = createResource(() => getHealth(api))
 
   const describe = (error: unknown): string => {
@@ -44,7 +47,10 @@ export function ApiStatus() {
           </p>
         </Match>
         <Match when={health()?.status === 'ok' && health()}>
-          {(data) => <p role="status">{t('apiStatus.up', { service: data().service, timestamp: data().timestamp })}</p>}
+          {(data) => {
+            const time = new Intl.DateTimeFormat(locale(), { timeStyle: 'medium' }).format(new Date(data().timestamp))
+            return <p role="status">{t('apiStatus.up', { service: data().service, time })}</p>
+          }}
         </Match>
       </Switch>
       <Button disabled={health.loading} onClick={() => refetch()}>

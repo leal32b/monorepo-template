@@ -35,7 +35,8 @@ export function Field(props: FieldProps) {
     >
       <TextField.Label class="text-sm font-medium">{local.label}</TextField.Label>
       <TextField.Input class={inputClass} {...input} />
-      <Show when={local.description}>
+      {/* An error takes the hint's place: the two would often say the same thing. */}
+      <Show when={local.description && !local.error}>
         <TextField.Description class="text-sm text-muted-foreground">{local.description}</TextField.Description>
       </Show>
       <TextField.ErrorMessage class="text-sm text-destructive">{local.error}</TextField.ErrorMessage>

@@ -1,10 +1,12 @@
 import type { AddressInfo } from 'node:net'
 import { apiProblemSchema } from '@repo/contracts'
 import pino, { type Logger } from 'pino'
+import { z } from 'zod'
 import { ConflictException } from '#libs/exceptions/exception.base'
+import { BODY_LIMIT_BYTES, readValidJson } from './body'
 import { sendJson } from './json'
 import { type HttpHandler, HttpRouter } from './router'
-import { createHttpServer } from './server'
+import { createHttpServer, type HttpServerOptions } from './server'
 
 class NameTaken extends ConflictException {
   readonly code = 'name_taken'
@@ -12,15 +14,15 @@ class NameTaken extends ConflictException {
 
 const closers: Array<() => Promise<void>> = []
 
-type StartOptions = { logger?: Logger; corsOrigins?: readonly string[] }
+type StartOptions = Omit<HttpServerOptions, 'router' | 'logger'> & { logger?: Logger }
 
 async function start(
   register: (router: HttpRouter) => void,
-  { logger = pino({ level: 'silent' }), corsOrigins = [] }: StartOptions = {}
+  { logger = pino({ level: 'silent' }), ...options }: StartOptions = {}
 ) {
   const router = new HttpRouter()
   register(router)
-  const server = createHttpServer({ router, logger, corsOrigins })
+  const server = createHttpServer({ router, logger, ...options })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())))
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`
@@ -270,5 +272,221 @@ describe('CORS', () => {
     expect(response.status).toBe(204)
     expect(response.headers.get('allow')).toBe('GET, HEAD, OPTIONS')
     expect(response.headers.get('access-control-allow-methods')).toBeNull()
+  })
+})
+
+describe('security headers', () => {
+  it.each([
+    ['a route', '/hello'],
+    ['a problem', '/nope']
+  ])('are sent on %s', async (_case, path) => {
+    const url = await start((router) => router.get('/hello', ok))
+
+    const response = await fetch(`${url}${path}`)
+
+    expect(Object.fromEntries(response.headers)).toMatchObject({
+      'cache-control': 'no-store',
+      'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+      'cross-origin-resource-policy': 'same-origin',
+      'x-content-type-options': 'nosniff'
+    })
+  })
+})
+
+describe('the web Worker secret (ADR 0022)', () => {
+  const proxySecret = '0123456789abcdef'.repeat(4)
+  const register = (router: HttpRouter) => {
+    router.get('/hello', ok)
+    router.get('/health', ok)
+  }
+  const options = { proxySecret, publicPaths: ['/health'] }
+
+  it('serves a request that carries the secret', async () => {
+    const url = await start(register, options)
+
+    const response = await fetch(`${url}/hello`, { headers: { 'X-Proxy-Secret': proxySecret } })
+
+    expect(response.status).toBe(200)
+  })
+
+  it.each([
+    ['without the secret', {}],
+    ['with a wrong secret', { 'X-Proxy-Secret': 'f'.repeat(64) }],
+    ['with a secret of another length', { 'X-Proxy-Secret': 'f' }]
+  ])('refuses a request %s', async (_case, headers) => {
+    const url = await start(register, options)
+
+    const response = await fetch(`${url}/hello`, { headers })
+
+    expect(response.status).toBe(403)
+    expect(apiProblemSchema.parse(await response.json()).code).toBe('proxy_required')
+  })
+
+  it('refuses before routing, so a direct caller learns no paths', async () => {
+    const url = await start(register, options)
+
+    expect((await fetch(`${url}/nope`)).status).toBe(403)
+  })
+
+  it('serves the public paths without the secret', async () => {
+    const url = await start(register, options)
+
+    expect((await fetch(`${url}/health`)).status).toBe(200)
+  })
+})
+
+describe('writes from other origins (threat model T06)', () => {
+  const webOrigin = 'https://app.example.com'
+  const options = { trustedOrigins: [webOrigin] }
+
+  it('accepts a write from a trusted origin', async () => {
+    const url = await start((router) => router.post('/items', ok), options)
+
+    const response = await fetch(`${url}/items`, {
+      method: 'POST',
+      headers: { Origin: webOrigin, 'Sec-Fetch-Site': 'same-origin' }
+    })
+
+    expect(response.status).toBe(200)
+  })
+
+  it('accepts a write from a client that is not a browser', async () => {
+    const url = await start((router) => router.post('/items', ok), options)
+
+    expect((await fetch(`${url}/items`, { method: 'POST' })).status).toBe(200)
+  })
+
+  it.each(['POST', 'PUT', 'PATCH', 'DELETE'])('refuses a %s from another origin', async (method) => {
+    const url = await start((router) => router.on(method, '/items', ok), options)
+
+    const response = await fetch(`${url}/items`, { method, headers: { Origin: 'https://evil.example' } })
+
+    expect(response.status).toBe(403)
+    expect(apiProblemSchema.parse(await response.json()).code).toBe('origin_not_allowed')
+  })
+
+  it.each([
+    ['an opaque origin', { Origin: 'null' }],
+    ['another site, by Fetch Metadata', { 'Sec-Fetch-Site': 'cross-site' }],
+    ['another host of the same site', { 'Sec-Fetch-Site': 'same-site' }]
+  ])('refuses a write from %s', async (_case, headers) => {
+    const url = await start((router) => router.post('/items', ok), options)
+
+    const response = await fetch(`${url}/items`, { method: 'POST', headers })
+
+    expect(response.status).toBe(403)
+  })
+
+  it('lets any origin read', async () => {
+    const url = await start((router) => router.get('/items', ok), options)
+
+    const response = await fetch(`${url}/items`, {
+      headers: { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' }
+    })
+
+    expect(response.status).toBe(200)
+  })
+})
+
+describe('JSON request bodies', () => {
+  const itemSchema = z.object({ name: z.string().min(1) })
+  const echo: HttpHandler = async (req, res) => sendJson(res, 200, await readValidJson(req, itemSchema))
+  const postJson = (body: NonNullable<RequestInit['body']>) => ({
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    duplex: 'half' as const
+  })
+
+  it('reads a body that matches the schema, dropping unknown fields', async () => {
+    const url = await start((router) => router.post('/items', echo))
+
+    const response = await fetch(`${url}/items`, postJson('{"name":"Ada","admin":true}'))
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ name: 'Ada' })
+  })
+
+  it('answers 400 to a body that is not JSON', async () => {
+    const url = await start((router) => router.post('/items', echo))
+
+    const response = await fetch(`${url}/items`, postJson('{"name":'))
+
+    expect(response.status).toBe(400)
+    expect(apiProblemSchema.parse(await response.json()).code).toBe('invalid_json')
+  })
+
+  it('answers 400 listing each field that does not match', async () => {
+    const url = await start((router) => router.post('/items', echo))
+
+    const response = await fetch(`${url}/items`, postJson('{"name":""}'))
+    const body = apiProblemSchema.parse(await response.json())
+
+    expect(response.status).toBe(400)
+    expect(body.code).toBe('validation_failed')
+    expect(body.errors).toEqual([{ path: 'name', message: expect.any(String) }])
+  })
+
+  it('reads an empty body as an empty object, so the schema names the missing fields', async () => {
+    const url = await start((router) => router.post('/items', echo))
+
+    const response = await fetch(`${url}/items`, postJson(''))
+
+    expect(apiProblemSchema.parse(await response.json()).errors).toEqual([
+      { path: 'name', message: expect.any(String) }
+    ])
+  })
+
+  it.each([
+    ['text/plain;charset=UTF-8', 'name=Ada'],
+    ['application/x-www-form-urlencoded', 'name=Ada']
+  ])('answers 415 to a %s body, before the handler', async (contentType, body) => {
+    const handler = vi.fn(echo)
+    const url = await start((router) => router.post('/items', handler))
+
+    const response = await fetch(`${url}/items`, { method: 'POST', headers: { 'Content-Type': contentType }, body })
+
+    expect(response.status).toBe(415)
+    expect(apiProblemSchema.parse(await response.json()).code).toBe('unsupported_media_type')
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('accepts JSON with parameters, in any case', async () => {
+    const url = await start((router) => router.post('/items', echo))
+
+    const response = await fetch(`${url}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'Application/JSON; charset=utf-8' },
+      body: '{"name":"Ada"}'
+    })
+
+    expect(response.status).toBe(200)
+  })
+
+  it('answers 413 to a declared length over the limit, before the handler', async () => {
+    const handler = vi.fn(echo)
+    const url = await start((router) => router.post('/items', handler))
+
+    const response = await fetch(`${url}/items`, postJson('x'.repeat(BODY_LIMIT_BYTES + 1)))
+
+    expect(response.status).toBe(413)
+    expect(apiProblemSchema.parse(await response.json()).code).toBe('payload_too_large')
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('answers 413 once a chunked body passes the limit', async () => {
+    const url = await start((router) => router.post('/items', echo))
+    const chunk = new Uint8Array(65_536).fill(32)
+    const chunks = Math.ceil((BODY_LIMIT_BYTES + 1) / chunk.length)
+    const stream = new ReadableStream({
+      start(controller) {
+        for (let i = 0; i < chunks; i++) controller.enqueue(chunk)
+        controller.close()
+      }
+    })
+
+    const response = await fetch(`${url}/items`, postJson(stream))
+
+    expect(response.status).toBe(413)
   })
 })
