@@ -93,4 +93,14 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Account security' })).toBeInTheDocument()
   })
+
+  it('answers an address that does not exist with a page that says so', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/settings')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Page not found')
+  })
 })

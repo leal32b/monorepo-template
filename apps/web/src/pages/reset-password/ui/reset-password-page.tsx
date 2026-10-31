@@ -29,7 +29,15 @@ export function ResetPasswordPage() {
         </EntryLayout>
       }
     >
-      <EntryLayout title={t('resetPassword.title')} description={t('resetPassword.description')}>
+      <EntryLayout
+        title={t('resetPassword.title')}
+        description={t('resetPassword.description')}
+        footer={
+          <>
+            {t('resetPassword.changedMind')} <Link href="/login">{t('resetPassword.signIn')}</Link>
+          </>
+        }
+      >
         <Show
           when={token()}
           fallback={

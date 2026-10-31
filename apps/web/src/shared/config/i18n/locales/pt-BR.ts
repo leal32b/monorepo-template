@@ -93,6 +93,11 @@ export const ptBR: Messages = {
     stale: 'Por segurança, entre de novo antes de desvincular o Google.',
     signInAgain: 'Entrar de novo'
   },
+  notFound: {
+    title: 'Página não encontrada',
+    description: 'O endereço pode estar errado, ou a página pode ter mudado.',
+    home: 'Ir para o início'
+  },
   appShell: {
     signedInAs: 'Entrou como {{name}}',
     signOut: 'Sair'
@@ -192,6 +197,8 @@ export const ptBR: Messages = {
     submit: 'Trocar senha',
     expired: 'Este link expirou ou já foi usado. Cada link funciona uma vez, por 1 hora.',
     askAgain: 'Pedir um novo link',
+    changedMind: 'Mudou de ideia?',
+    signIn: 'Entrar',
     done: {
       title: 'Senha trocada',
       description: 'Entre com sua nova senha.',

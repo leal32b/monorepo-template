@@ -91,6 +91,11 @@ export const en = {
     stale: 'For your safety, sign in again before you unlink Google.',
     signInAgain: 'Sign in again'
   },
+  notFound: {
+    title: 'Page not found',
+    description: 'The address may be wrong, or the page may have moved.',
+    home: 'Go to the start'
+  },
   appShell: {
     signedInAs: 'Signed in as {{name}}',
     signOut: 'Sign out'
@@ -192,6 +197,8 @@ export const en = {
     submit: 'Change password',
     expired: 'This link has expired or was already used. Each link works once, for 1 hour.',
     askAgain: 'Ask for a new link',
+    changedMind: 'Changed your mind?',
+    signIn: 'Sign in',
     done: {
       title: 'Password changed',
       description: 'Sign in with your new password.',

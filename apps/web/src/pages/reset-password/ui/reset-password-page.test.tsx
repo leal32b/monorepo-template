@@ -28,6 +28,12 @@ describe('ResetPasswordPage', () => {
     expect(screen.getByLabelText('New password')).toBeInTheDocument()
   })
 
+  it('keeps a way back to sign in, for a change of mind', () => {
+    renderPage('/reset-password?token=t0k3n')
+
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login')
+  })
+
   it('says when the link came back expired or used, with the way to ask for a new one', () => {
     renderPage('/reset-password?error=INVALID_TOKEN')
 

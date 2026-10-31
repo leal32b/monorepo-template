@@ -2,6 +2,7 @@ import { Route, Router } from '@solidjs/router'
 import { AccountPage } from '#pages/account'
 import { ForgotPasswordPage } from '#pages/forgot-password'
 import { HomePage } from '#pages/home'
+import { NotFoundPage } from '#pages/not-found'
 import { ResetPasswordPage } from '#pages/reset-password'
 import { SignInPage } from '#pages/sign-in'
 import { SignUpPage } from '#pages/sign-up'
@@ -25,6 +26,7 @@ export function App(props: { client: ApiClient; auth: AuthClient; locale: Locale
             <Route path="/login/two-factor" component={TwoFactorPage} />
             <Route path="/forgot-password" component={ForgotPasswordPage} />
             <Route path="/reset-password" component={ResetPasswordPage} />
+            <Route path="*404" component={NotFoundPage} />
           </Router>
         </AuthProvider>
       </ApiProvider>

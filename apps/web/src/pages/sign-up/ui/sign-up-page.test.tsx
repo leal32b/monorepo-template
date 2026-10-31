@@ -1,6 +1,6 @@
 import { MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen } from '@solidjs/testing-library'
-import { AuthProvider, createAuthClient } from '#shared/api'
+import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { SignUpPage } from './sign-up-page'
 
@@ -8,13 +8,16 @@ function renderPage() {
   const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
     Response.json({ token: null, user: { id: 'u1', email: 'ada@example.com', name: 'Ada' } })
   )
+  const api = createApiClient({ fetch: async () => Response.json({ google: true }) })
   render(() => (
     <I18nProvider locale="en">
-      <AuthProvider client={createAuthClient({ fetch })}>
-        <MemoryRouter>
-          <Route path="*" component={SignUpPage} />
-        </MemoryRouter>
-      </AuthProvider>
+      <ApiProvider client={api}>
+        <AuthProvider client={createAuthClient({ fetch })}>
+          <MemoryRouter>
+            <Route path="*" component={SignUpPage} />
+          </MemoryRouter>
+        </AuthProvider>
+      </ApiProvider>
     </I18nProvider>
   ))
   return fetch
@@ -32,6 +35,12 @@ async function signUp(email: string) {
 }
 
 describe('SignUpPage', () => {
+  it('offers Google too, for an account made with it', async () => {
+    renderPage()
+
+    expect(await screen.findByRole('button', { name: 'Continue with Google' })).toBeInTheDocument()
+  })
+
   it('opens on the sign-up form, with a way to sign in instead', () => {
     renderPage()
 

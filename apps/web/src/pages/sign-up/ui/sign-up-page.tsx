@@ -1,14 +1,15 @@
 import { Link, linkClass } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import { ResendConfirmation } from '#features/resend-confirmation'
+import { SignInWithGoogle } from '#features/sign-in-with-google'
 import { SignUpForm, type SignUpValues } from '#features/sign-up'
 import { useI18n } from '#shared/config'
 import { EntryLayout } from '#widgets/entry-layout'
 
 /**
- * `/signup`: the form, then "check your email" in the same frame, with a way to send the link again
- * or to go back and fix the address. What was sent stays in the page, not in the URL, where it would
- * be personal data in a query string.
+ * `/signup`: the form, or Google, as on the sign-in; then "check your email" in the same frame, with
+ * a way to send the link again or to go back and fix the address. What was sent stays in the page,
+ * not in the URL, where it would be personal data in a query string.
  */
 export function SignUpPage() {
   const { t } = useI18n()
@@ -34,6 +35,7 @@ export function SignUpPage() {
           }
         >
           <SignUpForm initial={sent()} onSignedUp={signedUp} />
+          <SignInWithGoogle next="/" />
         </EntryLayout>
       }
     >
