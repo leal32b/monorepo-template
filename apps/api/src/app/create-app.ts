@@ -12,6 +12,7 @@ import { GetHealthService } from '#modules/health/queries/get-health/get-health.
 import { GetLivenessController } from '#modules/health/queries/get-liveness/get-liveness.http-controller'
 import { createAuth } from '#modules/identity/infrastructure/auth'
 import { BetterAuthCurrentSession } from '#modules/identity/infrastructure/better-auth-current-session'
+import { GetIdentityOptionsController } from '#modules/identity/queries/get-identity-options/get-identity-options.http-controller'
 import { GetMeController } from '#modules/identity/queries/get-me/get-me.http-controller'
 import { PUBLIC_PATHS, registerRoutes } from './http-routes'
 
@@ -61,7 +62,8 @@ export function createApp({
     getHealth: new GetHealthController(new GetHealthService(clock, serviceName, databaseProbe)),
     getLiveness: new GetLivenessController(),
     auth: fromFetchHandler(auth.handler, webOrigin),
-    getMe: new GetMeController(new BetterAuthCurrentSession(auth))
+    getMe: new GetMeController(new BetterAuthCurrentSession(auth)),
+    getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined })
   })
   return createHttpServer({
     router,

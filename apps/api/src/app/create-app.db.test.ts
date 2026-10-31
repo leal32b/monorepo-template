@@ -1,5 +1,5 @@
 import type { AddressInfo } from 'node:net'
-import { apiProblemSchema, healthResponseSchema, livenessResponseSchema } from '@repo/contracts'
+import { apiProblemSchema, healthResponseSchema, identityOptionsSchema, livenessResponseSchema } from '@repo/contracts'
 import pino from 'pino'
 import { inject } from 'vitest'
 import { FixedClock } from '#libs/adapters/fixed-clock'
@@ -70,6 +70,13 @@ describe('API', () => {
 
     expect(response.status).toBe(200)
     expect(livenessResponseSchema.parse(await response.json())).toEqual({ status: 'ok' })
+  })
+
+  it('tells the web that Google sign-in is off when it has no credentials', async () => {
+    const response = await fetch(`${url}/api/identity/options`, { headers: { 'X-Proxy-Secret': proxySecret } })
+
+    expect(response.status).toBe(200)
+    expect(identityOptionsSchema.parse(await response.json())).toEqual({ google: false })
   })
 
   it('refuses any other path without the web Worker secret (ADR 0022)', async () => {

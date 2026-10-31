@@ -2,7 +2,7 @@ import { createHash, createHmac } from 'node:crypto'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
-import { apiProblemSchema, meResponseSchema } from '@repo/contracts'
+import { apiProblemSchema, identityOptionsSchema, meResponseSchema } from '@repo/contracts'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
@@ -626,5 +626,11 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     const callback = await get('/api/auth/callback/google?code=google-code&state=forged', cookie)
 
     expect(errorPageOf(callback)).toEqual({ page: `${webOrigin}/login`, error: 'state_mismatch' })
+  })
+
+  it('tells the web that Google sign-in is on', async () => {
+    const response = await get('/api/identity/options')
+
+    expect(identityOptionsSchema.parse(await response.json())).toEqual({ google: true })
   })
 })

@@ -8,3 +8,11 @@ export const meResponseSchema = z.object({
 })
 
 export type MeResponse = z.infer<typeof meResponseSchema>
+
+/** `GET /api/identity/options`: the sign-in methods this deploy offers, so the web shows only what works. */
+export const identityOptionsSchema = z.object({
+  /** Google sign-in: on when the API has its credentials (ADR 0020). */
+  google: z.boolean()
+})
+
+export type IdentityOptions = z.infer<typeof identityOptionsSchema>
