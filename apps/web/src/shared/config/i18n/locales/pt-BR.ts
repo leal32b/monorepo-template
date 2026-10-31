@@ -23,7 +23,10 @@ export const ptBR: Messages = {
       needsPassword:
         'Ela protege a entrada com senha, então precisa de uma senha antes. O Google protege as entradas pelo Google.',
       why: 'Ligue para que uma senha roubada não baste: entrar também vai pedir um código de um app no seu celular.',
-      enabled: 'A verificação em duas etapas está ligada.'
+      enabled: 'A verificação em duas etapas está ligada.',
+      regenerated: 'Seus novos códigos de backup estão prontos. Os antigos não funcionam mais.',
+      newCodes: 'Gerar novos códigos de backup',
+      turnOff: 'Desligar'
     },
     backupCodes: {
       label: 'Códigos de backup',
@@ -60,6 +63,14 @@ export const ptBR: Messages = {
     openApp: 'Abra no seu app autenticador',
     key: 'Ou digite esta chave no app:',
     turnOn: 'Ligar'
+  },
+  disableTwoFactor: {
+    what: 'Entrar volta a pedir só a sua senha, e seus códigos de backup param de funcionar.',
+    submit: 'Desligar a verificação em duas etapas'
+  },
+  regenerateBackupCodes: {
+    what: 'Os novos códigos substituem os que você tem, que param de funcionar.',
+    submit: 'Gerar novos códigos'
   },
   appShell: {
     signedInAs: 'Entrou como {{name}}',

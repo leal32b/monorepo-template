@@ -95,6 +95,7 @@ describe('AccountPage', () => {
     expect(within(twoFactor).queryByLabelText('6-digit code')).not.toBeInTheDocument()
     fireEvent.click(within(twoFactor).getByRole('button', { name: 'I saved them' }))
     expect(within(twoFactor).queryByRole('list', { name: 'Backup codes' })).not.toBeInTheDocument()
+    expect(within(twoFactor).getByText(/^On:/)).toHaveFocus()
   })
 
   it('shows the second step on when it was turned on elsewhere meanwhile', async () => {
@@ -105,7 +106,7 @@ describe('AccountPage', () => {
 
     const twoFactor = setUp()
 
-    expect(await within(twoFactor).findByText(/^On:/)).toBeInTheDocument()
+    expect(await within(twoFactor).findByText(/^On:/)).toHaveFocus()
     expect(within(twoFactor).queryByRole('button', { name: 'Set up' })).not.toBeInTheDocument()
   })
 

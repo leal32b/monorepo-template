@@ -21,7 +21,10 @@ export const en = {
       needsPassword:
         'It protects signing in with a password, so it needs one first. Google protects your Google sign-ins.',
       why: 'Turn it on so a stolen password is not enough: signing in will also ask for a code from an app on your phone.',
-      enabled: 'Two-step verification is on.'
+      enabled: 'Two-step verification is on.',
+      regenerated: 'Your new backup codes are ready. The old ones no longer work.',
+      newCodes: 'Get new backup codes',
+      turnOff: 'Turn off'
     },
     backupCodes: {
       label: 'Backup codes',
@@ -58,6 +61,14 @@ export const en = {
     openApp: 'Open it in your authenticator app',
     key: 'Or type this key in the app:',
     turnOn: 'Turn on'
+  },
+  disableTwoFactor: {
+    what: 'Signing in asks only for your password again, and your backup codes stop working.',
+    submit: 'Turn off two-step verification'
+  },
+  regenerateBackupCodes: {
+    what: 'New codes replace the ones you have, which stop working.',
+    submit: 'Get new codes'
   },
   appShell: {
     signedInAs: 'Signed in as {{name}}',

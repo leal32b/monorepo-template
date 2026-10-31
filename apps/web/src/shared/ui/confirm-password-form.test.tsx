@@ -5,10 +5,10 @@ import { ConfirmPasswordForm } from './confirm-password-form'
 
 type Confirm = (password: string) => Promise<AuthFailure | undefined>
 
-function renderForm(confirm = vi.fn<Confirm>(async () => undefined)) {
+function renderForm(confirm = vi.fn<Confirm>(async () => undefined), variant?: 'primary' | 'destructive') {
   render(() => (
     <I18nProvider locale="en">
-      <ConfirmPasswordForm submit="Set up" confirm={confirm} />
+      <ConfirmPasswordForm submit="Set up" confirm={confirm} variant={variant} />
     </I18nProvider>
   ))
   return {
@@ -29,6 +29,13 @@ describe('ConfirmPasswordForm', () => {
 
     expect(field).toHaveAttribute('autocomplete', 'current-password')
     expect(field).toHaveAccessibleDescription('To confirm it is you.')
+  })
+
+  it("is the view's main action, or marks one that weakens the account", () => {
+    expect(renderForm().button).toHaveClass('bg-primary')
+    document.body.replaceChildren()
+
+    expect(renderForm(undefined, 'destructive').button).toHaveClass('bg-destructive')
   })
 
   it('asks for the password before confirming anything', () => {
