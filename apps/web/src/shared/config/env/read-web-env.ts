@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 
 /** `http(s)://host[:port]` exactly: the client appends paths to it. */
 function isHttpOrigin(value: string): boolean {
@@ -11,13 +11,17 @@ function isHttpOrigin(value: string): boolean {
 }
 
 const webEnvSchema = z.object({
-  VITE_API_BASE_URL: z
-    .string()
-    .default('')
-    .refine(
-      (value) => value === '' || isHttpOrigin(value),
-      'must be empty (same origin) or an http(s) origin such as https://api.example.com'
-    )
+  VITE_API_BASE_URL: z._default(
+    z
+      .string()
+      .check(
+        z.refine(
+          (value) => value === '' || isHttpOrigin(value),
+          'must be empty (same origin) or an http(s) origin such as https://api.example.com'
+        )
+      ),
+    ''
+  )
 })
 
 export type WebEnv = {

@@ -1,6 +1,6 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import { useSession } from '#entities/sessions'
 import { ApiProvider, createApiClient, useApi } from '#shared/api'
 import { I18nProvider } from '#shared/config'

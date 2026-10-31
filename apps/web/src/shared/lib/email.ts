@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 
 /** The email check Better Auth runs, so the web refuses no address the API takes. */
 const email = z.email()

@@ -1,7 +1,7 @@
 import type { AddressInfo } from 'node:net'
 import { apiProblemSchema } from '@repo/contracts'
 import pino, { type Logger } from 'pino'
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import { ConflictException } from '#libs/exceptions/exception.base'
 import { BODY_LIMIT_BYTES, readValidJson } from './body'
 import { sendJson } from './json'
@@ -389,7 +389,7 @@ describe('writes from other origins (threat model T06)', () => {
 })
 
 describe('JSON request bodies', () => {
-  const itemSchema = z.object({ name: z.string().min(1) })
+  const itemSchema = z.object({ name: z.string().check(z.minLength(1)) })
   const echo: HttpHandler = async (req, res) => sendJson(res, 200, await readValidJson(req, itemSchema))
   const postJson = (body: NonNullable<RequestInit['body']>) => ({
     method: 'POST',

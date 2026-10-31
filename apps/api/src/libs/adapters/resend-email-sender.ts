@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 import type { EmailMessage, EmailSender } from '#libs/ports/email-sender.port'
 
 const RESEND_EMAILS_URL = 'https://api.resend.com/emails'

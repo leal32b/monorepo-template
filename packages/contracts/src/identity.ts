@@ -1,8 +1,8 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 
 /** `GET /api/me`: the signed-in user. Without a session the API answers 401 `unauthenticated`. */
 export const meResponseSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().check(z.minLength(1)),
   email: z.email(),
   name: z.string()
 })

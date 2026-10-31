@@ -9,7 +9,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0002](0002-pnpm-workspaces-without-a-task-runner.md) | pnpm workspaces without a task runner | accepted |
 | [0003](0003-postgres-as-the-database.md) | Postgres as the database | accepted |
 | [0004](0004-tooling-biome-vitest-and-git-hooks.md) | Tooling: TypeScript, Biome, Vitest and Git hooks | accepted |
-| [0005](0005-contracts-as-zod-schemas.md) | Contracts as Zod schemas in a shared package | accepted |
+| [0005](0005-contracts-as-zod-schemas.md) | Contracts as Zod schemas in a shared package | accepted; schema API refined by [0024](0024-write-schemas-with-zod-mini.md) |
 | [0006](0006-api-architecture.md) | API architecture: use-case slices, ports and a composition root | accepted |
 | [0007](0007-http-pipeline-on-node-http.md) | HTTP pipeline on plain `node:http` | accepted |
 | [0008](0008-architecture-boundaries-with-dependency-cruiser.md) | Architecture boundaries enforced by dependency-cruiser | accepted |
@@ -28,3 +28,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0021](0021-send-email-through-a-provider-neutral-port.md) | Send email through a provider-neutral port | accepted |
 | [0022](0022-accept-api-requests-only-from-the-web-worker.md) | Accept API requests only from the web Worker | accepted |
 | [0023](0023-draw-the-authenticator-qr-code-in-the-browser.md) | Draw the authenticator QR code in the browser | accepted |
+| [0024](0024-write-schemas-with-zod-mini.md) | Write schemas with Zod Mini | accepted |
