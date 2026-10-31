@@ -103,6 +103,15 @@ jobs:
             echo "::error::First deploy: create the Render service from $IMAGE, then re-run the failed jobs."
             exit 1
           fi
+          # Origins as the API and the Worker read them (ADR 0019): https and a host, nothing after it.
+          wrong=''
+          for name in API_ORIGIN WEB_ORIGIN; do
+            [[ "$(printenv "$name")" =~ ^https://[^/?#[:space:]]+$ ]] || wrong="$wrong $name"
+          done
+          if [ -n "$wrong" ]; then
+            echo "::error::Set these as https://host, with no path and no trailing slash:$wrong"
+            exit 1
+          fi
       - name: Replace the service variables
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
