@@ -1,0 +1,25 @@
+name: Audit
+
+# Known vulnerabilities in the dependencies, high or worse (threat model T18): every Monday, and by
+# hand. A Better Auth advisory is fixed the same week. GitHub runs a schedule only on the default
+# branch, pauses it after 60 days without activity in the repository, and emails a failure to
+# whoever last changed the cron line.
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Dependencies with known vulnerabilities
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm audit --audit-level high
