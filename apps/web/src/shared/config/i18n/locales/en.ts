@@ -5,6 +5,23 @@ export const en = {
   home: {
     title: 'Monorepo template'
   },
+  account: {
+    title: 'Account security',
+    unavailable: 'We could not load your account security. Check your connection, then try again.',
+    retry: 'Try again',
+    password: {
+      title: 'Password',
+      set: 'You sign in with your email and a password.',
+      unset: 'Your account has no password: you sign in with Google.'
+    },
+    twoFactor: {
+      title: 'Two-step verification',
+      on: 'On: signing in with your password also asks for a code from your authenticator app.',
+      off: 'Off: signing in asks only for your password.',
+      needsPassword:
+        'It protects signing in with a password, so it needs one first. Google protects your Google sign-ins.'
+    }
+  },
   appShell: {
     signedInAs: 'Signed in as {{name}}',
     signOut: 'Sign out'

@@ -1,4 +1,5 @@
 import { Route, Router } from '@solidjs/router'
+import { AccountPage } from '#pages/account'
 import { ForgotPasswordPage } from '#pages/forgot-password'
 import { HomePage } from '#pages/home'
 import { ResetPasswordPage } from '#pages/reset-password'
@@ -17,6 +18,7 @@ export function App(props: { client: ApiClient; auth: AuthClient; locale: Locale
           <Router>
             <Route path="/" component={RequireSession}>
               <Route path="/" component={HomePage} />
+              <Route path="/account" component={AccountPage} />
             </Route>
             <Route path="/signup" component={SignUpPage} />
             <Route path="/login" component={SignInPage} />

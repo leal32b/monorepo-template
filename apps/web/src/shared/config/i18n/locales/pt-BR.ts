@@ -7,6 +7,23 @@ export const ptBR: Messages = {
   home: {
     title: 'Template de monorepo'
   },
+  account: {
+    title: 'Segurança da conta',
+    unavailable: 'Não conseguimos carregar a segurança da sua conta. Confira sua conexão e tente de novo.',
+    retry: 'Tentar de novo',
+    password: {
+      title: 'Senha',
+      set: 'Você entra com seu e-mail e uma senha.',
+      unset: 'Sua conta não tem senha: você entra com o Google.'
+    },
+    twoFactor: {
+      title: 'Verificação em duas etapas',
+      on: 'Ligada: entrar com a senha também pede um código do seu app autenticador.',
+      off: 'Desligada: entrar pede só a sua senha.',
+      needsPassword:
+        'Ela protege a entrada com senha, então precisa de uma senha antes. O Google protege as entradas pelo Google.'
+    }
+  },
   appShell: {
     signedInAs: 'Entrou como {{name}}',
     signOut: 'Sair'

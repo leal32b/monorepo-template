@@ -77,4 +77,20 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Choose a new password')
   })
+
+  it('serves the account security, behind the sign-in, at /account', async () => {
+    const me = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }
+    const client = createApiClient({ fetch: async () => Response.json(me) })
+    const auth = createAuthClient({
+      fetch: async (input) =>
+        String(input).includes('/list-accounts')
+          ? Response.json([{ id: 'a1', providerId: 'credential' }])
+          : Response.json({ session: { id: 's1' }, user: { ...me, twoFactorEnabled: false } })
+    })
+    window.history.replaceState(null, '', '/account')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Account security' })).toBeInTheDocument()
+  })
 })

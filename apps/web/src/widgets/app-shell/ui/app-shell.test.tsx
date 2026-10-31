@@ -39,7 +39,7 @@ describe('AppShell', () => {
 
     const header = screen.getByRole('banner')
     expect(within(header).getByRole('link', { name: 'Monorepo Template' })).toHaveAttribute('href', '/')
-    expect(within(header).getByText('Signed in as Ada Lovelace')).toBeInTheDocument()
+    expect(within(header).getByRole('link', { name: 'Signed in as Ada Lovelace' })).toHaveAttribute('href', '/account')
     const main = screen.getByRole('main')
     expect(within(main).getByRole('heading', { level: 1, name: 'Projects' })).toHaveFocus()
     expect(within(main).getByText('The projects')).toBeInTheDocument()
