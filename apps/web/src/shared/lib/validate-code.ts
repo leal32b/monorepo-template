@@ -1,4 +1,4 @@
-import type { Checked } from '#shared/lib'
+import type { Checked } from './form-checks'
 
 export type CodeValues = { code: string }
 

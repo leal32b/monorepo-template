@@ -1,8 +1,14 @@
-import { type Checked, type NewPasswordProblem, newPasswordProblem } from '#shared/lib'
+import {
+  type Checked,
+  type CurrentPasswordProblem,
+  currentPasswordProblem,
+  type NewPasswordProblem,
+  newPasswordProblem
+} from '#shared/lib'
 
 export type ChangePasswordValues = { current: string; next: string }
 
-export type ChangePasswordProblems = { current?: 'passwordRequired' | 'passwordWrong'; next?: NewPasswordProblem }
+export type ChangePasswordProblems = { current?: CurrentPasswordProblem; next?: NewPasswordProblem }
 
 /** What the API already refused, so it is not sent again. */
 export type Refused = { wrong: ReadonlySet<string>; breached: ReadonlySet<string> }
@@ -18,8 +24,8 @@ export function validateChangePassword(
 ): Checked<ChangePasswordValues, ChangePasswordProblems> {
   const problems: ChangePasswordProblems = {}
 
-  if (input.current === '') problems.current = 'passwordRequired'
-  else if (refused.wrong.has(input.current)) problems.current = 'passwordWrong'
+  const current = currentPasswordProblem(input.current, refused.wrong)
+  if (current) problems.current = current
   const next = newPasswordProblem(input.next, refused.breached)
   if (next) problems.next = next
 

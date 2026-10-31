@@ -21,7 +21,19 @@ export const ptBR: Messages = {
       on: 'Ligada: entrar com a senha também pede um código do seu app autenticador.',
       off: 'Desligada: entrar pede só a sua senha.',
       needsPassword:
-        'Ela protege a entrada com senha, então precisa de uma senha antes. O Google protege as entradas pelo Google.'
+        'Ela protege a entrada com senha, então precisa de uma senha antes. O Google protege as entradas pelo Google.',
+      why: 'Ligue para que uma senha roubada não baste: entrar também vai pedir um código de um app no seu celular.',
+      enabled: 'A verificação em duas etapas está ligada.'
+    },
+    backupCodes: {
+      label: 'Códigos de backup',
+      save: 'Guarde estes códigos de backup. Cada um faz você entrar uma vez se não puder usar o app. Eles só aparecem agora.',
+      copy: 'Copiar',
+      copied: 'Copiados.',
+      copyFailed: 'Não foi possível copiar. Baixe os códigos, ou selecione e copie.',
+      download: 'Baixar',
+      file: 'Códigos de backup de {{email}} no {{app}}. Cada um faz você entrar uma vez.',
+      saved: 'Já guardei'
     }
   },
   changePassword: {
@@ -35,6 +47,19 @@ export const ptBR: Messages = {
     why: 'Com uma senha, você também entra com seu e-mail e pode ligar a verificação em duas etapas.',
     send: 'Criar uma senha',
     sent: 'Enviamos para {{email}} um link para criar sua senha. Ele vale por 1 hora.'
+  },
+  confirmPassword: {
+    label: 'Sua senha',
+    hint: 'Para confirmar que é você.'
+  },
+  enableTwoFactor: {
+    setUp: 'Configurar',
+    scan: 'Leia este QR code com um app autenticador, como Google Authenticator, Microsoft Authenticator ou 1Password.',
+    qr: 'QR code para adicionar sua conta a um app autenticador',
+    onThisPhone: 'Está neste celular?',
+    openApp: 'Abra no seu app autenticador',
+    key: 'Ou digite esta chave no app:',
+    turnOn: 'Ligar'
   },
   appShell: {
     signedInAs: 'Entrou como {{name}}',

@@ -2,9 +2,8 @@ import { Button, Field, Link } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
-import { createFormChecks } from '#shared/lib'
+import { createFormChecks, validateBackupCode, validateCode } from '#shared/lib'
 import { AuthFailureAlert } from '#shared/ui'
-import { validateBackupCode, validateCode } from '../model/validate-code'
 
 export type TwoFactorFormProps = {
   /** Which code is asked for: the one the authenticator app shows, or one of the saved backup codes. */

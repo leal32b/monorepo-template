@@ -19,7 +19,19 @@ export const en = {
       on: 'On: signing in with your password also asks for a code from your authenticator app.',
       off: 'Off: signing in asks only for your password.',
       needsPassword:
-        'It protects signing in with a password, so it needs one first. Google protects your Google sign-ins.'
+        'It protects signing in with a password, so it needs one first. Google protects your Google sign-ins.',
+      why: 'Turn it on so a stolen password is not enough: signing in will also ask for a code from an app on your phone.',
+      enabled: 'Two-step verification is on.'
+    },
+    backupCodes: {
+      label: 'Backup codes',
+      save: 'Save these backup codes. Each one signs you in once if you cannot use your app. They are shown only now.',
+      copy: 'Copy',
+      copied: 'Copied.',
+      copyFailed: 'Could not copy. Download them, or select and copy them.',
+      download: 'Download',
+      file: 'Backup codes for {{email}} on {{app}}. Each one signs you in once.',
+      saved: 'I saved them'
     }
   },
   changePassword: {
@@ -33,6 +45,19 @@ export const en = {
     why: 'A password lets you sign in with your email too, and turn on two-step verification.',
     send: 'Create a password',
     sent: 'We sent a link to {{email}} to create your password. It works for 1 hour.'
+  },
+  confirmPassword: {
+    label: 'Your password',
+    hint: 'To confirm it is you.'
+  },
+  enableTwoFactor: {
+    setUp: 'Set up',
+    scan: 'Scan this QR code with an authenticator app, such as Google Authenticator, Microsoft Authenticator or 1Password.',
+    qr: 'QR code to add your account to an authenticator app',
+    onThisPhone: 'On this phone?',
+    openApp: 'Open it in your authenticator app',
+    key: 'Or type this key in the app:',
+    turnOn: 'Turn on'
   },
   appShell: {
     signedInAs: 'Signed in as {{name}}',

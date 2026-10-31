@@ -27,3 +27,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0020](0020-authenticate-with-better-auth.md) | Authenticate with Better Auth, behind our own ports | accepted |
 | [0021](0021-send-email-through-a-provider-neutral-port.md) | Send email through a provider-neutral port | accepted |
 | [0022](0022-accept-api-requests-only-from-the-web-worker.md) | Accept API requests only from the web Worker | accepted |
+| [0023](0023-draw-the-authenticator-qr-code-in-the-browser.md) | Draw the authenticator QR code in the browser | accepted |

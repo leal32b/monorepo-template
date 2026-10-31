@@ -14,7 +14,8 @@ const pairs: [foreground: Role, background: Role, minimum: number][] = [
   ['destructive-foreground', 'destructive', 4.5],
   ['border', 'background', 3],
   ['muted-foreground', 'secondary', 3], // the password toggle's icon on its hover background
-  ['ring', 'background', 3]
+  ['ring', 'background', 3],
+  ['qr-foreground', 'qr', 4.5] // the QR code: dark on light in both themes, for every scanner
 ]
 
 const themes: ThemeName[] = ['light', 'dark']
