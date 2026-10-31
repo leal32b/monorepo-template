@@ -1,7 +1,7 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { SessionProvider } from '#entities/sessions'
-import { AuthProvider, createAuthClient } from '#shared/api'
+import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { AccountPage } from './account-page'
 
@@ -26,26 +26,29 @@ function betterAuth(
     if (url.includes('/list-accounts')) {
       return Response.json(providers.map((providerId, index) => ({ id: `a${index}`, providerId })))
     }
+    if (url.endsWith('/api/identity/options')) return Response.json({ google: true })
     if (url.endsWith('/two-factor/enable')) return enable()
     if (url.endsWith('/two-factor/verify-totp')) return Response.json({ status: true })
     return Response.json({ session: { id: 's1' }, user: { ...ada, twoFactorEnabled } })
   })
 }
 
-/** The page at `/account`, behind a session, with Better Auth answering through `fetch`. */
-function renderPage(fetch: Fetch) {
+/** The page at `path`, behind a session, with the API and Better Auth answering through `fetch`. */
+function renderPage(fetch: Fetch, path = '/account') {
   const history = createMemoryHistory()
-  history.set({ value: '/account' })
+  history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <AuthProvider client={createAuthClient({ fetch })}>
-        <SessionProvider user={ada}>
-          <MemoryRouter history={history}>
-            <Route path="/account" component={AccountPage} />
-            <Route path="/login" component={() => <p>The sign-in</p>} />
-          </MemoryRouter>
-        </SessionProvider>
-      </AuthProvider>
+      <ApiProvider client={createApiClient({ fetch })}>
+        <AuthProvider client={createAuthClient({ fetch })}>
+          <SessionProvider user={ada}>
+            <MemoryRouter history={history}>
+              <Route path="/account" component={AccountPage} />
+              <Route path="/login" component={() => <p>The sign-in</p>} />
+            </MemoryRouter>
+          </SessionProvider>
+        </AuthProvider>
+      </ApiProvider>
     </I18nProvider>
   ))
   return history
@@ -119,6 +122,15 @@ describe('AccountPage', () => {
     fireEvent.click(within(section('Password')).getByRole('button', { name: 'Create a password' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('We sent a link to ada@example.com')
+  })
+
+  it('says, in the Google section, why linking Google failed', async () => {
+    renderPage(betterAuth(['credential'], false), '/account?error=account_already_linked_to_different_user')
+
+    const google = await screen.findByRole('region', { name: 'Google' })
+    expect(within(google).getByRole('alert')).toHaveTextContent(
+      'That Google account already signs in to another account here.'
+    )
   })
 
   it('sends the user to sign in when the session has ended, to come back here', async () => {

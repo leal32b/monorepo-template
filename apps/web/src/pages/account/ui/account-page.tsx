@@ -1,5 +1,5 @@
 import { Alert, Button } from '@repo/ui'
-import { Navigate } from '@solidjs/router'
+import { Navigate, useSearchParams } from '@solidjs/router'
 import { createResource, Match, Show, Switch } from 'solid-js'
 import { getAccountSecurity } from '#entities/accounts'
 import { ChangePasswordForm } from '#features/change-password'
@@ -7,18 +7,20 @@ import { SendPasswordLink } from '#features/request-password-reset'
 import { ApiError, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AppShell } from '#widgets/app-shell'
+import { GoogleSection } from './google-section'
 import { Section } from './section'
 import { TwoFactorSection } from './two-factor-section'
 
 /**
  * `/account`: the account security, in the app frame: the password, changed here, or created by a
- * link for an account made with Google alone; and the second step, turned on and off here. It reads
- * Better Auth directly (ADR 0020); a session that ended on the way sends the user to sign in, to come
- * back here.
+ * link for an account made with Google alone; the second step, turned on and off here; and Google,
+ * linked and unlinked here, coming back with `?error=` when linking failed. It reads Better Auth
+ * directly (ADR 0020); a session that ended on the way sends the user to sign in, to come back here.
  */
 export function AccountPage() {
   const auth = useAuth()
   const { t } = useI18n()
+  const [params] = useSearchParams()
   const [security, { refetch, mutate }] = createResource(() => getAccountSecurity(auth))
 
   return (
@@ -52,6 +54,7 @@ export function AccountPage() {
                 </Show>
               </Section>
               <TwoFactorSection security={current()} onChange={mutate} />
+              <GoogleSection security={current()} error={params.error} onChange={mutate} />
             </>
           )}
         </Match>

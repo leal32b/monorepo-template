@@ -37,6 +37,12 @@ export const ptBR: Messages = {
       download: 'Baixar',
       file: 'Códigos de backup de {{email}} no {{app}}. Cada um faz você entrar uma vez.',
       saved: 'Já guardei'
+    },
+    google: {
+      title: 'Google',
+      linked: 'Vinculado: você também pode entrar com sua conta Google.',
+      unlinked: 'Não vinculado: vincule para entrar também com sua conta Google.',
+      only: 'Vinculado: é como você entra, então fica vinculado até você criar uma senha.'
     }
   },
   changePassword: {
@@ -71,6 +77,21 @@ export const ptBR: Messages = {
   regenerateBackupCodes: {
     what: 'Os novos códigos substituem os que você tem, que param de funcionar.',
     submit: 'Gerar novos códigos'
+  },
+  linkGoogle: {
+    submit: 'Vincular o Google',
+    errors: {
+      cancelled: 'O Google não foi vinculado: você cancelou no Google.',
+      otherEmail: 'Essa conta Google tem outro e-mail. Vincule a que usa {{email}}.',
+      otherUser: 'Essa conta Google já entra em outra conta aqui.',
+      interrupted: 'O vínculo com o Google não terminou. Tente de novo a partir desta página.',
+      failed: 'Não foi possível vincular o Google. Tente de novo em instantes.'
+    }
+  },
+  unlinkGoogle: {
+    submit: 'Desvincular o Google',
+    stale: 'Por segurança, entre de novo antes de desvincular o Google.',
+    signInAgain: 'Entrar de novo'
   },
   appShell: {
     signedInAs: 'Entrou como {{name}}',

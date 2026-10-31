@@ -35,6 +35,12 @@ export const en = {
       download: 'Download',
       file: 'Backup codes for {{email}} on {{app}}. Each one signs you in once.',
       saved: 'I saved them'
+    },
+    google: {
+      title: 'Google',
+      linked: 'Linked: you can also sign in with your Google account.',
+      unlinked: 'Not linked: link it to sign in with your Google account too.',
+      only: 'Linked: it is how you sign in, so it stays linked until you create a password.'
     }
   },
   changePassword: {
@@ -69,6 +75,21 @@ export const en = {
   regenerateBackupCodes: {
     what: 'New codes replace the ones you have, which stop working.',
     submit: 'Get new codes'
+  },
+  linkGoogle: {
+    submit: 'Link Google',
+    errors: {
+      cancelled: 'Google was not linked: you cancelled at Google.',
+      otherEmail: 'That Google account has another email. Link the one with {{email}}.',
+      otherUser: 'That Google account already signs in to another account here.',
+      interrupted: 'Linking Google did not finish. Try again from this page.',
+      failed: 'Google could not be linked. Try again in a moment.'
+    }
+  },
+  unlinkGoogle: {
+    submit: 'Unlink Google',
+    stale: 'For your safety, sign in again before you unlink Google.',
+    signInAgain: 'Sign in again'
   },
   appShell: {
     signedInAs: 'Signed in as {{name}}',
