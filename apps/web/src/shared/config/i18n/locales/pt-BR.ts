@@ -1,6 +1,9 @@
 import type { Messages } from './en'
 
 export const ptBR: Messages = {
+  app: {
+    name: 'Monorepo Template'
+  },
   home: {
     title: 'Template de monorepo'
   },

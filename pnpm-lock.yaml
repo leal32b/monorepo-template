@@ -380,6 +380,9 @@ importers:
       '@solidjs/router':
         specifier: 'catalog:'
         version: 1.0.0(solid-js@1.9.17)
+      better-auth:
+        specifier: 'catalog:'
+        version: 1.7.14(pg@8.23.1)(solid-js@1.9.17)(vitest@5.0.5)
       solid-js:
         specifier: 'catalog:'
         version: 1.9.17

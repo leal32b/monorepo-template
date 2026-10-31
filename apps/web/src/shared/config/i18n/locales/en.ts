@@ -1,4 +1,7 @@
 export const en = {
+  app: {
+    name: 'Monorepo Template'
+  },
   home: {
     title: 'Monorepo template'
   },
