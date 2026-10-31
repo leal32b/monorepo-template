@@ -68,7 +68,7 @@ describe('SignInForm', () => {
 
     signIn()
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('The email or the password is wrong.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The email or password is wrong.')
     expect(screen.queryByRole('note')).not.toBeInTheDocument()
   })
 
@@ -146,7 +146,7 @@ describe('SignInForm', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
-  it('says the email or the password is wrong, without saying which, and keeps what was typed', async () => {
+  it('says the email or password is wrong, without saying which, and keeps what was typed', async () => {
     const { onSignedIn } = renderForm(
       vi.fn<Fetch>(async () => Response.json({ code: 'INVALID_EMAIL_OR_PASSWORD' }, { status: 401 }))
     )
@@ -154,7 +154,7 @@ describe('SignInForm', () => {
     signIn()
 
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('The email or the password is wrong. Check them and try again.')
+    expect(alert).toHaveTextContent('The email or password is wrong. Check them and try again.')
     expect(alert).toHaveFocus()
     expect(follows(screen.getByRole('button', { name: 'Sign in' }), alert)).toBe(true)
     expect(screen.getByRole('textbox', { name: 'Email' })).toHaveValue('Ada@Example.com')

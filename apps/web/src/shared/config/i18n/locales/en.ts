@@ -165,7 +165,7 @@ export const en = {
     forgot: 'Forgot your password?',
     signUp: 'Create an account',
     errors: {
-      wrongCredentials: 'The email or the password is wrong. Check them and try again.',
+      wrongCredentials: 'The email or password is wrong. Check them and try again.',
       unconfirmed: 'Confirm your email first: open the link we sent when you signed up, or send it again.',
       linkExpired: 'This confirmation link has expired. Sign in, and you can ask for a new one.'
     },
@@ -195,7 +195,7 @@ export const en = {
     description: 'This signs you out everywhere else.',
     password: 'New password',
     submit: 'Change password',
-    expired: 'This link has expired or was already used. Each link works once, for 1 hour.',
+    expired: 'This link has expired or was already used. Each link works once and expires after 1 hour.',
     askAgain: 'Ask for a new link',
     changedMind: 'Changed your mind?',
     signIn: 'Sign in',

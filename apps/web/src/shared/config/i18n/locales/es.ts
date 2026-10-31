@@ -10,10 +10,10 @@ export const es: Messages = {
   account: {
     title: 'Seguridad de la cuenta',
     unavailable: 'No pudimos cargar la seguridad de tu cuenta. Revisa tu conexión y vuelve a intentarlo.',
-    retry: 'Volver a intentar',
+    retry: 'Intentar de nuevo',
     password: {
       title: 'Contraseña',
-      set: 'Inicias sesión con tu correo electrónico y una contraseña.',
+      set: 'Inicias sesión con tu correo y una contraseña.',
       unset: 'Tu cuenta no tiene contraseña: inicias sesión con Google.'
     },
     twoFactor: {
@@ -32,7 +32,7 @@ export const es: Messages = {
       label: 'Códigos de respaldo',
       save: 'Guarda estos códigos de respaldo. Cada uno te permite iniciar sesión una vez si no puedes usar tu app. Solo se muestran ahora.',
       copy: 'Copiar',
-      copied: 'Copiado.',
+      copied: 'Copiados.',
       copyFailed: 'No se pudo copiar. Descárgalos, o selecciónalos y cópialos.',
       download: 'Descargar',
       file: 'Códigos de respaldo de {{email}} en {{app}}. Cada uno te permite iniciar sesión una vez.',
@@ -53,7 +53,7 @@ export const es: Messages = {
     changed: 'Tu contraseña se cambió. Se cerró la sesión en tus otros dispositivos.'
   },
   createPassword: {
-    why: 'Una contraseña también te permite iniciar sesión con tu correo electrónico y activar la verificación en dos pasos.',
+    why: 'Una contraseña también te permite iniciar sesión con tu correo y activar la verificación en dos pasos.',
     send: 'Crear una contraseña',
     sent: 'Enviamos un enlace a {{email}} para crear tu contraseña. Funciona durante 1 hora.'
   },
@@ -82,7 +82,7 @@ export const es: Messages = {
     submit: 'Vincular Google',
     errors: {
       cancelled: 'No se vinculó Google: cancelaste en Google.',
-      otherEmail: 'Esa cuenta de Google tiene otro correo electrónico. Vincula la de {{email}}.',
+      otherEmail: 'Esa cuenta de Google tiene otro correo. Vincula la de {{email}}.',
       otherUser: 'Esa cuenta de Google ya inicia sesión en otra cuenta de aquí.',
       interrupted: 'La vinculación con Google no terminó. Vuelve a intentarlo desde esta página.',
       failed: 'No se pudo vincular Google. Vuelve a intentarlo en un momento.'
@@ -106,7 +106,7 @@ export const es: Messages = {
     unavailable: {
       title: 'No pudimos comprobar tu sesión',
       description: 'Revisa tu conexión y vuelve a intentarlo.',
-      retry: 'Volver a intentar'
+      retry: 'Intentar de nuevo'
     }
   },
   apiStatus: {
@@ -124,7 +124,7 @@ export const es: Messages = {
     network: 'No pudimos conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.',
     rateLimited: 'Demasiados intentos. Espera un minuto y vuelve a intentarlo.',
     unexpected: 'Algo salió mal de nuestro lado. Vuelve a intentarlo en un momento.',
-    reference: 'Si sigue pasando, díselo a soporte: {{reference}}'
+    reference: 'Si sigue pasando, avisa a soporte: {{reference}}'
   },
   auth: {
     name: 'Nombre',
@@ -134,7 +134,7 @@ export const es: Messages = {
     newPasswordHint: 'Al menos {{min}} caracteres.',
     errors: {
       nameRequired: 'Escribe tu nombre.',
-      emailInvalid: 'Escribe una dirección de correo electrónico, como ada@example.com.',
+      emailInvalid: 'Escribe una dirección de correo, como ada@example.com.',
       passwordTooShort: 'Usa al menos {{min}} caracteres.',
       passwordTooLong: 'Usa como máximo {{max}} caracteres.',
       passwordCompromised: 'Esta contraseña apareció en una filtración de datos. Elige otra.',
@@ -144,42 +144,40 @@ export const es: Messages = {
   },
   signUp: {
     title: 'Crea tu cuenta',
-    description: 'Toma menos de un minuto.',
+    description: 'Te toma menos de un minuto.',
     submit: 'Crear cuenta',
     haveAccount: '¿Ya tienes una cuenta?',
     signIn: 'Iniciar sesión',
     checkEmail: {
-      title: 'Revisa tu correo electrónico',
+      title: 'Revisa tu correo',
       description: 'Confirma tu dirección para terminar.',
       sentTo: 'Enviamos un enlace a {{email}}.',
       notThere: '¿No está en tu bandeja de entrada? Revisa el spam, o envíalo de nuevo.',
       wrongAddress: '¿Dirección equivocada?',
-      useAnother: 'Usar otro correo electrónico'
+      useAnother: 'Usar otro correo'
     }
   },
   signIn: {
     title: 'Iniciar sesión',
     description: 'Te damos la bienvenida de nuevo.',
     submit: 'Iniciar sesión',
-    noAccount: '¿Eres nuevo?',
+    noAccount: '¿Primera vez por aquí?',
     forgot: '¿Olvidaste tu contraseña?',
     signUp: 'Crear una cuenta',
     errors: {
-      wrongCredentials: 'El correo electrónico o la contraseña no son correctos. Revísalos y vuelve a intentarlo.',
-      unconfirmed:
-        'Primero confirma tu correo electrónico: abre el enlace que enviamos al crear tu cuenta, o envíalo de nuevo.',
+      wrongCredentials: 'El correo o la contraseña no son correctos. Revísalos y vuelve a intentarlo.',
+      unconfirmed: 'Primero confirma tu correo: abre el enlace que enviamos al crear tu cuenta, o envíalo de nuevo.',
       linkExpired: 'Este enlace de confirmación venció. Inicia sesión y podrás pedir uno nuevo.'
     },
     google: {
       or: 'o',
       continue: 'Continuar con Google',
       errors: {
-        cancelled:
-          'Se canceló el inicio de sesión con Google. Vuelve a intentarlo, o inicia sesión con tu correo electrónico.',
+        cancelled: 'Se canceló el inicio de sesión con Google. Vuelve a intentarlo, o inicia sesión con tu correo.',
         unverified:
-          'Google no ha confirmado esta dirección de correo electrónico. Confírmala con Google, o inicia sesión con tu correo electrónico.',
+          'Google no ha confirmado esta dirección de correo. Confírmala con Google, o inicia sesión con tu correo.',
         notLinked:
-          'Este correo electrónico ya tiene una cuenta sin confirmar. Abre el enlace que le enviamos y vuelve a probar con Google.',
+          'Este correo ya tiene una cuenta sin confirmar. Abre el enlace que le enviamos y vuelve a probar con Google.',
         interrupted: 'El inicio de sesión con Google no terminó. Vuelve a intentarlo desde esta página.',
         failed: 'No funcionó el inicio de sesión con Google. Vuelve a intentarlo en un momento.'
       }
@@ -187,7 +185,7 @@ export const es: Messages = {
   },
   forgotPassword: {
     title: 'Restablece tu contraseña',
-    description: 'Te enviaremos un enlace por correo electrónico.',
+    description: 'Te enviaremos un enlace por correo.',
     submit: 'Enviar enlace',
     sent: 'Si una cuenta usa {{email}}, le enviamos un enlace. Funciona durante 1 hora; revisa el spam si no llega.',
     remembered: '¿Ya la recordaste?',

@@ -73,7 +73,7 @@ describe('SignInPage', () => {
 
     signIn()
 
-    expect(await screen.findByText(/email or the password is wrong/i)).toBeInTheDocument()
+    expect(await screen.findByText(/email or password is wrong/i)).toBeInTheDocument()
     expect(screen.queryByText(/This confirmation link has expired/)).not.toBeInTheDocument()
   })
 

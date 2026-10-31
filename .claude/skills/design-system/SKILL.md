@@ -115,8 +115,18 @@ Elements must not "tremble" between states or screens.
 - Buttons are verbs that say the outcome: "Create account", "Send link", not "Submit" or "OK".
 - An error says what happened and what to do, without blaming: "This link has expired. Ask for a
   new one."
-- The same word for the same thing on every screen and in both languages (sign in → entrar, sign up
-  → criar conta, sign out → sair, email → e-mail).
+- The same word for the same thing on every screen and in every language:
+
+  | | pt-BR | es |
+  |---|---|---|
+  | sign in | entrar (the noun is *login*, never "entrada") | iniciar sesión |
+  | sign up | criar conta | crear cuenta |
+  | sign out | sair | cerrar sesión |
+  | email | e-mail | correo electrónico as the label, *correo* in a sentence |
+  | turn on / off | ativar / desativar, never "ligar" | activar / desactivar |
+
+  Address the user as *você* (pt-BR) and *tú* (es), and avoid words that mark the user's gender
+  ("¿Eres nuevo?"). Write the plural when the text is about the codes ("Copiados").
 - Short: one idea per sentence; no "Oops", no exclamation marks.
 
 ## Tests
