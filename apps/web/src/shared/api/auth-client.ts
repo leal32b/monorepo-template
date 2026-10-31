@@ -1,4 +1,4 @@
-import { twoFactorClient } from 'better-auth/client/plugins'
+import { inferAdditionalFields, twoFactorClient } from 'better-auth/client/plugins'
 import { createAuthClient as createBetterAuthClient } from 'better-auth/solid'
 
 export type AuthClientOptions = {
@@ -14,7 +14,11 @@ export function createAuthClient({ fetch }: AuthClientOptions) {
   return createBetterAuthClient({
     basePath: '/api/auth',
     fetchOptions: { customFetchImpl: fetch },
-    plugins: [twoFactorClient()]
+    plugins: [
+      twoFactorClient(),
+      // The user's field the API adds: a sign-up must say which language its emails are written in.
+      inferAdditionalFields({ user: { locale: { type: 'string', required: true } } })
+    ]
   })
 }
 

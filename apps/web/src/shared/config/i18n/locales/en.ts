@@ -15,6 +15,47 @@ export const en = {
     errorWithCode: 'The API answered an error ({{code}}).',
     unknown: 'Something went wrong.',
     checkAgain: 'Check again'
+  },
+  /** What a screen says about a failed call it has no better words for. */
+  failure: {
+    network: 'We could not reach the server. Check your connection and try again.',
+    rateLimited: 'Too many attempts. Wait a minute, then try again.',
+    unexpected: 'Something went wrong on our side. Try again in a moment.',
+    reference: 'If it keeps happening, tell support: {{reference}}'
+  },
+  /** Words every entry screen shares, so a field is called the same everywhere. */
+  auth: {
+    name: 'Name',
+    email: 'Email',
+    password: 'Password',
+    showPassword: 'Show password',
+    newPasswordHint: 'At least {{min}} characters.',
+    errors: {
+      nameRequired: 'Enter your name.',
+      emailInvalid: 'Enter an email address, like ada@example.com.',
+      passwordTooShort: 'Use at least {{min}} characters.',
+      passwordTooLong: 'Use at most {{max}} characters.',
+      passwordCompromised: 'This password has appeared in a data breach. Choose a different one.'
+    }
+  },
+  signUp: {
+    title: 'Create your account',
+    description: 'It takes less than a minute.',
+    submit: 'Create account',
+    haveAccount: 'Already have an account?',
+    signIn: 'Sign in',
+    checkEmail: {
+      title: 'Check your email',
+      description: 'Confirm your address to finish.',
+      sentTo: 'We sent a link to {{email}}.',
+      notThere: 'Not in your inbox? Check spam, or send it again.',
+      wrongAddress: 'Wrong address?',
+      useAnother: 'Use another email'
+    }
+  },
+  resendConfirmation: {
+    send: 'Send it again',
+    sent: 'We sent it again. It can take a few minutes.'
   }
 }
 

@@ -1,3 +1,4 @@
+import { passwordLength } from '@repo/contracts'
 import { betterAuth } from 'better-auth'
 import { haveIBeenPwned, twoFactor } from 'better-auth/plugins'
 import type { Kysely } from 'kysely'
@@ -52,9 +53,9 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret, google 
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
-      // NIST SP 800-63B-4: 15 characters when the password is the only factor, no composition rules.
-      minPasswordLength: 15,
-      maxPasswordLength: 128,
+      // The limits the web shows before the user types (NIST SP 800-63B-4).
+      minPasswordLength: passwordLength.min,
+      maxPasswordLength: passwordLength.max,
       password: { hash: hashPassword, verify: verifyPassword },
       sendResetPassword: async ({ user, url }) => send('resetPassword', user, url),
       // Whoever had the old password is signed out everywhere (T10).

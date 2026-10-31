@@ -68,7 +68,9 @@ Elements must not "tremble" between states or screens.
 - **Same size in every state.** A pending button keeps its width (full width on phones, or a fixed
   minimum); a loading area shows a placeholder of the content's size.
 - **Field errors on submit.** Validate on submit (and on blur once a field was submitted), not on
-  every keystroke, so the form does not jump while typing.
+  every keystroke, so the form does not jump while typing. Skip the blur check when focus moves to a
+  button: the press itself moves focus, and errors coming or going above the button move it from
+  under the pointer before the click lands, so the click is lost.
 - **Stable frame.** The layout keeps its scrollbar gutter (`scrollbar-gutter: stable` on `html`), so a
   page that scrolls and one that does not line up; fonts are the system stack, with no swap.
 

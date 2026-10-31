@@ -16,3 +16,9 @@ export const identityOptionsSchema = z.object({
 })
 
 export type IdentityOptions = z.infer<typeof identityOptionsSchema>
+
+/**
+ * How long a password may be: at least 15 characters when it is the only factor, with no composition
+ * rules (NIST SP 800-63B-4). The API enforces it; the web says it before the user types.
+ */
+export const passwordLength = { min: 15, max: 128 } as const

@@ -1,5 +1,6 @@
 import { Route, Router } from '@solidjs/router'
 import { HomePage } from '#pages/home'
+import { SignUpPage } from '#pages/sign-up'
 import { type ApiClient, ApiProvider, type AuthClient, AuthProvider } from '#shared/api'
 import { I18nProvider, type Locale } from '#shared/config'
 
@@ -10,6 +11,7 @@ export function App(props: { client: ApiClient; auth: AuthClient; locale: Locale
         <AuthProvider client={props.auth}>
           <Router>
             <Route path="/" component={HomePage} />
+            <Route path="/signup" component={SignUpPage} />
           </Router>
         </AuthProvider>
       </ApiProvider>
