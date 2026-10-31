@@ -31,6 +31,11 @@ export function createFormChecks<V, P>(validate: () => Checked<V, P>) {
       if (result.ok) return result.values
       form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
       return undefined
+    },
+    /** Starts over, as before the first submit: for a form that stays on the screen after it worked. */
+    reset() {
+      setSubmitted(false)
+      setProblems({})
     }
   }
 }

@@ -15,15 +15,23 @@ function renderForm() {
       const values = checks.submit(event.currentTarget)
       if (values) sent(values)
     }
+    const reset = () => {
+      setName('')
+      checks.reset()
+    }
     return (
       <form noValidate onSubmit={submit} onFocusOut={checks.recheck}>
         <input
           aria-label="Name"
+          value={name()}
           aria-invalid={checks.problems().name ? 'true' : undefined}
           onInput={(event) => setName(event.currentTarget.value)}
         />
         <input aria-label="Notes" />
         <button type="submit">Send</button>
+        <button type="button" onClick={reset}>
+          Start over
+        </button>
       </form>
     )
   })
@@ -58,6 +66,19 @@ describe('createFormChecks', () => {
     fireEvent.input(name, { target: { value: 'Ada' } })
     fireEvent.focusOut(name, { relatedTarget: button })
     expect(name).toBeInvalid()
+
+    fireEvent.focusOut(name, { relatedTarget: notes })
+    expect(name).not.toBeInvalid()
+  })
+
+  it('starts over after a reset: no problems, and no check when a field is left until the next submit', () => {
+    renderForm()
+    const name = screen.getByRole('textbox', { name: 'Name' })
+    const notes = screen.getByRole('textbox', { name: 'Notes' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start over' }))
+    expect(name).not.toBeInvalid()
 
     fireEvent.focusOut(name, { relatedTarget: notes })
     expect(name).not.toBeInvalid()

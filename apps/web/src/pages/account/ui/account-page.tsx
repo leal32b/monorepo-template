@@ -1,7 +1,9 @@
 import { Alert, Button } from '@repo/ui'
 import { Navigate } from '@solidjs/router'
-import { createResource, Match, type ParentProps, Switch } from 'solid-js'
+import { createResource, Match, type ParentProps, Show, Switch } from 'solid-js'
 import { getAccountSecurity } from '#entities/accounts'
+import { ChangePasswordForm } from '#features/change-password'
+import { SendPasswordLink } from '#features/request-password-reset'
 import { ApiError, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AppShell } from '#widgets/app-shell'
@@ -19,8 +21,9 @@ function Section(props: ParentProps<{ id: string; title: string }>) {
 }
 
 /**
- * `/account`: the account security, in the app frame: how the account signs in and whether signing
- * in with the password asks for a second step. It reads Better Auth directly (ADR 0020); a session
+ * `/account`: the account security, in the app frame: the password, changed here, or created by a
+ * link for an account made with Google alone; and whether signing in with the password asks for a
+ * second step. It reads Better Auth directly (ADR 0020); a session
  * that ended on the way sends the user to sign in, to come back here.
  */
 export function AccountPage() {
@@ -43,7 +46,20 @@ export function AccountPage() {
           {(current) => (
             <>
               <Section id="password" title={t('account.password.title')}>
-                <p>{current().password ? t('account.password.set') : t('account.password.unset')}</p>
+                <Show
+                  when={current().password}
+                  fallback={
+                    <>
+                      <p>{t('account.password.unset')}</p>
+                      <p class="text-muted-foreground">{t('createPassword.why')}</p>
+                      <SendPasswordLink email={current().email} />
+                    </>
+                  }
+                >
+                  <p>{t('account.password.set')}</p>
+                  <p class="text-muted-foreground">{t('changePassword.signsOut')}</p>
+                  <ChangePasswordForm />
+                </Show>
               </Section>
               <Section id="two-factor" title={t('account.twoFactor.title')}>
                 <p>

@@ -22,6 +22,18 @@ export const en = {
         'It protects signing in with a password, so it needs one first. Google protects your Google sign-ins.'
     }
   },
+  changePassword: {
+    current: 'Current password',
+    next: 'New password',
+    submit: 'Change password',
+    signsOut: 'Changing it signs you out on your other devices.',
+    changed: 'Your password was changed. Your other devices were signed out.'
+  },
+  createPassword: {
+    why: 'A password lets you sign in with your email too, and turn on two-step verification.',
+    send: 'Create a password',
+    sent: 'We sent a link to {{email}} to create your password. It works for 1 hour.'
+  },
   appShell: {
     signedInAs: 'Signed in as {{name}}',
     signOut: 'Sign out'
@@ -64,7 +76,8 @@ export const en = {
       passwordTooShort: 'Use at least {{min}} characters.',
       passwordTooLong: 'Use at most {{max}} characters.',
       passwordCompromised: 'This password has appeared in a data breach. Choose a different one.',
-      passwordRequired: 'Enter your password.'
+      passwordRequired: 'Enter your password.',
+      passwordWrong: 'This is not your current password.'
     }
   },
   signUp: {

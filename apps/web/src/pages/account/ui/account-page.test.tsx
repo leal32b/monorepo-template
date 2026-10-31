@@ -47,7 +47,8 @@ describe('AccountPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Account security' })).toBeInTheDocument()
     expect(await screen.findByText('You sign in with your email and a password.')).toBeInTheDocument()
     expect(within(section('Two-step verification')).getByText(/^On:/)).toBeInTheDocument()
-    expect(within(section('Password')).getByRole('heading', { level: 2 })).toBeInTheDocument()
+    expect(within(section('Password')).getByLabelText('Current password')).toBeInTheDocument()
+    expect(within(section('Password')).getByText(/signs you out on your other devices/)).toBeInTheDocument()
   })
 
   it('says when the second step is off', async () => {
@@ -56,11 +57,14 @@ describe('AccountPage', () => {
     expect(await screen.findByText('Off: signing in asks only for your password.')).toBeInTheDocument()
   })
 
-  it('says an account made with Google alone has no password, and that the second step needs one', async () => {
+  it('says an account made with Google alone has no password, and sends the link to create one', async () => {
     renderPage(betterAuth(['google'], false))
 
     expect(await screen.findByText('Your account has no password: you sign in with Google.')).toBeInTheDocument()
     expect(within(section('Two-step verification')).getByText(/needs one first/)).toBeInTheDocument()
+    fireEvent.click(within(section('Password')).getByRole('button', { name: 'Create a password' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('We sent a link to ada@example.com')
   })
 
   it('sends the user to sign in when the session has ended, to come back here', async () => {

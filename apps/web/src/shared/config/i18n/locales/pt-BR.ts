@@ -24,6 +24,18 @@ export const ptBR: Messages = {
         'Ela protege a entrada com senha, então precisa de uma senha antes. O Google protege as entradas pelo Google.'
     }
   },
+  changePassword: {
+    current: 'Senha atual',
+    next: 'Nova senha',
+    submit: 'Trocar senha',
+    signsOut: 'Trocar a senha encerra a sessão nos seus outros aparelhos.',
+    changed: 'Sua senha foi trocada. Seus outros aparelhos saíram da conta.'
+  },
+  createPassword: {
+    why: 'Com uma senha, você também entra com seu e-mail e pode ligar a verificação em duas etapas.',
+    send: 'Criar uma senha',
+    sent: 'Enviamos para {{email}} um link para criar sua senha. Ele vale por 1 hora.'
+  },
   appShell: {
     signedInAs: 'Entrou como {{name}}',
     signOut: 'Sair'
@@ -64,7 +76,8 @@ export const ptBR: Messages = {
       passwordTooShort: 'Use pelo menos {{min}} caracteres.',
       passwordTooLong: 'Use no máximo {{max}} caracteres.',
       passwordCompromised: 'Esta senha já apareceu em um vazamento de dados. Escolha outra.',
-      passwordRequired: 'Informe sua senha.'
+      passwordRequired: 'Informe sua senha.',
+      passwordWrong: 'Esta não é a sua senha atual.'
     }
   },
   signUp: {
