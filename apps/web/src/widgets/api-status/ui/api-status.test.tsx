@@ -22,12 +22,13 @@ describe('ApiStatus', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Checking the API')
   })
 
-  it('shows the service and the time once the API answers ok', async () => {
-    renderWith(async () => Response.json(health))
+  it("shows the service and the time once the API answers ok, the time in the reader's language and zone", async () => {
+    renderWith(async () => Response.json(health), 'pt-BR')
+    const time = new Intl.DateTimeFormat('pt-BR', { timeStyle: 'medium' }).format(new Date(health.timestamp))
 
-    const status = await screen.findByText(/API is up/)
-    expect(status).toHaveTextContent('api')
-    expect(status).toHaveTextContent('2026-10-17T12:00:00.000Z')
+    const status = await screen.findByText(/API está no ar/)
+    expect(status).toHaveTextContent(`A API está no ar: api às ${time}`)
+    expect(status).not.toHaveTextContent('2026-10-17T12:00:00.000Z')
   })
 
   it('tells that the API cannot be reached', async () => {

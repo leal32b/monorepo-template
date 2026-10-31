@@ -109,7 +109,7 @@ export const en = {
   },
   apiStatus: {
     checking: 'Checking the API…',
-    up: 'The API is up: {{service}} at {{timestamp}}',
+    up: 'The API is up: {{service}} at {{time}}',
     degraded: 'The API is up, but its database is not answering.',
     unreachable: 'Cannot reach the API.',
     unexpected: 'The API answered something unexpected.',

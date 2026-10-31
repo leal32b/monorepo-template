@@ -8,9 +8,9 @@ import { AuthFailureAlert } from '#shared/ui'
 
 /**
  * The frame every app screen shares: a header with the brand, who is signed in (the way to the
- * account security) and the way to sign out, then the screen's title and content in one column,
- * mobile first. Focus moves to the title
- * when the screen opens; a failed sign-out shows below it.
+ * account security; only the name on phones, where the header is narrow) and the way to sign out,
+ * then the screen's title and content in one column, mobile first. Focus moves to the title when the
+ * screen opens; a failed sign-out shows below it.
  */
 export function AppShell(props: ParentProps<{ title: string }>) {
   const { t } = useI18n()
@@ -27,9 +27,11 @@ export function AppShell(props: ParentProps<{ title: string }>) {
         <div class="flex min-w-0 items-center gap-3">
           <A
             href="/account"
+            aria-label={t('appShell.signedInAs', { name: user.name })}
             class="block min-w-0 truncate text-sm text-muted-foreground underline underline-offset-4 hover:decoration-2"
           >
-            {t('appShell.signedInAs', { name: user.name })}
+            <span class="sm:hidden">{user.name}</span>
+            <span class="hidden sm:inline">{t('appShell.signedInAs', { name: user.name })}</span>
           </A>
           <Button variant="outline" size="sm" class="shrink-0" disabled={signOut.pending()} onClick={signOut.signOut}>
             {t('appShell.signOut')}

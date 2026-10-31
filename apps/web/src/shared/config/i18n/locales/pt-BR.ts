@@ -111,7 +111,7 @@ export const ptBR: Messages = {
   },
   apiStatus: {
     checking: 'Verificando a API…',
-    up: 'A API está no ar: {{service}} às {{timestamp}}',
+    up: 'A API está no ar: {{service}} às {{time}}',
     degraded: 'A API está no ar, mas o banco de dados não responde.',
     unreachable: 'Não consegui falar com a API.',
     unexpected: 'A API respondeu algo inesperado.',

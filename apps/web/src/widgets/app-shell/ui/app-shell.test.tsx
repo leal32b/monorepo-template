@@ -45,6 +45,14 @@ describe('AppShell', () => {
     expect(within(main).getByText('The projects')).toBeInTheDocument()
   })
 
+  it('says only the name on phones, where the header is narrow, and the whole sentence from sm up', () => {
+    renderShell()
+    const account = within(screen.getByRole('banner')).getByRole('link', { name: 'Signed in as Ada Lovelace' })
+
+    expect(within(account).getByText('Ada Lovelace')).toHaveClass('sm:hidden')
+    expect(within(account).getByText('Signed in as Ada Lovelace')).toHaveClass('hidden', 'sm:inline')
+  })
+
   it('signs out from the header, then leaves for the sign-in', async () => {
     const fetch = vi.fn<Fetch>(async () => Response.json({ success: true }))
     const history = renderShell(fetch)
