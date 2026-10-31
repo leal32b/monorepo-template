@@ -19,6 +19,7 @@ export function SignInPage() {
 
   const next = () => safeNext(params.next, window.location.origin)
   const signedIn = () => navigate(next(), { replace: true })
+  const secondStep = () => navigate(`/login/two-factor?next=${encodeURIComponent(next())}`, { replace: true })
 
   return (
     <EntryLayout
@@ -30,7 +31,11 @@ export function SignInPage() {
         </>
       }
     >
-      <SignInForm onSignedIn={signedIn} resend={(email) => <ResendConfirmation email={email} />} />
+      <SignInForm
+        onSignedIn={signedIn}
+        onSecondStep={secondStep}
+        resend={(email) => <ResendConfirmation email={email} />}
+      />
       <SignInWithGoogle next={next()} error={params.error} />
     </EntryLayout>
   )

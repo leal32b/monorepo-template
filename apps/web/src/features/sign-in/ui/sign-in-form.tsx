@@ -2,12 +2,15 @@ import { Button, Field, PasswordField } from '@repo/ui'
 import { createSignal, type JSX, Show } from 'solid-js'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
+import { createFormChecks } from '#shared/lib'
 import { AuthFailureAlert } from '#shared/ui'
-import { type SignInProblems, type SignInValues, validateSignIn } from '../model/validate-sign-in'
+import { type SignInValues, validateSignIn } from '../model/validate-sign-in'
 
 export type SignInFormProps = {
   /** Called once the user is signed in. */
   onSignedIn: () => void
+  /** Called instead when the account has a second step: the password was right, the code comes next. */
+  onSecondStep: () => void
   /**
    * What to offer when the email is not confirmed yet, for that address. The page passes the resend
    * button: it is another feature, and a feature does not import another (ADR 0010).
@@ -25,19 +28,12 @@ export function SignInForm(props: SignInFormProps) {
   const { t } = useI18n()
   const [email, setEmail] = createSignal('')
   const [password, setPassword] = createSignal('')
-  const [problems, setProblems] = createSignal<SignInProblems>({})
   const [failed, setFailed] = createSignal<{ failure: AuthFailure; email: string }>()
-  const [submitted, setSubmitted] = createSignal(false)
   const [pending, setPending] = createSignal(false)
-
-  const check = () => {
-    const result = validateSignIn({ email: email(), password: password() })
-    setProblems(result.ok ? {} : result.problems)
-    return result
-  }
+  const checks = createFormChecks(() => validateSignIn({ email: email(), password: password() }))
 
   const errorOf = (field: keyof SignInValues) => {
-    const problem = problems()[field]
+    const problem = checks.problems()[field]
     return problem && t(`auth.errors.${problem}`)
   }
 
@@ -48,28 +44,31 @@ export function SignInForm(props: SignInFormProps) {
     return undefined
   }
 
-  const recheck = (event: FocusEvent) => {
-    if (submitted() && !(event.relatedTarget instanceof HTMLButtonElement)) check()
-  }
-
   const submit = async (event: SubmitEvent & { currentTarget: HTMLFormElement }) => {
     event.preventDefault()
-    setSubmitted(true)
     setFailed(undefined)
-    const result = check()
-    if (!result.ok) {
-      event.currentTarget.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus()
-      return
-    }
+    const values = checks.submit(event.currentTarget)
+    if (values === undefined) return
+
     setPending(true)
-    const failure = await callAuth((options) => auth.signIn.email(result.values, options))
+    let secondStep = false
+    const failure = await callAuth((options) =>
+      auth.signIn.email(values, {
+        ...options,
+        // With a second factor, Better Auth answers the password with a challenge, not a session.
+        onSuccess: ({ data }) => {
+          secondStep = data.twoFactorRedirect === true
+        }
+      })
+    )
     setPending(false)
-    if (failure === undefined) props.onSignedIn()
-    else setFailed({ failure, email: result.values.email })
+    if (failure !== undefined) setFailed({ failure, email: values.email })
+    else if (secondStep) props.onSecondStep()
+    else props.onSignedIn()
   }
 
   return (
-    <form noValidate onSubmit={submit} onFocusOut={recheck} class="flex flex-col gap-4">
+    <form noValidate onSubmit={submit} onFocusOut={checks.recheck} class="flex flex-col gap-4">
       <Field
         label={t('auth.email')}
         name="email"

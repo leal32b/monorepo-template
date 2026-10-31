@@ -77,6 +77,31 @@ export const en = {
       }
     }
   },
+  twoFactor: {
+    title: 'Two-step verification',
+    submit: 'Verify',
+    signInAgain: 'Sign in again',
+    app: {
+      description: 'Open your authenticator app.',
+      code: '6-digit code',
+      other: 'Lost access to your app?',
+      switch: 'Use a backup code'
+    },
+    backup: {
+      description: 'Use one of the codes you saved.',
+      code: 'Backup code',
+      other: 'Have your app?',
+      switch: 'Use the code from the app'
+    },
+    errors: {
+      codeInvalid: 'Enter the 6 digits your app shows.',
+      codeWrong: 'This code is not right. Enter the one your app shows now.',
+      backupInvalid: 'Enter a backup code as you saved it, like a8Kd2-Xm9Qz.',
+      backupWrong: 'This backup code is not right, or it was already used. Each one works once.',
+      expired: 'This sign-in has expired. Sign in again to get a new code.',
+      locked: 'Too many wrong codes. For your safety, wait 15 minutes, then sign in again.'
+    }
+  },
   resendConfirmation: {
     send: 'Send it again',
     sent: 'We sent it again. It can take a few minutes.'

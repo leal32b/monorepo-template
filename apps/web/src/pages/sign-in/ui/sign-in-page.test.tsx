@@ -97,4 +97,14 @@ describe('SignInPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Google has not confirmed this email address.')
   })
+
+  it('takes an account with a second step to it, still headed where the user was going', async () => {
+    const history = renderPage('/login?next=%2Fprojects', async () =>
+      Response.json({ twoFactorRedirect: true, twoFactorMethods: ['totp'] })
+    )
+
+    signIn()
+
+    await waitFor(() => expect(history.get()).toBe('/login/two-factor?next=%2Fprojects'))
+  })
 })

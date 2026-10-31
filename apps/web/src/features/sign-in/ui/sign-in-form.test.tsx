@@ -10,17 +10,19 @@ const signedIn = () => Response.json({ redirect: false, token: 'session', user: 
 
 function renderForm(fetch = vi.fn<Fetch>(async () => signedIn())) {
   const onSignedIn = vi.fn()
+  const onSecondStep = vi.fn()
   render(() => (
     <I18nProvider locale="en">
       <AuthProvider client={createAuthClient({ fetch })}>
         <SignInForm
           onSignedIn={onSignedIn}
+          onSecondStep={onSecondStep}
           resend={(email) => <button type="button">{`Send it again to ${email}`}</button>}
         />
       </AuthProvider>
     </I18nProvider>
   ))
-  return { fetch, onSignedIn }
+  return { fetch, onSignedIn, onSecondStep }
 }
 
 const type = (field: HTMLElement, value: string) => fireEvent.input(field, { target: { value } })
@@ -150,5 +152,16 @@ describe('SignInForm', () => {
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     await waitFor(() => expect(onSignedIn).toHaveBeenCalled())
+  })
+
+  it('goes on to the second step when the account has one, instead of signing in', async () => {
+    const { onSignedIn, onSecondStep } = renderForm(
+      vi.fn<Fetch>(async () => Response.json({ twoFactorRedirect: true, twoFactorMethods: ['totp'] }))
+    )
+
+    signIn()
+
+    await waitFor(() => expect(onSecondStep).toHaveBeenCalled())
+    expect(onSignedIn).not.toHaveBeenCalled()
   })
 })

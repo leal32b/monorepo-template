@@ -77,6 +77,31 @@ export const ptBR: Messages = {
       }
     }
   },
+  twoFactor: {
+    title: 'Verificação em duas etapas',
+    submit: 'Verificar',
+    signInAgain: 'Entrar de novo',
+    app: {
+      description: 'Abra seu app autenticador.',
+      code: 'Código de 6 dígitos',
+      other: 'Sem acesso ao app?',
+      switch: 'Use um código de backup'
+    },
+    backup: {
+      description: 'Use um dos códigos que você guardou.',
+      code: 'Código de backup',
+      other: 'Está com o app?',
+      switch: 'Use o código do app'
+    },
+    errors: {
+      codeInvalid: 'Digite os 6 dígitos que o app mostra.',
+      codeWrong: 'Este código não está certo. Digite o que o app mostra agora.',
+      backupInvalid: 'Digite um código de backup como você o guardou, por exemplo a8Kd2-Xm9Qz.',
+      backupWrong: 'Este código de backup não está certo ou já foi usado. Cada um funciona uma vez.',
+      expired: 'Esta entrada expirou. Entre de novo para receber um novo código.',
+      locked: 'Códigos errados demais. Por segurança, espere 15 minutos e entre de novo.'
+    }
+  },
   resendConfirmation: {
     send: 'Enviar de novo',
     sent: 'Enviamos de novo. Pode levar alguns minutos.'

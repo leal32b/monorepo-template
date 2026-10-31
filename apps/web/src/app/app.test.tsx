@@ -35,4 +35,14 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sign in')
   })
+
+  it('serves the second step of the sign-in at /login/two-factor', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/login/two-factor')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Two-step verification')
+  })
 })
