@@ -7,6 +7,8 @@ export default defineProject({
   test: {
     name: { label: 'web', color: 'cyan' },
     environment: 'happy-dom',
+    // Runs each file in a VM context: happy-dom is built once per worker, not once per file.
+    pool: 'vmThreads',
     globals: true,
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/test-setup.ts']
