@@ -25,4 +25,14 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Create your account')
   })
+
+  it('serves the sign-in page at /login', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/login')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sign in')
+  })
 })

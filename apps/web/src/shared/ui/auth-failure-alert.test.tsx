@@ -1,12 +1,12 @@
-import { render, screen } from '@solidjs/testing-library'
+import { render, screen, within } from '@solidjs/testing-library'
 import type { AuthFailure } from '#shared/api'
 import { I18nProvider } from '#shared/config'
-import { AuthFailureAlert } from './auth-failure-alert'
+import { AuthFailureAlert, type AuthFailureAlertProps } from './auth-failure-alert'
 
-function renderAlert(failure: AuthFailure) {
+function renderAlert(failure: AuthFailure, more: Omit<AuthFailureAlertProps, 'failure'> = {}) {
   render(() => (
     <I18nProvider locale="en">
-      <AuthFailureAlert failure={failure} />
+      <AuthFailureAlert failure={failure} {...more} />
     </I18nProvider>
   ))
   return screen.getByRole('alert')
@@ -43,5 +43,16 @@ describe('AuthFailureAlert', () => {
     const alert = renderAlert({ status: 500, code: undefined, requestId: 'req-1' })
 
     expect(alert).toHaveFocus()
+  })
+
+  it("uses the screen's own words when it has them, with the action it offers and no reference", () => {
+    const alert = renderAlert(
+      { status: 403, code: 'EMAIL_NOT_VERIFIED', requestId: 'req-1' },
+      { message: 'Confirm your email first.', action: <button type="button">Send it again</button> }
+    )
+
+    expect(alert).toHaveTextContent('Confirm your email first.')
+    expect(alert).not.toHaveTextContent('req-1')
+    expect(within(alert).getByRole('button', { name: 'Send it again' })).toBeInTheDocument()
   })
 })

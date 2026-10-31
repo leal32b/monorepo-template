@@ -35,7 +35,8 @@ export const ptBR: Messages = {
       emailInvalid: 'Informe um e-mail, como ana@exemplo.com.',
       passwordTooShort: 'Use pelo menos {{min}} caracteres.',
       passwordTooLong: 'Use no máximo {{max}} caracteres.',
-      passwordCompromised: 'Esta senha já apareceu em um vazamento de dados. Escolha outra.'
+      passwordCompromised: 'Esta senha já apareceu em um vazamento de dados. Escolha outra.',
+      passwordRequired: 'Informe sua senha.'
     }
   },
   signUp: {
@@ -51,6 +52,29 @@ export const ptBR: Messages = {
       notThere: 'Não chegou? Confira o spam ou envie de novo.',
       wrongAddress: 'Endereço errado?',
       useAnother: 'Usar outro e-mail'
+    }
+  },
+  signIn: {
+    title: 'Entrar',
+    description: 'Que bom ver você de novo.',
+    submit: 'Entrar',
+    noAccount: 'Ainda não tem conta?',
+    signUp: 'Criar conta',
+    errors: {
+      wrongCredentials: 'O e-mail ou a senha estão errados. Confira e tente de novo.',
+      unconfirmed: 'Confirme seu e-mail primeiro: abra o link que enviamos no cadastro ou envie de novo.'
+    },
+    google: {
+      or: 'ou',
+      continue: 'Continuar com o Google',
+      errors: {
+        cancelled: 'A entrada com o Google foi cancelada. Tente de novo ou entre com seu e-mail.',
+        unverified: 'O Google ainda não confirmou este e-mail. Confirme no Google ou entre com seu e-mail.',
+        notLinked:
+          'Este e-mail já tem uma conta ainda não confirmada. Abra o link que enviamos para ele e tente o Google de novo.',
+        interrupted: 'A entrada com o Google não terminou. Tente de novo a partir desta página.',
+        failed: 'A entrada com o Google não funcionou. Tente de novo em instantes.'
+      }
     }
   },
   resendConfirmation: {

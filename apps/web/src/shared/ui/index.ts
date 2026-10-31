@@ -1,1 +1,1 @@
-export { AuthFailureAlert } from './auth-failure-alert'
+export { AuthFailureAlert, type AuthFailureAlertProps } from './auth-failure-alert'

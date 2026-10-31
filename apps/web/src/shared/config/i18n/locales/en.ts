@@ -35,7 +35,8 @@ export const en = {
       emailInvalid: 'Enter an email address, like ada@example.com.',
       passwordTooShort: 'Use at least {{min}} characters.',
       passwordTooLong: 'Use at most {{max}} characters.',
-      passwordCompromised: 'This password has appeared in a data breach. Choose a different one.'
+      passwordCompromised: 'This password has appeared in a data breach. Choose a different one.',
+      passwordRequired: 'Enter your password.'
     }
   },
   signUp: {
@@ -51,6 +52,29 @@ export const en = {
       notThere: 'Not in your inbox? Check spam, or send it again.',
       wrongAddress: 'Wrong address?',
       useAnother: 'Use another email'
+    }
+  },
+  signIn: {
+    title: 'Sign in',
+    description: 'Welcome back.',
+    submit: 'Sign in',
+    noAccount: 'New here?',
+    signUp: 'Create an account',
+    errors: {
+      wrongCredentials: 'The email or the password is wrong. Check them and try again.',
+      unconfirmed: 'Confirm your email first: open the link we sent when you signed up, or send it again.'
+    },
+    google: {
+      or: 'or',
+      continue: 'Continue with Google',
+      errors: {
+        cancelled: 'Signing in with Google was cancelled. Try again, or sign in with your email.',
+        unverified: 'Google has not confirmed this email address. Confirm it with Google, or sign in with your email.',
+        notLinked:
+          'This email already has an account that is not confirmed. Open the link we sent to it, then try Google again.',
+        interrupted: 'Signing in with Google did not finish. Try again from this page.',
+        failed: 'Signing in with Google did not work. Try again in a moment.'
+      }
     }
   },
   resendConfirmation: {

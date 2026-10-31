@@ -1,0 +1,83 @@
+import { identityOptionsSchema } from '@repo/contracts'
+import { Alert, Button } from '@repo/ui'
+import { createResource, createSignal, Show } from 'solid-js'
+import { type AuthFailure, callAuth, useApi, useAuth } from '#shared/api'
+import { useI18n } from '#shared/config'
+import { AuthFailureAlert } from '#shared/ui'
+
+export type SignInWithGoogleProps = {
+  /** Where to come back to after Google, a path on this site (`safeNext`). */
+  next: string
+  /** What Google sign-in came back with in `?error=`, if anything. */
+  error?: string | string[] | undefined
+}
+
+/** The errors Google sign-in comes back with that this screen has its own words for. */
+const known = new Map<string, 'cancelled' | 'unverified' | 'notLinked' | 'interrupted'>([
+  ['access_denied', 'cancelled'],
+  ['email_not_verified', 'unverified'],
+  ['account_not_linked', 'notLinked'],
+  ['state_mismatch', 'interrupted']
+])
+
+/**
+ * "Continue with Google", when the API has Google on. Its room is kept, unseen, while the API is
+ * asked, so nothing below it moves when it appears. Better Auth answers with Google's page, and the
+ * browser goes there; an error Google sign-in came back with shows below the button.
+ */
+export function SignInWithGoogle(props: SignInWithGoogleProps) {
+  const api = useApi()
+  const auth = useAuth()
+  const { t } = useI18n()
+  const [options] = createResource(() => api.get('/api/identity/options', identityOptionsSchema))
+  const [pending, setPending] = createSignal(false)
+  const [failure, setFailure] = createSignal<AuthFailure>()
+
+  const code = () => (typeof props.error === 'string' ? props.error : undefined)
+
+  const go = async () => {
+    setFailure(undefined)
+    setPending(true)
+    const failed = await callAuth((callOptions) =>
+      auth.signIn.social(
+        {
+          provider: 'google',
+          callbackURL: props.next,
+          errorCallbackURL: `/login?next=${encodeURIComponent(props.next)}`,
+          disableRedirect: true
+        },
+        { ...callOptions, onSuccess: ({ data }) => window.location.assign(data.url) }
+      )
+    )
+    if (failed) {
+      setPending(false)
+      setFailure(failed)
+    }
+  }
+
+  return (
+    <Show when={options.loading || (options.state === 'ready' && options().google)}>
+      <div class="flex flex-col gap-4" classList={{ invisible: options.loading }}>
+        <p class="flex items-center gap-3 text-sm text-muted-foreground">
+          <span class="h-px flex-1 bg-border" aria-hidden="true" />
+          {t('signIn.google.or')}
+          <span class="h-px flex-1 bg-border" aria-hidden="true" />
+        </p>
+        <Button variant="outline" class="w-full" disabled={pending()} onClick={go}>
+          {t('signIn.google.continue')}
+        </Button>
+        <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>
+        <Show when={code()}>
+          {(current) => {
+            const words = known.get(current())
+            return (
+              <Alert variant="error" reference={words ? undefined : t('failure.reference', { reference: current() })}>
+                {t(`signIn.google.errors.${words ?? 'failed'}`)}
+              </Alert>
+            )
+          }}
+        </Show>
+      </div>
+    </Show>
+  )
+}
