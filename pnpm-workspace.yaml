@@ -47,7 +47,6 @@ catalog:
   pino-pretty: ^13.2.0
   solid-js: ^1.9.17
   steiger: ^0.8.1
-  tailwind-merge: ^3.7.0
   tsx: ^4.23.15
   typescript: ^7.0.2
   unocss: ^66.12.0

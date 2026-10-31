@@ -19,13 +19,17 @@ export const buttonVariants = cva(
         secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
         outline: 'border-border bg-background text-foreground hover:bg-secondary',
         ghost: 'border-transparent bg-transparent text-foreground hover:bg-secondary',
+        // No background of its own, not even on hover: for a button that sits inside another control.
+        bare: 'border-transparent bg-transparent',
         destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90'
       },
       // Mobile first: the main sizes are 44px or taller on phones, a comfortable touch target.
       size: {
         sm: 'h-8 px-3 text-sm',
         md: 'h-11 px-4 text-base sm:h-9 sm:text-sm',
-        lg: 'h-12 px-6 text-base sm:h-10'
+        lg: 'h-12 px-6 text-base sm:h-10',
+        // A square with only an icon in it, the same touch target as an input.
+        icon: 'h-11 w-11 p-0 sm:h-9 sm:w-9'
       }
     },
     defaultVariants: { variant: 'secondary', size: 'md' }

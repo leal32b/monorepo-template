@@ -1,10 +1,9 @@
 import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
 
 /**
- * Joins class names; when two utilities set the same property, the later one wins, so a `class`
- * passed to a component overrides the component's own: `cn(variants(...), props.class)`.
+ * Joins class names. A `class` passed to a component is added to the component's own, never a
+ * replacement for it (ADR 0025): it places the component (`mt-4`, `mx-auto`), it does not restyle it.
  */
 export function cn(...inputs: ClassValue[]): string {
-  return twMerge(clsx(inputs))
+  return clsx(inputs)
 }

@@ -4,10 +4,15 @@
  * cannot drift from what a screen reader announces. Mobile first: 44px tall with 16px text on phones
  * (a smaller text makes iOS zoom in on focus), compact from `sm` up.
  */
-export const inputClass = [
-  'h-11 w-full rounded-md border border-border bg-background px-3 text-base text-foreground sm:h-9 sm:text-sm',
+const inputBase = [
+  'h-11 w-full rounded-md border border-border bg-background text-base text-foreground sm:h-9 sm:text-sm',
   'placeholder:text-muted-foreground',
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
   'aria-[invalid=true]:border-destructive',
   'disabled:cursor-not-allowed disabled:opacity-50'
 ].join(' ')
+
+export const inputClass = `${inputBase} px-3`
+
+/** The same input with room on the right for a button inside it, such as the password toggle. */
+export const inputWithActionClass = `${inputBase} pl-3 pr-11 sm:pr-9`

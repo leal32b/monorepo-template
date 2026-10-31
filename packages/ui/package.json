@@ -25,8 +25,7 @@
     "@unocss/preset-wind4": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
-    "lean-qr": "catalog:",
-    "tailwind-merge": "catalog:"
+    "lean-qr": "catalog:"
   },
   "devDependencies": {
     "@solidjs/testing-library": "catalog:",
