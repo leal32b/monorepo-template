@@ -59,6 +59,7 @@ export const en = {
     description: 'Welcome back.',
     submit: 'Sign in',
     noAccount: 'New here?',
+    forgot: 'Forgot your password?',
     signUp: 'Create an account',
     errors: {
       wrongCredentials: 'The email or the password is wrong. Check them and try again.',
@@ -75,6 +76,27 @@ export const en = {
         interrupted: 'Signing in with Google did not finish. Try again from this page.',
         failed: 'Signing in with Google did not work. Try again in a moment.'
       }
+    }
+  },
+  forgotPassword: {
+    title: 'Reset your password',
+    description: 'We will email you a link.',
+    submit: 'Send link',
+    sent: 'If an account uses {{email}}, we sent it a link. It works for 1 hour; check spam if it does not arrive.',
+    remembered: 'Remembered it?',
+    signIn: 'Sign in'
+  },
+  resetPassword: {
+    title: 'Choose a new password',
+    description: 'This signs you out everywhere else.',
+    password: 'New password',
+    submit: 'Change password',
+    expired: 'This link has expired or was already used. Each link works once, for 1 hour.',
+    askAgain: 'Ask for a new link',
+    done: {
+      title: 'Password changed',
+      description: 'Sign in with your new password.',
+      signIn: 'Sign in'
     }
   },
   twoFactor: {

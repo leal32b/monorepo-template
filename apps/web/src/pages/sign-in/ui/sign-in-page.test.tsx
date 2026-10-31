@@ -48,6 +48,12 @@ describe('SignInPage', () => {
     expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute('href', '/signup')
   })
 
+  it('offers to reset a forgotten password', () => {
+    renderPage('/login')
+
+    expect(screen.getByRole('link', { name: 'Forgot your password?' })).toHaveAttribute('href', '/forgot-password')
+  })
+
   it('after signing in, goes where the user was headed, and Back does not return to the form', async () => {
     const history = renderPage('/login?next=%2Fprojects%3Ftab%3Dmembers')
 

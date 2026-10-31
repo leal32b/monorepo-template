@@ -45,4 +45,24 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Two-step verification')
   })
+
+  it('serves the request for a new password at /forgot-password', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/forgot-password')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Reset your password')
+  })
+
+  it('serves the choice of a new password at /reset-password', () => {
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/reset-password?token=t0k3n')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Choose a new password')
+  })
 })

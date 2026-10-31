@@ -1,5 +1,4 @@
-import { passwordLength } from '@repo/contracts'
-import { cleanEmail } from '#shared/lib'
+import { cleanEmail, newPasswordProblem } from '#shared/lib'
 
 export type SignUpValues = { name: string; email: string; password: string }
 
@@ -27,9 +26,8 @@ export function validateSignUp(input: SignUpValues, breached: ReadonlySet<string
 
   if (values.name === '') problems.name = 'nameRequired'
   if (email === undefined) problems.email = 'emailInvalid'
-  if (values.password.length < passwordLength.min) problems.password = 'passwordTooShort'
-  else if (values.password.length > passwordLength.max) problems.password = 'passwordTooLong'
-  else if (breached.has(values.password)) problems.password = 'passwordCompromised'
+  const passwordProblem = newPasswordProblem(values.password, breached)
+  if (passwordProblem) problems.password = passwordProblem
 
   return Object.keys(problems).length === 0 ? { ok: true, values } : { ok: false, problems }
 }

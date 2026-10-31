@@ -26,9 +26,14 @@ export function SignInPage() {
       title={t('signIn.title')}
       description={t('signIn.description')}
       footer={
-        <>
-          {t('signIn.noAccount')} <Link href="/signup">{t('signIn.signUp')}</Link>
-        </>
+        <div class="flex flex-col gap-2">
+          <p>
+            <Link href="/forgot-password">{t('signIn.forgot')}</Link>
+          </p>
+          <p>
+            {t('signIn.noAccount')} <Link href="/signup">{t('signIn.signUp')}</Link>
+          </p>
+        </div>
       }
     >
       <SignInForm

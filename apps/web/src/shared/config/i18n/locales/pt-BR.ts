@@ -59,6 +59,7 @@ export const ptBR: Messages = {
     description: 'Que bom ver você de novo.',
     submit: 'Entrar',
     noAccount: 'Ainda não tem conta?',
+    forgot: 'Esqueceu a senha?',
     signUp: 'Criar conta',
     errors: {
       wrongCredentials: 'O e-mail ou a senha estão errados. Confira e tente de novo.',
@@ -75,6 +76,27 @@ export const ptBR: Messages = {
         interrupted: 'A entrada com o Google não terminou. Tente de novo a partir desta página.',
         failed: 'A entrada com o Google não funcionou. Tente de novo em instantes.'
       }
+    }
+  },
+  forgotPassword: {
+    title: 'Redefina sua senha',
+    description: 'Enviaremos um link por e-mail.',
+    submit: 'Enviar link',
+    sent: 'Se houver uma conta com {{email}}, enviamos um link para ela. Ele vale por 1 hora; confira o spam se não chegar.',
+    remembered: 'Lembrou?',
+    signIn: 'Entrar'
+  },
+  resetPassword: {
+    title: 'Escolha uma nova senha',
+    description: 'Isso encerra suas outras sessões.',
+    password: 'Nova senha',
+    submit: 'Trocar senha',
+    expired: 'Este link expirou ou já foi usado. Cada link funciona uma vez, por 1 hora.',
+    askAgain: 'Pedir um novo link',
+    done: {
+      title: 'Senha trocada',
+      description: 'Entre com sua nova senha.',
+      signIn: 'Entrar'
     }
   },
   twoFactor: {
