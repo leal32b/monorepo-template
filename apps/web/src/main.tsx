@@ -2,7 +2,10 @@ import 'virtual:uno.css'
 import { render } from 'solid-js/web'
 import { createApiClient, createAuthClient } from '#shared/api'
 import { detectLocale, readWebEnv } from '#shared/config'
+import { reloadOnStaleBuild } from '#shared/lib'
 import { App } from './app/app'
+
+reloadOnStaleBuild(window, () => window.location.reload())
 
 const env = readWebEnv(import.meta.env)
 
