@@ -1,5 +1,6 @@
-import { Link } from '@repo/ui'
+import { Alert, Link } from '@repo/ui'
 import { useNavigate, useSearchParams } from '@solidjs/router'
+import { Show } from 'solid-js'
 import { ResendConfirmation } from '#features/resend-confirmation'
 import { SignInForm } from '#features/sign-in'
 import { SignInWithGoogle } from '#features/sign-in-with-google'
@@ -7,10 +8,14 @@ import { useI18n } from '#shared/config'
 import { safeNext } from '#shared/lib'
 import { EntryLayout } from '#widgets/entry-layout'
 
+/** The errors a confirmation link comes back with, which the session guard brings here. */
+const linkErrors = new Set(['TOKEN_EXPIRED', 'INVALID_TOKEN'])
+
 /**
  * `/login`: email and password, or Google, then on to `next`, the page that sent the user here, when
  * it is on this site (T11). The sign-in replaces itself in the history, so Back does not return to
- * the form; Google comes back to `next` itself, and to this page with `?error=` when it fails.
+ * the form; Google comes back to `next` itself, and to this page with `?error=` when it fails. A
+ * confirmation link that failed comes here with its own `?error=`, explained above the form.
  */
 export function SignInPage() {
   const { t } = useI18n()
@@ -19,6 +24,7 @@ export function SignInPage() {
 
   const next = () => safeNext(params.next, window.location.origin)
   const signedIn = () => navigate(next(), { replace: true })
+  const linkExpired = () => typeof params.error === 'string' && linkErrors.has(params.error)
   const secondStep = () => navigate(`/login/two-factor?next=${encodeURIComponent(next())}`, { replace: true })
 
   return (
@@ -36,12 +42,15 @@ export function SignInPage() {
         </div>
       }
     >
+      <Show when={linkExpired()}>
+        <Alert variant="error">{t('signIn.errors.linkExpired')}</Alert>
+      </Show>
       <SignInForm
         onSignedIn={signedIn}
         onSecondStep={secondStep}
         resend={(email) => <ResendConfirmation email={email} />}
       />
-      <SignInWithGoogle next={next()} error={params.error} />
+      <SignInWithGoogle next={next()} error={linkExpired() ? undefined : params.error} />
     </EntryLayout>
   )
 }

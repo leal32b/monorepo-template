@@ -5,6 +5,17 @@ export const en = {
   home: {
     title: 'Monorepo template'
   },
+  appShell: {
+    signedInAs: 'Signed in as {{name}}',
+    signOut: 'Sign out'
+  },
+  session: {
+    unavailable: {
+      title: 'We could not check your sign-in',
+      description: 'Check your connection, then try again.',
+      retry: 'Try again'
+    }
+  },
   apiStatus: {
     checking: 'Checking the API…',
     up: 'The API is up: {{service}} at {{timestamp}}',
@@ -63,7 +74,8 @@ export const en = {
     signUp: 'Create an account',
     errors: {
       wrongCredentials: 'The email or the password is wrong. Check them and try again.',
-      unconfirmed: 'Confirm your email first: open the link we sent when you signed up, or send it again.'
+      unconfirmed: 'Confirm your email first: open the link we sent when you signed up, or send it again.',
+      linkExpired: 'This confirmation link has expired. Sign in, and you can ask for a new one.'
     },
     google: {
       or: 'or',

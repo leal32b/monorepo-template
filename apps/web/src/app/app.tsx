@@ -7,6 +7,7 @@ import { SignUpPage } from '#pages/sign-up'
 import { TwoFactorPage } from '#pages/two-factor'
 import { type ApiClient, ApiProvider, type AuthClient, AuthProvider } from '#shared/api'
 import { I18nProvider, type Locale } from '#shared/config'
+import { RequireSession } from './require-session'
 
 export function App(props: { client: ApiClient; auth: AuthClient; locale: Locale }) {
   return (
@@ -14,7 +15,9 @@ export function App(props: { client: ApiClient; auth: AuthClient; locale: Locale
       <ApiProvider client={props.client}>
         <AuthProvider client={props.auth}>
           <Router>
-            <Route path="/" component={HomePage} />
+            <Route path="/" component={RequireSession}>
+              <Route path="/" component={HomePage} />
+            </Route>
             <Route path="/signup" component={SignUpPage} />
             <Route path="/login" component={SignInPage} />
             <Route path="/login/two-factor" component={TwoFactorPage} />

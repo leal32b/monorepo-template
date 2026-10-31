@@ -113,4 +113,14 @@ describe('SignInPage', () => {
 
     await waitFor(() => expect(history.get()).toBe('/login/two-factor?next=%2Fprojects'))
   })
+
+  it('explains a confirmation link that came back expired, and not as a Google error', async () => {
+    renderPage('/login?next=%2F&error=TOKEN_EXPIRED')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This confirmation link has expired. Sign in, and you can ask for a new one.'
+    )
+    await screen.findByRole('button', { name: 'Continue with Google' })
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+  })
 })

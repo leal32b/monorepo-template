@@ -7,6 +7,17 @@ export const ptBR: Messages = {
   home: {
     title: 'Template de monorepo'
   },
+  appShell: {
+    signedInAs: 'Entrou como {{name}}',
+    signOut: 'Sair'
+  },
+  session: {
+    unavailable: {
+      title: 'Não conseguimos verificar sua entrada',
+      description: 'Confira sua conexão e tente de novo.',
+      retry: 'Tentar de novo'
+    }
+  },
   apiStatus: {
     checking: 'Verificando a API…',
     up: 'A API está no ar: {{service}} às {{timestamp}}',
@@ -63,7 +74,8 @@ export const ptBR: Messages = {
     signUp: 'Criar conta',
     errors: {
       wrongCredentials: 'O e-mail ou a senha estão errados. Confira e tente de novo.',
-      unconfirmed: 'Confirme seu e-mail primeiro: abra o link que enviamos no cadastro ou envie de novo.'
+      unconfirmed: 'Confirme seu e-mail primeiro: abra o link que enviamos no cadastro ou envie de novo.',
+      linkExpired: 'Este link de confirmação expirou. Entre, e você poderá pedir um novo.'
     },
     google: {
       or: 'ou',
