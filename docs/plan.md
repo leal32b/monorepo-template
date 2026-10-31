@@ -42,12 +42,14 @@ option).
 - Auth: Better Auth at `/api/auth/*`, behind our own ports, with its organization plugin in
   Phase 6.5 ([ADR 0020](adr/0020-authenticate-with-better-auth.md)); the API accepts only the web
   Worker ([ADR 0022](adr/0022-accept-api-requests-only-from-the-web-worker.md)); email goes
-  through a provider-neutral port ([ADR 0021](adr/0021-send-email-through-a-provider-neutral-port.md)).
+  through a provider-neutral port ([ADR 0021](adr/0021-send-email-through-a-provider-neutral-port.md));
+  the authenticator's QR code is drawn in the browser
+  ([ADR 0023](adr/0023-draw-the-authenticator-qr-code-in-the-browser.md)).
   Threats and accepted risks: [threat model](security/threat-model.md).
 - Tool versions: one pnpm catalog in `pnpm-workspace.yaml`, set from what is stable on the day.
   Updates are checked by hand (`pnpm outdated -r`); Dependabot cannot read the pnpm 12 lockfile.
-  From Phase 6, a weekly `pnpm audit --audit-level high` runs in CI, because authentication now
-  comes from a library.
+  From Phase 6, a weekly `pnpm audit --audit-level high` runs in CI (`.github/workflows/audit.yml`),
+  because authentication now comes from a library.
 - Versioning: an annotated tag per phase (`v0.5.0` for Phase 5), no release tooling.
 
 ## Waiting for a trigger
