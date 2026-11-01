@@ -99,8 +99,34 @@ export const es: Messages = {
     home: 'Ir al inicio'
   },
   appShell: {
-    signedInAs: 'Sesión iniciada como {{name}}',
-    signOut: 'Cerrar sesión'
+    openMenu: 'Abrir el menú',
+    closeMenu: 'Cerrar el menú',
+    menu: 'Menú',
+    breadcrumb: 'Estás aquí',
+    nav: {
+      main: 'Principal',
+      home: 'Inicio'
+    },
+    account: {
+      settings: 'Ajustes',
+      signOut: 'Cerrar sesión'
+    },
+    status: {
+      title: 'Estado del servicio',
+      button: 'Estado del servicio: {{state}}',
+      close: 'Cerrar',
+      checkAgain: 'Comprobar de nuevo',
+      checkedAt: 'Comprobado a las {{time}}',
+      reference: 'Si sigue pasando, díselo a soporte: {{reference}}',
+      state: {
+        checking: 'Comprobando el servicio…',
+        ok: 'Todo funciona con normalidad',
+        degraded: 'Algunas funciones no funcionan',
+        unreachable: 'No se puede conectar con el servicio',
+        unexpected: 'El servicio respondió algo inesperado',
+        error: 'El servicio respondió con un error'
+      }
+    }
   },
   session: {
     unavailable: {
@@ -108,17 +134,6 @@ export const es: Messages = {
       description: 'Revisa tu conexión y vuelve a intentarlo.',
       retry: 'Intentar de nuevo'
     }
-  },
-  apiStatus: {
-    checking: 'Comprobando la API…',
-    up: 'La API funciona: {{service}} a las {{time}}',
-    degraded: 'La API funciona, pero su base de datos no responde.',
-    unreachable: 'No se puede conectar con la API.',
-    unexpected: 'La API respondió algo inesperado.',
-    error: 'La API respondió con un error.',
-    errorWithCode: 'La API respondió con un error ({{code}}).',
-    unknown: 'Algo salió mal.',
-    checkAgain: 'Comprobar de nuevo'
   },
   failure: {
     network: 'No pudimos conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.',

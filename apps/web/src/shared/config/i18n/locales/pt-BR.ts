@@ -99,8 +99,34 @@ export const ptBR: Messages = {
     home: 'Ir para o início'
   },
   appShell: {
-    signedInAs: 'Sessão iniciada como {{name}}',
-    signOut: 'Sair'
+    openMenu: 'Abrir o menu',
+    closeMenu: 'Fechar o menu',
+    menu: 'Menu',
+    breadcrumb: 'Você está em',
+    nav: {
+      main: 'Principal',
+      home: 'Início'
+    },
+    account: {
+      settings: 'Configurações',
+      signOut: 'Sair'
+    },
+    status: {
+      title: 'Status do serviço',
+      button: 'Status do serviço: {{state}}',
+      close: 'Fechar',
+      checkAgain: 'Verificar de novo',
+      checkedAt: 'Verificado às {{time}}',
+      reference: 'Se continuar acontecendo, avise o suporte: {{reference}}',
+      state: {
+        checking: 'Verificando o serviço…',
+        ok: 'Tudo funcionando normalmente',
+        degraded: 'Alguns recursos não estão funcionando',
+        unreachable: 'Não foi possível falar com o serviço',
+        unexpected: 'O serviço respondeu algo inesperado',
+        error: 'O serviço respondeu com erro'
+      }
+    }
   },
   session: {
     unavailable: {
@@ -108,17 +134,6 @@ export const ptBR: Messages = {
       description: 'Confira sua conexão e tente de novo.',
       retry: 'Tentar de novo'
     }
-  },
-  apiStatus: {
-    checking: 'Verificando a API…',
-    up: 'A API está no ar: {{service}} às {{time}}',
-    degraded: 'A API está no ar, mas o banco de dados não responde.',
-    unreachable: 'Não foi possível falar com a API.',
-    unexpected: 'A API respondeu algo inesperado.',
-    error: 'A API respondeu com erro.',
-    errorWithCode: 'A API respondeu com erro ({{code}}).',
-    unknown: 'Algo deu errado.',
-    checkAgain: 'Verificar de novo'
   },
   failure: {
     network: 'Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.',

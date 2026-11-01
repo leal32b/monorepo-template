@@ -13,9 +13,9 @@ describe('App', () => {
 
     render(() => <App client={client} auth={auth} locale="en" />)
 
-    expect(await screen.findByText('Signed in as Ada Lovelace')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /Ada Lovelace/ })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monorepo template')
-    expect(await screen.findByText(/The API is up/)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
   })
 
   it('sends a visitor without a session from the home page to sign in', async () => {

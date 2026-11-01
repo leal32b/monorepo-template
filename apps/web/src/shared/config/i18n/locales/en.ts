@@ -97,8 +97,34 @@ export const en = {
     home: 'Go to the start'
   },
   appShell: {
-    signedInAs: 'Signed in as {{name}}',
-    signOut: 'Sign out'
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    menu: 'Menu',
+    breadcrumb: 'You are here',
+    nav: {
+      main: 'Main',
+      home: 'Home'
+    },
+    account: {
+      settings: 'Settings',
+      signOut: 'Sign out'
+    },
+    status: {
+      title: 'Service status',
+      button: 'Service status: {{state}}',
+      close: 'Close',
+      checkAgain: 'Check again',
+      checkedAt: 'Checked at {{time}}',
+      reference: 'If it keeps happening, tell support: {{reference}}',
+      state: {
+        checking: 'Checking the service…',
+        ok: 'All systems normal',
+        degraded: 'Some features are not working',
+        unreachable: 'Cannot reach the service',
+        unexpected: 'The service answered something unexpected',
+        error: 'The service answered an error'
+      }
+    }
   },
   session: {
     unavailable: {
@@ -106,17 +132,6 @@ export const en = {
       description: 'Check your connection, then try again.',
       retry: 'Try again'
     }
-  },
-  apiStatus: {
-    checking: 'Checking the API…',
-    up: 'The API is up: {{service}} at {{time}}',
-    degraded: 'The API is up, but its database is not answering.',
-    unreachable: 'Cannot reach the API.',
-    unexpected: 'The API answered something unexpected.',
-    error: 'The API answered an error.',
-    errorWithCode: 'The API answered an error ({{code}}).',
-    unknown: 'Something went wrong.',
-    checkAgain: 'Check again'
   },
   /** What a screen says about a failed call it has no better words for. */
   failure: {
