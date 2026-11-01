@@ -238,7 +238,7 @@ describe('AppShell', () => {
       vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel')
       renderShell()
 
-      expect(screen.getAllByRole('button', { name: /Search/ })[1]).toHaveTextContent('⌘ K')
+      expect(screen.getAllByRole('button', { name: /Search/ })[1]).toHaveTextContent('⌘K')
       expect(screen.getAllByRole('button', { name: 'Search' })[0]).toHaveAttribute(
         'aria-keyshortcuts',
         'Control+K Meta+K'

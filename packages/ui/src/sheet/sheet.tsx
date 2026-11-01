@@ -21,7 +21,7 @@ export function Sheet(props: SheetProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay class="fixed inset-0 z-40 bg-foreground/40" />
+        <Dialog.Overlay class="fixed inset-0 z-40 bg-scrim/60" />
         <Dialog.Content class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border-subtle bg-surface outline-none">
           <Dialog.Title class="sr-only">{props.title}</Dialog.Title>
           <Dialog.CloseButton

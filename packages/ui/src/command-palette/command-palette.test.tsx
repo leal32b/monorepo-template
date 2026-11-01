@@ -44,6 +44,12 @@ describe('CommandPalette', () => {
     await waitFor(() => expect(search()).toHaveFocus())
   })
 
+  it('dims the page behind it with the scrim, which stays dark in both themes', () => {
+    render(() => <Palette />)
+
+    expect(document.querySelector('.fixed.inset-0')).toHaveClass('bg-scrim/60')
+  })
+
   it('is not there until opened', () => {
     render(() => <Palette initiallyOpen={false} />)
 

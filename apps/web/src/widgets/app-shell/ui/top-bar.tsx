@@ -1,7 +1,7 @@
 import { Button, Icon } from '@repo/ui'
 import { A } from '@solidjs/router'
 import { For } from 'solid-js'
-import { modifierKey, useI18n } from '#shared/config'
+import { paletteShortcut, useI18n } from '#shared/config'
 
 export type Crumb = { href: string; label: string }
 
@@ -75,7 +75,7 @@ export function TopBar(props: TopBarProps) {
       >
         <Icon name="search" />
         {t('appShell.search')}
-        <kbd class="font-sans text-xs">{modifierKey(navigator.platform)} K</kbd>
+        <kbd class="font-sans text-xs">{paletteShortcut(navigator.platform)}</kbd>
       </Button>
     </header>
   )

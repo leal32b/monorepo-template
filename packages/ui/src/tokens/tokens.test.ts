@@ -34,3 +34,9 @@ describe.each(themes)('the %s theme', (theme) => {
     expect(contrastRatio(color(theme, foreground), color(theme, background))).toBeGreaterThanOrEqual(minimum)
   })
 })
+
+describe.each(themes)('the %s theme scrim', (theme) => {
+  it('is dark, so the page dims behind a dialog whichever way it is drawn', () => {
+    expect(contrastRatio(color(theme, 'scrim'), '#ffffff')).toBeGreaterThanOrEqual(15)
+  })
+})

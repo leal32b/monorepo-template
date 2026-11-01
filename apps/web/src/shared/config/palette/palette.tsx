@@ -23,7 +23,7 @@ export function usePalette(): PaletteState {
   return value
 }
 
-/** The key a shortcut starts with: ⌘ on Apple devices, Ctrl elsewhere. */
-export function modifierKey(platform: string): '⌘' | 'Ctrl' {
-  return /^(Mac|iPhone|iPad|iPod)/.test(platform) ? '⌘' : 'Ctrl'
+/** The keys that open the palette, as written: ⌘K on Apple devices, Ctrl K elsewhere. */
+export function paletteShortcut(platform: string): '⌘K' | 'Ctrl K' {
+  return /^(Mac|iPhone|iPad|iPod)/.test(platform) ? '⌘K' : 'Ctrl K'
 }

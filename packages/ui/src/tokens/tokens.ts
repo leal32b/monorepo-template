@@ -46,6 +46,7 @@ export const roles = [
   'destructive-foreground',
   'success',
   'warning',
+  'scrim',
   'qr',
   'qr-foreground'
 ] as const
@@ -71,6 +72,8 @@ const themes = {
     'destructive-foreground': 'white',
     success: 'green-700',
     warning: 'amber-700',
+    // The veil behind a dialog stays dark in both themes: the page dims, whichever way it is drawn.
+    scrim: 'slate-950',
     // A QR code stays dark on light in both themes: not every scanner reads one the other way round.
     qr: 'white',
     'qr-foreground': 'slate-950'
@@ -91,6 +94,7 @@ const themes = {
     'destructive-foreground': 'slate-950',
     success: 'green-400',
     warning: 'amber-400',
+    scrim: 'slate-950',
     qr: 'white',
     'qr-foreground': 'slate-950'
   }

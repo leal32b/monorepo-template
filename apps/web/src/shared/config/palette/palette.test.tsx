@@ -1,5 +1,5 @@
 import { render, screen } from '@solidjs/testing-library'
-import { modifierKey, PaletteProvider, usePalette } from './palette'
+import { PaletteProvider, paletteShortcut, usePalette } from './palette'
 
 const Probe = () => {
   const { open, setOpen, toggle } = usePalette()
@@ -46,12 +46,12 @@ describe('PaletteProvider', () => {
   })
 })
 
-describe('modifierKey', () => {
+describe('paletteShortcut', () => {
   it.each(['MacIntel', 'iPhone', 'iPad'])('is ⌘ on %s', (platform) => {
-    expect(modifierKey(platform)).toBe('⌘')
+    expect(paletteShortcut(platform)).toBe('⌘K')
   })
 
   it.each(['Win32', 'Linux x86_64', ''])('is Ctrl on %s', (platform) => {
-    expect(modifierKey(platform)).toBe('Ctrl')
+    expect(paletteShortcut(platform)).toBe('Ctrl K')
   })
 })
