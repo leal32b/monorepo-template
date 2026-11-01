@@ -71,6 +71,12 @@ const choose = (item: HTMLElement) => {
   fireEvent.click(item)
 }
 
+/** The name the top bar shows on phones, in the span that desktop hides. */
+const phoneTitle = () =>
+  within(screen.getByRole('banner'))
+    .getAllByText(/./, { selector: 'span' })
+    .find((span) => span.classList.contains('md:hidden'))
+
 const openAccountMenu = () => fireEvent.keyDown(screen.getByRole('button', { name: /Ada Lovelace/ }), { key: 'Enter' })
 
 describe('AppShell', () => {
@@ -104,6 +110,12 @@ describe('AppShell', () => {
     const bar = screen.getByRole('banner').firstElementChild
     expect(bar).toHaveClass('max-w-3xl', 'mx-auto', 'md:px-6')
     expect(screen.getByRole('main')).toHaveClass('max-w-3xl', 'mx-auto', 'sm:px-6')
+  })
+
+  it('says the app in the phone top bar outside the settings', () => {
+    renderShell()
+
+    expect(phoneTitle()).toHaveTextContent('Monorepo Template')
   })
 
   it('keeps one heading level 1 per screen', () => {
@@ -187,6 +199,12 @@ describe('AppShell', () => {
 
       expect(within(menu).getByText('Settings', { selector: 'span' })).toBeInTheDocument()
       expect(within(menu).queryByRole('link', { name: 'Monorepo Template' })).not.toBeInTheDocument()
+    })
+
+    it('says "Settings" in the phone top bar inside the settings', () => {
+      renderShell({ path: '/settings/security' })
+
+      expect(phoneTitle()).toHaveTextContent('Settings')
     })
 
     it('goes back to the app from the settings', async () => {
@@ -402,7 +420,7 @@ describe('AppShell', () => {
       }
       renderShell({ api: async () => Response.json(problem, { status: 500 }) })
 
-      fireEvent.click(await statusButton('The service answered an error'))
+      fireEvent.click(await statusButton('The service ran into a problem'))
 
       expect(await screen.findByRole('dialog', { name: 'Service status' })).toHaveTextContent(
         'If it keeps happening, tell support: internal_error · 6f1c2a'

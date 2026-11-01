@@ -29,7 +29,7 @@ describe('HomePage', () => {
     ))
 
     expect(screen.getByRole('button', { name: /Ada Lovelace/ })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Template de monorepo')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Início')
     expect(await screen.findByRole('button', { name: /Status do serviço: Tudo funcionando/ })).toBeInTheDocument()
   })
 })

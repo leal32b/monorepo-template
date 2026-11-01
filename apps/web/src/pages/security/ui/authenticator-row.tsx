@@ -38,7 +38,7 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
     props.onOpen(panel)
   }
   const done = (twoFactor: boolean) => {
-    setStatus(twoFactor ? t('account.authenticator.enabled') : t('account.authenticator.disabled'))
+    setStatus(twoFactor ? t('account.authenticator.enabledDone') : t('account.authenticator.disabled'))
     close()
   }
   const elsewhere = (twoFactor: boolean) => {

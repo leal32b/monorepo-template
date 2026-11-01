@@ -7,6 +7,7 @@ import CircleAlert from 'lucide-solid/icons/circle-alert'
 import CircleCheck from 'lucide-solid/icons/circle-check'
 import CircleQuestionMark from 'lucide-solid/icons/circle-question-mark'
 import Folder from 'lucide-solid/icons/folder'
+import Globe from 'lucide-solid/icons/globe'
 import House from 'lucide-solid/icons/house'
 import Info from 'lucide-solid/icons/info'
 import KeyRound from 'lucide-solid/icons/key-round'
@@ -41,6 +42,7 @@ export const icons = {
   folder: Folder,
   google: GoogleMark,
   error: CircleAlert,
+  globe: Globe,
   help: CircleQuestionMark,
   info: Info,
   home: House,

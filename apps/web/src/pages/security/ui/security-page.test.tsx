@@ -211,7 +211,9 @@ describe('SecurityPage', () => {
       click('I saved them')
 
       expect(screen.queryByRole('group', { name: 'Turning on two-step verification' })).not.toBeInTheDocument()
-      expect(section('Two-step verification')).toHaveTextContent('Two-step verification is on.')
+      expect(section('Two-step verification')).toHaveTextContent(
+        'Done: signing in with your password now also asks for a code'
+      )
       await waitFor(() => expect(screen.getByRole('button', { name: 'Turn off' })).toHaveFocus())
     })
 
@@ -241,7 +243,9 @@ describe('SecurityPage', () => {
 
       confirmWith('Set up')
 
-      await waitFor(() => expect(section('Two-step verification')).toHaveTextContent('Two-step verification is on.'))
+      await waitFor(() =>
+        expect(section('Two-step verification')).toHaveTextContent('Done: signing in with your password now also asks')
+      )
       expect(screen.getByRole('button', { name: 'Turn off' })).toBeInTheDocument()
     })
 
@@ -263,7 +267,9 @@ describe('SecurityPage', () => {
 
       expect(within(form('Turn off')).getByText(/your backup codes stop working/)).toBeInTheDocument()
       confirmWith('Turn off two-step verification')
-      await waitFor(() => expect(section('Two-step verification')).toHaveTextContent('Two-step verification is off.'))
+      await waitFor(() =>
+        expect(section('Two-step verification')).toHaveTextContent('Done: signing in asks only for your password.')
+      )
       expect(section('Two-step verification')).toHaveTextContent('Available once two-step verification is on.')
       await waitFor(() => expect(screen.getByRole('button', { name: 'Turn on' })).toHaveFocus())
     })

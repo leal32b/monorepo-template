@@ -14,7 +14,7 @@ describe('App', () => {
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(await screen.findByRole('button', { name: /Ada Lovelace/ })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Monorepo template')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Home')
     expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
   })
 

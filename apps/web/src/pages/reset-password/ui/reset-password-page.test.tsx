@@ -41,6 +41,8 @@ describe('ResetPasswordPage', () => {
   it('says when the link came back expired or used, with the way to ask for a new one', () => {
     renderPage('/reset-password?error=INVALID_TOKEN')
 
+    expect(screen.getByRole('heading', { level: 1, name: 'This link no longer works' })).toBeInTheDocument()
+    expect(screen.queryByText('This signs you out everywhere else.')).not.toBeInTheDocument()
     const alert = screen.getByRole('alert')
     expect(alert).toHaveTextContent('This link has expired or was already used.')
     expect(within(alert).getByRole('link', { name: 'Ask for a new link' })).toHaveAttribute('href', '/forgot-password')

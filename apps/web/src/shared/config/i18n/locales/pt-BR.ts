@@ -5,7 +5,7 @@ export const ptBR: Messages = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Template de monorepo'
+    title: 'Início'
   },
   profile: {
     title: 'Perfil',
@@ -75,7 +75,8 @@ export const ptBR: Messages = {
       turnOn: 'Ativar',
       turnOff: 'Desativar',
       enabled: 'A verificação em duas etapas está ativada.',
-      disabled: 'A verificação em duas etapas está desativada.',
+      enabledDone: 'Pronto: entrar com a senha agora também pede um código do seu app.',
+      disabled: 'Pronto: entrar pede só a sua senha.',
       stepper: 'Ativando a verificação em duas etapas',
       done: 'concluída',
       steps: {
@@ -212,8 +213,8 @@ export const ptBR: Messages = {
         ok: 'Tudo funcionando normalmente',
         degraded: 'Alguns recursos não estão funcionando',
         unreachable: 'Não foi possível falar com o serviço',
-        unexpected: 'O serviço respondeu algo inesperado',
-        error: 'O serviço respondeu com erro'
+        unexpected: 'O serviço não está funcionando como deveria',
+        error: 'O serviço teve um problema'
       }
     }
   },
@@ -300,6 +301,7 @@ export const ptBR: Messages = {
     password: 'Nova senha',
     submit: 'Trocar senha',
     expired: 'Este link expirou ou já foi usado. Cada link funciona uma vez, por 1 hora.',
+    expiredTitle: 'Este link não vale mais',
     askAgain: 'Pedir um novo link',
     changedMind: 'Mudou de ideia?',
     signIn: 'Entrar',

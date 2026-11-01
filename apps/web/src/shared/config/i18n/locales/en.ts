@@ -3,7 +3,7 @@ export const en = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Monorepo template'
+    title: 'Home'
   },
   profile: {
     title: 'Profile',
@@ -73,7 +73,8 @@ export const en = {
       turnOn: 'Turn on',
       turnOff: 'Turn off',
       enabled: 'Two-step verification is on.',
-      disabled: 'Two-step verification is off.',
+      enabledDone: 'Done: signing in with your password now also asks for a code from your app.',
+      disabled: 'Done: signing in asks only for your password.',
       stepper: 'Turning on two-step verification',
       done: 'done',
       steps: {
@@ -210,8 +211,8 @@ export const en = {
         ok: 'All systems normal',
         degraded: 'Some features are not working',
         unreachable: 'Cannot reach the service',
-        unexpected: 'The service answered something unexpected',
-        error: 'The service answered an error'
+        unexpected: 'The service is not working as it should',
+        error: 'The service ran into a problem'
       }
     }
   },
@@ -300,6 +301,7 @@ export const en = {
     password: 'New password',
     submit: 'Change password',
     expired: 'This link has expired or was already used. Each link works once and expires after 1 hour.',
+    expiredTitle: 'This link no longer works',
     askAgain: 'Ask for a new link',
     changedMind: 'Changed your mind?',
     signIn: 'Sign in',

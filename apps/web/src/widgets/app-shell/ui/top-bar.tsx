@@ -18,7 +18,8 @@ export type TopBarProps = {
 
 /**
  * Sticky, so where you are stays in view, in the same column as the screen below it. From `md` up it holds the breadcrumb (the screens
- * above, then this one); on phones the menu button and the app's name, since the title is the heading right below.
+ * above, then this one); on phones the menu button and the app's name, or "Settings" inside the settings,
+ * since the title is the heading right below.
  */
 export function TopBar(props: TopBarProps) {
   const { t } = useI18n()
@@ -35,7 +36,7 @@ export function TopBar(props: TopBarProps) {
         >
           <Icon name="menu" />
         </Button>
-        <span class="font-semibold tracking-tight md:hidden">{t('app.name')}</span>
+        <span class="truncate font-semibold tracking-tight md:hidden">{props.parents[0]?.label ?? t('app.name')}</span>
         <nav aria-label={t('appShell.breadcrumb')} class="hidden min-w-0 md:block">
           <ol class="m-0 flex list-none items-center gap-2 p-0 text-sm text-muted-foreground">
             <For each={props.parents}>

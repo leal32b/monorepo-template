@@ -5,7 +5,7 @@ export const es: Messages = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Plantilla de monorepo'
+    title: 'Inicio'
   },
   profile: {
     title: 'Perfil',
@@ -75,7 +75,8 @@ export const es: Messages = {
       turnOn: 'Activar',
       turnOff: 'Desactivar',
       enabled: 'La verificación en dos pasos está activada.',
-      disabled: 'La verificación en dos pasos está desactivada.',
+      enabledDone: 'Listo: al iniciar sesión con tu contraseña ahora también se pide un código de tu app.',
+      disabled: 'Listo: al iniciar sesión solo se pide tu contraseña.',
       stepper: 'Activar la verificación en dos pasos',
       done: 'hecho',
       steps: {
@@ -213,8 +214,8 @@ export const es: Messages = {
         ok: 'Todo funciona con normalidad',
         degraded: 'Algunas funciones no funcionan',
         unreachable: 'No se puede conectar con el servicio',
-        unexpected: 'El servicio respondió algo inesperado',
-        error: 'El servicio respondió con un error'
+        unexpected: 'El servicio no funciona como debería',
+        error: 'El servicio tuvo un problema'
       }
     }
   },
@@ -302,6 +303,7 @@ export const es: Messages = {
     password: 'Nueva contraseña',
     submit: 'Cambiar contraseña',
     expired: 'Este enlace venció o ya se usó. Cada enlace funciona una vez, durante 1 hora.',
+    expiredTitle: 'Este enlace ya no sirve',
     askAgain: 'Pedir un enlace nuevo',
     changedMind: '¿Cambiaste de opinión?',
     signIn: 'Iniciar sesión',

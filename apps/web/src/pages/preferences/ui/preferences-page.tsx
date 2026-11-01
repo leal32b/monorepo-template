@@ -36,7 +36,7 @@ export function PreferencesPage() {
       </SettingsSection>
       <SettingsSection title={t('preferences.language.title')} description={t('preferences.language.description')}>
         <SettingsRow
-          letter="A"
+          icon="globe"
           title={t('preferences.language.screens')}
           description={t('preferences.language.emails')}
           action={
