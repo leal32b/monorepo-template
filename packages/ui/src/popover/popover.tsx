@@ -19,7 +19,8 @@ export type PopoverProps = {
 /**
  * A small panel that opens from a button and holds information or a few controls (the service
  * status). It is not a menu of actions: use `Menu` for that. Focus moves into it when it opens, Escape
- * or a click outside closes it, and focus returns to the trigger.
+ * or a click outside closes it, and focus returns to the trigger. It is as wide as a `Menu`, so both
+ * open inside a side menu.
  */
 export function Popover(props: PopoverProps) {
   const [local, root] = splitProps(props, [
@@ -37,7 +38,7 @@ export function Popover(props: PopoverProps) {
         {local.trigger}
       </Kobalte.Trigger>
       <Kobalte.Portal>
-        <Kobalte.Content class="z-50 flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-md border border-border-subtle bg-background p-4 text-base outline-none sm:text-sm">
+        <Kobalte.Content class="z-50 flex w-56 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-md border border-border-subtle bg-background p-4 text-base outline-none sm:text-sm">
           <Kobalte.Title class="font-semibold">{local.title}</Kobalte.Title>
           {local.children}
           <Kobalte.CloseButton

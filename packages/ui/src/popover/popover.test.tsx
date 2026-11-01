@@ -43,6 +43,13 @@ describe('Popover', () => {
     await waitFor(() => expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-closed'))
   })
 
+  it('is as wide as a Menu, so both open inside a side menu', async () => {
+    render(() => <Status />)
+    fireEvent.click(trigger())
+
+    expect(await screen.findByRole('dialog')).toHaveClass('w-56')
+  })
+
   it('puts the trigger class on the trigger, and names an icon-only trigger by its label', () => {
     render(() => (
       <Popover
