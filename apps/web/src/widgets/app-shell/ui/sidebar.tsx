@@ -55,9 +55,19 @@ export function Sidebar(props: SidebarProps) {
 
   return (
     <div class={cn('flex h-full flex-col gap-4 bg-surface p-3', props.class)}>
-      <A href="/" onClick={props.onNavigate} class="flex h-11 items-center px-2 font-semibold tracking-tight">
-        {t('app.name')}
-      </A>
+      {/* As tall as the top bar, with the same line under it, so the two titles share one baseline. */}
+      <div class="-mx-3 -mt-3 flex h-14 shrink-0 items-center border-b border-border-subtle px-5 font-semibold tracking-tight">
+        <Show
+          when={inSettings()}
+          fallback={
+            <A href="/" onClick={props.onNavigate} class="truncate">
+              {t('app.name')}
+            </A>
+          }
+        >
+          <span class="truncate">{t('appShell.nav.settings')}</span>
+        </Show>
+      </div>
       <Show
         when={inSettings()}
         fallback={

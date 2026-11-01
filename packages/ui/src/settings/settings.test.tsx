@@ -74,6 +74,7 @@ describe('SettingsRow', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Your password was changed.')
     expect(screen.getByRole('status')).toHaveClass('text-success')
+    expect(screen.getByRole('status').querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
   })
 
   it('keeps the status area, empty, when nothing happened', () => {

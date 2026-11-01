@@ -1,4 +1,4 @@
-import { Button } from '@repo/ui'
+import { Alert, Button } from '@repo/ui'
 import { createSignal, onMount, Show } from 'solid-js'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -46,9 +46,7 @@ export function ResendConfirmation(props: { email: string; justSent?: boolean | 
           : t('resendConfirmation.send')}
       </Button>
       <Show when={sent()}>
-        <p role="status" class="text-sm">
-          {t('resendConfirmation.sent')}
-        </p>
+        <Alert variant="success">{t('resendConfirmation.sent')}</Alert>
       </Show>
       <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>
     </div>

@@ -1,4 +1,11 @@
-export { Alert, type AlertProps, type AlertVariantProps, alertVariants } from '#alert'
+export {
+  Alert,
+  type AlertProps,
+  type AlertVariantProps,
+  alertBarVariants,
+  alertIconVariants,
+  alertVariants
+} from '#alert'
 export { Badge, type BadgeProps, type BadgeVariantProps, badgeVariants } from '#badge'
 export { Button, type ButtonProps, type ButtonVariantProps, buttonVariants } from '#button'
 export { type CommandItem, CommandPalette, type CommandPaletteProps } from '#command-palette'

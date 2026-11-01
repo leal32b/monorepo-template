@@ -1,4 +1,4 @@
-import { Button, Field } from '@repo/ui'
+import { Alert, Button, Field } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -63,9 +63,9 @@ export function RequestResetForm(props: { email?: string | undefined }) {
       <Show when={sentTo()}>
         {(address) => (
           <>
-            <p role="status" class="break-words text-sm">
+            <Alert variant="success" class="break-words">
               {t('forgotPassword.sent', { email: address() })}
-            </p>
+            </Alert>
             <OpenMail email={address()} variant="outline" />
           </>
         )}

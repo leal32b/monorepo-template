@@ -22,7 +22,9 @@ const pairs: [foreground: Role, background: Role, minimum: number][] = [
   ['success', 'background', 4.5], // a state badge or line: "On", "All systems normal"
   ['success', 'surface', 4.5],
   ['warning', 'background', 4.5], // a state line: "Service is slow"
-  ['warning', 'surface', 4.5]
+  ['warning', 'surface', 4.5],
+  ['destructive', 'surface', 4.5], // an alert's text and icon on its raised box
+  ['primary', 'surface', 3] // an info alert's icon and bar
 ]
 
 const themes: ThemeName[] = ['light', 'dark']

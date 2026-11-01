@@ -24,8 +24,12 @@ export function ServiceProblem(props: { status: ServiceStatus }) {
     <Show when={isProblem(props.status.state())}>
       <p
         role="status"
-        class={cn('px-2 text-sm', props.status.state() === 'degraded' ? 'text-warning' : 'text-destructive')}
+        class={cn(
+          'flex items-start gap-2 px-2 text-sm',
+          props.status.state() === 'degraded' ? 'text-warning' : 'text-destructive'
+        )}
       >
+        <Icon name={props.status.state() === 'degraded' ? 'warning' : 'error'} class="mt-0.5 size-4" />
         {t(`appShell.status.state.${props.status.state()}`)}
       </p>
     </Show>
@@ -63,7 +67,10 @@ export function ServiceStatusButton(props: { status: ServiceStatus }) {
       closeLabel={t('appShell.status.close')}
       placement="top-end"
     >
-      <p role="status">{message()}</p>
+      <p role="status" class="flex items-start gap-2">
+        <span aria-hidden="true" class={cn('mt-1.5 size-2 shrink-0 rounded-full', dotClass[props.status.state()])} />
+        {message()}
+      </p>
       <Show when={checkedAt()}>
         {(time) => <p class="text-muted-foreground">{t('appShell.status.checkedAt', { time: time() })}</p>}
       </Show>

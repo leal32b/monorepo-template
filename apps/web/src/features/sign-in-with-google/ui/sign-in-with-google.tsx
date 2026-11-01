@@ -1,5 +1,5 @@
 import { identityOptionsSchema } from '@repo/contracts'
-import { Alert, Button } from '@repo/ui'
+import { Alert, Button, Icon } from '@repo/ui'
 import { createResource, createSignal, Show } from 'solid-js'
 import { type AuthFailure, callAuth, useApi, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -60,6 +60,7 @@ export function SignInWithGoogle(props: SignInWithGoogleProps) {
     <Show when={options.loading || (options.state === 'ready' && options().google)}>
       <div class="flex flex-col gap-4" classList={{ invisible: options.loading }}>
         <Button variant="outline" class="w-full" disabled={pending()} onClick={go}>
+          <Icon name="google" />
           {t('signIn.google.continue')}
         </Button>
         <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>

@@ -63,8 +63,11 @@ export function SettingsRow(props: SettingsRowProps) {
             <Show when={local.description}>
               <p class="mt-0.5 text-sm text-muted-foreground">{local.description}</p>
             </Show>
-            <p role="status" class="text-sm text-success not-empty:mt-1.5">
-              {local.status}
+            <p role="status" class="flex items-start gap-1.5 text-sm text-success not-empty:mt-1.5">
+              <Show when={local.status}>
+                <Icon name="success" class="mt-0.5 size-4" />
+                {local.status}
+              </Show>
             </p>
           </div>
         </div>

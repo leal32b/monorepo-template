@@ -41,7 +41,7 @@ export function GoogleRow(props: GoogleRowProps) {
         ref={(element) => {
           row = element
         }}
-        letter="G"
+        icon="google"
         title={t('account.google.title')}
         badge={
           linked() ? (

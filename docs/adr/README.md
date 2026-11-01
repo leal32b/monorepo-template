@@ -33,3 +33,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0026](0026-add-surface-and-state-colour-roles.md) | Add surface and state colour roles | accepted |
 | [0027](0027-wrap-one-icon-set-in-the-design-system.md) | Wrap one icon set in the design system | accepted |
 | [0028](0028-keep-theme-and-language-on-the-device.md) | Keep the theme and the language on the device | accepted |
+| [0029](0029-draw-brand-marks-in-their-own-colours.md) | Draw brand marks in their own colours | accepted |

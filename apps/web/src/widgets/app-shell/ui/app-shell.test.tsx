@@ -84,8 +84,18 @@ describe('AppShell', () => {
       within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Home' })
     ).toHaveAttribute('href', '/')
     const trail = within(screen.getByRole('navigation', { name: 'You are here' }))
-    expect(trail.getByRole('link', { name: 'Monorepo Template' })).toHaveAttribute('href', '/')
+    expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual(['Projects'])
     expect(trail.getByText('Projects')).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('titles the side menu with the app, a link home, and as tall as the top bar so the titles line up', () => {
+    renderShell()
+    const menu = screen.getByRole('complementary', { hidden: true })
+
+    const title = within(menu).getByRole('link', { name: 'Monorepo Template' })
+    expect(title).toHaveAttribute('href', '/')
+    expect(title.parentElement).toHaveClass('h-14', 'border-b')
+    expect(screen.getByRole('banner')).toHaveClass('h-14', 'border-b')
   })
 
   it('keeps one heading level 1 per screen', () => {
@@ -154,17 +164,21 @@ describe('AppShell', () => {
       expect(account.getByRole('link', { name: 'Security' })).toHaveAttribute('aria-current', 'page')
     })
 
-    it('puts the settings in the breadcrumb, between the app and the screen', () => {
+    it('puts the settings in the breadcrumb, before the screen', () => {
       renderShell({ path: '/settings/security' })
 
       const trail = within(screen.getByRole('navigation', { name: 'You are here' }))
-      expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual([
-        'Monorepo Template',
-        'Settings',
-        'Security'
-      ])
+      expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual(['Settings', 'Security'])
       expect(trail.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/profile')
       expect(trail.getByText('Security')).toHaveAttribute('aria-current', 'page')
+    })
+
+    it('titles the side menu "Settings" instead of the app, and not as a link', () => {
+      renderShell({ path: '/settings/security' })
+      const menu = screen.getByRole('complementary', { hidden: true })
+
+      expect(within(menu).getByText('Settings', { selector: 'span' })).toBeInTheDocument()
+      expect(within(menu).queryByRole('link', { name: 'Monorepo Template' })).not.toBeInTheDocument()
     })
 
     it('goes back to the app from the settings', async () => {
@@ -338,6 +352,7 @@ describe('AppShell', () => {
 
       expect(await screen.findByRole('status')).toHaveTextContent('Some features are not working')
       expect(screen.getByRole('status')).toHaveClass('text-warning')
+      expect(screen.getByRole('status').querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
     })
 
     it('says an unreachable service as an error', async () => {
@@ -360,6 +375,10 @@ describe('AppShell', () => {
       fireEvent.click(await statusButton('All systems normal'))
 
       const details = await screen.findByRole('dialog', { name: 'Service status' })
+      const state = within(details).getByRole('status')
+      expect(state).toHaveTextContent('All systems normal')
+      expect(state.querySelector('span[aria-hidden="true"]')).toHaveClass('bg-success')
+      expect(state).toHaveClass('flex', 'items-start')
       expect(details).toHaveTextContent(`Checked at ${time}`)
       fireEvent.click(within(details).getByRole('button', { name: 'Check again' }))
       await waitFor(() => expect(api).toHaveBeenCalledTimes(2))
