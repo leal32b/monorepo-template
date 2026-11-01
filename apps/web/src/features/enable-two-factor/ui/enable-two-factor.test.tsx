@@ -18,7 +18,7 @@ function betterAuth(verified: () => Response = () => Response.json({ status: tru
 }
 
 function renderSetup(fetch = betterAuth()) {
-  const props = { onEnabled: vi.fn(), onAlreadyOn: vi.fn() }
+  const props = { onEnabled: vi.fn(), onAlreadyOn: vi.fn(), onSetup: vi.fn(), onCancel: vi.fn() }
   render(() => (
     <I18nProvider locale="en">
       <AuthProvider client={createAuthClient({ fetch })}>
@@ -45,6 +45,37 @@ function turnOn(code: string) {
 }
 
 describe('EnableTwoFactor', () => {
+  it('lets the user cancel at the password, and again with the app on screen', async () => {
+    const { onCancel } = renderSetup()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onCancel).toHaveBeenCalledTimes(1)
+
+    await setUp()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onCancel).toHaveBeenCalledTimes(2)
+  })
+
+  it('tells the screen when the app is ready to connect, so it can show the step', async () => {
+    const { onSetup } = renderSetup()
+    expect(onSetup).not.toHaveBeenCalled()
+
+    await setUp()
+
+    expect(onSetup).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not move on when Better Auth answers with nothing to set up', async () => {
+    const { onSetup } = renderSetup(vi.fn<Fetch>(async () => Response.json({ method: 'otp' })))
+
+    type(screen.getByLabelText('Your password'), 'my password')
+    fireEvent.click(screen.getByRole('button', { name: 'Set up' }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Set up' })).toBeEnabled())
+    expect(onSetup).not.toHaveBeenCalled()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
   it('after the password, shows the QR code, a link for this phone and the key to type', async () => {
     const { fetch } = renderSetup()
 

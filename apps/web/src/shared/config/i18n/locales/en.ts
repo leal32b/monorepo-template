@@ -11,28 +11,60 @@ export const en = {
   preferences: {
     title: 'Preferences'
   },
+  /** Words that buttons share across screens. */
+  actions: {
+    cancel: 'Cancel'
+  },
   account: {
     title: 'Security',
     unavailable: 'We could not load your account security. Check your connection, then try again.',
     retry: 'Try again',
-    password: {
-      title: 'Password',
-      set: 'You sign in with your email and a password.',
-      unset: 'Your account has no password: you sign in with Google.'
+    signIn: {
+      title: 'Ways to sign in',
+      description: 'How you get into your account.'
     },
     twoFactor: {
       title: 'Two-step verification',
-      on: 'On: signing in with your password also asks for a code from your authenticator app.',
-      off: 'Off: signing in asks only for your password.',
+      description: 'A second step when you sign in with a password.'
+    },
+    badge: {
+      on: 'On',
+      off: 'Off',
+      notSetUp: 'Not set up',
+      linked: 'Linked',
+      notLinked: 'Not linked'
+    },
+    password: {
+      title: 'Password',
+      set: 'You sign in with your email and a password.',
+      unset:
+        'Your account has no password: you sign in with Google. A password lets you sign in with your email too, and turn on two-step verification.',
+      change: 'Change password'
+    },
+    authenticator: {
+      title: 'Authenticator app',
+      on: 'Signing in with your password also asks for a code from your app.',
+      off: 'Signing in asks only for your password. Turn it on so a stolen password is not enough: it will also ask for a code from an app on your phone.',
       needsPassword:
         'It protects signing in with a password, so it needs one first. Google protects your Google sign-ins.',
-      why: 'Turn it on so a stolen password is not enough: signing in will also ask for a code from an app on your phone.',
+      turnOn: 'Turn on',
+      turnOff: 'Turn off',
       enabled: 'Two-step verification is on.',
-      regenerated: 'Your new backup codes are ready. The old ones no longer work.',
-      newCodes: 'Get new backup codes',
-      turnOff: 'Turn off'
+      disabled: 'Two-step verification is off.',
+      stepper: 'Turning on two-step verification',
+      done: 'done',
+      steps: {
+        confirm: 'Confirm it is you',
+        connect: 'Connect the app',
+        save: 'Save the codes'
+      }
     },
     backupCodes: {
+      title: 'Backup codes',
+      description: 'Each one signs you in once if you cannot use your app.',
+      unavailable: 'Available once two-step verification is on.',
+      newCodes: 'Get new codes',
+      regenerated: 'Your new backup codes are ready. The old ones no longer work.',
       label: 'Backup codes',
       save: 'Save these backup codes. Each one signs you in once if you cannot use your app. They are shown only now.',
       copy: 'Copy',
@@ -44,9 +76,10 @@ export const en = {
     },
     google: {
       title: 'Google',
-      linked: 'Linked: you can also sign in with your Google account.',
-      unlinked: 'Not linked: link it to sign in with your Google account too.',
-      only: 'Linked: it is how you sign in, so it stays linked until you create a password.'
+      linked: 'You can also sign in with your Google account. You can unlink it and link it again at any time.',
+      unlinked: 'Link it to sign in with your Google account too.',
+      only: 'It is how you sign in, so it stays linked until you create a password.',
+      unlinkedDone: 'Google was unlinked. You can link it again at any time.'
     }
   },
   changePassword: {

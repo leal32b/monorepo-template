@@ -13,28 +13,60 @@ export const es: Messages = {
   preferences: {
     title: 'Preferencias'
   },
+  /** Words that buttons share across screens. */
+  actions: {
+    cancel: 'Cancelar'
+  },
   account: {
     title: 'Seguridad',
     unavailable: 'No pudimos cargar la seguridad de tu cuenta. Revisa tu conexión y vuelve a intentarlo.',
     retry: 'Intentar de nuevo',
-    password: {
-      title: 'Contraseña',
-      set: 'Inicias sesión con tu correo y una contraseña.',
-      unset: 'Tu cuenta no tiene contraseña: inicias sesión con Google.'
+    signIn: {
+      title: 'Formas de iniciar sesión',
+      description: 'Cómo entras a tu cuenta.'
     },
     twoFactor: {
       title: 'Verificación en dos pasos',
-      on: 'Activada: al iniciar sesión con tu contraseña también se pide un código de tu app de autenticación.',
-      off: 'Desactivada: al iniciar sesión solo se pide tu contraseña.',
+      description: 'Un segundo paso cuando inicias sesión con contraseña.'
+    },
+    badge: {
+      on: 'Activada',
+      off: 'Desactivada',
+      notSetUp: 'Sin configurar',
+      linked: 'Vinculada',
+      notLinked: 'Sin vincular'
+    },
+    password: {
+      title: 'Contraseña',
+      set: 'Inicias sesión con tu correo y una contraseña.',
+      unset:
+        'Tu cuenta no tiene contraseña: inicias sesión con Google. Una contraseña te permite iniciar sesión también con tu correo y activar la verificación en dos pasos.',
+      change: 'Cambiar contraseña'
+    },
+    authenticator: {
+      title: 'App de autenticación',
+      on: 'Al iniciar sesión con tu contraseña también se pide un código de tu app.',
+      off: 'Al iniciar sesión solo se pide tu contraseña. Actívala para que una contraseña robada no baste: también se pedirá un código de una app en tu teléfono.',
       needsPassword:
         'Protege el inicio de sesión con contraseña, así que primero necesitas una. Google protege tus inicios de sesión con Google.',
-      why: 'Actívala para que una contraseña robada no baste: al iniciar sesión también se pedirá un código de una app en tu teléfono.',
+      turnOn: 'Activar',
+      turnOff: 'Desactivar',
       enabled: 'La verificación en dos pasos está activada.',
-      regenerated: 'Tus nuevos códigos de respaldo están listos. Los anteriores ya no sirven.',
-      newCodes: 'Obtener nuevos códigos de respaldo',
-      turnOff: 'Desactivar'
+      disabled: 'La verificación en dos pasos está desactivada.',
+      stepper: 'Activar la verificación en dos pasos',
+      done: 'hecho',
+      steps: {
+        confirm: 'Confirma que eres tú',
+        connect: 'Conecta la app',
+        save: 'Guarda los códigos'
+      }
     },
     backupCodes: {
+      title: 'Códigos de respaldo',
+      description: 'Cada uno te permite iniciar sesión una vez si no puedes usar tu app.',
+      unavailable: 'Disponibles cuando la verificación en dos pasos esté activada.',
+      newCodes: 'Obtener nuevos códigos',
+      regenerated: 'Tus nuevos códigos de respaldo están listos. Los anteriores ya no sirven.',
       label: 'Códigos de respaldo',
       save: 'Guarda estos códigos de respaldo. Cada uno te permite iniciar sesión una vez si no puedes usar tu app. Solo se muestran ahora.',
       copy: 'Copiar',
@@ -46,9 +78,11 @@ export const es: Messages = {
     },
     google: {
       title: 'Google',
-      linked: 'Vinculada: también puedes iniciar sesión con tu cuenta de Google.',
-      unlinked: 'Sin vincular: vincúlala para iniciar sesión también con tu cuenta de Google.',
-      only: 'Vinculada: es como inicias sesión, así que sigue vinculada hasta que crees una contraseña.'
+      linked:
+        'También puedes iniciar sesión con tu cuenta de Google. Puedes desvincularla y vincularla de nuevo cuando quieras.',
+      unlinked: 'Vincúlala para iniciar sesión también con tu cuenta de Google.',
+      only: 'Es como inicias sesión, así que sigue vinculada hasta que crees una contraseña.',
+      unlinkedDone: 'Google se desvinculó. Puedes vincularla de nuevo cuando quieras.'
     }
   },
   changePassword: {

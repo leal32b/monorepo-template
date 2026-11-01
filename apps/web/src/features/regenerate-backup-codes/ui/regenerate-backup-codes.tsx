@@ -7,6 +7,8 @@ export type RegenerateBackupCodesProps = {
   onRegenerated: (backupCodes: string[]) => void
   /** Called when the second step was turned off elsewhere meanwhile, such as in another tab. */
   onAlreadyOff: () => void
+  /** Gives the user a way out. */
+  onCancel: () => void
 }
 
 /**
@@ -37,7 +39,7 @@ export function RegenerateBackupCodes(props: RegenerateBackupCodesProps) {
   return (
     <div class="flex flex-col gap-4">
       <p class="text-muted-foreground">{t('regenerateBackupCodes.what')}</p>
-      <ConfirmPasswordForm submit={t('regenerateBackupCodes.submit')} confirm={regenerate} />
+      <ConfirmPasswordForm submit={t('regenerateBackupCodes.submit')} confirm={regenerate} onCancel={props.onCancel} />
     </div>
   )
 }

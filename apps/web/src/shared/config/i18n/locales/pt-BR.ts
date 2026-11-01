@@ -13,28 +13,60 @@ export const ptBR: Messages = {
   preferences: {
     title: 'Preferências'
   },
+  /** Words that buttons share across screens. */
+  actions: {
+    cancel: 'Cancelar'
+  },
   account: {
     title: 'Segurança',
     unavailable: 'Não conseguimos carregar a segurança da sua conta. Confira sua conexão e tente de novo.',
     retry: 'Tentar de novo',
-    password: {
-      title: 'Senha',
-      set: 'Você entra com seu e-mail e uma senha.',
-      unset: 'Sua conta não tem senha: você entra com o Google.'
+    signIn: {
+      title: 'Formas de entrar',
+      description: 'Como você acessa a sua conta.'
     },
     twoFactor: {
       title: 'Verificação em duas etapas',
-      on: 'Ativada: entrar com a senha também pede um código do seu app autenticador.',
-      off: 'Desativada: entrar pede só a sua senha.',
+      description: 'Uma segunda etapa quando você entra com a senha.'
+    },
+    badge: {
+      on: 'Ativada',
+      off: 'Desativada',
+      notSetUp: 'Não configurada',
+      linked: 'Vinculado',
+      notLinked: 'Não vinculado'
+    },
+    password: {
+      title: 'Senha',
+      set: 'Você entra com seu e-mail e uma senha.',
+      unset:
+        'Sua conta não tem senha: você entra com o Google. Uma senha deixa você entrar também com o e-mail e ativar a verificação em duas etapas.',
+      change: 'Alterar senha'
+    },
+    authenticator: {
+      title: 'App autenticador',
+      on: 'Entrar com a senha também pede um código do seu app.',
+      off: 'Entrar pede só a sua senha. Ative para que uma senha roubada não baste: vai pedir também um código de um app no seu celular.',
       needsPassword:
         'Ela protege o login com senha, então precisa de uma senha antes. O Google protege os logins pelo Google.',
-      why: 'Ative para que uma senha roubada não baste: entrar também vai pedir um código de um app no seu celular.',
+      turnOn: 'Ativar',
+      turnOff: 'Desativar',
       enabled: 'A verificação em duas etapas está ativada.',
-      regenerated: 'Seus novos códigos de backup estão prontos. Os antigos não funcionam mais.',
-      newCodes: 'Gerar novos códigos de backup',
-      turnOff: 'Desativar'
+      disabled: 'A verificação em duas etapas está desativada.',
+      stepper: 'Ativando a verificação em duas etapas',
+      done: 'concluída',
+      steps: {
+        confirm: 'Confirme que é você',
+        connect: 'Conecte o app',
+        save: 'Guarde os códigos'
+      }
     },
     backupCodes: {
+      title: 'Códigos de backup',
+      description: 'Cada um faz você entrar uma vez se não puder usar o app.',
+      unavailable: 'Disponíveis depois que a verificação em duas etapas estiver ativada.',
+      newCodes: 'Gerar novos códigos',
+      regenerated: 'Seus novos códigos de backup estão prontos. Os antigos não funcionam mais.',
       label: 'Códigos de backup',
       save: 'Guarde estes códigos de backup. Cada um faz você entrar uma vez se não puder usar o app. Eles só aparecem agora.',
       copy: 'Copiar',
@@ -46,9 +78,10 @@ export const ptBR: Messages = {
     },
     google: {
       title: 'Google',
-      linked: 'Vinculado: você também pode entrar com sua conta Google.',
-      unlinked: 'Não vinculado: vincule para entrar também com sua conta Google.',
-      only: 'Vinculado: é como você entra, então fica vinculado até você criar uma senha.'
+      linked: 'Você também pode entrar com sua conta Google. Pode desvincular e vincular de novo quando quiser.',
+      unlinked: 'Vincule para entrar também com sua conta Google.',
+      only: 'É como você entra, então fica vinculado até você criar uma senha.',
+      unlinkedDone: 'O Google foi desvinculado. Você pode vincular de novo quando quiser.'
     }
   },
   changePassword: {

@@ -61,10 +61,31 @@ describe('SettingsRow', () => {
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
   })
 
+  it("has a letter in the icon's place for a mark the icon set lacks", () => {
+    const { container } = render(() => <SettingsRow title="Google" letter="G" />)
+
+    expect(container.querySelector('svg')).toBeNull()
+    expect(screen.getByText('G')).toBeInTheDocument()
+    expect(screen.getByText('G').parentElement).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('announces what just happened in the row, in an area that is always there', () => {
+    render(() => <SettingsRow title="Password" status="Your password was changed." />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Your password was changed.')
+    expect(screen.getByRole('status')).toHaveClass('text-success')
+  })
+
+  it('keeps the status area, empty, when nothing happened', () => {
+    render(() => <SettingsRow title="Password" />)
+
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
+
   it('needs only a title: no description, action or panel', () => {
     const { container } = render(() => <SettingsRow title="Only a title" />)
 
-    expect(container.querySelector('p')).toBeNull()
+    expect(container.querySelector('p:not([role])')).toBeNull()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(container.querySelector('.bg-surface.border-t')).toBeNull()
   })
