@@ -40,11 +40,6 @@ describe('motionCss', () => {
     expect([...moving].sort()).toEqual(['opacity', 'transform'])
   })
 
-  it('fades in what opens in a page, with no way out', () => {
-    expect(motionCss).toContain(`.ds-reveal{animation:ds-scrim ${motion.reveal}ms`)
-    expect(motionCss).not.toContain('.ds-reveal[data-closed]')
-  })
-
   it('only fades with reduced motion, for every layer that moves', () => {
     const reduced = motionCss.slice(motionCss.indexOf('@media (prefers-reduced-motion: reduce)'))
 

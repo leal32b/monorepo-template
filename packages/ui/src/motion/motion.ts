@@ -13,8 +13,6 @@ export const motion = {
   /** A menu or popover that opens from its button. */
   popEnter: 120,
   popExit: 80,
-  /** A form that opens inside a page. */
-  reveal: 120,
   easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
   easeOut: 'cubic-bezier(0, 0, 0.2, 1)'
 } as const
@@ -37,8 +35,7 @@ const shown = 'opacity:1'
 /**
  * The classes that animate a layer, and their keyframes, for the preset's base styles. `ds-scrim` fades
  * the veil; `ds-sheet` slides a panel in from the left; `ds-dialog` lifts a dialog a little as it
- * fades; `ds-pop` grows a menu or popover from its button (Kobalte's transform origin); `ds-reveal`
- * fades in what opens inside a page, and has no way out. With `prefers-reduced-motion` every one of them
+ * fades; `ds-pop` grows a menu or popover from its button (Kobalte's transform origin). With `prefers-reduced-motion` every one of them
  * only fades, and the fade is as long.
  */
 export const motionCss = [
@@ -59,8 +56,6 @@ export const motionCss = [
   keyframes('ds-pop-out', `${shown};transform:none`, `${hidden};transform:scale(0.96)`),
   `.ds-pop{transform-origin:var(--kb-menu-content-transform-origin,var(--kb-popover-content-transform-origin,center))}`,
   layer('ds-pop', 'ds-pop', motion.popExit, motion.popEnter),
-  // A form that opens in a page: in, never out.
-  `.ds-reveal{animation:ds-scrim ${motion.reveal}ms ${motion.easeOut}}`,
   // Reduced motion: nothing moves, everything only fades.
   `@media (prefers-reduced-motion: reduce){${['sheet', 'dialog', 'pop']
     .map((name) => `.ds-${name}${open}{animation-name:ds-scrim}.ds-${name}${closed}{animation-name:ds-scrim-out}`)

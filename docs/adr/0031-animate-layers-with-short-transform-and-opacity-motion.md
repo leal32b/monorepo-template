@@ -31,9 +31,8 @@ Which motion do layers get, and how is it kept from costing speed, layout or acc
 
 Chosen option 3. The preset carries `ds-scrim` (the veil fades), `ds-sheet` (a panel slides from the
 left), `ds-dialog` (a dialog lifts a little as it fades), `ds-pop` (a menu or popover grows from its
-button, by the transform origin Kobalte computes) and `ds-reveal` (a form that opens in a page fades
-in). The durations are in `packages/ui/src/motion/motion.ts`: 200 ms in and 150 ms out for the drawer
-and its veil, 150 and 100 for the dialog, 120 and 80 for a menu, 120 for a reveal; easing out on the
+button, by the transform origin Kobalte computes). The durations are in `packages/ui/src/motion/motion.ts`: 200 ms in and 150 ms out for the drawer
+and its veil, 150 and 100 for the dialog, 120 and 80 for a menu; easing out on the
 way in and in on the way out.
 
 Only `transform` and `opacity` change, so nothing around a layer shifts and the browser can animate
@@ -50,7 +49,8 @@ would drift between components and reduced motion would be handled in each.
 - Good: reduced motion is handled once, in the preset.
 - Bad: a layer centred with a `translate` utility would have it overwritten by the animation; the
   palette is centred with `inset-x-4 mx-auto` for this reason, and the skill says so.
-- Bad: a form that opens in a row fades in but does not animate out, since the row simply loses it.
+- Bad: the form a settings row opens appears at once, without motion: a fade left what is below it
+  jumping, and unfolding it cost layout work on each frame, so it was left plain.
 
 ## Revisit when
 

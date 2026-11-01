@@ -105,7 +105,7 @@ describe('SettingsRow', () => {
     ))
     const panel = screen.getByLabelText('Current password').closest('div')
 
-    expect(panel).toHaveClass('bg-surface', 'border-t', 'ds-reveal')
+    expect(panel).toHaveClass('bg-surface', 'border-t')
   })
 
   it('stacks the action below on phones, full width, and puts it on the right from sm up', () => {
