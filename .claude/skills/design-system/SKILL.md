@@ -96,6 +96,9 @@ Elements must not "tremble" between states or screens.
   - `success` and `warning` are state text, always with a word ("On", "Service is slow"), never
     colour alone; a state that is neither (off, not set up) stays `muted-foreground`;
     `destructive` stays for errors and the actions that remove.
+- **One choice of many.** Two to four short choices, all in view: `SegmentedControl` (the theme). A
+  list that can grow or has long labels: `Select`, the browser's own (the language), so a phone
+  opens its native picker.
 - **Selected without a shadow.** A segmented control (or any selected item in a group) shows its
   selection with a `border` outline on `background`, not a shadow, in line with "no shadows".
 - **Icons** ([ADR 0027](../../../docs/adr/0027-wrap-one-icon-set-in-the-design-system.md)): only

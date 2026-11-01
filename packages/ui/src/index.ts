@@ -15,6 +15,7 @@ export {
   type SegmentedControlOption,
   type SegmentedControlProps
 } from '#segmented-control'
+export { Select, type SelectOption, type SelectProps } from '#select'
 export { SettingsRow, type SettingsRowProps, SettingsSection, type SettingsSectionProps } from '#settings'
 export { Sheet, type SheetProps } from '#sheet'
 export { Stepper, type StepperProps } from '#stepper'

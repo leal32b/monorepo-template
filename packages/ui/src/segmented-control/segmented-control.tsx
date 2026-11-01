@@ -19,7 +19,7 @@ export type SegmentedControlProps = {
 }
 
 /**
- * One choice among a few, all in view (a theme, a language). Radio buttons underneath, so the arrow
+ * One choice among a few short ones, all in view (a theme). Radio buttons underneath, so the arrow
  * keys move the choice. The selected item is outlined, not shadowed, and says so in text as well as
  * in its look.
  */
