@@ -1,5 +1,5 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
-import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
+import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { TwoFactorPage } from './two-factor-page'
@@ -35,6 +35,13 @@ describe('TwoFactorPage', () => {
     expect(screen.getByRole('textbox', { name: '6-digit code' })).toBeInTheDocument()
   })
 
+  it('always offers a way out, to sign in again headed where the user was going', () => {
+    renderPage('/login/two-factor?next=%2Fprojects')
+
+    expect(screen.getByText('Not your account?')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sign in again' })).toHaveAttribute('href', '/login?next=%2Fprojects')
+  })
+
   it('after the code, goes where the user was headed, and Back does not return to the form', async () => {
     const history = renderPage('/login/two-factor?next=%2Fprojects')
 
@@ -65,7 +72,8 @@ describe('TwoFactorPage', () => {
     fireEvent.input(screen.getByRole('textbox', { name: '6-digit code' }), { target: { value: '123456' } })
     fireEvent.click(screen.getByRole('button', { name: 'Verify' }))
 
-    expect(await screen.findByRole('link', { name: 'Sign in again' })).toHaveAttribute(
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByRole('link', { name: 'Sign in again' })).toHaveAttribute(
       'href',
       '/login?next=%2Fprojects'
     )

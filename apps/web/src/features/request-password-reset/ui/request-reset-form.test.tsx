@@ -68,7 +68,8 @@ describe('RequestResetForm', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'If an account uses ada@example.com, we sent it a link. It works for 1 hour; check spam if it does not arrive.'
     )
-    expect(button).toBeEnabled()
+    expect(button).toBeDisabled()
+    expect(button).toHaveTextContent('Send link again in 30 s')
     const [url, init] = fetch.mock.calls[0] ?? []
     expect(String(url)).toBe(`${window.location.origin}/api/auth/request-password-reset`)
     expect(JSON.parse(String(init?.body))).toEqual({ email: 'ada@example.com', redirectTo: '/reset-password' })
@@ -88,5 +89,50 @@ describe('RequestResetForm', () => {
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(await screen.findByRole('status')).toHaveTextContent('If an account uses ada@example.com')
+  })
+
+  describe('the wait', () => {
+    beforeEach(() => vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] }))
+    afterEach(() => vi.useRealTimers())
+
+    it('counts out 30 seconds on the button after a send to the same address, then can send again', async () => {
+      const { email, button } = renderForm(undefined, 'ada@example.com')
+      fireEvent.click(button)
+      await screen.findByRole('status')
+      expect(button).toBeDisabled()
+      vi.advanceTimersByTime(1000)
+      expect(button).toHaveTextContent('Send link again in 29 s')
+
+      vi.advanceTimersByTime(29_000)
+
+      expect(button).toBeEnabled()
+      expect(button).toHaveTextContent('Send link')
+      expect(button).not.toHaveTextContent('again')
+      expect(email).toHaveValue('ada@example.com')
+    })
+
+    it('lets a corrected address be sent at once, since it is another address', async () => {
+      const { email, button } = renderForm(undefined, 'ada@exmaple.com')
+      fireEvent.click(button)
+      await screen.findByRole('status')
+      expect(button).toBeDisabled()
+
+      type(email, 'ada@example.com')
+
+      expect(button).toBeEnabled()
+      expect(button).toHaveTextContent('Send link')
+    })
+
+    it('does not wait after a failure, so the user can try again', async () => {
+      const { button } = renderForm(
+        vi.fn<Fetch>(async () => Response.json({}, { status: 500 })),
+        'ada@example.com'
+      )
+
+      fireEvent.click(button)
+      await screen.findByRole('alert')
+
+      expect(button).toBeEnabled()
+    })
   })
 })

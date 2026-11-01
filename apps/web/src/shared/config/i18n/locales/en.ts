@@ -288,6 +288,7 @@ export const en = {
     }
   },
   forgotPassword: {
+    wait: 'Send link again in {{seconds}} s',
     title: 'Reset your password',
     description: 'We will email you a link.',
     submit: 'Send link',
@@ -314,6 +315,7 @@ export const en = {
   twoFactor: {
     title: 'Two-step verification',
     submit: 'Verify',
+    notYou: 'Not your account?',
     signInAgain: 'Sign in again',
     app: {
       description: 'Open your authenticator app.',

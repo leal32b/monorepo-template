@@ -290,6 +290,7 @@ export const es: Messages = {
     }
   },
   forgotPassword: {
+    wait: 'Enviar el enlace de nuevo en {{seconds}} s',
     title: 'Restablece tu contraseña',
     description: 'Te enviaremos un enlace por correo.',
     submit: 'Enviar enlace',
@@ -316,6 +317,7 @@ export const es: Messages = {
   twoFactor: {
     title: 'Verificación en dos pasos',
     submit: 'Verificar',
+    notYou: '¿No es tu cuenta?',
     signInAgain: 'Volver a iniciar sesión',
     app: {
       description: 'Abre tu app de autenticación.',

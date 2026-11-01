@@ -288,6 +288,7 @@ export const ptBR: Messages = {
     }
   },
   forgotPassword: {
+    wait: 'Enviar o link de novo em {{seconds}} s',
     title: 'Redefina sua senha',
     description: 'Enviaremos um link por e-mail.',
     submit: 'Enviar link',
@@ -314,6 +315,7 @@ export const ptBR: Messages = {
   twoFactor: {
     title: 'Verificação em duas etapas',
     submit: 'Verificar',
+    notYou: 'Não é a sua conta?',
     signInAgain: 'Entrar de novo',
     app: {
       description: 'Abra seu app autenticador.',
