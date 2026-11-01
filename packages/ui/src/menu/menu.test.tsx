@@ -44,6 +44,15 @@ describe('Menu', () => {
     expect(onSignOut).toHaveBeenCalledTimes(1)
   })
 
+  it('leaves the page scrollable while open: no scroll lock, so nothing shifts', async () => {
+    render(() => <Account />)
+    open()
+    await screen.findByRole('menu')
+
+    expect(document.body.style.overflow).not.toBe('hidden')
+    expect(document.body.style.pointerEvents).not.toBe('none')
+  })
+
   it('closes on Escape', async () => {
     render(() => <Account />)
     open()
@@ -51,7 +60,7 @@ describe('Menu', () => {
 
     fireEvent.keyDown(menu, { key: 'Escape' })
 
-    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('menu', { hidden: true })).toHaveAttribute('data-closed'))
   })
 
   it('names an icon-only trigger by its label', () => {
