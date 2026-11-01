@@ -49,6 +49,17 @@ describe('RequireSession', () => {
     expect(await screen.findByText('Hello, Ada Lovelace')).toBeInTheDocument()
   })
 
+  it('draws the empty frame of the shell while a slow session check goes on, not a blank page', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderAt('/projects', () => new Promise<Response>(() => {}))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    vi.advanceTimersByTime(300)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
+    vi.useRealTimers()
+  })
+
   it('sends a visitor without a session to sign in, to come back to the same page', async () => {
     const history = renderAt('/projects?tab=1', async () => Response.json({ code: 'unauthenticated' }, { status: 401 }))
 

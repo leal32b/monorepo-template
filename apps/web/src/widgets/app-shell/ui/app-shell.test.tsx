@@ -98,6 +98,14 @@ describe('AppShell', () => {
     expect(screen.getByRole('banner')).toHaveClass('h-14', 'border-b')
   })
 
+  it('puts the top bar in the same column as the screen, so the breadcrumb lines up with the title', () => {
+    renderShell()
+
+    const bar = screen.getByRole('banner').firstElementChild
+    expect(bar).toHaveClass('max-w-3xl', 'mx-auto', 'md:px-6')
+    expect(screen.getByRole('main')).toHaveClass('max-w-3xl', 'mx-auto', 'sm:px-6')
+  })
+
   it('keeps one heading level 1 per screen', () => {
     renderShell()
 

@@ -161,6 +161,7 @@ export const ptBR: Messages = {
     home: 'Ir para o início'
   },
   appShell: {
+    loading: 'Carregando…',
     search: 'Buscar',
     palette: {
       title: 'Paleta de comandos',

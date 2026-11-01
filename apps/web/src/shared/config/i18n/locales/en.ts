@@ -159,6 +159,7 @@ export const en = {
     home: 'Go to the start'
   },
   appShell: {
+    loading: 'Loading…',
     search: 'Search',
     palette: {
       title: 'Command palette',

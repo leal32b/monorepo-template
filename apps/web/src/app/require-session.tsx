@@ -4,13 +4,15 @@ import { createResource, Match, type ParentProps, Switch } from 'solid-js'
 import { getMe, SessionProvider } from '#entities/sessions'
 import { ApiError, ApiProvider, useApi, whenUnauthorized } from '#shared/api'
 import { useI18n } from '#shared/config'
+import { ShellSkeleton } from '#widgets/app-shell'
 import { EntryLayout } from '#widgets/entry-layout'
 import { PaletteShortcut } from './palette-shortcut'
 
 /**
  * The routes below need a session: it asks the API who is signed in and gives the answer to the
  * screens, or sends a visitor without a session to sign in, to come back to the same page. Nothing
- * shows while it asks, so no screen flashes for someone who is about to be sent away. Below it, any
+ * shows at first while it asks, so no screen flashes for someone who is about to be sent away; a slow
+ * answer draws the empty frame of the shell, so the page does not jump from blank to full. Below it, any
  * call the API answers with 401, because the session ended meanwhile, sends the user to sign in too.
  */
 export function RequireSession(props: ParentProps) {
@@ -35,7 +37,7 @@ export function RequireSession(props: ParentProps) {
   const guarded = whenUnauthorized(api, () => navigate(signIn(), { replace: true }))
 
   return (
-    <Switch>
+    <Switch fallback={<ShellSkeleton />}>
       <Match when={me.error instanceof ApiError && me.error.status === 401}>
         <Navigate href={signIn()} />
       </Match>

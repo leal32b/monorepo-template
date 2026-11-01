@@ -162,6 +162,7 @@ export const es: Messages = {
     home: 'Ir al inicio'
   },
   appShell: {
+    loading: 'Cargando…',
     search: 'Buscar',
     palette: {
       title: 'Paleta de comandos',
