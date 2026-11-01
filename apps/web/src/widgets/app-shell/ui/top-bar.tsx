@@ -1,7 +1,7 @@
 import { Button, Icon } from '@repo/ui'
 import { A } from '@solidjs/router'
 import { For } from 'solid-js'
-import { useI18n } from '#shared/config'
+import { modifierKey, useI18n } from '#shared/config'
 
 export type Crumb = { href: string; label: string }
 
@@ -12,6 +12,8 @@ export type TopBarProps = {
   title: string
   /** Opens the side menu; only phones show the button. */
   onOpenMenu: () => void
+  /** Opens the command palette, which ⌘K opens too. */
+  onSearch: () => void
 }
 
 /**
@@ -62,6 +64,27 @@ export function TopBar(props: TopBarProps) {
           </li>
         </ol>
       </nav>
+      <Button
+        variant="outline"
+        size="icon"
+        class="ml-auto md:hidden"
+        aria-label={t('appShell.search')}
+        aria-keyshortcuts="Control+K Meta+K"
+        onClick={props.onSearch}
+      >
+        <Icon name="search" />
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        class="ml-auto hidden gap-2 text-muted-foreground md:inline-flex"
+        aria-keyshortcuts="Control+K Meta+K"
+        onClick={props.onSearch}
+      >
+        <Icon name="search" />
+        {t('appShell.search')}
+        <kbd class="font-sans text-xs">{modifierKey(navigator.platform)} K</kbd>
+      </Button>
     </header>
   )
 }

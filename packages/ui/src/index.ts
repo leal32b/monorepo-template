@@ -1,6 +1,7 @@
 export { Alert, type AlertProps, type AlertVariantProps, alertVariants } from '#alert'
 export { Badge, type BadgeProps, type BadgeVariantProps, badgeVariants } from '#badge'
 export { Button, type ButtonProps, type ButtonVariantProps, buttonVariants } from '#button'
+export { type CommandItem, CommandPalette, type CommandPaletteProps } from '#command-palette'
 export { Field, type FieldProps } from '#field'
 export { Icon, type IconName, type IconProps } from '#icon'
 export { Input, type InputProps, inputClass } from '#input'

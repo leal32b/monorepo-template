@@ -2,7 +2,7 @@ import { MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider, ThemeProvider } from '#shared/config'
+import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
 import { PreferencesPage } from './preferences-page'
 
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
@@ -10,17 +10,19 @@ const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.0
 function renderPage() {
   render(() => (
     <I18nProvider locale="en">
-      <ThemeProvider>
-        <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
-          <AuthProvider client={createAuthClient({ fetch: async () => Response.json(null) })}>
-            <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-              <MemoryRouter>
-                <Route path="/" component={PreferencesPage} />
-              </MemoryRouter>
-            </SessionProvider>
-          </AuthProvider>
-        </ApiProvider>
-      </ThemeProvider>
+      <PaletteProvider>
+        <ThemeProvider>
+          <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+            <AuthProvider client={createAuthClient({ fetch: async () => Response.json(null) })}>
+              <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
+                <MemoryRouter>
+                  <Route path="/" component={PreferencesPage} />
+                </MemoryRouter>
+              </SessionProvider>
+            </AuthProvider>
+          </ApiProvider>
+        </ThemeProvider>
+      </PaletteProvider>
     </I18nProvider>
   ))
 }

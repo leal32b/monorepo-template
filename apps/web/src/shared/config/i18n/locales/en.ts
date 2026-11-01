@@ -159,6 +159,26 @@ export const en = {
     home: 'Go to the start'
   },
   appShell: {
+    search: 'Search',
+    palette: {
+      title: 'Command palette',
+      placeholder: 'Search screens and actions…',
+      empty: 'Nothing matches. Try another word.',
+      go: 'Go to',
+      actions: 'Actions',
+      theme: {
+        system: 'Use the system theme',
+        light: 'Use the light theme',
+        dark: 'Use the dark theme'
+      },
+      keywords: {
+        profile: 'account name email',
+        security: 'password two-step verification authenticator backup codes google',
+        preferences: 'appearance theme language',
+        theme: 'appearance color dark light',
+        signOut: 'log out logout leave'
+      }
+    },
     openMenu: 'Open menu',
     closeMenu: 'Close menu',
     menu: 'Menu',

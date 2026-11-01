@@ -2,9 +2,10 @@ import { Sheet } from '@repo/ui'
 import { useMatch, useNavigate } from '@solidjs/router'
 import { createSignal, onMount, type ParentProps, Show } from 'solid-js'
 import { createSignOut } from '#features/sign-out'
-import { useI18n } from '#shared/config'
+import { useI18n, usePalette } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
 import { createServiceStatus } from '../model/service-status'
+import { ShellPalette } from './shell-palette'
 import { Sidebar } from './sidebar'
 import { type Crumb, TopBar } from './top-bar'
 
@@ -17,6 +18,7 @@ export function AppShell(props: ParentProps<{ title: string }>) {
   const { t } = useI18n()
   const navigate = useNavigate()
   const signOut = createSignOut(() => navigate('/login', { replace: true }))
+  const palette = usePalette()
   const status = createServiceStatus()
   const [drawerOpen, setDrawerOpen] = createSignal(false)
   const inSettings = useMatch(() => '/settings/*')
@@ -39,8 +41,14 @@ export function AppShell(props: ParentProps<{ title: string }>) {
       >
         {sidebar(() => setDrawerOpen(false))}
       </Sheet>
+      <ShellPalette signOut={signOut.signOut} />
       <div class="min-w-0">
-        <TopBar parents={parents()} title={props.title} onOpenMenu={() => setDrawerOpen(true)} />
+        <TopBar
+          parents={parents()}
+          title={props.title}
+          onOpenMenu={() => setDrawerOpen(true)}
+          onSearch={() => palette.setOpen(true)}
+        />
         <main class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-6 pb-8 sm:px-6 md:pt-8 md:pb-12">
           <h1
             ref={(heading) => onMount(() => heading.focus())}

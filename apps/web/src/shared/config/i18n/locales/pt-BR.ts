@@ -161,6 +161,26 @@ export const ptBR: Messages = {
     home: 'Ir para o início'
   },
   appShell: {
+    search: 'Buscar',
+    palette: {
+      title: 'Paleta de comandos',
+      placeholder: 'Busque telas e ações…',
+      empty: 'Nada encontrado. Tente outra palavra.',
+      go: 'Ir para',
+      actions: 'Ações',
+      theme: {
+        system: 'Usar o tema do sistema',
+        light: 'Usar o tema claro',
+        dark: 'Usar o tema escuro'
+      },
+      keywords: {
+        profile: 'conta nome e-mail',
+        security: 'senha duas etapas verificação autenticador códigos backup google',
+        preferences: 'aparência tema idioma',
+        theme: 'aparência cor escuro claro',
+        signOut: 'sair logout desconectar'
+      }
+    },
     openMenu: 'Abrir o menu',
     closeMenu: 'Fechar o menu',
     menu: 'Menu',

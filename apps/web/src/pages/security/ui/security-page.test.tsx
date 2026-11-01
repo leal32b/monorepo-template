@@ -2,7 +2,7 @@ import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider } from '#shared/config'
+import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
 import { SecurityPage } from './security-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -55,16 +55,20 @@ function renderPage(fetch: Fetch, path = '/settings/security') {
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <ApiProvider client={createApiClient({ fetch: answer })}>
-        <AuthProvider client={createAuthClient({ fetch })}>
-          <SessionProvider user={ada}>
-            <MemoryRouter history={history}>
-              <Route path="/settings/security" component={SecurityPage} />
-              <Route path="/login" component={() => <p>The sign-in</p>} />
-            </MemoryRouter>
-          </SessionProvider>
-        </AuthProvider>
-      </ApiProvider>
+      <ThemeProvider>
+        <PaletteProvider>
+          <ApiProvider client={createApiClient({ fetch: answer })}>
+            <AuthProvider client={createAuthClient({ fetch })}>
+              <SessionProvider user={ada}>
+                <MemoryRouter history={history}>
+                  <Route path="/settings/security" component={SecurityPage} />
+                  <Route path="/login" component={() => <p>The sign-in</p>} />
+                </MemoryRouter>
+              </SessionProvider>
+            </AuthProvider>
+          </ApiProvider>
+        </PaletteProvider>
+      </ThemeProvider>
     </I18nProvider>
   ))
   return history

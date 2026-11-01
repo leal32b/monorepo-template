@@ -162,6 +162,26 @@ export const es: Messages = {
     home: 'Ir al inicio'
   },
   appShell: {
+    search: 'Buscar',
+    palette: {
+      title: 'Paleta de comandos',
+      placeholder: 'Busca pantallas y acciones…',
+      empty: 'Nada coincide. Prueba con otra palabra.',
+      go: 'Ir a',
+      actions: 'Acciones',
+      theme: {
+        system: 'Usar el tema del sistema',
+        light: 'Usar el tema claro',
+        dark: 'Usar el tema oscuro'
+      },
+      keywords: {
+        profile: 'cuenta nombre correo',
+        security: 'contraseña dos pasos verificación autenticador códigos respaldo google',
+        preferences: 'apariencia tema idioma',
+        theme: 'apariencia color oscuro claro',
+        signOut: 'salir cerrar sesión desconectar'
+      }
+    },
     openMenu: 'Abrir el menú',
     closeMenu: 'Cerrar el menú',
     menu: 'Menú',

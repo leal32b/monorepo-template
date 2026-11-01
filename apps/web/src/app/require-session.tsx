@@ -5,6 +5,7 @@ import { getMe, SessionProvider } from '#entities/sessions'
 import { ApiError, ApiProvider, useApi, whenUnauthorized } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { EntryLayout } from '#widgets/entry-layout'
+import { PaletteShortcut } from './palette-shortcut'
 
 /**
  * The routes below need a session: it asks the API who is signed in and gives the answer to the
@@ -48,7 +49,10 @@ export function RequireSession(props: ParentProps) {
       <Match when={me.state === 'ready' && me()}>
         {(user) => (
           <ApiProvider client={guarded}>
-            <SessionProvider user={user()}>{props.children}</SessionProvider>
+            <SessionProvider user={user()}>
+              {props.children}
+              <PaletteShortcut />
+            </SessionProvider>
           </ApiProvider>
         )}
       </Match>

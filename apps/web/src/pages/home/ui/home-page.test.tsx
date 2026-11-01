@@ -2,7 +2,7 @@ import { MemoryRouter, Route } from '@solidjs/router'
 import { render, screen } from '@solidjs/testing-library'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider } from '#shared/config'
+import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
 import { HomePage } from './home-page'
 
 describe('HomePage', () => {
@@ -12,15 +12,19 @@ describe('HomePage', () => {
 
     render(() => (
       <I18nProvider locale="pt-BR">
-        <ApiProvider client={client}>
-          <AuthProvider client={createAuthClient({ fetch: async () => Response.json(null) })}>
-            <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-              <MemoryRouter>
-                <Route path="*" component={HomePage} />
-              </MemoryRouter>
-            </SessionProvider>
-          </AuthProvider>
-        </ApiProvider>
+        <ThemeProvider>
+          <PaletteProvider>
+            <ApiProvider client={client}>
+              <AuthProvider client={createAuthClient({ fetch: async () => Response.json(null) })}>
+                <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
+                  <MemoryRouter>
+                    <Route path="*" component={HomePage} />
+                  </MemoryRouter>
+                </SessionProvider>
+              </AuthProvider>
+            </ApiProvider>
+          </PaletteProvider>
+        </ThemeProvider>
       </I18nProvider>
     ))
 

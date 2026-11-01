@@ -2,7 +2,7 @@ import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider, type Locale } from '#shared/config'
+import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
 import { AppShell } from './app-shell'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -22,40 +22,44 @@ function renderShell({
   history.set({ value: path })
   render(() => (
     <I18nProvider locale={locale}>
-      <ApiProvider client={createApiClient({ fetch: api })}>
-        <AuthProvider client={createAuthClient({ fetch: auth })}>
-          <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-            <MemoryRouter history={history}>
-              <Route
-                path="/projects"
-                component={() => (
-                  <AppShell title="Projects">
-                    <p>The projects</p>
-                  </AppShell>
-                )}
-              />
-              <Route
-                path="/"
-                component={() => (
-                  <AppShell title="Start">
-                    <p>The start</p>
-                  </AppShell>
-                )}
-              />
-              <Route
-                path="/settings/security"
-                component={() => (
-                  <AppShell title="Security">
-                    <p>The security</p>
-                  </AppShell>
-                )}
-              />
-              <Route path="/settings/profile" component={() => <p>The profile</p>} />
-              <Route path="/login" component={() => <p>The sign-in</p>} />
-            </MemoryRouter>
-          </SessionProvider>
-        </AuthProvider>
-      </ApiProvider>
+      <ThemeProvider>
+        <PaletteProvider>
+          <ApiProvider client={createApiClient({ fetch: api })}>
+            <AuthProvider client={createAuthClient({ fetch: auth })}>
+              <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
+                <MemoryRouter history={history}>
+                  <Route
+                    path="/projects"
+                    component={() => (
+                      <AppShell title="Projects">
+                        <p>The projects</p>
+                      </AppShell>
+                    )}
+                  />
+                  <Route
+                    path="/"
+                    component={() => (
+                      <AppShell title="Start">
+                        <p>The start</p>
+                      </AppShell>
+                    )}
+                  />
+                  <Route
+                    path="/settings/security"
+                    component={() => (
+                      <AppShell title="Security">
+                        <p>The security</p>
+                      </AppShell>
+                    )}
+                  />
+                  <Route path="/settings/profile" component={() => <p>The profile</p>} />
+                  <Route path="/login" component={() => <p>The sign-in</p>} />
+                </MemoryRouter>
+              </SessionProvider>
+            </AuthProvider>
+          </ApiProvider>
+        </PaletteProvider>
+      </ThemeProvider>
     </I18nProvider>
   ))
   return history
@@ -181,6 +185,108 @@ describe('AppShell', () => {
     expect(
       within(screen.getByRole('navigation', { name: 'Principal' })).getByRole('link', { name: 'Início' })
     ).toBeInTheDocument()
+  })
+
+  describe('the command palette', () => {
+    const openPalette = () => fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
+    const palette = () => screen.findByRole('dialog', { name: 'Command palette' })
+    const pick = async (name: string) => fireEvent.click(await screen.findByRole('option', { name }))
+
+    afterEach(() => {
+      localStorage.clear()
+      delete document.documentElement.dataset.theme
+    })
+
+    it('opens from the search button in the top bar, with the screens and actions to choose', async () => {
+      renderShell()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+      openPalette()
+
+      const dialog = await palette()
+      expect(
+        within(dialog)
+          .getAllByRole('option')
+          .map((option) => option.textContent)
+      ).toEqual([
+        'Home',
+        'Profile',
+        'Security',
+        'Preferences',
+        'Use the system theme',
+        'Use the light theme',
+        'Use the dark theme',
+        'Sign out'
+      ])
+    })
+
+    it('tells the keys that open it, and ⌘ on an Apple device', () => {
+      vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel')
+      renderShell()
+
+      expect(screen.getAllByRole('button', { name: /Search/ })[1]).toHaveTextContent('⌘ K')
+      expect(screen.getAllByRole('button', { name: 'Search' })[0]).toHaveAttribute(
+        'aria-keyshortcuts',
+        'Control+K Meta+K'
+      )
+      vi.restoreAllMocks()
+    })
+
+    it('goes to a screen', async () => {
+      const history = renderShell()
+      openPalette()
+
+      await pick('Security')
+
+      await waitFor(() => expect(history.get()).toBe('/settings/security'))
+    })
+
+    it('finds a screen by a word that is not in its name', async () => {
+      renderShell()
+      openPalette()
+
+      fireEvent.input(await screen.findByRole('combobox', { name: 'Command palette' }), {
+        target: { value: 'password' }
+      })
+
+      expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['Security'])
+    })
+
+    it('says when nothing matches', async () => {
+      renderShell()
+      openPalette()
+
+      fireEvent.input(await screen.findByRole('combobox', { name: 'Command palette' }), { target: { value: 'zzz' } })
+
+      expect(screen.getByText('Nothing matches. Try another word.')).toBeInTheDocument()
+    })
+
+    it('changes the theme', async () => {
+      renderShell()
+      openPalette()
+
+      await pick('Use the dark theme')
+
+      expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+      expect(localStorage.getItem('theme')).toBe('dark')
+    })
+
+    it('signs out, then leaves for the sign-in', async () => {
+      const history = renderShell()
+      openPalette()
+
+      await pick('Sign out')
+
+      await waitFor(() => expect(history.get()).toBe('/login'))
+    })
+
+    it('speaks the language of the provider', async () => {
+      renderShell({ locale: 'pt-BR' })
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'Buscar' })[0] as HTMLElement)
+
+      expect(await screen.findByRole('dialog', { name: 'Paleta de comandos' })).toBeInTheDocument()
+    })
   })
 
   describe('on phones', () => {

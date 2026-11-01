@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
 import * as z from 'zod/mini'
 import { useSession } from '#entities/sessions'
 import { ApiProvider, createApiClient, useApi } from '#shared/api'
-import { I18nProvider } from '#shared/config'
+import { I18nProvider, PaletteProvider } from '#shared/config'
 import { RequireSession } from './require-session'
 
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>
@@ -26,15 +26,17 @@ function renderAt(path: string, fetch: Fetch) {
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <ApiProvider client={createApiClient({ fetch })}>
-        <MemoryRouter history={history}>
-          <Route path="/" component={RequireSession}>
-            <Route path="/projects" component={() => <p>Hello, {useSession().name}</p>} />
-            <Route path="/reports" component={ReportsPage} />
-          </Route>
-          <Route path="/login" component={() => <p>The sign-in</p>} />
-        </MemoryRouter>
-      </ApiProvider>
+      <PaletteProvider>
+        <ApiProvider client={createApiClient({ fetch })}>
+          <MemoryRouter history={history}>
+            <Route path="/" component={RequireSession}>
+              <Route path="/projects" component={() => <p>Hello, {useSession().name}</p>} />
+              <Route path="/reports" component={ReportsPage} />
+            </Route>
+            <Route path="/login" component={() => <p>The sign-in</p>} />
+          </MemoryRouter>
+        </ApiProvider>
+      </PaletteProvider>
     </I18nProvider>
   ))
   return history
