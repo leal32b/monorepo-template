@@ -60,7 +60,7 @@ export function RequestResetForm(props: { email?: string | undefined }) {
         label={t('auth.email')}
         name="email"
         type="email"
-        autocomplete="username"
+        autocomplete="off"
         value={email()}
         onChange={setEmail}
         error={error()}

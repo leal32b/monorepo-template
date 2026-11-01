@@ -22,9 +22,7 @@ export function ShellSkeleton() {
     <Show when={late()}>
       <div class="md:grid md:grid-cols-[16rem_minmax(0,1fr)]" aria-busy="true">
         <aside class="sticky top-0 hidden h-screen border-r border-border-subtle bg-surface md:block">
-          <div class="flex h-14 items-center border-b border-border-subtle px-5 font-semibold tracking-tight">
-            {t('app.name')}
-          </div>
+          <div class="flex h-14 items-center px-5 font-semibold tracking-tight">{t('app.name')}</div>
         </aside>
         <div class="min-w-0">
           <header class="sticky top-0 flex h-14 items-center border-b border-border-subtle bg-background px-3 md:px-6">

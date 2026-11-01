@@ -94,13 +94,14 @@ describe('AppShell', () => {
     expect(trail.getByText('Projects')).toHaveAttribute('aria-current', 'page')
   })
 
-  it('titles the side menu with the app, a link home, and as tall as the top bar so the titles line up', () => {
+  it('titles the side menu with the app, a link home, as tall as the top bar so the titles line up, with no line under it', () => {
     renderShell()
     const menu = screen.getByRole('complementary', { hidden: true })
 
     const title = within(menu).getByRole('link', { name: 'Monorepo Template' })
     expect(title).toHaveAttribute('href', '/')
-    expect(title.parentElement).toHaveClass('h-14', 'border-b')
+    expect(title.parentElement).toHaveClass('h-14')
+    expect(title.parentElement).not.toHaveClass('border-b')
     expect(screen.getByRole('banner')).toHaveClass('h-14', 'border-b')
   })
 

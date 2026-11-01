@@ -39,12 +39,12 @@ function fillIn() {
 }
 
 describe('SignUpForm', () => {
-  it('asks for a name, an email and a new password, the way browsers and password managers expect', () => {
+  it('asks for a new password the way password managers expect, and offers no suggestions for the name and email', () => {
     renderForm()
     const password = screen.getByLabelText('Password')
 
-    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAttribute('autocomplete', 'name')
-    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveAttribute('autocomplete', 'email')
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAttribute('autocomplete', 'off')
+    expect(screen.getByRole('textbox', { name: 'Email' })).toHaveAttribute('autocomplete', 'off')
     expect(password).toHaveAttribute('autocomplete', 'new-password')
     expect(password).toHaveAccessibleDescription('At least 15 characters.')
   })

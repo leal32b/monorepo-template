@@ -36,11 +36,11 @@ describe('RequestResetForm', () => {
     expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toMatchObject({ email: 'ada@example.com' })
   })
 
-  it('asks for the email of the account, the way password managers fill it in', () => {
+  it('asks for the email of the account, offering no suggestions', () => {
     const { email } = renderForm()
 
     expect(email).toHaveAttribute('type', 'email')
-    expect(email).toHaveAttribute('autocomplete', 'username')
+    expect(email).toHaveAttribute('autocomplete', 'off')
   })
 
   it('on a submit with a wrong email, says what to fix and sends nothing', () => {

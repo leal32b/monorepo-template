@@ -55,8 +55,8 @@ export function Sidebar(props: SidebarProps) {
 
   return (
     <div class={cn('flex h-full flex-col gap-4 bg-surface p-3', props.class)}>
-      {/* As tall as the top bar, with the same line under it, so the two titles share one baseline. */}
-      <div class="-mx-3 -mt-3 flex h-14 shrink-0 items-center border-b border-border-subtle px-5 font-semibold tracking-tight">
+      {/* As tall as the top bar, so the two titles share one baseline; no line under it, to keep the menu clean. */}
+      <div class="-mx-3 -mt-3 flex h-14 shrink-0 items-center px-5 font-semibold tracking-tight">
         <Show
           when={inSettings()}
           fallback={

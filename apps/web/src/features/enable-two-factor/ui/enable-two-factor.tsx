@@ -119,7 +119,7 @@ function ConfirmApp(props: { setup: TotpSetup; onVerified: () => void; onCancel:
           label={t('twoFactor.app.code')}
           name="code"
           inputmode="numeric"
-          autocomplete="one-time-code"
+          autocomplete="off"
           onChange={setCode}
           error={error()}
         />

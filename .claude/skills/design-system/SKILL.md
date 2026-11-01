@@ -122,8 +122,9 @@ Elements must not "tremble" between states or screens.
 ## Accessibility
 
 - Every control has a visible label (a placeholder is not a label) and the right `type`,
-  `autocomplete` (`email`, `name`, `current-password`, `new-password`, `one-time-code`) and
-  `inputmode`.
+  `autocomplete` and `inputmode`. The browser's suggestions are off (`autocomplete="off"`) on name,
+  email and code fields; the sign-in's email (`username`) and the password fields (`current-password`,
+  `new-password`) keep theirs, since password managers fill them by it.
 - Touch targets are at least 44px tall on phones for the main controls (WCAG 2.2 asks 24px at least);
   inputs use 16px text on phones, or iOS zooms in on focus.
 - On a route change, focus moves to the `h1`; after a failed submit, to the first invalid field, or
