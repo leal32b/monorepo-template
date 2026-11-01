@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Entrada</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.entry{
+  --bg:#ffffff;--surface:#f8fafc;--fg:#0f172a;--muted:#475569;--border:#64748b;--line:#e2e8f0;
+  --secondary:#f1f5f9;--primary:#1d4ed8;--primary-fg:#ffffff;--ring:#2563eb;
+  --destructive:#b91c1c;--success:#15803d;--warning:#b45309;
+  min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;color-scheme:light
+}
+.entry.theme-dark{
+  --bg:#020617;--surface:#0f172a;--fg:#f8fafc;--muted:#94a3b8;--line:#1e293b;--secondary:#1e293b;
+  --primary:#60a5fa;--primary-fg:#020617;--ring:#60a5fa;--destructive:#f87171;--success:#4ade80;--warning:#fbbf24;color-scheme:dark
+}
+.entry *{box-sizing:border-box}
+:where(.entry) :where(a){color:inherit}
+:where(.entry) :where(button,input,select){font:inherit;color:inherit}
+.entry :focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+.col{width:100%;max-width:384px;margin:0 auto;padding:32px 16px;display:flex;flex-direction:column;gap:32px;flex:1}
+.brand{display:inline-flex;align-items:center;gap:10px;align-self:flex-start;font-weight:600;font-size:14px;text-decoration:none;border-radius:6px}
+.mark{display:grid;place-items:center;width:24px;height:24px;border-radius:6px;background:var(--fg);color:var(--bg);font-size:12px}
+.head{display:flex;flex-direction:column;gap:8px}
+.head h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-0.015em;line-height:1.25}
+.head p{margin:0;color:var(--muted)}
+.form{display:flex;flex-direction:column;gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.label-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.field label{font-size:14px;font-weight:500}
+.msg{font-size:14px;color:var(--muted)}
+.msg.is-error{color:var(--destructive)}
+.input{width:100%;height:44px;padding:0 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg);font-size:16px}
+.input[aria-invalid="true"]{border-color:var(--destructive)}
+.input.code{letter-spacing:.3em;font-variant-numeric:tabular-nums}
+.pw{position:relative}
+.pw .input{padding-right:48px}
+.pw-toggle{position:absolute;top:0;right:0;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.pw-toggle:hover{color:var(--fg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;height:44px;padding:0 16px;border-radius:6px;border:1px solid transparent;font-weight:500;cursor:pointer;text-decoration:none;transition:background-color .15s}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:var(--primary-fg)}
+.btn-primary:hover:not(:disabled){opacity:.9}
+.btn-outline{border-color:var(--line);background:var(--bg)}
+.btn-outline:hover:not(:disabled){background:var(--secondary)}
+.btn-inline{width:auto;height:36px;padding:0 12px;font-size:14px}
+.g{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;border:1px solid var(--line);font-weight:700;font-size:12px}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:14px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.link{color:var(--fg);text-decoration:underline;text-underline-offset:4px;background:none;border:0;padding:0;cursor:pointer;font-size:14px}
+.link:hover{text-decoration-thickness:2px}
+.foot-links{font-size:14px;color:var(--muted)}
+.alert{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:6px;font-size:14px}
+.alert-error{color:var(--destructive)}
+.alert-error .alert-text{color:var(--fg)}
+.alert-row{display:flex;gap:10px;align-items:flex-start}
+.alert-row .i{margin-top:3px}
+.alert .ref{color:var(--muted);font-size:13px}
+.alert-status{background:var(--surface)}
+.alert-status .i{color:var(--success)}
+.alert-warn .i{color:var(--warning)}
+.sent{display:flex;flex-direction:column;gap:16px}
+.sent p{margin:0}
+.muted{color:var(--muted)}
+.page-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;max-width:384px;margin:0 auto;padding:16px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.lang{display:flex;align-items:center;gap:8px}
+.lang select{height:36px;padding:0 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:14px}
+.dot{width:8px;height:8px;border-radius:999px;flex:none;background:var(--success)}
+</style>
+</helmet>
+<div class="entry {{themeClass}}">
+<main class="col">
+  <a class="brand" href="#inicio"><span class="mark">A</span>Acme</a>
+
+  <!-- A known outage is said before the user tries and fails -->
+  <sc-if value="{{serverProblem}}" hint-placeholder-val="{{ false }}">
+    <div class="alert alert-warn" role="status">
+      <div class="alert-row">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20zM12 10v4M12 17h.01"></path></svg>
+        <span>{{serverText}}</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Sign in -->
+  <sc-if value="{{is.signIn}}" hint-placeholder-val="{{ true }}">
+    <div class="head"><h1>Entrar</h1><p>Que bom ver você de novo.</p></div>
+    <button type="button" class="btn btn-outline" disabled="{{pending}}" onClick="{{google}}"><span class="g" aria-hidden="true">G</span>Continuar com o Google</button>
+    <div class="or">ou</div>
+    <form class="form" novalidate="novalidate" onSubmit="{{submit.signIn}}">
+      <div class="field">
+        <label for="si-email">E-mail</label>
+        <input id="si-email" class="input" type="email" autocomplete="email" inputmode="email" value="{{email}}" aria-invalid="{{err.emailBad}}" onChange="{{on.email}}">
+        <sc-if value="{{err.email}}" hint-placeholder-val="{{ false }}"><span class="msg is-error" role="alert">{{err.email}}</span></sc-if>
+      </div>
+      <div class="field">
+        <div class="label-row">
+          <label for="si-pw">Senha</label>
+          <button type="button" class="link" onClick="{{go.forgot}}">Esqueceu a senha?</button>
+        </div>
+        <div class="pw">
+          <input id="si-pw" class="input" type="{{pwType}}" autocomplete="current-password" value="{{password}}" aria-invalid="{{err.passwordBad}}" onChange="{{on.password}}">
+          <button type="button" class="pw-toggle" aria-label="Mostrar senha" aria-pressed="{{showPw}}" onClick="{{toggleShowPw}}">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+        <sc-if value="{{err.password}}" hint-placeholder-val="{{ false }}"><span class="msg is-error" role="alert">{{err.password}}</span></sc-if>
+      </div>
+      <button type="submit" class="btn btn-primary" disabled="{{pending}}">Entrar</button>
+    </form>
+    <sc-if value="{{alert}}" hint-placeholder-val="{{ false }}">
+      <div class="alert alert-error" role="alert">
+        <div class="alert-row">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+          <span class="alert-text">{{alert.text}}</span>
+        </div>
+        <sc-if value="{{alert.resend}}" hint-placeholder-val="{{ false }}">
+          <button type="button" class="btn btn-outline btn-inline" style="align-self: flex-start;" disabled="{{resendDisabled}}" onClick="{{resend}}">{{resendLabel}}</button>
+        </sc-if>
+        <sc-if value="{{alert.ref}}" hint-placeholder-val="{{ false }}"><span class="ref">{{alert.ref}}</span></sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{resent}}" hint-placeholder-val="{{ false }}">
+      <div class="alert alert-status" role="status"><div class="alert-row"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>Enviamos de novo. Pode levar alguns minutos.</span></div></div>
+    </sc-if>
+    <p class="foot-links" style="margin: 0;">Ainda não tem conta? <button type="button" class="link" onClick="{{go.signUp}}">Criar conta</button></p>
+  </sc-if>
+
+  <!-- Sign up -->
+  <sc-if value="{{is.signUp}}" hint-placeholder-val="{{ false }}">
+    <div class="head"><h1>Crie sua conta</h1><p>Leva menos de um minuto.</p></div>
+    <button type="button" class="btn btn-outline" disabled="{{pending}}" onClick="{{google}}"><span class="g" aria-hidden="true">G</span>Continuar com o Google</button>
+    <div class="or">ou</div>
+    <form class="form" novalidate="novalidate" onSubmit="{{submit.signUp}}">
+      <div class="field">
+        <label for="su-name">Nome</label>
+        <input id="su-name" class="input" autocomplete="name" value="{{name}}" aria-invalid="{{err.nameBad}}" onChange="{{on.name}}">
+        <sc-if value="{{err.name}}" hint-placeholder-val="{{ false }}"><span class="msg is-error" role="alert">{{err.name}}</span></sc-if>
+      </div>
+      <div class="field">
+        <label for="su-email">E-mail</label>
+        <input id="su-email" class="input" type="email" autocomplete="email" inputmode="email" value="{{email}}" aria-invalid="{{err.emailBad}}" onChange="{{on.email}}">
+        <sc-if value="{{err.email}}" hint-placeholder-val="{{ false }}"><span class="msg is-error" role="alert">{{err.email}}</span></sc-if>
+      </div>
+      <div class="field">
+        <label for="su-pw">Senha</label>
+        <div class="pw">
+          <input id="su-pw" class="input" type="{{pwType}}" autocomplete="new-password" value="{{password}}" aria-invalid="{{err.passwordBad}}" aria-describedby="su-pw-msg" onChange="{{on.password}}">
+          <button type="button" class="pw-toggle" aria-label="Mostrar senha" aria-pressed="{{showPw}}" onClick="{{toggleShowPw}}">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+        <span id="su-pw-msg" class="msg {{pwMsg.cls}}">{{pwMsg.text}}</span>
+      </div>
+      <button type="submit" class="btn btn-primary" disabled="{{pending}}">Criar conta</button>
+    </form>
+    <sc-if value="{{alert}}" hint-placeholder-val="{{ false }}">
+      <div class="alert alert-error" role="alert">
+        <div class="alert-row"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="alert-text">{{alert.text}}</span></div>
+        <sc-if value="{{alert.ref}}" hint-placeholder-val="{{ false }}"><span class="ref">{{alert.ref}}</span></sc-if>
+      </div>
+    </sc-if>
+    <p class="foot-links" style="margin: 0;">Já tem uma conta? <button type="button" class="link" onClick="{{go.signIn}}">Entrar</button></p>
+  </sc-if>
+
+  <!-- Check your email -->
+  <sc-if value="{{is.checkEmail}}" hint-placeholder-val="{{ false }}">
+    <div class="head"><h1>Confira seu e-mail</h1><p>Confirme seu endereço para terminar.</p></div>
+    <div class="sent">
+      <p>Enviamos um link para <b>{{emailShown}}</b>.</p>
+      <sc-if value="{{provider}}" hint-placeholder-val="{{ true }}">
+        <a class="btn btn-primary" href="{{provider.href}}" target="_blank" rel="noopener">{{provider.label}}</a>
+      </sc-if>
+      <p class="muted">Não chegou? Confira o spam ou envie de novo.</p>
+      <button type="button" class="btn btn-outline" disabled="{{resendDisabled}}" onClick="{{resend}}">{{resendLabel}}</button>
+      <sc-if value="{{resent}}" hint-placeholder-val="{{ false }}">
+        <div class="alert alert-status" role="status"><div class="alert-row"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg><span>Enviamos de novo. Pode levar alguns minutos.</span></div></div>
+      </sc-if>
+    </div>
+    <p class="foot-links" style="margin: 0;">Endereço errado? <button type="button" class="link" onClick="{{go.signUp}}">Usar outro e-mail</button></p>
+  </sc-if>
+
+  <!-- Two-step verification -->
+  <sc-if value="{{is.twoFactor}}" hint-placeholder-val="{{ false }}">
+    <div class="head"><h1>Verificação em duas etapas</h1><p>{{tf.description}}</p></div>
+    <form class="form" novalidate="novalidate" onSubmit="{{submit.twoFactor}}">
+      <div class="field">
+        <label for="tf-code">{{tf.label}}</label>
+        <input id="tf-code" class="input {{tf.inputClass}}" autocomplete="one-time-code" inputmode="{{tf.inputmode}}" maxlength="{{tf.max}}" value="{{code}}" aria-invalid="{{err.codeBad}}" onChange="{{on.code}}">
+        <sc-if value="{{err.code}}" hint-placeholder-val="{{ false }}"><span class="msg is-error" role="alert">{{err.code}}</span></sc-if>
+      </div>
+      <button type="submit" class="btn btn-primary" disabled="{{pending}}">Verificar</button>
+    </form>
+    <sc-if value="{{alert}}" hint-placeholder-val="{{ false }}">
+      <div class="alert alert-error" role="alert">
+        <div class="alert-row"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="alert-text">{{alert.text}}</span></div>
+        <sc-if value="{{alert.signInAgain}}" hint-placeholder-val="{{ false }}">
+          <button type="button" class="btn btn-outline btn-inline" style="align-self: flex-start;" onClick="{{go.signIn}}">Entrar de novo</button>
+        </sc-if>
+        <sc-if value="{{alert.ref}}" hint-placeholder-val="{{ false }}"><span class="ref">{{alert.ref}}</span></sc-if>
+      </div>
+    </sc-if>
+    <p class="foot-links" style="margin: 0;">{{tf.other}} <button type="button" class="link" onClick="{{switchMode}}">{{tf.switch}}</button></p>
+  </sc-if>
+
+  <!-- Forgot password -->
+  <sc-if value="{{is.forgot}}" hint-placeholder-val="{{ false }}">
+    <div class="head"><h1>Redefina sua senha</h1><p>Enviaremos um link por e-mail.</p></div>
+    <sc-if value="{{forgotForm}}" hint-placeholder-val="{{ true }}">
+      <form class="form" novalidate="novalidate" onSubmit="{{submit.forgot}}">
+        <div class="field">
+          <label for="fp-email">E-mail</label>
+          <input id="fp-email" class="input" type="email" autocomplete="email" inputmode="email" value="{{email}}" aria-invalid="{{err.emailBad}}" onChange="{{on.email}}">
+          <sc-if value="{{err.email}}" hint-placeholder-val="{{ false }}"><span class="msg is-error" role="alert">{{err.email}}</span></sc-if>
+        </div>
+        <button type="submit" class="btn btn-primary" disabled="{{pending}}">Enviar link</button>
+      </form>
+    </sc-if>
+    <sc-if value="{{forgotSent}}" hint-placeholder-val="{{ false }}">
+      <div class="sent" role="status">
+        <p>Se houver uma conta com <b>{{emailShown}}</b>, enviamos um link para ela. Ele vale por 1 hora; confira o spam se não chegar.</p>
+        <sc-if value="{{provider}}" hint-placeholder-val="{{ true }}">
+          <a class="btn btn-primary" href="{{provider.href}}" target="_blank" rel="noopener">{{provider.label}}</a>
+        </sc-if>
+        <button type="button" class="btn btn-outline" disabled="{{resendDisabled}}" onClick="{{resend}}">{{resendLabel}}</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{alert}}" hint-placeholder-val="{{ false }}">
+      <div class="alert alert-error" role="alert">
+        <div class="alert-row"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="alert-text">{{alert.text}}</span></div>
+        <sc-if value="{{alert.ref}}" hint-placeholder-val="{{ false }}"><span class="ref">{{alert.ref}}</span></sc-if>
+      </div>
+    </sc-if>
+    <p class="foot-links" style="margin: 0;">Lembrou? <button type="button" class="link" onClick="{{go.signIn}}">Entrar</button></p>
+  </sc-if>
+
+  <!-- Reset password (from the email link) -->
+  <sc-if value="{{is.reset}}" hint-placeholder-val="{{ false }}">
+    <div class="head"><h1>Escolha uma nova senha</h1><p>Isso encerra suas outras sessões.</p></div>
+    <form class="form" novalidate="novalidate" onSubmit="{{submit.reset}}">
+      <div class="field">
+        <label for="rp-pw">Nova senha</label>
+        <div class="pw">
+          <input id="rp-pw" class="input" type="{{pwType}}" autocomplete="new-password" value="{{password}}" aria-invalid="{{err.passwordBad}}" aria-describedby="rp-pw-msg" onChange="{{on.password}}">
+          <button type="button" class="pw-toggle" aria-label="Mostrar senha" aria-pressed="{{showPw}}" onClick="{{toggleShowPw}}">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+        <span id="rp-pw-msg" class="msg {{pwMsg.cls}}">{{pwMsg.text}}</span>
+      </div>
+      <button type="submit" class="btn btn-primary" disabled="{{pending}}">Trocar senha</button>
+    </form>
+    <sc-if value="{{alert}}" hint-placeholder-val="{{ false }}">
+      <div class="alert alert-error" role="alert">
+        <div class="alert-row"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg><span class="alert-text">{{alert.text}}</span></div>
+        <sc-if value="{{alert.ref}}" hint-placeholder-val="{{ false }}"><span class="ref">{{alert.ref}}</span></sc-if>
+      </div>
+    </sc-if>
+    <p class="foot-links" style="margin: 0;">Mudou de ideia? <button type="button" class="link" onClick="{{go.signIn}}">Entrar</button></p>
+  </sc-if>
+
+  <!-- Reset link expired or used -->
+  <sc-if value="{{is.resetExpired}}" hint-placeholder-val="{{ false }}">
+    <div class="head"><h1>Escolha uma nova senha</h1><p>Isso encerra suas outras sessões.</p></div>
+    <div class="sent">
+      <p>Este link expirou ou já foi usado. Cada link funciona uma vez, por 1 hora.</p>
+      <button type="button" class="btn btn-primary" onClick="{{go.forgot}}">Pedir um novo link</button>
+    </div>
+    <p class="foot-links" style="margin: 0;">Mudou de ideia? <button type="button" class="link" onClick="{{go.signIn}}">Entrar</button></p>
+  </sc-if>
+
+  <!-- Password changed -->
+  <sc-if value="{{is.resetDone}}" hint-placeholder-val="{{ false }}">
+    <div class="head"><h1>Senha trocada</h1><p>Entre com sua nova senha.</p></div>
+    <button type="button" class="btn btn-primary" onClick="{{go.signIn}}">Entrar</button>
+  </sc-if>
+
+  <!-- Signed in -->
+  <sc-if value="{{is.signedIn}}" hint-placeholder-val="{{ false }}">
+    <div class="head"><h1>Tudo certo</h1><p>Você entrou na Acme.</p></div>
+    <a class="btn btn-primary" href="Main.dc.html">Abrir a Acme</a>
+  </sc-if>
+</main>
+
+<footer class="page-foot">
+  <label class="lang">
+    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+    <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Idioma</span>
+    <select>
+      <option>Português (Brasil)</option>
+      <option>English</option>
+      <option>Español</option>
+    </select>
+  </label>
+  <a class="link" href="#ajuda">Ajuda</a>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"outcome":{"editor":"enum","options":["success","error","unconfirmed","rateLimited","network"],"default":"success","section":"Estado"},"server":{"editor":"enum","options":["ok","degraded","down"],"default":"ok","section":"Estado"},"startScreen":{"editor":"enum","options":["signIn","signUp","checkEmail","twoFactor","forgot","reset","resetExpired","resetDone"],"default":"signIn","section":"Estado"},"theme":{"editor":"enum","options":["light","dark"],"default":"light","section":"Estado"},"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  s() {
+    const st = this.state || {};
+    return {
+      screen: st.screen ?? this.props.startScreen ?? 'signIn',
+      name: st.name ?? '', email: st.email ?? '', password: st.password ?? '', code: st.code ?? '',
+      mode: st.mode ?? 'app', showPw: !!st.showPw, errors: st.errors ?? {}, alert: st.alert ?? null,
+      pending: !!st.pending, cooldown: st.cooldown ?? 0, resent: !!st.resent, forgotSent: !!st.forgotSent
+    };
+  }
+  componentWillUnmount() { clearInterval(this.timer); clearTimeout(this.wait); }
+  reset(screen) {
+    return { screen, errors: {}, alert: null, pending: false, code: '', password: '', showPw: false, resent: false, forgotSent: false };
+  }
+  // Waits like a request, then answers with the outcome the Tweaks panel sets.
+  request(answer) {
+    this.setState({ pending: true, alert: null });
+    clearTimeout(this.wait);
+    this.wait = setTimeout(() => { this.setState({ pending: false }); answer(this.props.outcome ?? 'success'); }, 700);
+  }
+  common(outcome) {
+    if (outcome === 'network') return { text: 'Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.', ref: 'Se continuar, informe ao suporte: req_01JC8Z4K7M' };
+    if (outcome === 'rateLimited') return { text: 'Muitas tentativas. Espere um minuto e tente de novo.' };
+    return null;
+  }
+  startCooldown() {
+    this.setState({ cooldown: 30, resent: true });
+    clearInterval(this.timer);
+    this.timer = setInterval(() => {
+      const left = ((this.state && this.state.cooldown) || 0) - 1;
+      this.setState({ cooldown: Math.max(left, 0) });
+      if (left <= 0) clearInterval(this.timer);
+    }, 1000);
+  }
+  renderVals() {
+    const s = this.s();
+    const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+    const emailErr = (v) => emailOk(v) ? '' : 'Informe um e-mail, como ana@exemplo.com.';
+    const newPwErr = (v) => v.length < 15 ? 'Use pelo menos 15 caracteres.' : v.length > 128 ? 'Use no máximo 128 caracteres.' : '';
+    const go = {};
+    ['signIn', 'signUp', 'checkEmail', 'twoFactor', 'forgot', 'reset', 'resetExpired', 'resetDone', 'signedIn']
+      .forEach((id) => { go[id] = () => this.setState(this.reset(id)); });
+    const is = {}; Object.keys(go).forEach((id) => { is[id] = s.screen === id; });
+    const set = (k) => (e) => this.setState({ [k]: e.target.value });
+
+    const submit = {
+      signIn: (e) => {
+        e.preventDefault();
+        const errors = { email: emailErr(s.email), password: s.password ? '' : 'Informe sua senha.' };
+        this.setState({ errors });
+        if (errors.email || errors.password) return;
+        this.request((o) => {
+          const c = this.common(o);
+          if (c) return this.setState({ alert: c });
+          if (o === 'error') return this.setState({ alert: { text: 'O e-mail ou a senha estão errados. Confira e tente de novo.' } });
+          if (o === 'unconfirmed') return this.setState({ alert: { text: 'Confirme seu e-mail primeiro: abra o link que enviamos no cadastro ou envie de novo.', resend: true } });
+          this.setState(this.reset('twoFactor'));
+        });
+      },
+      signUp: (e) => {
+        e.preventDefault();
+        const errors = { name: s.name.trim() ? '' : 'Informe seu nome.', email: emailErr(s.email), password: newPwErr(s.password) };
+        this.setState({ errors });
+        if (errors.name || errors.email || errors.password) return;
+        this.request((o) => {
+          const c = this.common(o);
+          if (c) return this.setState({ alert: c });
+          if (o === 'error') return this.setState({ errors: { password: 'Esta senha já apareceu em um vazamento de dados. Escolha outra.' } });
+          this.setState({ ...this.reset('checkEmail') });
+        });
+      },
+      twoFactor: (e) => {
+        e.preventDefault();
+        const app = s.mode === 'app';
+        const bad = app ? !/^\d{6}$/.test(s.code) : !/^[A-Za-z0-9]{5}-[A-Za-z0-9]{5}$/.test(s.code.trim());
+        const errors = { code: bad ? (app ? 'Digite os 6 dígitos que o app mostra.' : 'Digite um código de backup como você o guardou, por exemplo a8Kd2-Xm9Qz.') : '' };
+        this.setState({ errors });
+        if (bad) return;
+        this.request((o) => {
+          if (o === 'rateLimited') return this.setState({ alert: { text: 'Muitos códigos errados. Por segurança, espere 15 minutos e entre de novo.', signInAgain: true } });
+          const c = this.common(o);
+          if (c) return this.setState({ alert: c });
+          if (o === 'error' || o === 'unconfirmed') return this.setState({ errors: { code: app ? 'Este código não está certo. Digite o que o app mostra agora.' : 'Este código de backup não está certo ou já foi usado. Cada um funciona uma vez.' } });
+          this.setState(this.reset('signedIn'));
+        });
+      },
+      forgot: (e) => {
+        e.preventDefault();
+        const errors = { email: emailErr(s.email) };
+        this.setState({ errors });
+        if (errors.email) return;
+        this.request((o) => {
+          const c = this.common(o);
+          if (c) return this.setState({ alert: c });
+          // The same answer whether or not the account exists.
+          this.setState({ forgotSent: true });
+          this.startCooldown();
+          this.setState({ resent: false });
+        });
+      },
+      reset: (e) => {
+        e.preventDefault();
+        const errors = { password: newPwErr(s.password) };
+        this.setState({ errors });
+        if (errors.password) return;
+        this.request((o) => {
+          const c = this.common(o);
+          if (c) return this.setState({ alert: c });
+          if (o === 'error' || o === 'unconfirmed') return this.setState(this.reset('resetExpired'));
+          this.setState(this.reset('resetDone'));
+        });
+      }
+    };
+
+    const shown = s.email.trim() || 'ada@gmail.com';
+    const domain = shown.split('@')[1] || '';
+    const provider = /gmail\.com$/.test(domain) ? { label: 'Abrir o Gmail', href: 'https://mail.google.com' }
+      : /(outlook|hotmail|live)\./.test(domain) ? { label: 'Abrir o Outlook', href: 'https://outlook.live.com' } : null;
+
+    const err = s.errors;
+    const app = s.mode === 'app';
+    const server = this.props.server ?? 'ok';
+    return {
+      themeClass: (this.props.theme ?? 'light') === 'dark' ? 'theme-dark' : '',
+      serverProblem: server !== 'ok',
+      serverText: server === 'down'
+        ? 'Estamos fora do ar. Já estamos resolvendo; tente entrar de novo em alguns minutos.'
+        : 'Estamos com instabilidade. Entrar pode falhar; tente de novo em alguns minutos.',
+      is, go, submit,
+      on: { name: set('name'), email: set('email'), password: set('password'),
+        code: (e) => this.setState({ code: app ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value.replace(/\s/g, '') }) },
+      name: s.name, email: s.email, password: s.password, code: s.code,
+      err: { ...err, emailBad: err.email ? 'true' : 'false', passwordBad: err.password ? 'true' : 'false', nameBad: err.name ? 'true' : 'false', codeBad: err.code ? 'true' : 'false' },
+      pwMsg: err.password ? { text: err.password, cls: 'is-error' } : { text: 'Pelo menos 15 caracteres.', cls: '' },
+      pwType: s.showPw ? 'text' : 'password', showPw: s.showPw ? 'true' : 'false',
+      toggleShowPw: () => this.setState({ showPw: !s.showPw }),
+      pending: s.pending, alert: s.alert,
+      google: () => this.request((o) => {
+        const c = this.common(o);
+        if (c) return this.setState({ alert: c });
+        if (o === 'error' || o === 'unconfirmed') return this.setState({ alert: { text: 'O login com o Google foi cancelado. Tente de novo ou entre com seu e-mail.' } });
+        this.setState(this.reset('signedIn'));
+      }),
+      emailShown: shown, provider,
+      resent: s.resent, forgotForm: !s.forgotSent, forgotSent: s.forgotSent,
+      resendDisabled: s.cooldown > 0,
+      resendLabel: s.cooldown > 0 ? 'Enviar de novo em ' + s.cooldown + ' s' : 'Enviar de novo',
+      resend: () => this.startCooldown(),
+      tf: app
+        ? { description: 'Abra seu app autenticador.', label: 'Código de 6 dígitos', inputmode: 'numeric', max: 6, inputClass: 'code', other: 'Sem acesso ao app?', switch: 'Use um código de backup' }
+        : { description: 'Use um dos códigos que você guardou.', label: 'Código de backup', inputmode: 'text', max: 11, inputClass: '', other: 'Está com o app?', switch: 'Use o código do app' },
+      switchMode: () => this.setState({ mode: app ? 'backup' : 'app', code: '', errors: {}, alert: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

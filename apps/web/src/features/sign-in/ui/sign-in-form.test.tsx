@@ -45,11 +45,12 @@ function signIn() {
 }
 
 describe('SignInForm', () => {
-  it('offers a new password right under the password field, with the email typed so far', () => {
+  it("offers a new password beside the password's label, with the email typed so far", () => {
     renderForm()
     const link = screen.getByRole('link', { name: 'Forgot your password?' })
 
-    expect(follows(screen.getByLabelText('Password'), link)).toBe(true)
+    expect(link.parentElement).toBe(screen.getByText('Password').parentElement)
+    expect(follows(screen.getByText('Password'), link)).toBe(true)
     expect(follows(link, screen.getByRole('button', { name: 'Sign in' }))).toBe(true)
     type(screen.getByRole('textbox', { name: 'Email' }), 'ada@example.com')
     expect(link).toHaveAttribute('data-email', 'ada@example.com')

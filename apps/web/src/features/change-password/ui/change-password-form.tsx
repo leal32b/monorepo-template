@@ -7,17 +7,23 @@ import { createFormChecks } from '#shared/lib'
 import { AuthFailureAlert } from '#shared/ui'
 import { type ChangePasswordValues, validateChangePassword } from '../model/validate-change-password'
 
+export type ChangePasswordFormProps = {
+  /** Called once the password is changed, to say so where the user acted. */
+  onChanged: () => void
+  /** Gives the user a way out: a Cancel button beside the action. */
+  onCancel?: (() => void) | undefined
+}
+
 /**
  * Changes the password: the current one, then a new one by the sign-up's rules. Every other device is
  * signed out (T10); this one stays in. A wrong current password, or a new one found in a data breach,
- * is marked on its field; the form clears itself once the change is done.
+ * is marked on its field.
  */
-export function ChangePasswordForm() {
+export function ChangePasswordForm(props: ChangePasswordFormProps) {
   const auth = useAuth()
   const { t } = useI18n()
   const [current, setCurrent] = createSignal('')
   const [next, setNext] = createSignal('')
-  const [changed, setChanged] = createSignal(false)
   const [failure, setFailure] = createSignal<AuthFailure>()
   const [pending, setPending] = createSignal(false)
   const refused = { wrong: new Set<string>(), breached: new Set<string>() }
@@ -31,7 +37,6 @@ export function ChangePasswordForm() {
   const submit = async (event: SubmitEvent & { currentTarget: HTMLFormElement }) => {
     event.preventDefault()
     const form = event.currentTarget
-    setChanged(false)
     setFailure(undefined)
     const values = checks.submit(form)
     if (values === undefined) return
@@ -46,10 +51,7 @@ export function ChangePasswordForm() {
     setPending(false)
 
     if (failed === undefined) {
-      setCurrent('')
-      setNext('')
-      checks.reset()
-      setChanged(true)
+      props.onChanged()
     } else if (failed.code === 'INVALID_PASSWORD') {
       refused.wrong.add(values.current)
       checks.submit(form)
@@ -82,14 +84,18 @@ export function ChangePasswordForm() {
         onChange={setNext}
         error={errorOf('next')}
       />
-      <Button type="submit" variant="primary" class="mt-2 w-full sm:w-auto sm:self-start" disabled={pending()}>
-        {t('changePassword.submit')}
-      </Button>
-      <Show when={changed()}>
-        <p role="status" class="text-sm">
-          {t('changePassword.changed')}
-        </p>
-      </Show>
+      <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+        <Button type="submit" variant="primary" class="w-full sm:w-auto" disabled={pending()}>
+          {t('changePassword.submit')}
+        </Button>
+        <Show when={props.onCancel}>
+          {(cancel) => (
+            <Button variant="ghost" class="w-full sm:w-auto" onClick={() => cancel()()}>
+              {t('actions.cancel')}
+            </Button>
+          )}
+        </Show>
+      </div>
       <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>
     </form>
   )

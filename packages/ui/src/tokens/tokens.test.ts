@@ -15,7 +15,16 @@ const pairs: [foreground: Role, background: Role, minimum: number][] = [
   ['border', 'background', 3],
   ['muted-foreground', 'secondary', 3], // the password toggle's icon on its hover background
   ['ring', 'background', 3],
-  ['qr-foreground', 'qr', 4.5] // the QR code: dark on light in both themes, for every scanner
+  ['qr-foreground', 'qr', 4.5], // the QR code: dark on light in both themes, for every scanner
+  ['foreground', 'surface', 4.5], // the side menu and other raised areas
+  ['muted-foreground', 'surface', 4.5],
+  ['ring', 'surface', 3],
+  ['success', 'background', 4.5], // a state badge or line: "On", "All systems normal"
+  ['success', 'surface', 4.5],
+  ['warning', 'background', 4.5], // a state line: "Service is slow"
+  ['warning', 'surface', 4.5],
+  ['destructive', 'surface', 4.5], // an alert's text and icon on its raised box
+  ['primary', 'surface', 3] // an info alert's icon and bar
 ]
 
 const themes: ThemeName[] = ['light', 'dark']
@@ -23,5 +32,11 @@ const themes: ThemeName[] = ['light', 'dark']
 describe.each(themes)('the %s theme', (theme) => {
   it.each(pairs)('puts %s on %s at %s:1 or more', (foreground, background, minimum) => {
     expect(contrastRatio(color(theme, foreground), color(theme, background))).toBeGreaterThanOrEqual(minimum)
+  })
+})
+
+describe.each(themes)('the %s theme scrim', (theme) => {
+  it('is dark, so the page dims behind a dialog whichever way it is drawn', () => {
+    expect(contrastRatio(color(theme, 'scrim'), '#ffffff')).toBeGreaterThanOrEqual(15)
   })
 })

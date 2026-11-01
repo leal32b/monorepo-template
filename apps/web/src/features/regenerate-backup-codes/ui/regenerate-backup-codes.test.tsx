@@ -8,7 +8,7 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 const backupCodes = ['a8Kd2-Xm9Qz', 'b7Le3-Yn8Ra']
 
 function renderForm(fetch = vi.fn<Fetch>(async () => Response.json({ status: true, backupCodes }))) {
-  const props = { onRegenerated: vi.fn(), onAlreadyOff: vi.fn() }
+  const props = { onRegenerated: vi.fn(), onAlreadyOff: vi.fn(), onCancel: vi.fn() }
   render(() => (
     <I18nProvider locale="en">
       <AuthProvider client={createAuthClient({ fetch })}>

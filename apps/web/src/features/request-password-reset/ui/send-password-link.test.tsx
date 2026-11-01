@@ -1,42 +1,47 @@
-import { fireEvent, render, screen } from '@solidjs/testing-library'
-import { AuthProvider, createAuthClient } from '#shared/api'
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
+import { type AuthFailure, AuthProvider, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { SendPasswordLink } from './send-password-link'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 function renderLink(fetch: Fetch) {
+  const onSent = vi.fn()
+  const onFailure = vi.fn<(failure: AuthFailure) => void>()
   render(() => (
     <I18nProvider locale="en">
       <AuthProvider client={createAuthClient({ fetch })}>
-        <SendPasswordLink email="ada@example.com" />
+        <SendPasswordLink email="ada@example.com" onSent={onSent} onFailure={onFailure} />
       </AuthProvider>
     </I18nProvider>
   ))
-  return screen.getByRole('button', { name: 'Create a password' })
+  return { button: screen.getByRole('button', { name: 'Create a password' }), onSent, onFailure }
 }
 
 describe('SendPasswordLink', () => {
-  it('sends the account its link to create a password, and says where it went', async () => {
+  it('sends the account its link to create a password, and tells the screen', async () => {
     const fetch = vi.fn<Fetch>(async () => Response.json({ status: true }))
-    const button = renderLink(fetch)
+    const { button, onSent } = renderLink(fetch)
 
     fireEvent.click(button)
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'We sent a link to ada@example.com to create your password. It works for 1 hour.'
-    )
+    expect(button).toBeDisabled()
+    await waitFor(() => expect(onSent).toHaveBeenCalledTimes(1))
+    expect(button).toBeEnabled()
     expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({
       email: 'ada@example.com',
       redirectTo: '/reset-password'
     })
   })
 
-  it('says what went wrong', async () => {
-    const button = renderLink(async () => Response.json({ message: 'Too many requests.' }, { status: 429 }))
+  it('tells the screen what went wrong', async () => {
+    const { button, onSent, onFailure } = renderLink(async () =>
+      Response.json({ message: 'Too many requests.' }, { status: 429 })
+    )
 
     fireEvent.click(button)
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts.')
+    await waitFor(() => expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ status: 429 })))
+    expect(onSent).not.toHaveBeenCalled()
   })
 })

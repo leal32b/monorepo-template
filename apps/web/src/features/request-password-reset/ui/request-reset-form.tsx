@@ -1,15 +1,18 @@
-import { Button, Field } from '@repo/ui'
+import { Alert, Button, Field } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
-import { cleanEmail, createFormChecks } from '#shared/lib'
-import { AuthFailureAlert } from '#shared/ui'
+import { cleanEmail, createCooldown, createFormChecks } from '#shared/lib'
+import { AuthFailureAlert, OpenMail } from '#shared/ui'
+
+/** Seconds before the same address can be sent another link: the API allows 3 a minute. */
+const waitSeconds = 30
 
 /**
  * Asks for a link to choose a new password. The API answers the same whether or not the address has
  * an account (T08), so the screen says the link went out if there is one; it stays on the form, so
- * the user can fix the address or ask again (the API allows 3 a minute). It starts from `email`, the
- * one typed at the sign-in, when there is one.
+ * the user can fix the address or ask again; for the same address the button waits 30 seconds, counted
+ * out on itself. It starts from `email`, the one typed at the sign-in, when there is one.
  */
 export function RequestResetForm(props: { email?: string | undefined }) {
   const auth = useAuth()
@@ -18,6 +21,9 @@ export function RequestResetForm(props: { email?: string | undefined }) {
   const [sentTo, setSentTo] = createSignal<string>()
   const [failure, setFailure] = createSignal<AuthFailure>()
   const [pending, setPending] = createSignal(false)
+  const cooldown = createCooldown(waitSeconds)
+  /** Waiting, for the address the link went to; a corrected address can be sent at once. */
+  const waiting = () => cooldown.remaining() > 0 && cleanEmail(email()) === sentTo()
   const checks = createFormChecks(() => {
     const address = cleanEmail(email())
     return address === undefined
@@ -42,8 +48,10 @@ export function RequestResetForm(props: { email?: string | undefined }) {
       auth.requestPasswordReset({ ...values, redirectTo: '/reset-password' }, options)
     )
     setPending(false)
-    if (failed === undefined) setSentTo(values.email)
-    else setFailure(failed)
+    if (failed === undefined) {
+      setSentTo(values.email)
+      cooldown.start()
+    } else setFailure(failed)
   }
 
   return (
@@ -52,19 +60,22 @@ export function RequestResetForm(props: { email?: string | undefined }) {
         label={t('auth.email')}
         name="email"
         type="email"
-        autocomplete="username"
+        autocomplete="off"
         value={email()}
         onChange={setEmail}
         error={error()}
       />
-      <Button type="submit" variant="primary" class="mt-2 w-full" disabled={pending()}>
-        {t('forgotPassword.submit')}
+      <Button type="submit" variant="primary" class="mt-2 w-full" disabled={pending() || waiting()}>
+        {waiting() ? t('forgotPassword.wait', { seconds: cooldown.remaining() }) : t('forgotPassword.submit')}
       </Button>
       <Show when={sentTo()}>
         {(address) => (
-          <p role="status" class="break-words text-sm">
-            {t('forgotPassword.sent', { email: address() })}
-          </p>
+          <>
+            <Alert variant="success" class="break-words">
+              {t('forgotPassword.sent', { email: address() })}
+            </Alert>
+            <OpenMail email={address()} variant="outline" />
+          </>
         )}
       </Show>
       <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>

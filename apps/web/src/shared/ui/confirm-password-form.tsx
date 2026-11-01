@@ -12,6 +12,8 @@ export type ConfirmPasswordFormProps = {
   confirm: (password: string) => Promise<AuthFailure | undefined>
   /** `destructive` for an action that weakens the account, such as turning off a protection. */
   variant?: 'primary' | 'destructive' | undefined
+  /** Gives the user a way out: a Cancel button beside the action. */
+  onCancel?: (() => void) | undefined
 }
 
 type Values = { password: string }
@@ -67,14 +69,18 @@ export function ConfirmPasswordForm(props: ConfirmPasswordFormProps) {
         onChange={setPassword}
         error={error()}
       />
-      <Button
-        type="submit"
-        variant={props.variant ?? 'primary'}
-        class="mt-2 w-full sm:w-auto sm:self-start"
-        disabled={pending()}
-      >
-        {props.submit}
-      </Button>
+      <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+        <Button type="submit" variant={props.variant ?? 'primary'} class="w-full sm:w-auto" disabled={pending()}>
+          {props.submit}
+        </Button>
+        <Show when={props.onCancel}>
+          {(cancel) => (
+            <Button variant="ghost" class="w-full sm:w-auto" onClick={() => cancel()()}>
+              {t('actions.cancel')}
+            </Button>
+          )}
+        </Show>
+      </div>
       <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>
     </form>
   )

@@ -9,15 +9,19 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 const changed = () => Response.json({ token: 'session', user: { id: 'u1' } })
 
 function renderForm(fetch = vi.fn<Fetch>(async () => changed())) {
+  const onChanged = vi.fn()
+  const onCancel = vi.fn()
   render(() => (
     <I18nProvider locale="en">
       <AuthProvider client={createAuthClient({ fetch })}>
-        <ChangePasswordForm />
+        <ChangePasswordForm onChanged={onChanged} onCancel={onCancel} />
       </AuthProvider>
     </I18nProvider>
   ))
   return {
     fetch,
+    onChanged,
+    onCancel,
     current: screen.getByLabelText('Current password'),
     next: screen.getByLabelText('New password'),
     button: screen.getByRole('button', { name: 'Change password' })
@@ -57,16 +61,12 @@ describe('ChangePasswordForm', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('changes it, signing out the other devices, and says so with the fields cleared', async () => {
+  it('changes it, signing out the other devices, and tells the screen so it can say it where the user acted', async () => {
     const fields = renderForm()
 
     change(fields)
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Your password was changed. Your other devices were signed out.'
-    )
-    expect(fields.current).toHaveValue('')
-    expect(fields.next).toHaveValue('')
+    await waitFor(() => expect(fields.onChanged).toHaveBeenCalledTimes(1))
     const [url, init] = fields.fetch.mock.calls[0] ?? []
     expect(String(url)).toBe(`${window.location.origin}/api/auth/change-password`)
     expect(JSON.parse(String(init?.body))).toEqual({
@@ -93,6 +93,26 @@ describe('ChangePasswordForm', () => {
     change(fields)
 
     await waitFor(() => expect(fields.next).toHaveAccessibleDescription(/This password has appeared in a data breach/))
+  })
+
+  it('lets the user cancel, when the screen gives a way out', () => {
+    const { onCancel } = renderForm()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('has no Cancel when the screen gives no way out', () => {
+    render(() => (
+      <I18nProvider locale="en">
+        <AuthProvider client={createAuthClient({ fetch: async () => changed() })}>
+          <ChangePasswordForm onChanged={() => {}} />
+        </AuthProvider>
+      </I18nProvider>
+    ))
+
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
   })
 
   it('says what else went wrong below the button', async () => {

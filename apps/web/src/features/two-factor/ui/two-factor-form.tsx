@@ -71,7 +71,7 @@ export function TwoFactorForm(props: TwoFactorFormProps) {
         label={t(`twoFactor.${props.method}.code`)}
         name="code"
         inputmode={props.method === 'app' ? 'numeric' : undefined}
-        autocomplete={props.method === 'app' ? 'one-time-code' : 'off'}
+        autocomplete="off"
         autocapitalize="off"
         spellcheck={false}
         onChange={setCode}

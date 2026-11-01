@@ -7,15 +7,16 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 function renderForm(fetch = vi.fn<Fetch>(async () => Response.json({ status: true }))) {
   const onDisabled = vi.fn()
+  const onCancel = vi.fn()
   render(() => (
     <I18nProvider locale="en">
       <AuthProvider client={createAuthClient({ fetch })}>
-        <DisableTwoFactor onDisabled={onDisabled} />
+        <DisableTwoFactor onDisabled={onDisabled} onCancel={onCancel} />
       </AuthProvider>
     </I18nProvider>
   ))
   fireEvent.input(screen.getByLabelText('Your password'), { target: { value: 'my password' } })
-  return { fetch, onDisabled, button: screen.getByRole('button', { name: 'Turn off two-step verification' }) }
+  return { fetch, onDisabled, onCancel, button: screen.getByRole('button', { name: 'Turn off two-step verification' }) }
 }
 
 describe('DisableTwoFactor', () => {

@@ -1,20 +1,28 @@
 import { MemoryRouter, Route } from '@solidjs/router'
-import { render, screen } from '@solidjs/testing-library'
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
 import type { JSX } from 'solid-js'
-import { I18nProvider } from '#shared/config'
+import { ApiProvider, createApiClient } from '#shared/api'
+import { I18nProvider, loadMessages } from '#shared/config'
 import { EntryLayout } from './entry-layout'
+
+const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 /** True when `later` comes after `earlier` in the document, as it is read and laid out. */
 const follows = (earlier: Element, later: Element) =>
   Boolean(earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING)
 
 /** An entry screen in a router, as the app renders it. */
-function renderScreen(screenInRouter: () => JSX.Element) {
+function renderScreen(
+  screenInRouter: () => JSX.Element,
+  api: () => Promise<Response> = async () => Response.json(health)
+) {
   render(() => (
     <I18nProvider locale="en">
-      <MemoryRouter>
-        <Route path="*" component={screenInRouter} />
-      </MemoryRouter>
+      <ApiProvider client={createApiClient({ fetch: api })}>
+        <MemoryRouter>
+          <Route path="*" component={screenInRouter} />
+        </MemoryRouter>
+      </ApiProvider>
     </I18nProvider>
   ))
 }
@@ -66,5 +74,67 @@ describe('EntryLayout', () => {
     renderSignIn()
 
     expect(screen.getByRole('main')).toHaveClass('max-w-sm', 'px-4', 'py-8', 'sm:px-6', 'sm:py-12')
+  })
+
+  describe('the service notice', () => {
+    const withApi = (api: () => Promise<Response>) =>
+      renderScreen(
+        () => (
+          <EntryLayout title="Sign in" footer={<a href="/signup">Create an account</a>}>
+            <form aria-label="Sign-in form" />
+          </EntryLayout>
+        ),
+        api
+      )
+
+    it('says nothing while the service is well', async () => {
+      withApi(async () => Response.json(health))
+      await waitFor(() => expect(screen.getByRole('main')).toBeInTheDocument())
+
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    })
+
+    it('says, below the form and before the footer, that the service is having trouble', async () => {
+      withApi(async () => Response.json({ ...health, status: 'degraded', database: 'down' }, { status: 503 }))
+
+      const notice = await screen.findByRole('status')
+
+      expect(notice).toHaveTextContent('The service is having trouble')
+      expect(notice).toHaveTextContent('Some features are not working. Signing in or creating an account may not work.')
+      expect(follows(screen.getByRole('form', { name: 'Sign-in form' }), notice)).toBe(true)
+      expect(follows(notice, screen.getByRole('link', { name: 'Create an account' }))).toBe(true)
+    })
+
+    it('says when the service cannot be reached', async () => {
+      withApi(async () => {
+        throw new TypeError('Failed to fetch')
+      })
+
+      expect(await screen.findByRole('status')).toHaveTextContent('Cannot reach the service')
+    })
+  })
+
+  describe('the language', () => {
+    afterEach(() => localStorage.clear())
+
+    it('can be changed in the footer, applied at once and kept on the device', async () => {
+      await loadMessages('pt-BR')
+      renderSignIn()
+      const picker = screen.getByRole('combobox', { name: 'Language' })
+      expect(picker).toHaveValue('en')
+
+      fireEvent.change(picker, { target: { value: 'pt-BR' } })
+
+      expect(await screen.findByRole('combobox', { name: 'Idioma' })).toHaveValue('pt-BR')
+      expect(localStorage.getItem('locale')).toBe('pt-BR')
+    })
+
+    it('sits in a footer of its own, in the same column', () => {
+      renderSignIn()
+
+      const footer = screen.getByRole('contentinfo')
+      expect(footer).toContainElement(screen.getByRole('combobox', { name: 'Language' }))
+      expect(footer).toHaveClass('max-w-sm', 'px-4', 'sm:px-6')
+    })
   })
 })

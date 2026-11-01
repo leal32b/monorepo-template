@@ -5,30 +5,92 @@ export const es: Messages = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Plantilla de monorepo'
+    title: 'Inicio'
+  },
+  profile: {
+    title: 'Perfil',
+    details: {
+      title: 'Tus datos',
+      description: 'Cómo apareces en la app y en los correos que envía.',
+      name: 'Nombre',
+      email: 'Correo electrónico'
+    }
+  },
+  preferences: {
+    title: 'Preferencias',
+    appearance: {
+      title: 'Apariencia',
+      description: 'Guardado en este navegador.'
+    },
+    theme: {
+      title: 'Tema',
+      description: '«Sistema» sigue el modo claro u oscuro de tu dispositivo.',
+      system: 'Sistema',
+      light: 'Claro',
+      dark: 'Oscuro'
+    },
+    language: {
+      title: 'Idioma',
+      description: 'Guardado en este navegador.',
+      screens: 'Idioma de las pantallas',
+      emails: 'Los correos siguen en el idioma con el que creaste tu cuenta.'
+    }
+  },
+  /** Words that buttons share across screens. */
+  actions: {
+    cancel: 'Cancelar'
   },
   account: {
-    title: 'Seguridad de la cuenta',
+    title: 'Seguridad',
     unavailable: 'No pudimos cargar la seguridad de tu cuenta. Revisa tu conexión y vuelve a intentarlo.',
     retry: 'Intentar de nuevo',
-    password: {
-      title: 'Contraseña',
-      set: 'Inicias sesión con tu correo y una contraseña.',
-      unset: 'Tu cuenta no tiene contraseña: inicias sesión con Google.'
+    signIn: {
+      title: 'Formas de iniciar sesión',
+      description: 'Cómo entras a tu cuenta.'
     },
     twoFactor: {
       title: 'Verificación en dos pasos',
-      on: 'Activada: al iniciar sesión con tu contraseña también se pide un código de tu app de autenticación.',
-      off: 'Desactivada: al iniciar sesión solo se pide tu contraseña.',
+      description: 'Un segundo paso cuando inicias sesión con contraseña.'
+    },
+    badge: {
+      on: 'Activada',
+      off: 'Desactivada',
+      notSetUp: 'Sin configurar',
+      linked: 'Vinculada',
+      notLinked: 'Sin vincular'
+    },
+    password: {
+      title: 'Contraseña',
+      set: 'Inicias sesión con tu correo y una contraseña.',
+      unset:
+        'Tu cuenta no tiene contraseña: inicias sesión con Google. Una contraseña te permite iniciar sesión también con tu correo y activar la verificación en dos pasos.',
+      change: 'Cambiar contraseña'
+    },
+    authenticator: {
+      title: 'App de autenticación',
+      on: 'Al iniciar sesión con tu contraseña también se pide un código de tu app.',
+      off: 'Al iniciar sesión solo se pide tu contraseña. Actívala para que una contraseña robada no baste: también se pedirá un código de una app en tu teléfono.',
       needsPassword:
         'Protege el inicio de sesión con contraseña, así que primero necesitas una. Google protege tus inicios de sesión con Google.',
-      why: 'Actívala para que una contraseña robada no baste: al iniciar sesión también se pedirá un código de una app en tu teléfono.',
+      turnOn: 'Activar',
+      turnOff: 'Desactivar',
       enabled: 'La verificación en dos pasos está activada.',
-      regenerated: 'Tus nuevos códigos de respaldo están listos. Los anteriores ya no sirven.',
-      newCodes: 'Obtener nuevos códigos de respaldo',
-      turnOff: 'Desactivar'
+      enabledDone: 'Listo: al iniciar sesión con tu contraseña ahora también se pide un código de tu app.',
+      disabled: 'Listo: al iniciar sesión solo se pide tu contraseña.',
+      stepper: 'Activar la verificación en dos pasos',
+      done: 'hecho',
+      steps: {
+        confirm: 'Confirma que eres tú',
+        connect: 'Conecta la app',
+        save: 'Guarda los códigos'
+      }
     },
     backupCodes: {
+      title: 'Códigos de respaldo',
+      description: 'Cada uno te permite iniciar sesión una vez si no puedes usar tu app.',
+      unavailable: 'Disponibles cuando la verificación en dos pasos esté activada.',
+      newCodes: 'Obtener nuevos códigos',
+      regenerated: 'Tus nuevos códigos de respaldo están listos. Los anteriores ya no sirven.',
       label: 'Códigos de respaldo',
       save: 'Guarda estos códigos de respaldo. Cada uno te permite iniciar sesión una vez si no puedes usar tu app. Solo se muestran ahora.',
       copy: 'Copiar',
@@ -40,9 +102,11 @@ export const es: Messages = {
     },
     google: {
       title: 'Google',
-      linked: 'Vinculada: también puedes iniciar sesión con tu cuenta de Google.',
-      unlinked: 'Sin vincular: vincúlala para iniciar sesión también con tu cuenta de Google.',
-      only: 'Vinculada: es como inicias sesión, así que sigue vinculada hasta que crees una contraseña.'
+      linked:
+        'También puedes iniciar sesión con tu cuenta de Google. Puedes desvincularla y vincularla de nuevo cuando quieras.',
+      unlinked: 'Vincúlala para iniciar sesión también con tu cuenta de Google.',
+      only: 'Es como inicias sesión, así que sigue vinculada hasta que crees una contraseña.',
+      unlinkedDone: 'Google se desvinculó. Puedes vincularla de nuevo cuando quieras.'
     }
   },
   changePassword: {
@@ -99,8 +163,61 @@ export const es: Messages = {
     home: 'Ir al inicio'
   },
   appShell: {
-    signedInAs: 'Sesión iniciada como {{name}}',
-    signOut: 'Cerrar sesión'
+    loading: 'Cargando…',
+    search: 'Buscar',
+    palette: {
+      title: 'Paleta de comandos',
+      placeholder: 'Busca pantallas y acciones…',
+      empty: 'Nada coincide. Prueba con otra palabra.',
+      go: 'Ir a',
+      actions: 'Acciones',
+      theme: {
+        system: 'Usar el tema del sistema',
+        light: 'Usar el tema claro',
+        dark: 'Usar el tema oscuro'
+      },
+      keywords: {
+        profile: 'cuenta nombre correo',
+        security: 'contraseña dos pasos verificación autenticador códigos respaldo google',
+        preferences: 'apariencia tema idioma',
+        theme: 'apariencia color oscuro claro',
+        signOut: 'salir cerrar sesión desconectar'
+      }
+    },
+    openMenu: 'Abrir el menú',
+    closeMenu: 'Cerrar el menú',
+    menu: 'Menú',
+    breadcrumb: 'Estás aquí',
+    nav: {
+      main: 'Principal',
+      home: 'Inicio',
+      settings: 'Ajustes',
+      back: 'Volver a la app',
+      account: 'Tu cuenta',
+      profile: 'Perfil',
+      security: 'Seguridad',
+      preferences: 'Preferencias'
+    },
+    account: {
+      settings: 'Ajustes',
+      signOut: 'Cerrar sesión'
+    },
+    status: {
+      title: 'Estado del servicio',
+      button: 'Estado del servicio: {{state}}',
+      close: 'Cerrar',
+      checkAgain: 'Comprobar de nuevo',
+      checkedAt: 'Comprobado a las {{time}}',
+      reference: 'Si sigue pasando, díselo a soporte: {{reference}}',
+      state: {
+        checking: 'Comprobando el servicio…',
+        ok: 'Todo funciona con normalidad',
+        degraded: 'Algunas funciones no funcionan',
+        unreachable: 'No se puede conectar con el servicio',
+        unexpected: 'El servicio no funciona como debería',
+        error: 'El servicio tuvo un problema'
+      }
+    }
   },
   session: {
     unavailable: {
@@ -108,17 +225,6 @@ export const es: Messages = {
       description: 'Revisa tu conexión y vuelve a intentarlo.',
       retry: 'Intentar de nuevo'
     }
-  },
-  apiStatus: {
-    checking: 'Comprobando la API…',
-    up: 'La API funciona: {{service}} a las {{time}}',
-    degraded: 'La API funciona, pero su base de datos no responde.',
-    unreachable: 'No se puede conectar con la API.',
-    unexpected: 'La API respondió algo inesperado.',
-    error: 'La API respondió con un error.',
-    errorWithCode: 'La API respondió con un error ({{code}}).',
-    unknown: 'Algo salió mal.',
-    checkAgain: 'Comprobar de nuevo'
   },
   failure: {
     network: 'No pudimos conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.',
@@ -151,7 +257,7 @@ export const es: Messages = {
     checkEmail: {
       title: 'Revisa tu correo',
       description: 'Confirma tu dirección para terminar.',
-      sentTo: 'Enviamos un enlace a {{email}}.',
+      sentTo: 'Enviamos un enlace a',
       notThere: '¿No está en tu bandeja de entrada? Revisa el spam, o envíalo de nuevo.',
       wrongAddress: '¿Dirección equivocada?',
       useAnother: 'Usar otro correo'
@@ -184,6 +290,7 @@ export const es: Messages = {
     }
   },
   forgotPassword: {
+    wait: 'Enviar el enlace de nuevo en {{seconds}} s',
     title: 'Restablece tu contraseña',
     description: 'Te enviaremos un enlace por correo.',
     submit: 'Enviar enlace',
@@ -197,6 +304,7 @@ export const es: Messages = {
     password: 'Nueva contraseña',
     submit: 'Cambiar contraseña',
     expired: 'Este enlace venció o ya se usó. Cada enlace funciona una vez, durante 1 hora.',
+    expiredTitle: 'Este enlace ya no sirve',
     askAgain: 'Pedir un enlace nuevo',
     changedMind: '¿Cambiaste de opinión?',
     signIn: 'Iniciar sesión',
@@ -209,6 +317,7 @@ export const es: Messages = {
   twoFactor: {
     title: 'Verificación en dos pasos',
     submit: 'Verificar',
+    notYou: '¿No es tu cuenta?',
     signInAgain: 'Volver a iniciar sesión',
     app: {
       description: 'Abre tu app de autenticación.',
@@ -231,7 +340,19 @@ export const es: Messages = {
       locked: 'Demasiados códigos incorrectos. Por tu seguridad, espera 15 minutos y vuelve a iniciar sesión.'
     }
   },
+  serviceNotice: {
+    title: 'El servicio tiene problemas',
+    hint: 'Iniciar sesión o crear una cuenta puede no funcionar. Vuelve a intentarlo en unos minutos.'
+  },
+  entryLayout: {
+    language: 'Idioma'
+  },
+  mail: {
+    open: 'Abrir {{provider}}',
+    newTab: ' (se abre en una pestaña nueva)'
+  },
   resendConfirmation: {
+    wait: 'Enviarlo de nuevo en {{seconds}} s',
     send: 'Enviarlo de nuevo',
     sent: 'Lo enviamos de nuevo. Puede tardar unos minutos.'
   }

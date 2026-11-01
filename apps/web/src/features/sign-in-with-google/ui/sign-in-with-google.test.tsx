@@ -26,11 +26,21 @@ function renderGoogle({
   return { fetch, button: screen.getByRole('button', { name: 'Continue with Google' }) }
 }
 
+/** The button carries Google's mark, hidden from screen readers: the words name it. */
+const markOf = (button: HTMLElement) => button.querySelector('svg')
+
 /** True once the button is shown, after the API said Google is on. */
 const shown = (button: HTMLElement) => button.closest('.invisible') === null
 
 describe('SignInWithGoogle', () => {
   afterEach(() => vi.restoreAllMocks())
+
+  it("shows Google's mark before the words, hidden from screen readers", () => {
+    const { button } = renderGoogle()
+
+    expect(markOf(button)).toHaveAttribute('aria-hidden', 'true')
+    expect(button.firstElementChild).toBe(markOf(button))
+  })
 
   it('offers Google when the API says it is on, keeping its room while it asks, so nothing below moves', async () => {
     let answer!: (response: Response) => void

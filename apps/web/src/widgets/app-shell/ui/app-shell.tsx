@@ -1,54 +1,66 @@
-import { Button } from '@repo/ui'
-import { A, useNavigate } from '@solidjs/router'
-import { onMount, type ParentProps, Show } from 'solid-js'
-import { useSession } from '#entities/sessions'
+import { Sheet } from '@repo/ui'
+import { useMatch, useNavigate } from '@solidjs/router'
+import { createSignal, onMount, type ParentProps, Show } from 'solid-js'
+import { createServiceStatus } from '#entities/health'
 import { createSignOut } from '#features/sign-out'
-import { useI18n } from '#shared/config'
+import { useI18n, usePalette } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
+import { ShellPalette } from './shell-palette'
+import { Sidebar } from './sidebar'
+import { type Crumb, TopBar } from './top-bar'
 
 /**
- * The frame every app screen shares: a header with the brand, who is signed in (the way to the
- * account security; only the name on phones, where the header is narrow) and the way to sign out,
- * then the screen's title and content in one column, mobile first. Focus moves to the title when the
- * screen opens; a failed sign-out shows below it.
+ * The frame every app screen shares: the side menu (a drawer on phones), a sticky top bar with where
+ * you are, and the screen's title and content in one column, mobile first. Focus moves to the title
+ * when the screen opens; a failed sign-out shows below it.
  */
 export function AppShell(props: ParentProps<{ title: string }>) {
   const { t } = useI18n()
-  const user = useSession()
   const navigate = useNavigate()
   const signOut = createSignOut(() => navigate('/login', { replace: true }))
+  const palette = usePalette()
+  const status = createServiceStatus()
+  const [drawerOpen, setDrawerOpen] = createSignal(false)
+  const inSettings = useMatch(() => '/settings/*')
+  /** Where the screen sits, read from the route: a settings screen is under "Settings". */
+  const parents = (): Crumb[] =>
+    inSettings() ? [{ href: '/settings/profile', label: t('appShell.account.settings') }] : []
+
+  const sidebar = (onNavigate?: () => void) => (
+    <Sidebar status={status} signOut={signOut.signOut} onNavigate={onNavigate} />
+  )
 
   return (
-    <>
-      <header class="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <A href="/" class="shrink-0 text-sm font-semibold tracking-tight">
-          {t('app.name')}
-        </A>
-        <div class="flex min-w-0 items-center gap-3">
-          <A
-            href="/account"
-            aria-label={t('appShell.signedInAs', { name: user.name })}
-            class="block min-w-0 truncate text-sm text-muted-foreground underline underline-offset-4 hover:decoration-2"
+    <div class="md:grid md:grid-cols-[16rem_minmax(0,1fr)]">
+      <aside class="sticky top-0 hidden h-screen border-r border-border-subtle md:block">{sidebar()}</aside>
+      <Sheet
+        open={drawerOpen()}
+        onOpenChange={setDrawerOpen}
+        title={t('appShell.menu')}
+        closeLabel={t('appShell.closeMenu')}
+      >
+        {sidebar(() => setDrawerOpen(false))}
+      </Sheet>
+      <ShellPalette signOut={signOut.signOut} />
+      <div class="min-w-0">
+        <TopBar
+          parents={parents()}
+          title={props.title}
+          onOpenMenu={() => setDrawerOpen(true)}
+          onSearch={() => palette.setOpen(true)}
+        />
+        <main class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-6 pb-8 sm:px-6 md:pt-8 md:pb-12">
+          <h1
+            ref={(heading) => onMount(() => heading.focus())}
+            tabIndex={-1}
+            class="text-2xl font-semibold tracking-tight outline-none"
           >
-            <span class="sm:hidden">{user.name}</span>
-            <span class="hidden sm:inline">{t('appShell.signedInAs', { name: user.name })}</span>
-          </A>
-          <Button variant="outline" size="sm" class="shrink-0" disabled={signOut.pending()} onClick={signOut.signOut}>
-            {t('appShell.signOut')}
-          </Button>
-        </div>
-      </header>
-      <main class="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pt-4 pb-8 sm:px-6 sm:pt-8 sm:pb-12">
-        <h1
-          ref={(heading) => onMount(() => heading.focus())}
-          tabIndex={-1}
-          class="text-2xl font-semibold tracking-tight outline-none"
-        >
-          {props.title}
-        </h1>
-        <Show when={signOut.failure()}>{(failure) => <AuthFailureAlert failure={failure()} />}</Show>
-        {props.children}
-      </main>
-    </>
+            {props.title}
+          </h1>
+          <Show when={signOut.failure()}>{(failure) => <AuthFailureAlert failure={failure()} />}</Show>
+          {props.children}
+        </main>
+      </div>
+    </div>
   )
 }

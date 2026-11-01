@@ -1,8 +1,10 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, within } from '@solidjs/testing-library'
-import { AuthProvider, createAuthClient } from '#shared/api'
+import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { ResetPasswordPage } from './reset-password-page'
+
+const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 /** The page at `path`, as the link in the email lands on it. */
 function renderPage(path: string) {
@@ -10,11 +12,13 @@ function renderPage(path: string) {
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <AuthProvider client={createAuthClient({ fetch: async () => Response.json({ status: true }) })}>
-        <MemoryRouter history={history}>
-          <Route path="/reset-password" component={ResetPasswordPage} />
-        </MemoryRouter>
-      </AuthProvider>
+      <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+        <AuthProvider client={createAuthClient({ fetch: async () => Response.json({ status: true }) })}>
+          <MemoryRouter history={history}>
+            <Route path="/reset-password" component={ResetPasswordPage} />
+          </MemoryRouter>
+        </AuthProvider>
+      </ApiProvider>
     </I18nProvider>
   ))
 }
@@ -37,6 +41,8 @@ describe('ResetPasswordPage', () => {
   it('says when the link came back expired or used, with the way to ask for a new one', () => {
     renderPage('/reset-password?error=INVALID_TOKEN')
 
+    expect(screen.getByRole('heading', { level: 1, name: 'This link no longer works' })).toBeInTheDocument()
+    expect(screen.queryByText('This signs you out everywhere else.')).not.toBeInTheDocument()
     const alert = screen.getByRole('alert')
     expect(alert).toHaveTextContent('This link has expired or was already used.')
     expect(within(alert).getByRole('link', { name: 'Ask for a new link' })).toHaveAttribute('href', '/forgot-password')

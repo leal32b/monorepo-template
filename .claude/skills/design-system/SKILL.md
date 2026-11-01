@@ -87,6 +87,29 @@ Elements must not "tremble" between states or screens.
   structure: a component.
 - **Behaviour from Kobalte** for anything interactive; the look in a `cva` file (`.ts`, so coverage
   counts it); colours only as roles, and a new role pair joins the contrast test.
+- **Which role** ([ADR 0026](../../../docs/adr/0026-add-surface-and-state-colour-roles.md)):
+  - `background` is the page; `surface` is an area set apart from it (the side menu), never a
+    button (that is `secondary`).
+  - `border` outlines a control (input, outline button); `border-subtle` frames or divides an area
+    (a section's group of rows, between rows, the side menu's edge). A field inside a group keeps
+    `border`, so it still reads as a field.
+  - `success` and `warning` are state text, always with a word ("On", "Service is slow"), never
+    colour alone; a state that is neither (off, not set up) stays `muted-foreground`;
+    `destructive` stays for errors and the actions that remove.
+- **One choice of many.** Two to four short choices, all in view: `SegmentedControl` (the theme). A
+  list that can grow or has long labels: `Select`, the browser's own (the language), so a phone
+  opens its native picker.
+- **Selected without a shadow.** A segmented control (or any selected item in a group) shows its
+  selection with a `border` outline on `background`, not a shadow, in line with "no shadows".
+- **Messages.** An outcome the user must notice is an `Alert`: `error` (announced at once), `warning`,
+  `success` or `info` (polite), each with its own icon, a bar and an icon in the kind's colour on a
+  `surface`. A small state beside a control (a row's "Your password was changed") stays a line of
+  text with the kind's icon; a field error stays text under its field. Never colour alone.
+- **Icons** ([ADR 0027](../../../docs/adr/0027-wrap-one-icon-set-in-the-design-system.md)): only
+  through `<Icon name>` from `@repo/ui`, never an import of the set or an inline `<svg>`. Named for
+  what it means (`security`, not `shield`). An icon beside text is decorative and says nothing; an
+  icon alone (an icon-only button) takes a `label`. It follows the text's size (`em`); colour comes
+  from the text role around it.
 
 ## States and interaction
 
@@ -99,15 +122,23 @@ Elements must not "tremble" between states or screens.
 ## Accessibility
 
 - Every control has a visible label (a placeholder is not a label) and the right `type`,
-  `autocomplete` (`email`, `name`, `current-password`, `new-password`, `one-time-code`) and
-  `inputmode`.
+  `autocomplete` and `inputmode`. The browser's suggestions are off (`autocomplete="off"`) on name,
+  email and code fields; the sign-in's email (`username`) and the password fields (`current-password`,
+  `new-password`) keep theirs, since password managers fill them by it.
 - Touch targets are at least 44px tall on phones for the main controls (WCAG 2.2 asks 24px at least);
   inputs use 16px text on phones, or iOS zooms in on focus.
 - On a route change, focus moves to the `h1`; after a failed submit, to the first invalid field, or
   to the form error.
 - Errors are `role="alert"`; progress and success are `role="status"`.
 - Landmarks: `header`, `main`; one `h1` per screen.
-- Respect `prefers-reduced-motion`; colour transitions are the only animation by default.
+- Motion ([ADR 0031](../../../docs/adr/0031-animate-layers-with-short-transform-and-opacity-motion.md)):
+  a layer that comes and goes (drawer, dialog, menu, popover) is animated; nothing else moves (a form that opens inside
+  a page appears at once). Use the classes of the preset, never a duration of your own:
+  `ds-scrim` (the veil), `ds-sheet` (a panel from the left), `ds-dialog`, and `ds-pop` (from its button),
+  with the Kobalte layer's `data-expanded` and `data-closed`. Only `transform` and
+  `opacity`, so nothing shifts; a layer centred with a `translate` utility must be centred another way
+  (`inset-x-4 mx-auto`), or the animation undoes it. With `prefers-reduced-motion` they only fade.
+  Colour transitions stay on controls.
 
 ## Copy
 

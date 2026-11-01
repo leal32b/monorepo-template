@@ -3,30 +3,92 @@ export const en = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Monorepo template'
+    title: 'Home'
+  },
+  profile: {
+    title: 'Profile',
+    details: {
+      title: 'Your details',
+      description: 'How you appear in the app and in the emails it sends.',
+      name: 'Name',
+      email: 'Email'
+    }
+  },
+  preferences: {
+    title: 'Preferences',
+    appearance: {
+      title: 'Appearance',
+      description: 'Saved in this browser.'
+    },
+    theme: {
+      title: 'Theme',
+      description: '"System" follows the light or dark setting of your device.',
+      system: 'System',
+      light: 'Light',
+      dark: 'Dark'
+    },
+    language: {
+      title: 'Language',
+      description: 'Saved in this browser.',
+      screens: 'Language of the screens',
+      emails: 'Emails keep the language you signed up in.'
+    }
+  },
+  /** Words that buttons share across screens. */
+  actions: {
+    cancel: 'Cancel'
   },
   account: {
-    title: 'Account security',
+    title: 'Security',
     unavailable: 'We could not load your account security. Check your connection, then try again.',
     retry: 'Try again',
-    password: {
-      title: 'Password',
-      set: 'You sign in with your email and a password.',
-      unset: 'Your account has no password: you sign in with Google.'
+    signIn: {
+      title: 'Ways to sign in',
+      description: 'How you get into your account.'
     },
     twoFactor: {
       title: 'Two-step verification',
-      on: 'On: signing in with your password also asks for a code from your authenticator app.',
-      off: 'Off: signing in asks only for your password.',
+      description: 'A second step when you sign in with a password.'
+    },
+    badge: {
+      on: 'On',
+      off: 'Off',
+      notSetUp: 'Not set up',
+      linked: 'Linked',
+      notLinked: 'Not linked'
+    },
+    password: {
+      title: 'Password',
+      set: 'You sign in with your email and a password.',
+      unset:
+        'Your account has no password: you sign in with Google. A password lets you sign in with your email too, and turn on two-step verification.',
+      change: 'Change password'
+    },
+    authenticator: {
+      title: 'Authenticator app',
+      on: 'Signing in with your password also asks for a code from your app.',
+      off: 'Signing in asks only for your password. Turn it on so a stolen password is not enough: it will also ask for a code from an app on your phone.',
       needsPassword:
         'It protects signing in with a password, so it needs one first. Google protects your Google sign-ins.',
-      why: 'Turn it on so a stolen password is not enough: signing in will also ask for a code from an app on your phone.',
+      turnOn: 'Turn on',
+      turnOff: 'Turn off',
       enabled: 'Two-step verification is on.',
-      regenerated: 'Your new backup codes are ready. The old ones no longer work.',
-      newCodes: 'Get new backup codes',
-      turnOff: 'Turn off'
+      enabledDone: 'Done: signing in with your password now also asks for a code from your app.',
+      disabled: 'Done: signing in asks only for your password.',
+      stepper: 'Turning on two-step verification',
+      done: 'done',
+      steps: {
+        confirm: 'Confirm it is you',
+        connect: 'Connect the app',
+        save: 'Save the codes'
+      }
     },
     backupCodes: {
+      title: 'Backup codes',
+      description: 'Each one signs you in once if you cannot use your app.',
+      unavailable: 'Available once two-step verification is on.',
+      newCodes: 'Get new codes',
+      regenerated: 'Your new backup codes are ready. The old ones no longer work.',
       label: 'Backup codes',
       save: 'Save these backup codes. Each one signs you in once if you cannot use your app. They are shown only now.',
       copy: 'Copy',
@@ -38,9 +100,10 @@ export const en = {
     },
     google: {
       title: 'Google',
-      linked: 'Linked: you can also sign in with your Google account.',
-      unlinked: 'Not linked: link it to sign in with your Google account too.',
-      only: 'Linked: it is how you sign in, so it stays linked until you create a password.'
+      linked: 'You can also sign in with your Google account. You can unlink it and link it again at any time.',
+      unlinked: 'Link it to sign in with your Google account too.',
+      only: 'It is how you sign in, so it stays linked until you create a password.',
+      unlinkedDone: 'Google was unlinked. You can link it again at any time.'
     }
   },
   changePassword: {
@@ -97,8 +160,61 @@ export const en = {
     home: 'Go to the start'
   },
   appShell: {
-    signedInAs: 'Signed in as {{name}}',
-    signOut: 'Sign out'
+    loading: 'Loading…',
+    search: 'Search',
+    palette: {
+      title: 'Command palette',
+      placeholder: 'Search screens and actions…',
+      empty: 'Nothing matches. Try another word.',
+      go: 'Go to',
+      actions: 'Actions',
+      theme: {
+        system: 'Use the system theme',
+        light: 'Use the light theme',
+        dark: 'Use the dark theme'
+      },
+      keywords: {
+        profile: 'account name email',
+        security: 'password two-step verification authenticator backup codes google',
+        preferences: 'appearance theme language',
+        theme: 'appearance color dark light',
+        signOut: 'log out logout leave'
+      }
+    },
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    menu: 'Menu',
+    breadcrumb: 'You are here',
+    nav: {
+      main: 'Main',
+      home: 'Home',
+      settings: 'Settings',
+      back: 'Back to app',
+      account: 'Your account',
+      profile: 'Profile',
+      security: 'Security',
+      preferences: 'Preferences'
+    },
+    account: {
+      settings: 'Settings',
+      signOut: 'Sign out'
+    },
+    status: {
+      title: 'Service status',
+      button: 'Service status: {{state}}',
+      close: 'Close',
+      checkAgain: 'Check again',
+      checkedAt: 'Checked at {{time}}',
+      reference: 'If it keeps happening, tell support: {{reference}}',
+      state: {
+        checking: 'Checking the service…',
+        ok: 'All systems normal',
+        degraded: 'Some features are not working',
+        unreachable: 'Cannot reach the service',
+        unexpected: 'The service is not working as it should',
+        error: 'The service ran into a problem'
+      }
+    }
   },
   session: {
     unavailable: {
@@ -106,17 +222,6 @@ export const en = {
       description: 'Check your connection, then try again.',
       retry: 'Try again'
     }
-  },
-  apiStatus: {
-    checking: 'Checking the API…',
-    up: 'The API is up: {{service}} at {{time}}',
-    degraded: 'The API is up, but its database is not answering.',
-    unreachable: 'Cannot reach the API.',
-    unexpected: 'The API answered something unexpected.',
-    error: 'The API answered an error.',
-    errorWithCode: 'The API answered an error ({{code}}).',
-    unknown: 'Something went wrong.',
-    checkAgain: 'Check again'
   },
   /** What a screen says about a failed call it has no better words for. */
   failure: {
@@ -151,7 +256,7 @@ export const en = {
     checkEmail: {
       title: 'Check your email',
       description: 'Confirm your address to finish.',
-      sentTo: 'We sent a link to {{email}}.',
+      sentTo: 'We sent a link to',
       notThere: 'Not in your inbox? Check spam, or send it again.',
       wrongAddress: 'Wrong address?',
       useAnother: 'Use another email'
@@ -183,6 +288,7 @@ export const en = {
     }
   },
   forgotPassword: {
+    wait: 'Send link again in {{seconds}} s',
     title: 'Reset your password',
     description: 'We will email you a link.',
     submit: 'Send link',
@@ -196,6 +302,7 @@ export const en = {
     password: 'New password',
     submit: 'Change password',
     expired: 'This link has expired or was already used. Each link works once and expires after 1 hour.',
+    expiredTitle: 'This link no longer works',
     askAgain: 'Ask for a new link',
     changedMind: 'Changed your mind?',
     signIn: 'Sign in',
@@ -208,6 +315,7 @@ export const en = {
   twoFactor: {
     title: 'Two-step verification',
     submit: 'Verify',
+    notYou: 'Not your account?',
     signInAgain: 'Sign in again',
     app: {
       description: 'Open your authenticator app.',
@@ -230,8 +338,20 @@ export const en = {
       locked: 'Too many wrong codes. For your safety, wait 15 minutes, then sign in again.'
     }
   },
+  serviceNotice: {
+    title: 'The service is having trouble',
+    hint: 'Signing in or creating an account may not work. Try again in a few minutes.'
+  },
+  entryLayout: {
+    language: 'Language'
+  },
+  mail: {
+    open: 'Open {{provider}}',
+    newTab: ' (opens in a new tab)'
+  },
   resendConfirmation: {
     send: 'Send it again',
+    wait: 'Send it again in {{seconds}} s',
     sent: 'We sent it again. It can take a few minutes.'
   }
 }

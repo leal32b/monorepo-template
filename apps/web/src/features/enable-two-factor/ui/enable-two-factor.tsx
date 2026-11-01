@@ -11,6 +11,10 @@ export type EnableTwoFactorProps = {
   onEnabled: (backupCodes: string[]) => void
   /** Called when it was turned on elsewhere meanwhile, such as in another tab. */
   onAlreadyOn: () => void
+  /** Called once the password is right and the app's setup is on screen: the second step of three. */
+  onSetup: () => void
+  /** Gives the user a way out, before the app's first code is right. */
+  onCancel: () => void
 }
 
 /**
@@ -30,7 +34,9 @@ export function EnableTwoFactor(props: EnableTwoFactorProps) {
         {
           ...options,
           onSuccess: ({ data }) => {
-            setSetup(totpSetupOf(data))
+            const current = totpSetupOf(data)
+            setSetup(current)
+            if (current) props.onSetup()
           }
         }
       )
@@ -41,8 +47,17 @@ export function EnableTwoFactor(props: EnableTwoFactorProps) {
   }
 
   return (
-    <Show when={setup()} fallback={<ConfirmPasswordForm submit={t('enableTwoFactor.setUp')} confirm={start} />}>
-      {(current) => <ConfirmApp setup={current()} onVerified={() => props.onEnabled(current().backupCodes)} />}
+    <Show
+      when={setup()}
+      fallback={<ConfirmPasswordForm submit={t('enableTwoFactor.setUp')} confirm={start} onCancel={props.onCancel} />}
+    >
+      {(current) => (
+        <ConfirmApp
+          setup={current()}
+          onVerified={() => props.onEnabled(current().backupCodes)}
+          onCancel={props.onCancel}
+        />
+      )}
     </Show>
   )
 }
@@ -51,7 +66,7 @@ export function EnableTwoFactor(props: EnableTwoFactorProps) {
  * The app's setup and its first code. A wrong code is marked on the field and not sent again; it does
  * not count towards the sign-in lock, but the route is rate limited.
  */
-function ConfirmApp(props: { setup: TotpSetup; onVerified: () => void }) {
+function ConfirmApp(props: { setup: TotpSetup; onVerified: () => void; onCancel: () => void }) {
   const auth = useAuth()
   const { t } = useI18n()
   const [code, setCode] = createSignal('')
@@ -104,13 +119,18 @@ function ConfirmApp(props: { setup: TotpSetup; onVerified: () => void }) {
           label={t('twoFactor.app.code')}
           name="code"
           inputmode="numeric"
-          autocomplete="one-time-code"
+          autocomplete="off"
           onChange={setCode}
           error={error()}
         />
-        <Button type="submit" variant="primary" class="mt-2 w-full sm:w-auto sm:self-start" disabled={pending()}>
-          {t('enableTwoFactor.turnOn')}
-        </Button>
+        <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+          <Button type="submit" variant="primary" class="w-full sm:w-auto" disabled={pending()}>
+            {t('enableTwoFactor.turnOn')}
+          </Button>
+          <Button variant="ghost" class="w-full sm:w-auto" onClick={props.onCancel}>
+            {t('actions.cancel')}
+          </Button>
+        </div>
         <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>
       </form>
     </div>

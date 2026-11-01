@@ -14,6 +14,13 @@ export type Locale = keyof typeof loaders
 
 export const locales = Object.keys(loaders) as Locale[]
 
+/** Each language by its own name, the way someone who reads it looks for it. */
+export const localeNames: Record<Locale, string> = {
+  en: 'English',
+  es: 'Español',
+  'pt-BR': 'Português (Brasil)'
+}
+
 const loaded: Partial<Record<Locale, Messages>> = {}
 
 /** Fetches a language, once. The app waits for it before it shows any text. */

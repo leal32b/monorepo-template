@@ -66,7 +66,7 @@ export function SignUpForm(props: SignUpFormProps) {
       <Field
         label={t('auth.name')}
         name="name"
-        autocomplete="name"
+        autocomplete="off"
         value={name()}
         onChange={setName}
         error={errorOf('name')}
@@ -75,7 +75,7 @@ export function SignUpForm(props: SignUpFormProps) {
         label={t('auth.email')}
         name="email"
         type="email"
-        autocomplete="email"
+        autocomplete="off"
         value={email()}
         onChange={setEmail}
         error={errorOf('email')}

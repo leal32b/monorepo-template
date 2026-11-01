@@ -16,8 +16,9 @@ const linkErrors = new Set(['TOKEN_EXPIRED', 'INVALID_TOKEN'])
  * it is on this site (T11). The sign-in replaces itself in the history, so Back does not return to
  * the form; Google comes back to `next` itself, and to this page with `?error=` when it fails. A
  * confirmation link that failed comes here with its own `?error=`, explained below the button, where
- * the answer to a sign-in takes its place. The way to a new password sits under the password field and
- * carries the email typed so far in the history's state, never in the URL.
+ * the answer to a sign-in takes its place. Google comes first, then "or", then the form. The way to a
+ * new password sits beside the password's label and carries the email typed so far in the history's
+ * state, never in the URL.
  */
 export function SignInPage() {
   const { t } = useI18n()
@@ -39,6 +40,7 @@ export function SignInPage() {
         </>
       }
     >
+      <SignInWithGoogle next={next()} error={linkExpired() ? undefined : params.error} />
       <SignInForm
         onSignedIn={signedIn}
         onSecondStep={secondStep}
@@ -49,12 +51,11 @@ export function SignInPage() {
         }
         resend={(email) => <ResendConfirmation email={email} />}
         forgotPassword={(email) => (
-          <A href="/forgot-password" state={{ email: email() }} class={cn(linkClass, '-mt-1 self-start text-sm')}>
+          <A href="/forgot-password" state={{ email: email() }} class={cn(linkClass, 'py-1 text-sm')}>
             {t('signIn.forgot')}
           </A>
         )}
       />
-      <SignInWithGoogle next={next()} error={linkExpired() ? undefined : params.error} />
     </EntryLayout>
   )
 }

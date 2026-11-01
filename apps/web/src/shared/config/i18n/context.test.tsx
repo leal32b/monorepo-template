@@ -3,7 +3,7 @@ import { I18nProvider, useI18n } from './context'
 
 const Probe = () => {
   const { t } = useI18n()
-  return <p>{t('apiStatus.up', { service: 'api', time: 'now' })}</p>
+  return <p>{t('appShell.status.checkedAt', { time: 'now' })}</p>
 }
 
 describe('I18nProvider', () => {
@@ -14,7 +14,7 @@ describe('I18nProvider', () => {
       </I18nProvider>
     ))
 
-    expect(screen.getByText('The API is up: api at now')).toBeInTheDocument()
+    expect(screen.getByText('Checked at now')).toBeInTheDocument()
   })
 
   it('translates to Brazilian Portuguese', () => {
@@ -24,7 +24,7 @@ describe('I18nProvider', () => {
       </I18nProvider>
     ))
 
-    expect(screen.getByText('A API está no ar: api às now')).toBeInTheDocument()
+    expect(screen.getByText('Verificado às now')).toBeInTheDocument()
   })
 
   it('switches the text when the locale changes', async () => {
@@ -45,7 +45,28 @@ describe('I18nProvider', () => {
 
     screen.getByRole('button').click()
 
-    expect(await screen.findByText('A API está no ar: api às now')).toBeInTheDocument()
+    expect(await screen.findByText('Verificado às now')).toBeInTheDocument()
+  })
+
+  it('keeps a changed language on the device', async () => {
+    const Switcher = () => {
+      const { setLocale } = useI18n()
+      return (
+        <button type="button" onClick={() => setLocale('es')}>
+          switch
+        </button>
+      )
+    }
+    render(() => (
+      <I18nProvider locale="en">
+        <Switcher />
+      </I18nProvider>
+    ))
+
+    screen.getByRole('button').click()
+
+    await waitFor(() => expect(localStorage.getItem('locale')).toBe('es'))
+    localStorage.clear()
   })
 
   it('fails loudly outside a provider', () => {

@@ -30,8 +30,8 @@ export function ResetPasswordPage() {
       }
     >
       <EntryLayout
-        title={t('resetPassword.title')}
-        description={t('resetPassword.description')}
+        title={token() ? t('resetPassword.title') : t('resetPassword.expiredTitle')}
+        description={token() ? t('resetPassword.description') : undefined}
         footer={
           <>
             {t('resetPassword.changedMind')} <Link href="/login">{t('resetPassword.signIn')}</Link>

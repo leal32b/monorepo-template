@@ -22,6 +22,16 @@ describe('PasswordField', () => {
     expect(toggle.firstElementChild).toHaveClass('size-8', 'group-hover:bg-secondary')
   })
 
+  it('can offer something beside the label, on its right', () => {
+    render(() => (
+      <PasswordField label="Password" toggleLabel="Show password" labelAction={<a href="/forgot">Forgot?</a>} />
+    ))
+    const label = screen.getByText('Password')
+
+    expect(screen.getByRole('link', { name: 'Forgot?' }).parentElement).toBe(label.parentElement)
+    expect(label.parentElement).toHaveClass('justify-between')
+  })
+
   it('shows what was typed and hides it again, keeping the value', () => {
     render(() => <PasswordField label="Password" toggleLabel="Show password" value="correct horse" />)
     const input = screen.getByLabelText('Password')

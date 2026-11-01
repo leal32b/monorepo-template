@@ -5,30 +5,92 @@ export const ptBR: Messages = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Template de monorepo'
+    title: 'Início'
+  },
+  profile: {
+    title: 'Perfil',
+    details: {
+      title: 'Seus dados',
+      description: 'Como você aparece no app e nos e-mails que ele envia.',
+      name: 'Nome',
+      email: 'E-mail'
+    }
+  },
+  preferences: {
+    title: 'Preferências',
+    appearance: {
+      title: 'Aparência',
+      description: 'Salvo neste navegador.'
+    },
+    theme: {
+      title: 'Tema',
+      description: '"Sistema" segue o claro ou escuro do seu aparelho.',
+      system: 'Sistema',
+      light: 'Claro',
+      dark: 'Escuro'
+    },
+    language: {
+      title: 'Idioma',
+      description: 'Salvo neste navegador.',
+      screens: 'Idioma das telas',
+      emails: 'Os e-mails continuam no idioma em que você criou a conta.'
+    }
+  },
+  /** Words that buttons share across screens. */
+  actions: {
+    cancel: 'Cancelar'
   },
   account: {
-    title: 'Segurança da conta',
+    title: 'Segurança',
     unavailable: 'Não conseguimos carregar a segurança da sua conta. Confira sua conexão e tente de novo.',
     retry: 'Tentar de novo',
-    password: {
-      title: 'Senha',
-      set: 'Você entra com seu e-mail e uma senha.',
-      unset: 'Sua conta não tem senha: você entra com o Google.'
+    signIn: {
+      title: 'Formas de entrar',
+      description: 'Como você acessa a sua conta.'
     },
     twoFactor: {
       title: 'Verificação em duas etapas',
-      on: 'Ativada: entrar com a senha também pede um código do seu app autenticador.',
-      off: 'Desativada: entrar pede só a sua senha.',
+      description: 'Uma segunda etapa quando você entra com a senha.'
+    },
+    badge: {
+      on: 'Ativada',
+      off: 'Desativada',
+      notSetUp: 'Não configurada',
+      linked: 'Vinculado',
+      notLinked: 'Não vinculado'
+    },
+    password: {
+      title: 'Senha',
+      set: 'Você entra com seu e-mail e uma senha.',
+      unset:
+        'Sua conta não tem senha: você entra com o Google. Uma senha deixa você entrar também com o e-mail e ativar a verificação em duas etapas.',
+      change: 'Alterar senha'
+    },
+    authenticator: {
+      title: 'App autenticador',
+      on: 'Entrar com a senha também pede um código do seu app.',
+      off: 'Entrar pede só a sua senha. Ative para que uma senha roubada não baste: vai pedir também um código de um app no seu celular.',
       needsPassword:
         'Ela protege o login com senha, então precisa de uma senha antes. O Google protege os logins pelo Google.',
-      why: 'Ative para que uma senha roubada não baste: entrar também vai pedir um código de um app no seu celular.',
+      turnOn: 'Ativar',
+      turnOff: 'Desativar',
       enabled: 'A verificação em duas etapas está ativada.',
-      regenerated: 'Seus novos códigos de backup estão prontos. Os antigos não funcionam mais.',
-      newCodes: 'Gerar novos códigos de backup',
-      turnOff: 'Desativar'
+      enabledDone: 'Pronto: entrar com a senha agora também pede um código do seu app.',
+      disabled: 'Pronto: entrar pede só a sua senha.',
+      stepper: 'Ativando a verificação em duas etapas',
+      done: 'concluída',
+      steps: {
+        confirm: 'Confirme que é você',
+        connect: 'Conecte o app',
+        save: 'Guarde os códigos'
+      }
     },
     backupCodes: {
+      title: 'Códigos de backup',
+      description: 'Cada um faz você entrar uma vez se não puder usar o app.',
+      unavailable: 'Disponíveis depois que a verificação em duas etapas estiver ativada.',
+      newCodes: 'Gerar novos códigos',
+      regenerated: 'Seus novos códigos de backup estão prontos. Os antigos não funcionam mais.',
       label: 'Códigos de backup',
       save: 'Guarde estes códigos de backup. Cada um faz você entrar uma vez se não puder usar o app. Eles só aparecem agora.',
       copy: 'Copiar',
@@ -40,9 +102,10 @@ export const ptBR: Messages = {
     },
     google: {
       title: 'Google',
-      linked: 'Vinculado: você também pode entrar com sua conta Google.',
-      unlinked: 'Não vinculado: vincule para entrar também com sua conta Google.',
-      only: 'Vinculado: é como você entra, então fica vinculado até você criar uma senha.'
+      linked: 'Você também pode entrar com sua conta Google. Pode desvincular e vincular de novo quando quiser.',
+      unlinked: 'Vincule para entrar também com sua conta Google.',
+      only: 'É como você entra, então fica vinculado até você criar uma senha.',
+      unlinkedDone: 'O Google foi desvinculado. Você pode vincular de novo quando quiser.'
     }
   },
   changePassword: {
@@ -99,8 +162,61 @@ export const ptBR: Messages = {
     home: 'Ir para o início'
   },
   appShell: {
-    signedInAs: 'Sessão iniciada como {{name}}',
-    signOut: 'Sair'
+    loading: 'Carregando…',
+    search: 'Buscar',
+    palette: {
+      title: 'Paleta de comandos',
+      placeholder: 'Busque telas e ações…',
+      empty: 'Nada encontrado. Tente outra palavra.',
+      go: 'Ir para',
+      actions: 'Ações',
+      theme: {
+        system: 'Usar o tema do sistema',
+        light: 'Usar o tema claro',
+        dark: 'Usar o tema escuro'
+      },
+      keywords: {
+        profile: 'conta nome e-mail',
+        security: 'senha duas etapas verificação autenticador códigos backup google',
+        preferences: 'aparência tema idioma',
+        theme: 'aparência cor escuro claro',
+        signOut: 'sair logout desconectar'
+      }
+    },
+    openMenu: 'Abrir o menu',
+    closeMenu: 'Fechar o menu',
+    menu: 'Menu',
+    breadcrumb: 'Você está em',
+    nav: {
+      main: 'Principal',
+      home: 'Início',
+      settings: 'Configurações',
+      back: 'Voltar ao app',
+      account: 'Sua conta',
+      profile: 'Perfil',
+      security: 'Segurança',
+      preferences: 'Preferências'
+    },
+    account: {
+      settings: 'Configurações',
+      signOut: 'Sair'
+    },
+    status: {
+      title: 'Status do serviço',
+      button: 'Status do serviço: {{state}}',
+      close: 'Fechar',
+      checkAgain: 'Verificar de novo',
+      checkedAt: 'Verificado às {{time}}',
+      reference: 'Se continuar acontecendo, avise o suporte: {{reference}}',
+      state: {
+        checking: 'Verificando o serviço…',
+        ok: 'Tudo funcionando normalmente',
+        degraded: 'Alguns recursos não estão funcionando',
+        unreachable: 'Não foi possível falar com o serviço',
+        unexpected: 'O serviço não está funcionando como deveria',
+        error: 'O serviço teve um problema'
+      }
+    }
   },
   session: {
     unavailable: {
@@ -108,17 +224,6 @@ export const ptBR: Messages = {
       description: 'Confira sua conexão e tente de novo.',
       retry: 'Tentar de novo'
     }
-  },
-  apiStatus: {
-    checking: 'Verificando a API…',
-    up: 'A API está no ar: {{service}} às {{time}}',
-    degraded: 'A API está no ar, mas o banco de dados não responde.',
-    unreachable: 'Não foi possível falar com a API.',
-    unexpected: 'A API respondeu algo inesperado.',
-    error: 'A API respondeu com erro.',
-    errorWithCode: 'A API respondeu com erro ({{code}}).',
-    unknown: 'Algo deu errado.',
-    checkAgain: 'Verificar de novo'
   },
   failure: {
     network: 'Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.',
@@ -151,7 +256,7 @@ export const ptBR: Messages = {
     checkEmail: {
       title: 'Confira seu e-mail',
       description: 'Confirme seu endereço para terminar.',
-      sentTo: 'Enviamos um link para {{email}}.',
+      sentTo: 'Enviamos um link para',
       notThere: 'Não chegou? Confira o spam ou envie de novo.',
       wrongAddress: 'Endereço errado?',
       useAnother: 'Usar outro e-mail'
@@ -183,6 +288,7 @@ export const ptBR: Messages = {
     }
   },
   forgotPassword: {
+    wait: 'Enviar o link de novo em {{seconds}} s',
     title: 'Redefina sua senha',
     description: 'Enviaremos um link por e-mail.',
     submit: 'Enviar link',
@@ -196,6 +302,7 @@ export const ptBR: Messages = {
     password: 'Nova senha',
     submit: 'Trocar senha',
     expired: 'Este link expirou ou já foi usado. Cada link funciona uma vez, por 1 hora.',
+    expiredTitle: 'Este link não vale mais',
     askAgain: 'Pedir um novo link',
     changedMind: 'Mudou de ideia?',
     signIn: 'Entrar',
@@ -208,6 +315,7 @@ export const ptBR: Messages = {
   twoFactor: {
     title: 'Verificação em duas etapas',
     submit: 'Verificar',
+    notYou: 'Não é a sua conta?',
     signInAgain: 'Entrar de novo',
     app: {
       description: 'Abra seu app autenticador.',
@@ -230,7 +338,19 @@ export const ptBR: Messages = {
       locked: 'Muitos códigos errados. Por segurança, espere 15 minutos e entre de novo.'
     }
   },
+  serviceNotice: {
+    title: 'O serviço está com problemas',
+    hint: 'Entrar ou criar uma conta pode não funcionar. Tente de novo em alguns minutos.'
+  },
+  entryLayout: {
+    language: 'Idioma'
+  },
+  mail: {
+    open: 'Abrir o {{provider}}',
+    newTab: ' (abre em uma nova aba)'
+  },
   resendConfirmation: {
+    wait: 'Enviar de novo em {{seconds}} s',
     send: 'Enviar de novo',
     sent: 'Enviamos de novo. Pode levar alguns minutos.'
   }

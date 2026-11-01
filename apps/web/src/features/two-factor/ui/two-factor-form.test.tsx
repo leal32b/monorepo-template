@@ -32,11 +32,11 @@ const refused = (code: string, status = 401) => vi.fn<Fetch>(async () => Respons
 const type = (field: HTMLElement, value: string) => fireEvent.input(field, { target: { value } })
 
 describe('TwoFactorForm', () => {
-  it('asks for the code the way phones fill it in, from the keypad or from a message', () => {
+  it('asks for the code with the numeric keypad, and offers no suggestions', () => {
     const { code } = renderForm()
 
     expect(code).toHaveAttribute('inputmode', 'numeric')
-    expect(code).toHaveAttribute('autocomplete', 'one-time-code')
+    expect(code).toHaveAttribute('autocomplete', 'off')
   })
 
   it('on a submit with anything but six digits, says what to type and sends nothing', () => {

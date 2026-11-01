@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
 import * as z from 'zod/mini'
 import { useSession } from '#entities/sessions'
 import { ApiProvider, createApiClient, useApi } from '#shared/api'
-import { I18nProvider } from '#shared/config'
+import { I18nProvider, PaletteProvider } from '#shared/config'
 import { RequireSession } from './require-session'
 
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>
@@ -26,15 +26,17 @@ function renderAt(path: string, fetch: Fetch) {
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <ApiProvider client={createApiClient({ fetch })}>
-        <MemoryRouter history={history}>
-          <Route path="/" component={RequireSession}>
-            <Route path="/projects" component={() => <p>Hello, {useSession().name}</p>} />
-            <Route path="/reports" component={ReportsPage} />
-          </Route>
-          <Route path="/login" component={() => <p>The sign-in</p>} />
-        </MemoryRouter>
-      </ApiProvider>
+      <PaletteProvider>
+        <ApiProvider client={createApiClient({ fetch })}>
+          <MemoryRouter history={history}>
+            <Route path="/" component={RequireSession}>
+              <Route path="/projects" component={() => <p>Hello, {useSession().name}</p>} />
+              <Route path="/reports" component={ReportsPage} />
+            </Route>
+            <Route path="/login" component={() => <p>The sign-in</p>} />
+          </MemoryRouter>
+        </ApiProvider>
+      </PaletteProvider>
     </I18nProvider>
   ))
   return history
@@ -47,6 +49,17 @@ describe('RequireSession', () => {
     expect(await screen.findByText('Hello, Ada Lovelace')).toBeInTheDocument()
   })
 
+  it('draws the empty frame of the shell while a slow session check goes on, not a blank page', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderAt('/projects', () => new Promise<Response>(() => {}))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    vi.advanceTimersByTime(300)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
+    vi.useRealTimers()
+  })
+
   it('sends a visitor without a session to sign in, to come back to the same page', async () => {
     const history = renderAt('/projects?tab=1', async () => Response.json({ code: 'unauthenticated' }, { status: 401 }))
 
@@ -54,10 +67,17 @@ describe('RequireSession', () => {
   })
 
   it('says when the session cannot be checked, and checks again on request', async () => {
-    const fetch = vi
+    const asked = vi
       .fn<Fetch>()
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
       .mockResolvedValueOnce(Response.json(ada))
+    // The entry frame asks how the service is, too; only the session is asked twice.
+    const fetch: Fetch = (path, init) =>
+      path === '/api/health'
+        ? Promise.resolve(
+            Response.json({ status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' })
+          )
+        : asked(path, init)
     renderAt('/projects', fetch)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'We could not check your sign-in' })).toBeVisible()
