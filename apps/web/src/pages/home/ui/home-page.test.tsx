@@ -24,7 +24,7 @@ describe('HomePage', () => {
       </I18nProvider>
     ))
 
-    expect(screen.getByText('Entrou como Ada Lovelace')).toBeInTheDocument()
+    expect(screen.getByText('Sessão iniciada como Ada Lovelace')).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Template de monorepo')
     expect(await screen.findByText(/A API está no ar/)).toBeInTheDocument()
   })

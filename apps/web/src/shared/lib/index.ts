@@ -2,5 +2,6 @@ export { type CurrentPasswordProblem, currentPasswordProblem } from './current-p
 export { cleanEmail } from './email'
 export { type Checked, createFormChecks } from './form-checks'
 export { type NewPasswordProblem, newPasswordProblem } from './new-password'
+export { reloadOnStaleBuild } from './reload-on-stale-build'
 export { safeNext } from './safe-next'
 export { type CodeProblem, type CodeValues, validateBackupCode, validateCode } from './validate-code'

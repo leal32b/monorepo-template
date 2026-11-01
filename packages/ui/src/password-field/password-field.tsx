@@ -1,7 +1,7 @@
 import { TextField, type TextFieldRootOptions } from '@kobalte/core/text-field'
 import { type ComponentProps, createSignal, Show, splitProps } from 'solid-js'
 import { Button } from '#button'
-import { inputClass } from '#input'
+import { inputWithActionClass } from '#input'
 import { cn } from '#libs'
 
 /** What Kobalte manages through the field's root: the value and the state the input and its parts share. */
@@ -42,14 +42,15 @@ export function PasswordField(props: PasswordFieldProps) {
     >
       <TextField.Label class="text-sm font-medium">{local.label}</TextField.Label>
       <div class="relative">
-        <TextField.Input class={cn(inputClass, 'pr-11 sm:pr-9')} type={shown() ? 'text' : 'password'} {...input} />
+        <TextField.Input class={inputWithActionClass} type={shown() ? 'text' : 'password'} {...input} />
         <Button
-          variant="ghost"
+          variant="bare"
+          size="icon"
           aria-label={local.toggleLabel}
           aria-pressed={shown()}
           disabled={root.disabled}
           onClick={() => setShown(!shown())}
-          class="group absolute inset-y-0 right-0 h-11 w-11 px-0 text-muted-foreground hover:bg-transparent sm:h-9 sm:w-9"
+          class="group absolute inset-y-0 right-0 text-muted-foreground"
         >
           {/* The whole button takes the press; the hover lights a chip inside the input's border. */}
           <span class="flex size-8 items-center justify-center rounded-md transition-colors group-hover:bg-secondary sm:size-7">

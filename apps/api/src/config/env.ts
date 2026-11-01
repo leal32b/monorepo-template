@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const
 
@@ -16,52 +16,59 @@ function isOrigin(value: string): boolean {
 }
 
 /** An optional value where empty means unset, as an unset GitHub secret arrives. */
-const optional = <T extends z.ZodType>(schema: T) =>
-  z.preprocess((value) => (value === '' ? undefined : value), schema.optional())
+const optional = <T extends z.ZodMiniType>(schema: T) =>
+  z.pipe(
+    z.transform((value) => (value === '' ? undefined : value)),
+    z.optional(schema)
+  )
 
 const envSchema = z
   .object({
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     // abort: an invalid origin skips the rules below, which read it.
-    WEB_ORIGIN: z.string().refine(isOrigin, { abort: true }),
-    BETTER_AUTH_SECRET: z.string().min(32),
-    HOST: z.string().min(1).default('127.0.0.1'),
-    PORT: z.coerce.number().int().min(1).max(65535).default(3001),
-    LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
-    CORS_ORIGINS: z
-      .string()
-      .default('')
-      .transform((value) =>
-        value
-          .split(',')
-          .map((origin) => origin.trim())
-          .filter(Boolean)
-      )
-      .pipe(z.array(z.string().refine(isOrigin))),
-    PROXY_SECRET: optional(z.string().min(32)),
+    WEB_ORIGIN: z.string().check(z.refine(isOrigin, { abort: true })),
+    BETTER_AUTH_SECRET: z.string().check(z.minLength(32)),
+    HOST: z._default(z.string().check(z.minLength(1)), '127.0.0.1'),
+    PORT: z._default(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(65535))), 3001),
+    LOG_LEVEL: z._default(z.enum(LOG_LEVELS), 'info'),
+    CORS_ORIGINS: z.pipe(
+      z.pipe(
+        z._default(z.string(), ''),
+        z.transform((value) =>
+          value
+            .split(',')
+            .map((origin) => origin.trim())
+            .filter(Boolean)
+        )
+      ),
+      z.array(z.string().check(z.refine(isOrigin)))
+    ),
+    PROXY_SECRET: optional(z.string().check(z.minLength(32))),
     RESEND_API_KEY: optional(z.string()),
-    EMAIL_FROM: optional(z.string().regex(SENDER)),
+    EMAIL_FROM: optional(z.string().check(z.regex(SENDER))),
     GOOGLE_CLIENT_ID: optional(z.string()),
     GOOGLE_CLIENT_SECRET: optional(z.string())
   })
-  // Behind https the API is deployed, and only the web Worker may call it (ADR 0022).
-  .refine((env) => env.PROXY_SECRET !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
-    path: ['PROXY_SECRET']
-  })
-  // Resend needs both: a key without a sender, or the reverse, is a mistake.
-  .refine((env) => env.RESEND_API_KEY !== undefined || env.EMAIL_FROM === undefined, { path: ['RESEND_API_KEY'] })
-  .refine((env) => env.EMAIL_FROM !== undefined || env.RESEND_API_KEY === undefined, { path: ['EMAIL_FROM'] })
-  // Deployed, email must really go out: the log transport would drop it silently (ADR 0021).
-  .refine((env) => env.RESEND_API_KEY !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
-    path: ['RESEND_API_KEY']
-  })
-  // Google needs both, as Resend does.
-  .refine((env) => env.GOOGLE_CLIENT_ID !== undefined || env.GOOGLE_CLIENT_SECRET === undefined, {
-    path: ['GOOGLE_CLIENT_ID']
-  })
-  .refine((env) => env.GOOGLE_CLIENT_SECRET !== undefined || env.GOOGLE_CLIENT_ID === undefined, {
-    path: ['GOOGLE_CLIENT_SECRET']
-  })
+  .check(
+    // Behind https the API is deployed, and only the web Worker may call it (ADR 0022).
+    z.refine((env) => env.PROXY_SECRET !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
+      path: ['PROXY_SECRET']
+    }),
+    // Resend needs both: a key without a sender, or the reverse, is a mistake.
+    z.refine((env) => env.RESEND_API_KEY !== undefined || env.EMAIL_FROM === undefined, { path: ['RESEND_API_KEY'] }),
+    z.refine((env) => env.EMAIL_FROM !== undefined || env.RESEND_API_KEY === undefined, { path: ['EMAIL_FROM'] }),
+    // Deployed, email must really go out: the log transport would drop it silently (ADR 0021).
+    z.refine((env) => env.RESEND_API_KEY !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
+      path: ['RESEND_API_KEY']
+    }),
+    // Google needs both, as Resend does.
+    z.refine((env) => env.GOOGLE_CLIENT_ID !== undefined || env.GOOGLE_CLIENT_SECRET === undefined, {
+      path: ['GOOGLE_CLIENT_ID']
+    }),
+    z.refine((env) => env.GOOGLE_CLIENT_SECRET !== undefined || env.GOOGLE_CLIENT_ID === undefined, {
+      path: ['GOOGLE_CLIENT_SECRET']
+    })
+  )
 
 /** How email leaves the API (ADR 0021): logged in development, or sent through Resend. */
 export type EmailTransport = { kind: 'log' } | { kind: 'resend'; apiKey: string; from: string }

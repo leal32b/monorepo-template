@@ -1,9 +1,11 @@
 import { type EmailTexts, en } from './locales/en'
+import { es } from './locales/es'
 import { ptBR } from './locales/pt-BR'
 
 /** Every language an email is written in. Adding one is a new file in `locales/` plus a line here. */
 export const emailTexts = {
   en,
+  es,
   'pt-BR': ptBR
 } satisfies Record<string, EmailTexts>
 

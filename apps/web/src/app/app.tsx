@@ -1,5 +1,5 @@
 import { Route, Router } from '@solidjs/router'
-import { AccountPage } from '#pages/account'
+import { lazy } from 'solid-js'
 import { ForgotPasswordPage } from '#pages/forgot-password'
 import { HomePage } from '#pages/home'
 import { NotFoundPage } from '#pages/not-found'
@@ -10,6 +10,12 @@ import { TwoFactorPage } from '#pages/two-factor'
 import { type ApiClient, ApiProvider, type AuthClient, AuthProvider } from '#shared/api'
 import { I18nProvider, type Locale } from '#shared/config'
 import { RequireSession } from './require-session'
+
+/**
+ * The account screen is rare and the heaviest (QR code, backup codes, every security form), so it
+ * loads when someone opens it. The router keeps the page on screen until it is ready: no blank flash.
+ */
+const AccountPage = lazy(() => import('#pages/account').then((m) => ({ default: m.AccountPage })))
 
 export function App(props: { client: ApiClient; auth: AuthClient; locale: Locale }) {
   return (

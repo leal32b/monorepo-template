@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import * as z from 'zod/mini'
 
 /**
  * Every error response (`application/problem+json`, RFC 9457). Clients switch on `code`,
@@ -7,13 +7,13 @@ import { z } from 'zod'
 export const apiProblemSchema = z.object({
   type: z.string(),
   title: z.string(),
-  status: z.int().min(400).max(599),
+  status: z.int().check(z.gte(400), z.lte(599)),
   code: z.string(),
-  detail: z.string().optional(),
+  detail: z.optional(z.string()),
   /** One entry per invalid field of the request. */
-  errors: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
+  errors: z.optional(z.array(z.object({ path: z.string(), message: z.string() }))),
   /** Same as the `X-Request-Id` header, to find the request in the API log. */
-  requestId: z.string().optional()
+  requestId: z.optional(z.string())
 })
 
 export type ApiProblem = z.infer<typeof apiProblemSchema>

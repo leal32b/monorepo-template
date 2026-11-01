@@ -33,16 +33,15 @@ describe('Alert', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
 
-  it('looks like its variant, and a passed class overrides its own', () => {
+  it('looks like its variant, and a passed class is added to its own', () => {
     render(() => (
-      <Alert variant="error" class="p-6">
+      <Alert variant="error" class="mt-4">
         Something went wrong.
       </Alert>
     ))
     const alert = screen.getByRole('alert')
 
-    expect(alert).toHaveClass('border-destructive', 'p-6')
-    expect(alert).not.toHaveClass('p-4')
+    expect(alert).toHaveClass('border-destructive', 'p-4', 'mt-4')
   })
 
   it('passes other attributes to its root, so the app can move focus to it', () => {

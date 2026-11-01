@@ -257,9 +257,6 @@ catalogs:
     steiger:
       specifier: ^0.8.1
       version: 0.8.1
-    tailwind-merge:
-      specifier: ^3.7.0
-      version: 3.7.0
     tsx:
       specifier: ^4.23.15
       version: 4.23.15
@@ -457,9 +454,6 @@ importers:
       lean-qr:
         specifier: 'catalog:'
         version: 2.7.4
-      tailwind-merge:
-        specifier: 'catalog:'
-        version: 3.7.0
     devDependencies:
       '@solidjs/testing-library':
         specifier: 'catalog:'
@@ -3253,9 +3247,6 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  tailwind-merge@3.7.0:
-    resolution: {integrity: sha512-XPPUyAc+cvspz3lHTcR/QgPfW2A0lv/xQNIjX3HGhLR+Nq2lHaLq5MtTesHn8GUr3W3DguT2KT5x3NVgRtYwmA==}
-
   tapable@2.3.3:
     resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
@@ -5999,8 +5990,6 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
-
-  tailwind-merge@3.7.0: {}
 
   tapable@2.3.3: {}
 

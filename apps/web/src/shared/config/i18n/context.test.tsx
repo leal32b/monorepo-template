@@ -1,4 +1,4 @@
-import { render, screen } from '@solidjs/testing-library'
+import { render, screen, waitFor } from '@solidjs/testing-library'
 import { I18nProvider, useI18n } from './context'
 
 const Probe = () => {
@@ -27,7 +27,7 @@ describe('I18nProvider', () => {
     expect(screen.getByText('A API está no ar: api às now')).toBeInTheDocument()
   })
 
-  it('switches the text when the locale changes', () => {
+  it('switches the text when the locale changes', async () => {
     const Switcher = () => {
       const { setLocale } = useI18n()
       return (
@@ -45,7 +45,7 @@ describe('I18nProvider', () => {
 
     screen.getByRole('button').click()
 
-    expect(screen.getByText('A API está no ar: api às now')).toBeInTheDocument()
+    expect(await screen.findByText('A API está no ar: api às now')).toBeInTheDocument()
   })
 
   it('fails loudly outside a provider', () => {
@@ -57,7 +57,7 @@ describe('I18nProvider', () => {
     expect(() => render(() => <Orphan />)).toThrow('useI18n must be used inside an I18nProvider')
   })
 
-  it('sets the document language and keeps it in sync', () => {
+  it('sets the document language and keeps it in sync', async () => {
     const Switcher = () => {
       const { setLocale } = useI18n()
       return (
@@ -75,6 +75,6 @@ describe('I18nProvider', () => {
 
     screen.getByRole('button').click()
 
-    expect(document.documentElement.lang).toBe('pt-BR')
+    await waitFor(() => expect(document.documentElement.lang).toBe('pt-BR'))
   })
 })

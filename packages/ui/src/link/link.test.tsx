@@ -14,16 +14,15 @@ describe('Link', () => {
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveClass('underline', 'focus-visible:outline-ring')
   })
 
-  it('takes the attributes it is given, and a passed class overrides its own', () => {
+  it('takes the attributes it is given, and a passed class is added to its own', () => {
     render(() => (
-      <Link href="/login" aria-describedby="hint" class="no-underline">
+      <Link href="/login" aria-describedby="hint" class="mx-1">
         Sign in
       </Link>
     ))
     const link = screen.getByRole('link', { name: 'Sign in' })
 
     expect(link).toHaveAttribute('aria-describedby', 'hint')
-    expect(link).toHaveClass('no-underline')
-    expect(link).not.toHaveClass('underline')
+    expect(link).toHaveClass('underline', 'mx-1')
   })
 })

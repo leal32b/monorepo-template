@@ -8,6 +8,8 @@ describe('PasswordField', () => {
     const toggle = screen.getByRole('button', { name: 'Show password' })
 
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
+    expect(screen.getByLabelText('Password')).toHaveClass('pl-3', 'pr-11', 'sm:pr-9')
+    expect(screen.getByLabelText('Password')).not.toHaveClass('px-3')
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
     expect(toggle).toHaveClass('h-11', 'w-11', 'sm:h-9', 'sm:w-9')
   })
@@ -16,8 +18,7 @@ describe('PasswordField', () => {
     render(() => <PasswordField label="Password" toggleLabel="Show password" />)
     const toggle = screen.getByRole('button', { name: 'Show password' })
 
-    expect(toggle).toHaveClass('hover:bg-transparent')
-    expect(toggle).not.toHaveClass('hover:bg-secondary')
+    expect(toggle.className).not.toMatch(/(^| )hover:bg-/)
     expect(toggle.firstElementChild).toHaveClass('size-8', 'group-hover:bg-secondary')
   })
 

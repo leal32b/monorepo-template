@@ -33,16 +33,15 @@ describe('Button', () => {
     expect(button).toBeDisabled()
   })
 
-  it('looks like its variant and size, and a passed class overrides its own', () => {
+  it('looks like its variant and size, and a passed class is added to its own', () => {
     render(() => (
-      <Button variant="destructive" size="sm" class="px-6">
+      <Button variant="destructive" size="sm" class="w-full">
         Delete
       </Button>
     ))
     const button = screen.getByRole('button', { name: 'Delete' })
 
-    expect(button).toHaveClass('bg-destructive', 'h-8', 'px-6')
-    expect(button).not.toHaveClass('px-3')
+    expect(button).toHaveClass('bg-destructive', 'h-8', 'px-3', 'w-full')
   })
 
   it.each([
@@ -52,5 +51,18 @@ describe('Button', () => {
     render(() => <Button size={size}>Save</Button>)
 
     expect(screen.getByRole('button', { name: 'Save' })).toHaveClass(...classes)
+  })
+
+  it('has a bare look with no hover of its own and an icon size with no padding, for a button inside a field', () => {
+    render(() => (
+      <Button variant="bare" size="icon" aria-label="Show">
+        <svg aria-hidden="true" />
+      </Button>
+    ))
+    const button = screen.getByRole('button', { name: 'Show' })
+
+    expect(button).toHaveClass('bg-transparent', 'h-11', 'w-11', 'p-0', 'sm:h-9', 'sm:w-9')
+    expect(button.className).not.toMatch(/(^| )hover:bg-/)
+    expect(button).not.toHaveClass('px-4')
   })
 })

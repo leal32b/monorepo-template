@@ -21,11 +21,10 @@ describe('QrCode', () => {
     expect(screen.getByRole('img', { name: 'QR code' })).toHaveClass('bg-qr', 'text-qr-foreground')
   })
 
-  it('takes a class for its size, which overrides its own', () => {
-    render(() => <QrCode value={uri} label="QR code" class="size-56" />)
+  it('takes a class for its place, which is added to its own', () => {
+    render(() => <QrCode value={uri} label="QR code" class="mx-auto" />)
     const image = screen.getByRole('img', { name: 'QR code' })
 
-    expect(image).toHaveClass('size-56')
-    expect(image).not.toHaveClass('size-48')
+    expect(image).toHaveClass('mx-auto', 'size-48')
   })
 })

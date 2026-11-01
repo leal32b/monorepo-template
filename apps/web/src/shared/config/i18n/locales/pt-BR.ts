@@ -18,15 +18,15 @@ export const ptBR: Messages = {
     },
     twoFactor: {
       title: 'Verificação em duas etapas',
-      on: 'Ligada: entrar com a senha também pede um código do seu app autenticador.',
-      off: 'Desligada: entrar pede só a sua senha.',
+      on: 'Ativada: entrar com a senha também pede um código do seu app autenticador.',
+      off: 'Desativada: entrar pede só a sua senha.',
       needsPassword:
-        'Ela protege a entrada com senha, então precisa de uma senha antes. O Google protege as entradas pelo Google.',
-      why: 'Ligue para que uma senha roubada não baste: entrar também vai pedir um código de um app no seu celular.',
-      enabled: 'A verificação em duas etapas está ligada.',
+        'Ela protege o login com senha, então precisa de uma senha antes. O Google protege os logins pelo Google.',
+      why: 'Ative para que uma senha roubada não baste: entrar também vai pedir um código de um app no seu celular.',
+      enabled: 'A verificação em duas etapas está ativada.',
       regenerated: 'Seus novos códigos de backup estão prontos. Os antigos não funcionam mais.',
       newCodes: 'Gerar novos códigos de backup',
-      turnOff: 'Desligar'
+      turnOff: 'Desativar'
     },
     backupCodes: {
       label: 'Códigos de backup',
@@ -50,10 +50,10 @@ export const ptBR: Messages = {
     next: 'Nova senha',
     submit: 'Trocar senha',
     signsOut: 'Trocar a senha encerra a sessão nos seus outros aparelhos.',
-    changed: 'Sua senha foi trocada. Seus outros aparelhos saíram da conta.'
+    changed: 'Sua senha foi trocada. Os outros aparelhos foram desconectados.'
   },
   createPassword: {
-    why: 'Com uma senha, você também entra com seu e-mail e pode ligar a verificação em duas etapas.',
+    why: 'Com uma senha, você também entra com seu e-mail e pode ativar a verificação em duas etapas.',
     send: 'Criar uma senha',
     sent: 'Enviamos para {{email}} um link para criar sua senha. Ele vale por 1 hora.'
   },
@@ -68,11 +68,11 @@ export const ptBR: Messages = {
     onThisPhone: 'Está neste celular?',
     openApp: 'Abra no seu app autenticador',
     key: 'Ou digite esta chave no app:',
-    turnOn: 'Ligar'
+    turnOn: 'Ativar'
   },
   disableTwoFactor: {
     what: 'Entrar volta a pedir só a sua senha, e seus códigos de backup param de funcionar.',
-    submit: 'Desligar a verificação em duas etapas'
+    submit: 'Desativar a verificação em duas etapas'
   },
   regenerateBackupCodes: {
     what: 'Os novos códigos substituem os que você tem, que param de funcionar.',
@@ -99,12 +99,12 @@ export const ptBR: Messages = {
     home: 'Ir para o início'
   },
   appShell: {
-    signedInAs: 'Entrou como {{name}}',
+    signedInAs: 'Sessão iniciada como {{name}}',
     signOut: 'Sair'
   },
   session: {
     unavailable: {
-      title: 'Não conseguimos verificar sua entrada',
+      title: 'Não conseguimos verificar seu login',
       description: 'Confira sua conexão e tente de novo.',
       retry: 'Tentar de novo'
     }
@@ -113,7 +113,7 @@ export const ptBR: Messages = {
     checking: 'Verificando a API…',
     up: 'A API está no ar: {{service}} às {{time}}',
     degraded: 'A API está no ar, mas o banco de dados não responde.',
-    unreachable: 'Não consegui falar com a API.',
+    unreachable: 'Não foi possível falar com a API.',
     unexpected: 'A API respondeu algo inesperado.',
     error: 'A API respondeu com erro.',
     errorWithCode: 'A API respondeu com erro ({{code}}).',
@@ -122,7 +122,7 @@ export const ptBR: Messages = {
   },
   failure: {
     network: 'Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.',
-    rateLimited: 'Tentativas demais. Espere um minuto e tente de novo.',
+    rateLimited: 'Muitas tentativas. Espere um minuto e tente de novo.',
     unexpected: 'Algo deu errado do nosso lado. Tente de novo em instantes.',
     reference: 'Se continuar, informe ao suporte: {{reference}}'
   },
@@ -173,12 +173,12 @@ export const ptBR: Messages = {
       or: 'ou',
       continue: 'Continuar com o Google',
       errors: {
-        cancelled: 'A entrada com o Google foi cancelada. Tente de novo ou entre com seu e-mail.',
+        cancelled: 'O login com o Google foi cancelado. Tente de novo ou entre com seu e-mail.',
         unverified: 'O Google ainda não confirmou este e-mail. Confirme no Google ou entre com seu e-mail.',
         notLinked:
           'Este e-mail já tem uma conta ainda não confirmada. Abra o link que enviamos para ele e tente o Google de novo.',
-        interrupted: 'A entrada com o Google não terminou. Tente de novo a partir desta página.',
-        failed: 'A entrada com o Google não funcionou. Tente de novo em instantes.'
+        interrupted: 'O login com o Google não terminou. Tente de novo a partir desta página.',
+        failed: 'O login com o Google não funcionou. Tente de novo em instantes.'
       }
     }
   },
@@ -226,8 +226,8 @@ export const ptBR: Messages = {
       codeWrong: 'Este código não está certo. Digite o que o app mostra agora.',
       backupInvalid: 'Digite um código de backup como você o guardou, por exemplo a8Kd2-Xm9Qz.',
       backupWrong: 'Este código de backup não está certo ou já foi usado. Cada um funciona uma vez.',
-      expired: 'Esta entrada expirou. Entre de novo para receber um novo código.',
-      locked: 'Códigos errados demais. Por segurança, espere 15 minutos e entre de novo.'
+      expired: 'Este login expirou. Entre de novo para receber um novo código.',
+      locked: 'Muitos códigos errados. Por segurança, espere 15 minutos e entre de novo.'
     }
   },
   resendConfirmation: {

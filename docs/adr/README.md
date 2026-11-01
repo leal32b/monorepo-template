@@ -9,7 +9,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0002](0002-pnpm-workspaces-without-a-task-runner.md) | pnpm workspaces without a task runner | accepted |
 | [0003](0003-postgres-as-the-database.md) | Postgres as the database | accepted |
 | [0004](0004-tooling-biome-vitest-and-git-hooks.md) | Tooling: TypeScript, Biome, Vitest and Git hooks | accepted |
-| [0005](0005-contracts-as-zod-schemas.md) | Contracts as Zod schemas in a shared package | accepted |
+| [0005](0005-contracts-as-zod-schemas.md) | Contracts as Zod schemas in a shared package | accepted; schema API refined by [0024](0024-write-schemas-with-zod-mini.md) |
 | [0006](0006-api-architecture.md) | API architecture: use-case slices, ports and a composition root | accepted |
 | [0007](0007-http-pipeline-on-node-http.md) | HTTP pipeline on plain `node:http` | accepted |
 | [0008](0008-architecture-boundaries-with-dependency-cruiser.md) | Architecture boundaries enforced by dependency-cruiser | accepted |
@@ -20,7 +20,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0013](0013-kysely-and-plain-sql-migrations.md) | Access Postgres with Kysely and migrate with plain SQL files | accepted; lock superseded by [0018](0018-take-the-migration-lock-inside-each-transaction.md) |
 | [0014](0014-hosting-and-deploy-from-github-actions.md) | Host on Neon, Render and Cloudflare, deployed from GitHub Actions | accepted; web Worker extended by [0019](0019-reach-the-api-through-the-web-worker.md) |
 | [0015](0015-cross-origin-access-with-a-cors-allowlist.md) | Serve the web origin with a CORS allowlist, `OPTIONS` and `HEAD` | accepted; production path superseded by [0019](0019-reach-the-api-through-the-web-worker.md) |
-| [0016](0016-design-system-on-kobalte-and-unocss.md) | Build the design system on Kobalte and UnoCSS, consumed from source | accepted |
+| [0016](0016-design-system-on-kobalte-and-unocss.md) | Build the design system on Kobalte and UnoCSS, consumed from source | accepted; passed class superseded by [0025](0025-add-a-passed-class-instead-of-merging-it.md) |
 | [0017](0017-build-the-web-ui-from-the-design-system-first.md) | Build the web UI from the design system first | accepted |
 | [0018](0018-take-the-migration-lock-inside-each-transaction.md) | Take the migration lock inside each migration's transaction | accepted |
 | [0019](0019-reach-the-api-through-the-web-worker.md) | Reach the API through the web Worker, on the web origin | accepted; cookie prefix superseded by [0020](0020-authenticate-with-better-auth.md), client IP header by [0022](0022-accept-api-requests-only-from-the-web-worker.md) |
@@ -28,3 +28,5 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0021](0021-send-email-through-a-provider-neutral-port.md) | Send email through a provider-neutral port | accepted |
 | [0022](0022-accept-api-requests-only-from-the-web-worker.md) | Accept API requests only from the web Worker | accepted |
 | [0023](0023-draw-the-authenticator-qr-code-in-the-browser.md) | Draw the authenticator QR code in the browser | accepted |
+| [0024](0024-write-schemas-with-zod-mini.md) | Write schemas with Zod Mini | accepted |
+| [0025](0025-add-a-passed-class-instead-of-merging-it.md) | Add a passed class instead of merging it | accepted |

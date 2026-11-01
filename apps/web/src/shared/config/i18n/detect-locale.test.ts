@@ -5,6 +5,8 @@ describe('detectLocale', () => {
     [['pt-BR', 'en'], 'pt-BR'],
     [['pt'], 'pt-BR'],
     [['pt-PT'], 'pt-BR'],
+    [['es'], 'es'],
+    [['es-MX', 'en'], 'es'],
     [['en-US'], 'en'],
     [['en'], 'en']
   ])('picks the supported language of %j: %s', (languages, expected) => {

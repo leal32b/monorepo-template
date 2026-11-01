@@ -1,5 +1,5 @@
 import { type ApiProblem, apiProblemSchema } from '@repo/contracts'
-import type { z } from 'zod'
+import type * as z from 'zod/mini'
 
 export type ApiErrorKind = 'network' | 'http' | 'contract'
 
@@ -37,7 +37,7 @@ export type GetOptions = {
 const readJson = (response: Response): Promise<unknown> => response.json().catch(() => undefined)
 
 export function createApiClient({ fetch, baseUrl = '' }: ApiClientOptions) {
-  async function get<T>(path: string, schema: z.ZodType<T>, { accept = [] }: GetOptions = {}): Promise<T> {
+  async function get<T>(path: string, schema: z.ZodMiniType<T>, { accept = [] }: GetOptions = {}): Promise<T> {
     let response: Response
     try {
       response = await fetch(`${baseUrl}${path}`, {

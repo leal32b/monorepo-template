@@ -1,5 +1,5 @@
 import type { IncomingMessage } from 'node:http'
-import type { z } from 'zod'
+import type * as z from 'zod/mini'
 import { HttpProblem } from './problem'
 
 /** Largest request body accepted, Fastify's default: our routes take forms, not files. */
@@ -54,7 +54,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
  * The JSON body, checked against a schema from `@repo/contracts`. A mismatch is a 400 that lists
  * each invalid field; unknown fields are dropped, as Zod does.
  */
-export async function readValidJson<Schema extends z.ZodType>(
+export async function readValidJson<Schema extends z.ZodMiniType>(
   req: IncomingMessage,
   schema: Schema
 ): Promise<z.output<Schema>> {
