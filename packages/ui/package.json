@@ -25,7 +25,8 @@
     "@unocss/preset-wind4": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
-    "lean-qr": "catalog:"
+    "lean-qr": "catalog:",
+    "lucide-solid": "catalog:"
   },
   "devDependencies": {
     "@solidjs/testing-library": "catalog:",

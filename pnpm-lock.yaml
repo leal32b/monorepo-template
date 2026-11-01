@@ -242,6 +242,9 @@ catalogs:
     lefthook:
       specifier: ^2.2.2
       version: 2.2.2
+    lucide-solid:
+      specifier: ^1.62.0
+      version: 1.65.0
     pg:
       specifier: ^8.23.1
       version: 8.23.1
@@ -454,6 +457,9 @@ importers:
       lean-qr:
         specifier: 'catalog:'
         version: 2.7.4
+      lucide-solid:
+        specifier: 'catalog:'
+        version: 1.65.0(solid-js@1.9.17)
     devDependencies:
       '@solidjs/testing-library':
         specifier: 'catalog:'
@@ -2809,6 +2815,11 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lucide-solid@1.65.0:
+    resolution: {integrity: sha512-KZQqi/WlbQ/5f1TFaQ1EnNOOFi5YD70aLZkAUWb7E9SxS/KcO+UfkqEYNJeHT/CZTsnRQQ6vNA4tOS1lihu4lg==}
+    peerDependencies:
+      solid-js: ^1.4.7
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -5513,6 +5524,10 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lucide-solid@1.65.0(solid-js@1.9.17):
+    dependencies:
+      solid-js: 1.9.17
 
   lz-string@1.5.0: {}
 

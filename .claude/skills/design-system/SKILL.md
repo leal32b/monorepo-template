@@ -98,6 +98,11 @@ Elements must not "tremble" between states or screens.
     `destructive` stays for errors and the actions that remove.
 - **Selected without a shadow.** A segmented control (or any selected item in a group) shows its
   selection with a `border` outline on `background`, not a shadow, in line with "no shadows".
+- **Icons** ([ADR 0027](../../../docs/adr/0027-wrap-one-icon-set-in-the-design-system.md)): only
+  through `<Icon name>` from `@repo/ui`, never an import of the set or an inline `<svg>`. Named for
+  what it means (`security`, not `shield`). An icon beside text is decorative and says nothing; an
+  icon alone (an icon-only button) takes a `label`. It follows the text's size (`em`); colour comes
+  from the text role around it.
 
 ## States and interaction
 
