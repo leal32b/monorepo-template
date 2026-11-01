@@ -31,7 +31,7 @@ export function Menu(props: MenuProps) {
         {local.trigger}
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content class="z-50 min-w-56 rounded-md border border-border-subtle bg-background p-1.5 text-base outline-none sm:text-sm">
+        <DropdownMenu.Content class="ds-pop z-50 min-w-56 rounded-md border border-border-subtle bg-background p-1.5 text-base outline-none sm:text-sm">
           {local.children}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

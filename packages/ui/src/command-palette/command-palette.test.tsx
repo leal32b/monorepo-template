@@ -47,7 +47,15 @@ describe('CommandPalette', () => {
   it('dims the page behind it with the scrim, which stays dark in both themes', () => {
     render(() => <Palette />)
 
-    expect(document.querySelector('.fixed.inset-0')).toHaveClass('bg-scrim/60')
+    expect(document.querySelector('.fixed.inset-0')).toHaveClass('bg-scrim/60', 'ds-scrim')
+  })
+
+  it('appears with the dialog motion, and stays centred without a transform the motion would undo', () => {
+    render(() => <Palette />)
+    const dialog = screen.getByRole('dialog')
+
+    expect(dialog).toHaveClass('ds-dialog', 'inset-x-4', 'mx-auto')
+    expect(dialog.className).not.toContain('translate')
   })
 
   it('is not there until opened', () => {

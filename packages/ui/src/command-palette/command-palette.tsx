@@ -40,8 +40,8 @@ export function CommandPalette(props: CommandPaletteProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay class="fixed inset-0 z-40 bg-scrim/60" />
-        <Dialog.Content class="fixed top-[10vh] left-1/2 z-50 flex max-h-[70vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 flex-col overflow-hidden rounded-md border border-border-subtle bg-background outline-none">
+        <Dialog.Overlay class="ds-scrim fixed inset-0 z-40 bg-scrim/60" />
+        <Dialog.Content class="ds-dialog fixed inset-x-4 top-[10vh] z-50 mx-auto flex max-h-[70vh] max-w-lg flex-col overflow-hidden rounded-md border border-border-subtle bg-background outline-none">
           <Dialog.Title class="sr-only">{props.title}</Dialog.Title>
           <Search {...props} />
         </Dialog.Content>

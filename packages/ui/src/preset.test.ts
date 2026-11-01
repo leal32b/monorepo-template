@@ -56,6 +56,13 @@ describe('presetUi', () => {
     expect(await generate('bg-transparent')).toContain('.bg-transparent{background-color:transparent;}')
   })
 
+  it('brings the motion of the layers with its base styles', async () => {
+    const css = await generate('', { preflights: true })
+
+    expect(css).toContain('.ds-sheet[data-expanded]{animation:ds-sheet ')
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)')
+  })
+
   it('keeps the scrollbar gutter, so a page that scrolls and one that does not line up', async () => {
     expect(await generate('', { preflights: true })).toContain('html{scrollbar-gutter:stable}')
   })

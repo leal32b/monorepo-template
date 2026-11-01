@@ -24,6 +24,13 @@ describe('Popover', () => {
     expect(trigger()).toHaveAttribute('aria-expanded', 'true')
   })
 
+  it('opens with the pop motion, from its button', async () => {
+    render(() => <Status />)
+    fireEvent.click(trigger())
+
+    expect(await screen.findByRole('dialog')).toHaveClass('ds-pop')
+  })
+
   it('closes with its close button', async () => {
     render(() => <Status />)
     fireEvent.click(trigger())

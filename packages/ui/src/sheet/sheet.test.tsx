@@ -22,9 +22,10 @@ describe('Sheet', () => {
   it('dims the page with the scrim, which stays dark in both themes', async () => {
     render(() => <Drawer />)
     fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
-    await screen.findByRole('dialog')
+    const dialog = await screen.findByRole('dialog')
 
-    expect(document.querySelector('.fixed.inset-0')).toHaveClass('bg-scrim/60')
+    expect(document.querySelector('.fixed.inset-0')).toHaveClass('bg-scrim/60', 'ds-scrim')
+    expect(dialog).toHaveClass('ds-sheet')
   })
 
   it('is hidden until opened, then a modal dialog named by its title holding the menu', async () => {

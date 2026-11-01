@@ -38,7 +38,7 @@ export function Popover(props: PopoverProps) {
         {local.trigger}
       </Kobalte.Trigger>
       <Kobalte.Portal>
-        <Kobalte.Content class="z-50 flex w-56 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-md border border-border-subtle bg-background p-4 text-base outline-none sm:text-sm">
+        <Kobalte.Content class="ds-pop z-50 flex w-56 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-md border border-border-subtle bg-background p-4 text-base outline-none sm:text-sm">
           <Kobalte.Title class="font-semibold">{local.title}</Kobalte.Title>
           {local.children}
           <Kobalte.CloseButton

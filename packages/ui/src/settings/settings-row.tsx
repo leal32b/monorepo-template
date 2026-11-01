@@ -77,7 +77,7 @@ export function SettingsRow(props: SettingsRowProps) {
       </div>
       <Show when={local.panel}>
         {(panel) => (
-          <div class="flex flex-col gap-4 border-t border-border-subtle bg-surface p-4 sm:p-5">{panel()}</div>
+          <div class="ds-reveal flex flex-col gap-4 border-t border-border-subtle bg-surface p-4 sm:p-5">{panel()}</div>
         )}
       </Show>
     </div>

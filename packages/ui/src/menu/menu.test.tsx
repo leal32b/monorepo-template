@@ -53,6 +53,13 @@ describe('Menu', () => {
     expect(document.body.style.pointerEvents).not.toBe('none')
   })
 
+  it('opens with the pop motion, from its button', async () => {
+    render(() => <Account />)
+    open()
+
+    expect(await screen.findByRole('menu')).toHaveClass('ds-pop')
+  })
+
   it('closes on Escape', async () => {
     render(() => <Account />)
     open()
