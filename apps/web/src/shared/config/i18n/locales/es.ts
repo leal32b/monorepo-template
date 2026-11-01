@@ -8,10 +8,33 @@ export const es: Messages = {
     title: 'Plantilla de monorepo'
   },
   profile: {
-    title: 'Perfil'
+    title: 'Perfil',
+    details: {
+      title: 'Tus datos',
+      description: 'Cómo apareces en la app y en los correos que envía.',
+      name: 'Nombre',
+      email: 'Correo electrónico'
+    }
   },
   preferences: {
-    title: 'Preferencias'
+    title: 'Preferencias',
+    appearance: {
+      title: 'Apariencia',
+      description: 'Guardado en este navegador.'
+    },
+    theme: {
+      title: 'Tema',
+      description: '«Sistema» sigue el modo claro u oscuro de tu dispositivo.',
+      system: 'Sistema',
+      light: 'Claro',
+      dark: 'Oscuro'
+    },
+    language: {
+      title: 'Idioma',
+      description: 'Guardado en este navegador.',
+      screens: 'Idioma de las pantallas',
+      emails: 'Los correos siguen en el idioma con el que creaste tu cuenta.'
+    }
   },
   /** Words that buttons share across screens. */
   actions: {

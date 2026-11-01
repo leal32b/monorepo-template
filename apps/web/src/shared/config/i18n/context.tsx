@@ -1,5 +1,7 @@
 import * as i18n from '@solid-primitives/i18n'
 import { createContext, createEffect, createMemo, createSignal, type ParentProps, useContext } from 'solid-js'
+import { store } from '../device/device-storage'
+import { localeKey } from './device-locale'
 import { getMessages, type Locale, loadMessages } from './messages'
 
 function createI18n(initial: Locale) {
@@ -10,10 +12,14 @@ function createI18n(initial: Locale) {
   createEffect(() => {
     document.documentElement.lang = locale()
   })
-  /** Fetches the language first, so the screen never shows text that is not there yet. */
+  /**
+   * Fetches the language first, so the screen never shows text that is not there yet, and keeps it
+   * on this device for the next visit.
+   */
   const changeLocale = async (next: Locale) => {
     await loadMessages(next)
     setLocale(next)
+    store(localeKey, next)
   }
   return { locale, setLocale: changeLocale, t }
 }

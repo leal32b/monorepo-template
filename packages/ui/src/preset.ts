@@ -6,13 +6,16 @@ import { color, roles, type ThemeName } from '#tokens'
 const variables = (theme: ThemeName) => roles.map((role) => `--ds-${role}:${color(theme, role)};`).join('')
 
 /**
- * The tokens and the page's base: light by default, dark when the system prefers it. The scrollbar
- * gutter stays reserved, so a page that scrolls and one that does not line up.
+ * The tokens and the page's base: light by default, dark when the system prefers it, and a theme
+ * chosen on the device (`data-theme` on <html>) over the system's (ADR 0028). The scrollbar gutter
+ * stays reserved, so a page that scrolls and one that does not line up.
  */
 const base = [
   'html{scrollbar-gutter:stable}',
   `:root{color-scheme:light dark;${variables('light')}}`,
-  `@media (prefers-color-scheme: dark){:root{${variables('dark')}}}`,
+  ':root[data-theme=light]{color-scheme:light}',
+  `:root[data-theme=dark]{color-scheme:dark;${variables('dark')}}`,
+  `@media (prefers-color-scheme: dark){:root:not([data-theme=light]){${variables('dark')}}}`,
   'body{background-color:var(--ds-background);color:var(--ds-foreground)}'
 ].join('')
 

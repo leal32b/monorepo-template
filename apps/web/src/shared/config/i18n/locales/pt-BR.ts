@@ -8,10 +8,33 @@ export const ptBR: Messages = {
     title: 'Template de monorepo'
   },
   profile: {
-    title: 'Perfil'
+    title: 'Perfil',
+    details: {
+      title: 'Seus dados',
+      description: 'Como você aparece no app e nos e-mails que ele envia.',
+      name: 'Nome',
+      email: 'E-mail'
+    }
   },
   preferences: {
-    title: 'Preferências'
+    title: 'Preferências',
+    appearance: {
+      title: 'Aparência',
+      description: 'Salvo neste navegador.'
+    },
+    theme: {
+      title: 'Tema',
+      description: '"Sistema" segue o claro ou escuro do seu aparelho.',
+      system: 'Sistema',
+      light: 'Claro',
+      dark: 'Escuro'
+    },
+    language: {
+      title: 'Idioma',
+      description: 'Salvo neste navegador.',
+      screens: 'Idioma das telas',
+      emails: 'Os e-mails continuam no idioma em que você criou a conta.'
+    }
   },
   /** Words that buttons share across screens. */
   actions: {

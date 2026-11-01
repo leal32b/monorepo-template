@@ -48,6 +48,27 @@ describe('I18nProvider', () => {
     expect(await screen.findByText('Verificado às now')).toBeInTheDocument()
   })
 
+  it('keeps a changed language on the device', async () => {
+    const Switcher = () => {
+      const { setLocale } = useI18n()
+      return (
+        <button type="button" onClick={() => setLocale('es')}>
+          switch
+        </button>
+      )
+    }
+    render(() => (
+      <I18nProvider locale="en">
+        <Switcher />
+      </I18nProvider>
+    ))
+
+    screen.getByRole('button').click()
+
+    await waitFor(() => expect(localStorage.getItem('locale')).toBe('es'))
+    localStorage.clear()
+  })
+
   it('fails loudly outside a provider', () => {
     const Orphan = () => {
       useI18n()

@@ -10,7 +10,7 @@ import { SignInPage } from '#pages/sign-in'
 import { SignUpPage } from '#pages/sign-up'
 import { TwoFactorPage } from '#pages/two-factor'
 import { type ApiClient, ApiProvider, type AuthClient, AuthProvider } from '#shared/api'
-import { I18nProvider, type Locale } from '#shared/config'
+import { I18nProvider, type Locale, ThemeProvider } from '#shared/config'
 import { AccountRedirect } from './account-redirect'
 import { RequireSession } from './require-session'
 
@@ -22,29 +22,31 @@ const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default
 
 export function App(props: { client: ApiClient; auth: AuthClient; locale: Locale }) {
   return (
-    <I18nProvider locale={props.locale}>
-      <ApiProvider client={props.client}>
-        <AuthProvider client={props.auth}>
-          <Router>
-            <Route path="/" component={RequireSession}>
-              <Route path="/" component={HomePage} />
-              <Route path="/settings">
-                <Route path="/" component={() => <Navigate href="/settings/profile" />} />
-                <Route path="/profile" component={ProfilePage} />
-                <Route path="/security" component={SecurityPage} />
-                <Route path="/preferences" component={PreferencesPage} />
+    <ThemeProvider>
+      <I18nProvider locale={props.locale}>
+        <ApiProvider client={props.client}>
+          <AuthProvider client={props.auth}>
+            <Router>
+              <Route path="/" component={RequireSession}>
+                <Route path="/" component={HomePage} />
+                <Route path="/settings">
+                  <Route path="/" component={() => <Navigate href="/settings/profile" />} />
+                  <Route path="/profile" component={ProfilePage} />
+                  <Route path="/security" component={SecurityPage} />
+                  <Route path="/preferences" component={PreferencesPage} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="/account" component={AccountRedirect} />
-            <Route path="/signup" component={SignUpPage} />
-            <Route path="/login" component={SignInPage} />
-            <Route path="/login/two-factor" component={TwoFactorPage} />
-            <Route path="/forgot-password" component={ForgotPasswordPage} />
-            <Route path="/reset-password" component={ResetPasswordPage} />
-            <Route path="*404" component={NotFoundPage} />
-          </Router>
-        </AuthProvider>
-      </ApiProvider>
-    </I18nProvider>
+              <Route path="/account" component={AccountRedirect} />
+              <Route path="/signup" component={SignUpPage} />
+              <Route path="/login" component={SignInPage} />
+              <Route path="/login/two-factor" component={TwoFactorPage} />
+              <Route path="/forgot-password" component={ForgotPasswordPage} />
+              <Route path="/reset-password" component={ResetPasswordPage} />
+              <Route path="*404" component={NotFoundPage} />
+            </Router>
+          </AuthProvider>
+        </ApiProvider>
+      </I18nProvider>
+    </ThemeProvider>
   )
 }

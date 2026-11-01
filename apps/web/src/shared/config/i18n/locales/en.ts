@@ -6,10 +6,33 @@ export const en = {
     title: 'Monorepo template'
   },
   profile: {
-    title: 'Profile'
+    title: 'Profile',
+    details: {
+      title: 'Your details',
+      description: 'How you appear in the app and in the emails it sends.',
+      name: 'Name',
+      email: 'Email'
+    }
   },
   preferences: {
-    title: 'Preferences'
+    title: 'Preferences',
+    appearance: {
+      title: 'Appearance',
+      description: 'Saved in this browser.'
+    },
+    theme: {
+      title: 'Theme',
+      description: '"System" follows the light or dark setting of your device.',
+      system: 'System',
+      light: 'Light',
+      dark: 'Dark'
+    },
+    language: {
+      title: 'Language',
+      description: 'Saved in this browser.',
+      screens: 'Language of the screens',
+      emails: 'Emails keep the language you signed up in.'
+    }
   },
   /** Words that buttons share across screens. */
   actions: {

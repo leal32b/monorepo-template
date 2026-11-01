@@ -15,12 +15,26 @@ describe('presetUi', () => {
   })
 
   it('declares every role as a CSS variable: light by default, dark when the system prefers it', async () => {
-    const [light, dark] = (await generate('', { preflights: true })).split('@media (prefers-color-scheme: dark)')
+    const css = await generate('', { preflights: true })
+    const light = css.slice(css.indexOf(':root{'), css.indexOf('}', css.indexOf(':root{')))
+    const system = css.slice(css.indexOf('@media (prefers-color-scheme: dark){:root:not([data-theme=light]){'))
 
     for (const role of roles) {
       expect(light).toContain(`--ds-${role}:${color('light', role)};`)
-      expect(dark).toContain(`--ds-${role}:${color('dark', role)};`)
+      expect(system).toContain(`--ds-${role}:${color('dark', role)};`)
     }
+  })
+
+  it('lets a theme chosen on the device win over the system (ADR 0028)', async () => {
+    const css = await generate('', { preflights: true })
+    const dark = css.slice(
+      css.indexOf(':root[data-theme=dark]{'),
+      css.indexOf('}', css.indexOf(':root[data-theme=dark]{'))
+    )
+
+    expect(dark).toContain('color-scheme:dark;')
+    for (const role of roles) expect(dark).toContain(`--ds-${role}:${color('dark', role)};`)
+    expect(css).toContain(':root[data-theme=light]{color-scheme:light}')
   })
 
   it('paints the page with the background and foreground roles', async () => {
