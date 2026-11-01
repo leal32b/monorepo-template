@@ -38,6 +38,18 @@ describe('App', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Create your account')
   })
 
+  it('shows Google at the first paint when the app already knows the API has it, without asking again', () => {
+    const fetch = vi.fn(async () => Response.json(null))
+    const client = createApiClient({ fetch })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/login')
+
+    render(() => <App client={client} auth={auth} locale="en" identity={{ google: true }} />)
+
+    expect(screen.getByRole('button', { name: 'Continue with Google' }).closest('.invisible')).toBeNull()
+    expect(fetch).not.toHaveBeenCalledWith('/api/identity/options', expect.anything())
+  })
+
   it('serves the sign-in page at /login', () => {
     const client = createApiClient({ fetch: async () => Response.json(null) })
     const auth = createAuthClient({ fetch: async () => Response.json(null) })

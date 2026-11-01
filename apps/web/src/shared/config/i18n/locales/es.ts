@@ -255,7 +255,7 @@ export const es: Messages = {
     checkEmail: {
       title: 'Revisa tu correo',
       description: 'Confirma tu dirección para terminar.',
-      sentTo: 'Enviamos un enlace a {{email}}.',
+      sentTo: 'Enviamos un enlace a',
       notThere: '¿No está en tu bandeja de entrada? Revisa el spam, o envíalo de nuevo.',
       wrongAddress: '¿Dirección equivocada?',
       useAnother: 'Usar otro correo'

@@ -1,5 +1,6 @@
 import 'virtual:uno.css'
 import { render } from 'solid-js/web'
+import { loadIdentityOptions } from '#entities/identity-options'
 import { createApiClient, createAuthClient } from '#shared/api'
 import { detectLocale, loadMessages, readDeviceLocale, readWebEnv } from '#shared/config'
 import { reloadOnStaleBuild } from '#shared/lib'
@@ -20,4 +21,8 @@ const auth = createAuthClient({ fetch })
 // the one chosen on this device or else the browser's (ADR 0028).
 // Not a top-level await: it makes the bundler cut the entry in two, for no gain.
 const locale = readDeviceLocale() ?? detectLocale(navigator.languages)
-loadMessages(locale).then(() => render(() => <App client={client} auth={auth} locale={locale} />, root))
+// The first paint also waits, a moment at most, for what the API offers for signing in, so the entry
+// screens know at once whether to show Google and nothing moves when the answer comes.
+Promise.all([loadMessages(locale), loadIdentityOptions(client, 1500)]).then(([, identity]) =>
+  render(() => <App client={client} auth={auth} locale={locale} identity={identity} />, root)
+)

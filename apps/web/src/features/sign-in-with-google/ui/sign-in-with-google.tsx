@@ -1,7 +1,7 @@
-import { identityOptionsSchema } from '@repo/contracts'
 import { Alert, Button, Icon } from '@repo/ui'
-import { createResource, createSignal, Show } from 'solid-js'
-import { type AuthFailure, callAuth, useApi, useAuth } from '#shared/api'
+import { createSignal, Show } from 'solid-js'
+import { useIdentityOptions } from '#entities/identity-options'
+import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
 
@@ -23,14 +23,14 @@ const known = new Map<string, 'cancelled' | 'unverified' | 'notLinked' | 'interr
 /**
  * "Continue with Google" and the "or" that leads on to the form below it, when the API has Google on.
  * It comes first, since for most people it is the quickest way in; the form's own button stays last.
- * Its room is kept, unseen, while the API is asked, so nothing below it moves when it appears. Better Auth answers with Google's page, and the
+ * The app asks the API at start-up, so it is known at the first paint and nothing moves; when it is
+ * not, the room is kept, unseen, while the screen asks. Better Auth answers with Google's page, and the
  * browser goes there; an error Google sign-in came back with shows below the button.
  */
 export function SignInWithGoogle(props: SignInWithGoogleProps) {
-  const api = useApi()
   const auth = useAuth()
   const { t } = useI18n()
-  const [options] = createResource(() => api.get('/api/identity/options', identityOptionsSchema))
+  const options = useIdentityOptions()
   const [pending, setPending] = createSignal(false)
   const [failure, setFailure] = createSignal<AuthFailure>()
 
@@ -57,8 +57,8 @@ export function SignInWithGoogle(props: SignInWithGoogleProps) {
   }
 
   return (
-    <Show when={options.loading || (options.state === 'ready' && options().google)}>
-      <div class="flex flex-col gap-4" classList={{ invisible: options.loading }}>
+    <Show when={options() === undefined || options()?.google}>
+      <div class="flex flex-col gap-4" classList={{ invisible: options() === undefined }}>
         <Button variant="outline" class="w-full" disabled={pending()} onClick={go}>
           <Icon name="google" />
           {t('signIn.google.continue')}

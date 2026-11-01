@@ -1,10 +1,10 @@
-import { identityOptionsSchema } from '@repo/contracts'
 import { Badge, SettingsRow } from '@repo/ui'
-import { createResource, createSignal, Show } from 'solid-js'
+import { createSignal, Show } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
+import { useIdentityOptions } from '#entities/identity-options'
 import { LinkGoogle, LinkGoogleError } from '#features/link-google'
 import { UnlinkGoogle, UnlinkGoogleFailure } from '#features/unlink-google'
-import { type AuthFailure, useApi } from '#shared/api'
+import type { AuthFailure } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
 
@@ -23,9 +23,8 @@ export type GoogleRowProps = {
  * is said in it.
  */
 export function GoogleRow(props: GoogleRowProps) {
-  const api = useApi()
   const { t } = useI18n()
-  const [options] = createResource(() => api.get('/api/identity/options', identityOptionsSchema))
+  const options = useIdentityOptions()
   const [status, setStatus] = createSignal<string>()
   const [linkFailure, setLinkFailure] = createSignal<AuthFailure>()
   const [unlinkFailure, setUnlinkFailure] = createSignal<AuthFailure>()
@@ -36,7 +35,7 @@ export function GoogleRow(props: GoogleRowProps) {
   const problem = () => linkFailure() ?? unlinkFailure() ?? code()
 
   return (
-    <Show when={linked() || (options.state === 'ready' && options().google)}>
+    <Show when={linked() || options()?.google}>
       <SettingsRow
         ref={(element) => {
           row = element

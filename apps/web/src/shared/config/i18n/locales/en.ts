@@ -254,7 +254,7 @@ export const en = {
     checkEmail: {
       title: 'Check your email',
       description: 'Confirm your address to finish.',
-      sentTo: 'We sent a link to {{email}}.',
+      sentTo: 'We sent a link to',
       notThere: 'Not in your inbox? Check spam, or send it again.',
       wrongAddress: 'Wrong address?',
       useAnother: 'Use another email'

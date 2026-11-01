@@ -254,7 +254,7 @@ export const ptBR: Messages = {
     checkEmail: {
       title: 'Confira seu e-mail',
       description: 'Confirme seu endereço para terminar.',
-      sentTo: 'Enviamos um link para {{email}}.',
+      sentTo: 'Enviamos um link para',
       notThere: 'Não chegou? Confira o spam ou envie de novo.',
       wrongAddress: 'Endereço errado?',
       useAnother: 'Usar outro e-mail'

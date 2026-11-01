@@ -54,7 +54,9 @@ export function SignUpPage() {
           }
         >
           <div class="flex flex-col gap-4">
-            <p class="break-words">{t('signUp.checkEmail.sentTo', { email: values().email })}</p>
+            <p class="break-words">
+              {t('signUp.checkEmail.sentTo')} <strong class="font-semibold">{values().email}</strong>.
+            </p>
             <p class="text-muted-foreground">{t('signUp.checkEmail.notThere')}</p>
             <OpenMail email={values().email} />
             <ResendConfirmation email={values().email} justSent />

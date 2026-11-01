@@ -63,7 +63,8 @@ describe('SignUpPage', () => {
 
     const heading = await screen.findByRole('heading', { level: 1, name: 'Check your email' })
     expect(heading).toHaveFocus()
-    expect(screen.getByText('We sent a link to ada@example.com.')).toBeInTheDocument()
+    expect(screen.getByText(/^We sent a link to/)).toHaveTextContent('We sent a link to ada@example.com.')
+    expect(screen.getByText('ada@example.com')).toHaveClass('font-semibold')
     expect(screen.queryByRole('button', { name: 'Create account' })).not.toBeInTheDocument()
   })
 

@@ -1,5 +1,7 @@
+import type { IdentityOptions } from '@repo/contracts'
 import { Navigate, Route, Router } from '@solidjs/router'
 import { lazy } from 'solid-js'
+import { IdentityOptionsProvider } from '#entities/identity-options'
 import { ForgotPasswordPage } from '#pages/forgot-password'
 import { HomePage } from '#pages/home'
 import { NotFoundPage } from '#pages/not-found'
@@ -20,31 +22,39 @@ import { RequireSession } from './require-session'
  */
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
 
-export function App(props: { client: ApiClient; auth: AuthClient; locale: Locale }) {
+export function App(props: {
+  client: ApiClient
+  auth: AuthClient
+  locale: Locale
+  /** What the API offers for signing in, if it answered at start-up (`loadIdentityOptions`). */
+  identity?: IdentityOptions | undefined
+}) {
   return (
     <ThemeProvider>
       <I18nProvider locale={props.locale}>
         <PaletteProvider>
           <ApiProvider client={props.client}>
             <AuthProvider client={props.auth}>
-              <Router>
-                <Route path="/" component={RequireSession}>
-                  <Route path="/" component={HomePage} />
-                  <Route path="/settings">
-                    <Route path="/" component={() => <Navigate href="/settings/profile" />} />
-                    <Route path="/profile" component={ProfilePage} />
-                    <Route path="/security" component={SecurityPage} />
-                    <Route path="/preferences" component={PreferencesPage} />
+              <IdentityOptionsProvider options={props.identity}>
+                <Router>
+                  <Route path="/" component={RequireSession}>
+                    <Route path="/" component={HomePage} />
+                    <Route path="/settings">
+                      <Route path="/" component={() => <Navigate href="/settings/profile" />} />
+                      <Route path="/profile" component={ProfilePage} />
+                      <Route path="/security" component={SecurityPage} />
+                      <Route path="/preferences" component={PreferencesPage} />
+                    </Route>
                   </Route>
-                </Route>
-                <Route path="/account" component={AccountRedirect} />
-                <Route path="/signup" component={SignUpPage} />
-                <Route path="/login" component={SignInPage} />
-                <Route path="/login/two-factor" component={TwoFactorPage} />
-                <Route path="/forgot-password" component={ForgotPasswordPage} />
-                <Route path="/reset-password" component={ResetPasswordPage} />
-                <Route path="*404" component={NotFoundPage} />
-              </Router>
+                  <Route path="/account" component={AccountRedirect} />
+                  <Route path="/signup" component={SignUpPage} />
+                  <Route path="/login" component={SignInPage} />
+                  <Route path="/login/two-factor" component={TwoFactorPage} />
+                  <Route path="/forgot-password" component={ForgotPasswordPage} />
+                  <Route path="/reset-password" component={ResetPasswordPage} />
+                  <Route path="*404" component={NotFoundPage} />
+                </Router>
+              </IdentityOptionsProvider>
             </AuthProvider>
           </ApiProvider>
         </PaletteProvider>
