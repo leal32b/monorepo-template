@@ -1,5 +1,5 @@
 import { TextField, type TextFieldRootOptions } from '@kobalte/core/text-field'
-import { type ComponentProps, createSignal, Show, splitProps } from 'solid-js'
+import { type ComponentProps, createSignal, type JSX, Show, splitProps } from 'solid-js'
 import { Button } from '#button'
 import { inputWithActionClass } from '#input'
 import { cn } from '#libs'
@@ -13,6 +13,8 @@ export type PasswordFieldProps = Omit<ComponentProps<'input'>, 'type' | 'onInput
     label: string
     /** Names the show-and-hide button, such as "Show password"; `aria-pressed` tells whether it is shown. */
     toggleLabel: string
+    /** Something to offer beside the label, on its right, such as the way to a forgotten password. */
+    labelAction?: JSX.Element
     /** A hint under the input, read out with it. */
     description?: string | undefined
     /** Marks the field invalid and shows this message, read out with the input. */
@@ -29,7 +31,7 @@ const icon = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke
 export function PasswordField(props: PasswordFieldProps) {
   const [local, root, input] = splitProps(
     props,
-    ['class', 'label', 'toggleLabel', 'description', 'error'],
+    ['class', 'label', 'labelAction', 'toggleLabel', 'description', 'error'],
     ['value', 'onChange', 'name', 'required', 'disabled', 'readOnly']
   )
   const [shown, setShown] = createSignal(false)
@@ -40,7 +42,10 @@ export function PasswordField(props: PasswordFieldProps) {
       validationState={local.error ? 'invalid' : 'valid'}
       class={cn('flex flex-col gap-1.5', local.class)}
     >
-      <TextField.Label class="text-sm font-medium">{local.label}</TextField.Label>
+      <div class="flex items-baseline justify-between gap-4">
+        <TextField.Label class="text-sm font-medium">{local.label}</TextField.Label>
+        {local.labelAction}
+      </div>
       <div class="relative">
         <TextField.Input class={inputWithActionClass} type={shown() ? 'text' : 'password'} {...input} />
         <Button

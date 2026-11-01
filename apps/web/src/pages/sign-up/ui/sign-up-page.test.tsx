@@ -4,11 +4,15 @@ import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#s
 import { I18nProvider } from '#shared/config'
 import { SignUpPage } from './sign-up-page'
 
+const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+
 function renderPage() {
   const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
     Response.json({ token: null, user: { id: 'u1', email: 'ada@example.com', name: 'Ada' } })
   )
-  const api = createApiClient({ fetch: async () => Response.json({ google: true }) })
+  const api = createApiClient({
+    fetch: async (path) => Response.json(path === '/api/health' ? health : { google: true })
+  })
   render(() => (
     <I18nProvider locale="en">
       <ApiProvider client={api}>
@@ -63,15 +67,46 @@ describe('SignUpPage', () => {
     expect(screen.queryByRole('button', { name: 'Create account' })).not.toBeInTheDocument()
   })
 
-  it('sends the link again to the address it went to, for when it did not arrive', async () => {
+  it('sends the link again to the address it went to, once the wait is over, for when it did not arrive', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
     const fetch = renderPage()
     await signUp('ada@example.com')
 
     expect(screen.getByText('Not in your inbox? Check spam, or send it again.')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Send it again' }))
+    const resend = screen.getByRole('button', { name: 'Send it again in 30 s' })
+    expect(resend).toBeDisabled()
+    vi.advanceTimersByTime(30_000)
+    expect(resend).toBeEnabled()
+    fireEvent.click(resend)
 
     expect(await screen.findByRole('status')).toHaveTextContent('We sent it again.')
     expect(JSON.parse(String(fetch.mock.lastCall?.[1]?.body))).toMatchObject({ email: 'ada@example.com' })
+    vi.useRealTimers()
+  })
+
+  it('offers to open the inbox for a Gmail address, and for no other', async () => {
+    renderPage()
+    await signUp('ada@gmail.com')
+
+    expect(screen.getByRole('link', { name: /^Open Gmail/ })).toHaveAttribute('href', 'https://mail.google.com/')
+  })
+
+  it('offers no inbox for an address it does not know', async () => {
+    renderPage()
+    await signUp('ada@example.com')
+
+    expect(screen.queryByRole('link', { name: /^Open / })).not.toBeInTheDocument()
+  })
+
+  it('puts Google first, then the form, with its button last', async () => {
+    renderPage()
+    const google = await screen.findByRole('button', { name: 'Continue with Google' })
+    const create = screen.getByRole('button', { name: 'Create account' })
+
+    expect(google.compareDocumentPosition(screen.getByRole('textbox', { name: 'Name' }))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    )
+    expect(google.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('goes back with what was typed, to use another email', async () => {

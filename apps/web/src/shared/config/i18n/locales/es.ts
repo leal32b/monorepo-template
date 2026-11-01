@@ -335,7 +335,19 @@ export const es: Messages = {
       locked: 'Demasiados códigos incorrectos. Por tu seguridad, espera 15 minutos y vuelve a iniciar sesión.'
     }
   },
+  serviceNotice: {
+    title: 'El servicio tiene problemas',
+    hint: 'Iniciar sesión o crear una cuenta puede no funcionar. Vuelve a intentarlo en unos minutos.'
+  },
+  entryLayout: {
+    language: 'Idioma'
+  },
+  mail: {
+    open: 'Abrir {{provider}}',
+    newTab: ' (se abre en una pestaña nueva)'
+  },
   resendConfirmation: {
+    wait: 'Enviarlo de nuevo en {{seconds}} s',
     send: 'Enviarlo de nuevo',
     sent: 'Lo enviamos de nuevo. Puede tardar unos minutos.'
   }

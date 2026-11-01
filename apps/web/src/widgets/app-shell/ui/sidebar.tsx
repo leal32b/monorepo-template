@@ -1,8 +1,8 @@
 import { cn, Icon, type IconName } from '@repo/ui'
 import { A, useMatch } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
+import type { ServiceStatus } from '#entities/health'
 import { useI18n } from '#shared/config'
-import type { ServiceStatus } from '../model/service-status'
 import { ServiceProblem, ServiceStatusButton } from './service-status'
 import { UserMenu } from './user-menu'
 

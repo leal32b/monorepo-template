@@ -4,6 +4,8 @@ import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#s
 import { I18nProvider } from '#shared/config'
 import { SignInPage } from './sign-in-page'
 
+const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 /** The sign-in page at `path`, in a router that has somewhere else to go, with Google on. */
@@ -13,7 +15,9 @@ function renderPage(
 ) {
   const history = createMemoryHistory()
   history.set({ value: path })
-  const api = createApiClient({ fetch: async () => Response.json({ google: true }) })
+  const api = createApiClient({
+    fetch: async (path) => Response.json(path === '/api/health' ? health : { google: true })
+  })
   render(() => (
     <I18nProvider locale="en">
       <ApiProvider client={api}>
@@ -108,6 +112,19 @@ describe('SignInPage', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent('We sent it again.')
     expect(JSON.parse(String(fetch.mock.lastCall?.[1]?.body))).toMatchObject({ email: 'ada@example.com' })
+  })
+
+  it('puts Google first, then "or", then the form, whose button stays last', async () => {
+    renderPage('/login')
+    const google = await screen.findByRole('button', { name: 'Continue with Google' })
+    const email = screen.getByRole('textbox', { name: 'Email' })
+    const or = screen.getByText('or')
+
+    expect(google.compareDocumentPosition(or) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(or.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      email.compareDocumentPosition(screen.getByRole('button', { name: 'Sign in' })) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
   })
 
   it('offers Google too, to come back to where the user was headed', async () => {

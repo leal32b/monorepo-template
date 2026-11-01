@@ -333,8 +333,20 @@ export const en = {
       locked: 'Too many wrong codes. For your safety, wait 15 minutes, then sign in again.'
     }
   },
+  serviceNotice: {
+    title: 'The service is having trouble',
+    hint: 'Signing in or creating an account may not work. Try again in a few minutes.'
+  },
+  entryLayout: {
+    language: 'Language'
+  },
+  mail: {
+    open: 'Open {{provider}}',
+    newTab: ' (opens in a new tab)'
+  },
   resendConfirmation: {
     send: 'Send it again',
+    wait: 'Send it again in {{seconds}} s',
     sent: 'We sent it again. It can take a few minutes.'
   }
 }

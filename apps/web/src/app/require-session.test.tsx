@@ -56,10 +56,17 @@ describe('RequireSession', () => {
   })
 
   it('says when the session cannot be checked, and checks again on request', async () => {
-    const fetch = vi
+    const asked = vi
       .fn<Fetch>()
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
       .mockResolvedValueOnce(Response.json(ada))
+    // The entry frame asks how the service is, too; only the session is asked twice.
+    const fetch: Fetch = (path, init) =>
+      path === '/api/health'
+        ? Promise.resolve(
+            Response.json({ status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' })
+          )
+        : asked(path, init)
     renderAt('/projects', fetch)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'We could not check your sign-in' })).toBeVisible()

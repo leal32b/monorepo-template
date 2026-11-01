@@ -3,7 +3,7 @@ import { createSignal, Show } from 'solid-js'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { cleanEmail, createFormChecks } from '#shared/lib'
-import { AuthFailureAlert } from '#shared/ui'
+import { AuthFailureAlert, OpenMail } from '#shared/ui'
 
 /**
  * Asks for a link to choose a new password. The API answers the same whether or not the address has
@@ -62,9 +62,12 @@ export function RequestResetForm(props: { email?: string | undefined }) {
       </Button>
       <Show when={sentTo()}>
         {(address) => (
-          <p role="status" class="break-words text-sm">
-            {t('forgotPassword.sent', { email: address() })}
-          </p>
+          <>
+            <p role="status" class="break-words text-sm">
+              {t('forgotPassword.sent', { email: address() })}
+            </p>
+            <OpenMail email={address()} variant="outline" />
+          </>
         )}
       </Show>
       <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>

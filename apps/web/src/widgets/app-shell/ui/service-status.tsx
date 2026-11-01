@@ -1,7 +1,7 @@
 import { Button, buttonVariants, cn, Icon, Popover } from '@repo/ui'
 import { Show } from 'solid-js'
+import { isProblem, type ServiceState, type ServiceStatus } from '#entities/health'
 import { useI18n } from '#shared/config'
-import type { ServiceState, ServiceStatus } from '../model/service-status'
 
 /** The colour of the dot on the status icon: state is also said in words, the dot only helps. */
 const dotClass: Record<ServiceState, string> = {
@@ -12,9 +12,6 @@ const dotClass: Record<ServiceState, string> = {
   unexpected: 'bg-destructive',
   error: 'bg-destructive'
 }
-
-/** Whether the state is a problem to say in words next to the account, not only behind the icon. */
-export const isProblem = (state: ServiceState) => state !== 'ok' && state !== 'checking'
 
 /**
  * The line that says a problem where the user will see it, above the account, so they know before

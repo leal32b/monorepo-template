@@ -1,8 +1,11 @@
 import { createMemo, createResource } from 'solid-js'
-import { getHealth } from '#entities/health'
 import { ApiError, useApi } from '#shared/api'
+import { getHealth } from '../api/get-health'
 
 export type ServiceState = 'checking' | 'ok' | 'degraded' | 'unreachable' | 'unexpected' | 'error'
+
+/** Whether the state is a problem to tell the user about: the service answered, or failed to, in a way that matters. */
+export const isProblem = (state: ServiceState) => state !== 'ok' && state !== 'checking'
 
 /** What the app knows of the service: its state, when it answered, and what support needs to find a failure. */
 export type ServiceStatus = ReturnType<typeof createServiceStatus>

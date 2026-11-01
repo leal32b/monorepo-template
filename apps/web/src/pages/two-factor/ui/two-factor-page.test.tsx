@@ -1,8 +1,10 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
-import { AuthProvider, createAuthClient } from '#shared/api'
+import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { TwoFactorPage } from './two-factor-page'
+
+const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -12,12 +14,14 @@ function renderPage(path: string, fetch: Fetch = async () => Response.json({ tok
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <AuthProvider client={createAuthClient({ fetch })}>
-        <MemoryRouter history={history}>
-          <Route path="/login/two-factor" component={TwoFactorPage} />
-          <Route path="*" component={() => <p>Somewhere else</p>} />
-        </MemoryRouter>
-      </AuthProvider>
+      <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+        <AuthProvider client={createAuthClient({ fetch })}>
+          <MemoryRouter history={history}>
+            <Route path="/login/two-factor" component={TwoFactorPage} />
+            <Route path="*" component={() => <p>Somewhere else</p>} />
+          </MemoryRouter>
+        </AuthProvider>
+      </ApiProvider>
     </I18nProvider>
   ))
   return history

@@ -22,7 +22,7 @@ export type SignInFormProps = {
    */
   resend: (email: string) => JSX.Element
   /**
-   * The way to a new password, right under the password field, where it is looked for after a wrong
+   * The way to a new password, beside the password's label, where it is looked for after a wrong
    * one. It gets the email typed so far, to carry over. The page passes the link, as with `resend`.
    */
   forgotPassword: (email: () => string) => JSX.Element
@@ -94,10 +94,10 @@ export function SignInForm(props: SignInFormProps) {
         toggleLabel={t('auth.showPassword')}
         name="password"
         autocomplete="current-password"
+        labelAction={props.forgotPassword(email)}
         onChange={setPassword}
         error={errorOf('password')}
       />
-      {props.forgotPassword(email)}
       <Button type="submit" variant="primary" class="mt-2 w-full" disabled={pending()}>
         {t('signIn.submit')}
       </Button>

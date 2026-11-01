@@ -333,7 +333,19 @@ export const ptBR: Messages = {
       locked: 'Muitos códigos errados. Por segurança, espere 15 minutos e entre de novo.'
     }
   },
+  serviceNotice: {
+    title: 'O serviço está com problemas',
+    hint: 'Entrar ou criar uma conta pode não funcionar. Tente de novo em alguns minutos.'
+  },
+  entryLayout: {
+    language: 'Idioma'
+  },
+  mail: {
+    open: 'Abrir o {{provider}}',
+    newTab: ' (abre em uma nova aba)'
+  },
   resendConfirmation: {
+    wait: 'Enviar de novo em {{seconds}} s',
     send: 'Enviar de novo',
     sent: 'Enviamos de novo. Pode levar alguns minutos.'
   }

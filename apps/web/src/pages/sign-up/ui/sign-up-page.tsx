@@ -4,6 +4,7 @@ import { ResendConfirmation } from '#features/resend-confirmation'
 import { SignInWithGoogle } from '#features/sign-in-with-google'
 import { SignUpForm, type SignUpValues } from '#features/sign-up'
 import { useI18n } from '#shared/config'
+import { OpenMail } from '#shared/ui'
 import { EntryLayout } from '#widgets/entry-layout'
 
 /**
@@ -34,8 +35,8 @@ export function SignUpPage() {
             </>
           }
         >
-          <SignUpForm initial={sent()} onSignedUp={signedUp} />
           <SignInWithGoogle next="/" />
+          <SignUpForm initial={sent()} onSignedUp={signedUp} />
         </EntryLayout>
       }
     >
@@ -55,7 +56,8 @@ export function SignUpPage() {
           <div class="flex flex-col gap-4">
             <p class="break-words">{t('signUp.checkEmail.sentTo', { email: values().email })}</p>
             <p class="text-muted-foreground">{t('signUp.checkEmail.notThere')}</p>
-            <ResendConfirmation email={values().email} />
+            <OpenMail email={values().email} />
+            <ResendConfirmation email={values().email} justSent />
           </div>
         </EntryLayout>
       )}
