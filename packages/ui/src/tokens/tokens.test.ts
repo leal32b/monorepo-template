@@ -15,7 +15,14 @@ const pairs: [foreground: Role, background: Role, minimum: number][] = [
   ['border', 'background', 3],
   ['muted-foreground', 'secondary', 3], // the password toggle's icon on its hover background
   ['ring', 'background', 3],
-  ['qr-foreground', 'qr', 4.5] // the QR code: dark on light in both themes, for every scanner
+  ['qr-foreground', 'qr', 4.5], // the QR code: dark on light in both themes, for every scanner
+  ['foreground', 'surface', 4.5], // the side menu and other raised areas
+  ['muted-foreground', 'surface', 4.5],
+  ['ring', 'surface', 3],
+  ['success', 'background', 4.5], // a state badge or line: "On", "All systems normal"
+  ['success', 'surface', 4.5],
+  ['warning', 'background', 4.5], // a state line: "Service is slow"
+  ['warning', 'surface', 4.5]
 ]
 
 const themes: ThemeName[] = ['light', 'dark']

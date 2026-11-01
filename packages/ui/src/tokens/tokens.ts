@@ -5,6 +5,7 @@ const primitives = {
   white: '#ffffff',
   'slate-50': '#f8fafc',
   'slate-100': '#f1f5f9',
+  'slate-200': '#e2e8f0',
   'slate-400': '#94a3b8',
   'slate-500': '#64748b',
   'slate-600': '#475569',
@@ -15,17 +16,27 @@ const primitives = {
   'blue-600': '#2563eb',
   'blue-700': '#1d4ed8',
   'red-400': '#f87171',
-  'red-700': '#b91c1c'
+  'red-700': '#b91c1c',
+  'green-400': '#4ade80',
+  'green-700': '#15803d',
+  'amber-400': '#fbbf24',
+  'amber-700': '#b45309'
 } as const satisfies Record<string, Hex>
 
 type Primitive = keyof typeof primitives
 
-/** What a colour is for. Each role is a CSS variable (`--ds-primary`) and a colour utility (`bg-primary`). */
+/**
+ * What a colour is for. Each role is a CSS variable (`--ds-primary`) and a colour utility (`bg-primary`).
+ * `surface` and `border-subtle` frame areas, `border` outlines controls; `success` and `warning`
+ * are state text (ADR 0026).
+ */
 export const roles = [
   'background',
   'foreground',
   'muted-foreground',
+  'surface',
   'border',
+  'border-subtle',
   'ring',
   'primary',
   'primary-foreground',
@@ -33,6 +44,8 @@ export const roles = [
   'secondary-foreground',
   'destructive',
   'destructive-foreground',
+  'success',
+  'warning',
   'qr',
   'qr-foreground'
 ] as const
@@ -45,7 +58,10 @@ const themes = {
     background: 'white',
     foreground: 'slate-900',
     'muted-foreground': 'slate-600',
+    surface: 'slate-50',
     border: 'slate-500',
+    // Decorative, so it has no 3:1 minimum: a group's rows and labels say what it holds.
+    'border-subtle': 'slate-200',
     ring: 'blue-600',
     primary: 'blue-700',
     'primary-foreground': 'white',
@@ -53,6 +69,8 @@ const themes = {
     'secondary-foreground': 'slate-900',
     destructive: 'red-700',
     'destructive-foreground': 'white',
+    success: 'green-700',
+    warning: 'amber-700',
     // A QR code stays dark on light in both themes: not every scanner reads one the other way round.
     qr: 'white',
     'qr-foreground': 'slate-950'
@@ -61,7 +79,9 @@ const themes = {
     background: 'slate-950',
     foreground: 'slate-50',
     'muted-foreground': 'slate-400',
+    surface: 'slate-900',
     border: 'slate-500',
+    'border-subtle': 'slate-800',
     ring: 'blue-400',
     primary: 'blue-400',
     'primary-foreground': 'slate-950',
@@ -69,6 +89,8 @@ const themes = {
     'secondary-foreground': 'slate-50',
     destructive: 'red-400',
     'destructive-foreground': 'slate-950',
+    success: 'green-400',
+    warning: 'amber-400',
     qr: 'white',
     'qr-foreground': 'slate-950'
   }

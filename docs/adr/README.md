@@ -30,3 +30,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0023](0023-draw-the-authenticator-qr-code-in-the-browser.md) | Draw the authenticator QR code in the browser | accepted |
 | [0024](0024-write-schemas-with-zod-mini.md) | Write schemas with Zod Mini | accepted |
 | [0025](0025-add-a-passed-class-instead-of-merging-it.md) | Add a passed class instead of merging it | accepted |
+| [0026](0026-add-surface-and-state-colour-roles.md) | Add surface and state colour roles | accepted |

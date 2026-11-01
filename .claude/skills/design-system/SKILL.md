@@ -87,6 +87,17 @@ Elements must not "tremble" between states or screens.
   structure: a component.
 - **Behaviour from Kobalte** for anything interactive; the look in a `cva` file (`.ts`, so coverage
   counts it); colours only as roles, and a new role pair joins the contrast test.
+- **Which role** ([ADR 0026](../../../docs/adr/0026-add-surface-and-state-colour-roles.md)):
+  - `background` is the page; `surface` is an area set apart from it (the side menu), never a
+    button (that is `secondary`).
+  - `border` outlines a control (input, outline button); `border-subtle` frames or divides an area
+    (a section's group of rows, between rows, the side menu's edge). A field inside a group keeps
+    `border`, so it still reads as a field.
+  - `success` and `warning` are state text, always with a word ("On", "Service is slow"), never
+    colour alone; a state that is neither (off, not set up) stays `muted-foreground`;
+    `destructive` stays for errors and the actions that remove.
+- **Selected without a shadow.** A segmented control (or any selected item in a group) shows its
+  selection with a `border` outline on `background`, not a shadow, in line with "no shadows".
 
 ## States and interaction
 
