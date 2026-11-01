@@ -38,7 +38,7 @@ export function UserMenu(props: { signOut: () => void; class?: string | undefine
         <span class="truncate text-muted-foreground">{user.email}</span>
       </MenuHeader>
       <MenuSeparator />
-      <MenuItem icon="preferences" onSelect={() => navigate('/account')}>
+      <MenuItem icon="preferences" onSelect={() => navigate('/settings/profile')}>
         {t('appShell.account.settings')}
       </MenuItem>
       <MenuItem icon="sign-out" onSelect={props.signOut}>

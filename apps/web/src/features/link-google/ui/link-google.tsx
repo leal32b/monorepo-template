@@ -38,7 +38,12 @@ export function LinkGoogle(props: LinkGoogleProps) {
     setPending(true)
     const failed = await callAuth((options) =>
       auth.linkSocial(
-        { provider: 'google', callbackURL: '/account', errorCallbackURL: '/account', disableRedirect: true },
+        {
+          provider: 'google',
+          callbackURL: '/settings/security',
+          errorCallbackURL: '/settings/security',
+          disableRedirect: true
+        },
         { ...options, onSuccess: ({ data }) => window.location.assign(data.url) }
       )
     )

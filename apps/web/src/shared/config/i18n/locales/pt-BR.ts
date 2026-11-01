@@ -7,8 +7,14 @@ export const ptBR: Messages = {
   home: {
     title: 'Template de monorepo'
   },
+  profile: {
+    title: 'Perfil'
+  },
+  preferences: {
+    title: 'Preferências'
+  },
   account: {
-    title: 'Segurança da conta',
+    title: 'Segurança',
     unavailable: 'Não conseguimos carregar a segurança da sua conta. Confira sua conexão e tente de novo.',
     retry: 'Tentar de novo',
     password: {
@@ -105,7 +111,13 @@ export const ptBR: Messages = {
     breadcrumb: 'Você está em',
     nav: {
       main: 'Principal',
-      home: 'Início'
+      home: 'Início',
+      settings: 'Configurações',
+      back: 'Voltar ao app',
+      account: 'Sua conta',
+      profile: 'Perfil',
+      security: 'Segurança',
+      preferences: 'Preferências'
     },
     account: {
       settings: 'Configurações',

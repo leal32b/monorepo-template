@@ -1,12 +1,12 @@
 import { Sheet } from '@repo/ui'
-import { useNavigate } from '@solidjs/router'
+import { useMatch, useNavigate } from '@solidjs/router'
 import { createSignal, onMount, type ParentProps, Show } from 'solid-js'
 import { createSignOut } from '#features/sign-out'
 import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
 import { createServiceStatus } from '../model/service-status'
 import { Sidebar } from './sidebar'
-import { TopBar } from './top-bar'
+import { type Crumb, TopBar } from './top-bar'
 
 /**
  * The frame every app screen shares: the side menu (a drawer on phones), a sticky top bar with where
@@ -19,6 +19,10 @@ export function AppShell(props: ParentProps<{ title: string }>) {
   const signOut = createSignOut(() => navigate('/login', { replace: true }))
   const status = createServiceStatus()
   const [drawerOpen, setDrawerOpen] = createSignal(false)
+  const inSettings = useMatch(() => '/settings/*')
+  /** Where the screen sits, read from the route: a settings screen is under "Settings". */
+  const parents = (): Crumb[] =>
+    inSettings() ? [{ href: '/settings/profile', label: t('appShell.account.settings') }] : []
 
   const sidebar = (onNavigate?: () => void) => (
     <Sidebar status={status} signOut={signOut.signOut} onNavigate={onNavigate} />
@@ -36,7 +40,7 @@ export function AppShell(props: ParentProps<{ title: string }>) {
         {sidebar(() => setDrawerOpen(false))}
       </Sheet>
       <div class="min-w-0">
-        <TopBar title={props.title} onOpenMenu={() => setDrawerOpen(true)} />
+        <TopBar parents={parents()} title={props.title} onOpenMenu={() => setDrawerOpen(true)} />
         <main class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-6 pb-8 sm:px-6 md:pt-8 md:pb-12">
           <h1
             ref={(heading) => onMount(() => heading.focus())}

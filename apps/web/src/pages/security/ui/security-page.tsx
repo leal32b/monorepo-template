@@ -12,12 +12,12 @@ import { Section } from './section'
 import { TwoFactorSection } from './two-factor-section'
 
 /**
- * `/account`: the account security, in the app frame: the password, changed here, or created by a
+ * `/settings/security`: the account security, in the app frame: the password, changed here, or created by a
  * link for an account made with Google alone; the second step, turned on and off here; and Google,
  * linked and unlinked here, coming back with `?error=` when linking failed. It reads Better Auth
  * directly (ADR 0020); a session that ended on the way sends the user to sign in, to come back here.
  */
-export function AccountPage() {
+export function SecurityPage() {
   const auth = useAuth()
   const { t } = useI18n()
   const [params] = useSearchParams()
@@ -27,7 +27,7 @@ export function AccountPage() {
     <AppShell title={t('account.title')}>
       <Switch>
         <Match when={security.error instanceof ApiError && security.error.status === 401}>
-          <Navigate href="/login?next=%2Faccount" />
+          <Navigate href="/login?next=%2Fsettings%2Fsecurity" />
         </Match>
         <Match when={security.error}>
           <Alert variant="error" action={<Button onClick={() => refetch()}>{t('account.retry')}</Button>}>

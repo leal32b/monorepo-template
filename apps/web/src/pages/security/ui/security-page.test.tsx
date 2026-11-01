@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-lib
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
-import { AccountPage } from './account-page'
+import { SecurityPage } from './security-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -36,7 +36,7 @@ function betterAuth(
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 /** The page at `path`, behind a session, with Better Auth answering through `fetch` and the API well. */
-function renderPage(fetch: Fetch, path = '/account') {
+function renderPage(fetch: Fetch, path = '/settings/security') {
   /** The shell asks the API how it is; the page's own calls go to `fetch`. */
   const answer: Fetch = async (input, init) =>
     String(input).endsWith('/api/health') ? Response.json(health) : fetch(input, init)
@@ -48,7 +48,7 @@ function renderPage(fetch: Fetch, path = '/account') {
         <AuthProvider client={createAuthClient({ fetch })}>
           <SessionProvider user={ada}>
             <MemoryRouter history={history}>
-              <Route path="/account" component={AccountPage} />
+              <Route path="/settings/security" component={SecurityPage} />
               <Route path="/login" component={() => <p>The sign-in</p>} />
             </MemoryRouter>
           </SessionProvider>
@@ -72,11 +72,11 @@ function setUp() {
   return twoFactor
 }
 
-describe('AccountPage', () => {
+describe('SecurityPage', () => {
   it('says how the account signs in, and that the second step is on', async () => {
     renderPage(betterAuth(['credential', 'google'], true))
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Account security' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Security' })).toBeInTheDocument()
     expect(await screen.findByText('You sign in with your email and a password.')).toBeInTheDocument()
     expect(within(section('Two-step verification')).getByText(/^On:/)).toBeInTheDocument()
     expect(within(section('Password')).getByLabelText('Current password')).toBeInTheDocument()
@@ -130,7 +130,7 @@ describe('AccountPage', () => {
   })
 
   it('says, in the Google section, why linking Google failed', async () => {
-    renderPage(betterAuth(['credential'], false), '/account?error=account_already_linked_to_different_user')
+    renderPage(betterAuth(['credential'], false), '/settings/security?error=account_already_linked_to_different_user')
 
     const google = await screen.findByRole('region', { name: 'Google' })
     expect(within(google).getByRole('alert')).toHaveTextContent(
@@ -141,7 +141,7 @@ describe('AccountPage', () => {
   it('sends the user to sign in when the session has ended, to come back here', async () => {
     const history = renderPage(async () => Response.json({ code: 'UNAUTHORIZED' }, { status: 401 }))
 
-    await waitFor(() => expect(history.get()).toBe('/login?next=%2Faccount'))
+    await waitFor(() => expect(history.get()).toBe('/login?next=%2Fsettings%2Fsecurity'))
   })
 
   it('says when the account cannot be read, and tries again on request', async () => {

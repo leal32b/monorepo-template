@@ -1,8 +1,13 @@
 import { Button, Icon } from '@repo/ui'
 import { A } from '@solidjs/router'
+import { For } from 'solid-js'
 import { useI18n } from '#shared/config'
 
+export type Crumb = { href: string; label: string }
+
 export type TopBarProps = {
+  /** The screens above this one, after the app: each a link. */
+  parents: Crumb[]
   /** The screen's name: the last crumb. */
   title: string
   /** Opens the side menu; only phones show the button. */
@@ -10,8 +15,8 @@ export type TopBarProps = {
 }
 
 /**
- * Sticky, so where you are stays in view. From `md` up it holds the breadcrumb (the app, then the
- * screen); on phones the menu button and the app's name, since the title is the heading right below.
+ * Sticky, so where you are stays in view. From `md` up it holds the breadcrumb (the app, the screens
+ * above, then this one); on phones the menu button and the app's name, since the title is the heading right below.
  */
 export function TopBar(props: TopBarProps) {
   const { t } = useI18n()
@@ -38,6 +43,20 @@ export function TopBar(props: TopBarProps) {
           <li aria-hidden="true" class="flex">
             <Icon name="next" />
           </li>
+          <For each={props.parents}>
+            {(parent) => (
+              <>
+                <li>
+                  <A href={parent.href} class="rounded-sm underline-offset-4 hover:text-foreground hover:underline">
+                    {parent.label}
+                  </A>
+                </li>
+                <li aria-hidden="true" class="flex">
+                  <Icon name="next" />
+                </li>
+              </>
+            )}
+          </For>
           <li aria-current="page" class="truncate font-medium text-foreground">
             {props.title}
           </li>

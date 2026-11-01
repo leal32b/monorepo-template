@@ -33,8 +33,8 @@ describe('LinkGoogle', () => {
     expect(String(url)).toBe(`${window.location.origin}/api/auth/link-social`)
     expect(JSON.parse(String(init?.body))).toEqual({
       provider: 'google',
-      callbackURL: '/account',
-      errorCallbackURL: '/account',
+      callbackURL: '/settings/security',
+      errorCallbackURL: '/settings/security',
       disableRedirect: true
     })
   })

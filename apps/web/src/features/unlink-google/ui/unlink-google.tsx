@@ -43,7 +43,7 @@ export function UnlinkGoogle(props: UnlinkGoogleProps) {
             <AuthFailureAlert
               failure={current()}
               message={stale ? t('unlinkGoogle.stale') : undefined}
-              action={stale && <Link href="/login?next=%2Faccount">{t('unlinkGoogle.signInAgain')}</Link>}
+              action={stale && <Link href="/login?next=%2Fsettings%2Fsecurity">{t('unlinkGoogle.signInAgain')}</Link>}
             />
           )
         }}

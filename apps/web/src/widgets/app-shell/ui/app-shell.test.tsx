@@ -42,7 +42,15 @@ function renderShell({
                   </AppShell>
                 )}
               />
-              <Route path="/account" component={() => <p>The account</p>} />
+              <Route
+                path="/settings/security"
+                component={() => (
+                  <AppShell title="Security">
+                    <p>The security</p>
+                  </AppShell>
+                )}
+              />
+              <Route path="/settings/profile" component={() => <p>The profile</p>} />
               <Route path="/login" component={() => <p>The sign-in</p>} />
             </MemoryRouter>
           </SessionProvider>
@@ -102,7 +110,7 @@ describe('AppShell', () => {
 
     choose(await screen.findByRole('menuitem', { name: 'Settings' }))
 
-    await waitFor(() => expect(history.get()).toBe('/account'))
+    await waitFor(() => expect(history.get()).toBe('/settings/profile'))
   })
 
   it('signs out from the account menu, then leaves for the sign-in', async () => {
@@ -124,6 +132,47 @@ describe('AppShell', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong on our side.')
     expect(history.get()).toBe('/projects')
+  })
+
+  describe('in the settings', () => {
+    it('swaps the side menu for the way back and the settings, the current one marked', () => {
+      renderShell({ path: '/settings/security' })
+
+      expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
+      const settings = within(screen.getByRole('navigation', { name: 'Settings' }))
+      expect(settings.getByRole('link', { name: 'Back to app' })).toHaveAttribute('href', '/')
+      const account = within(settings.getByRole('list', { name: 'Your account' }))
+      expect(account.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+        ['Profile', '/settings/profile'],
+        ['Security', '/settings/security'],
+        ['Preferences', '/settings/preferences']
+      ])
+      expect(account.getByRole('link', { name: 'Security' })).toHaveAttribute('aria-current', 'page')
+    })
+
+    it('puts the settings in the breadcrumb, between the app and the screen', () => {
+      renderShell({ path: '/settings/security' })
+
+      const trail = within(screen.getByRole('navigation', { name: 'You are here' }))
+      expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual([
+        'Monorepo Template',
+        'Settings',
+        'Security'
+      ])
+      expect(trail.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/profile')
+      expect(trail.getByText('Security')).toHaveAttribute('aria-current', 'page')
+    })
+
+    it('goes back to the app from the settings', async () => {
+      const history = renderShell({ path: '/settings/security' })
+
+      fireEvent.click(
+        within(screen.getByRole('navigation', { name: 'Settings' })).getByRole('link', { name: 'Back to app' })
+      )
+
+      await waitFor(() => expect(history.get()).toBe('/'))
+      expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    })
   })
 
   it('speaks the language of the provider', () => {

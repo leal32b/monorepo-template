@@ -5,8 +5,14 @@ export const en = {
   home: {
     title: 'Monorepo template'
   },
+  profile: {
+    title: 'Profile'
+  },
+  preferences: {
+    title: 'Preferences'
+  },
   account: {
-    title: 'Account security',
+    title: 'Security',
     unavailable: 'We could not load your account security. Check your connection, then try again.',
     retry: 'Try again',
     password: {
@@ -103,7 +109,13 @@ export const en = {
     breadcrumb: 'You are here',
     nav: {
       main: 'Main',
-      home: 'Home'
+      home: 'Home',
+      settings: 'Settings',
+      back: 'Back to app',
+      account: 'Your account',
+      profile: 'Profile',
+      security: 'Security',
+      preferences: 'Preferences'
     },
     account: {
       settings: 'Settings',

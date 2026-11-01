@@ -38,7 +38,10 @@ describe('UnlinkGoogle', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('For your safety, sign in again before you unlink Google.')
-    expect(within(alert).getByRole('link', { name: 'Sign in again' })).toHaveAttribute('href', '/login?next=%2Faccount')
+    expect(within(alert).getByRole('link', { name: 'Sign in again' })).toHaveAttribute(
+      'href',
+      '/login?next=%2Fsettings%2Fsecurity'
+    )
     expect(onUnlinked).not.toHaveBeenCalled()
   })
 

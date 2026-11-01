@@ -7,8 +7,14 @@ export const es: Messages = {
   home: {
     title: 'Plantilla de monorepo'
   },
+  profile: {
+    title: 'Perfil'
+  },
+  preferences: {
+    title: 'Preferencias'
+  },
   account: {
-    title: 'Seguridad de la cuenta',
+    title: 'Seguridad',
     unavailable: 'No pudimos cargar la seguridad de tu cuenta. Revisa tu conexión y vuelve a intentarlo.',
     retry: 'Intentar de nuevo',
     password: {
@@ -105,7 +111,13 @@ export const es: Messages = {
     breadcrumb: 'Estás aquí',
     nav: {
       main: 'Principal',
-      home: 'Inicio'
+      home: 'Inicio',
+      settings: 'Ajustes',
+      back: 'Volver a la app',
+      account: 'Tu cuenta',
+      profile: 'Perfil',
+      security: 'Seguridad',
+      preferences: 'Preferencias'
     },
     account: {
       settings: 'Ajustes',
