@@ -3,10 +3,7 @@ import { Navigate, Route, Router } from '@solidjs/router'
 import { lazy } from 'solid-js'
 import { IdentityOptionsProvider } from '#entities/identity-options'
 import { ForgotPasswordPage } from '#pages/forgot-password'
-import { HomePage } from '#pages/home'
 import { NotFoundPage } from '#pages/not-found'
-import { PreferencesPage } from '#pages/preferences'
-import { ProfilePage } from '#pages/profile'
 import { ResetPasswordPage } from '#pages/reset-password'
 import { SignInPage } from '#pages/sign-in'
 import { SignUpPage } from '#pages/sign-up'
@@ -14,12 +11,18 @@ import { TwoFactorPage } from '#pages/two-factor'
 import { type ApiClient, ApiProvider, type AuthClient, AuthProvider } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
 import { AccountRedirect } from './account-redirect'
-import { RequireSession } from './require-session'
 
 /**
- * The security screen is rare and the heaviest (QR code, backup codes, every security form), so it
- * loads when someone opens it. The router keeps the page on screen until it is ready: no blank flash.
+ * What a visitor needs (the entry screens) is in the first download; what only someone signed in
+ * needs (the session guard with the side menu, the menus, the palette and the screens behind it) loads
+ * when they get there, so opening the sign-in does not pay for Kobalte's dialogs and menus. The router
+ * keeps the page on screen until the next one is ready: no blank flash. The security screen is the
+ * heaviest of those (QR code, backup codes, every security form), so it loads on its own.
  */
+const RequireSession = lazy(() => import('./require-session').then((m) => ({ default: m.RequireSession })))
+const HomePage = lazy(() => import('#pages/home').then((m) => ({ default: m.HomePage })))
+const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: m.ProfilePage })))
+const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
 
 export function App(props: {
