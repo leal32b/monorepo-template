@@ -1,68 +1,32 @@
-import Activity from 'lucide-solid/icons/activity'
-import ArrowLeft from 'lucide-solid/icons/arrow-left'
-import Check from 'lucide-solid/icons/check'
-import ChevronRight from 'lucide-solid/icons/chevron-right'
-import ChevronsUpDown from 'lucide-solid/icons/chevrons-up-down'
-import CircleAlert from 'lucide-solid/icons/circle-alert'
-import CircleCheck from 'lucide-solid/icons/circle-check'
-import CircleQuestionMark from 'lucide-solid/icons/circle-question-mark'
-import Folder from 'lucide-solid/icons/folder'
-import Globe from 'lucide-solid/icons/globe'
-import House from 'lucide-solid/icons/house'
-import Info from 'lucide-solid/icons/info'
-import KeyRound from 'lucide-solid/icons/key-round'
-import List from 'lucide-solid/icons/list'
-import LogOut from 'lucide-solid/icons/log-out'
-import Menu from 'lucide-solid/icons/menu'
-import Monitor from 'lucide-solid/icons/monitor'
-import Moon from 'lucide-solid/icons/moon'
-import Plus from 'lucide-solid/icons/plus'
-import Search from 'lucide-solid/icons/search'
-import Shield from 'lucide-solid/icons/shield'
-import SlidersHorizontal from 'lucide-solid/icons/sliders-horizontal'
-import Smartphone from 'lucide-solid/icons/smartphone'
-import Sun from 'lucide-solid/icons/sun'
-import TriangleAlert from 'lucide-solid/icons/triangle-alert'
-import User from 'lucide-solid/icons/user'
-import Users from 'lucide-solid/icons/users'
-import X from 'lucide-solid/icons/x'
-import { GoogleMark } from './brand-icons'
+import { phosphorMarkup } from './phosphor-markup'
+
+/** The weights the template draws its icons in (Phosphor's): `regular` for all, `duotone` for the few that mark a state. */
+export type IconWeight = keyof typeof phosphorMarkup
+
+/** The icons drawn from Phosphor, by the name an app asks for (what the icon means, ADR 0027). */
+export type PhosphorName = keyof (typeof phosphorMarkup)['regular']
+
+/** The icons that also come in `duotone`: those listed for it in `scripts/generate-icons.mjs`. */
+export type DuotoneName = keyof (typeof phosphorMarkup)['duotone']
 
 /**
- * The icons the template uses, by the name an app asks for (ADR 0027). `google` is a brand mark with
- * colours of its own (ADR 0029). Each is imported from its own
- * file so a bundle carries only these. A new icon is one line here, named for what it means.
+ * What an app can ask `Icon` for: the Phosphor icons listed in `scripts/generate-icons.mjs` (a new
+ * one is a line there, then `pnpm --filter @repo/ui icons`), and the brand marks, which keep colours of
+ * their own (ADR 0029).
  */
-export const icons = {
-  activity: Activity,
-  back: ArrowLeft,
-  check: Check,
-  close: X,
-  expand: ChevronsUpDown,
-  folder: Folder,
-  google: GoogleMark,
-  error: CircleAlert,
-  globe: Globe,
-  help: CircleQuestionMark,
-  info: Info,
-  home: House,
-  key: KeyRound,
-  list: List,
-  menu: Menu,
-  monitor: Monitor,
-  moon: Moon,
-  next: ChevronRight,
-  phone: Smartphone,
-  plus: Plus,
-  preferences: SlidersHorizontal,
-  profile: User,
-  search: Search,
-  security: Shield,
-  'sign-out': LogOut,
-  success: CircleCheck,
-  sun: Sun,
-  users: Users,
-  warning: TriangleAlert
-} as const
+export type IconName = PhosphorName | 'google'
 
-export type IconName = keyof typeof icons
+/** Every name `Icon` takes. */
+export const iconNames = [
+  ...(Object.keys(phosphorMarkup.regular) as PhosphorName[]),
+  'google'
+] as const satisfies readonly IconName[]
+
+/** Whether an icon also comes in `duotone`. */
+export const hasDuotone = (name: IconName): name is DuotoneName => name in phosphorMarkup.duotone
+
+/** The markup of a Phosphor icon in a weight, or `undefined` for a brand mark. */
+export const markupOf = (name: IconName, weight: IconWeight): string | undefined => {
+  if (name === 'google') return undefined
+  return weight === 'duotone' ? phosphorMarkup.duotone[name as DuotoneName] : phosphorMarkup.regular[name]
+}

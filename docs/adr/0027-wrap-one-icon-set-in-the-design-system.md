@@ -1,6 +1,6 @@
 # 0027. Wrap one icon set in the design system
 
-- Status: accepted
+- Status: accepted; the set (Lucide) superseded by [0032](0032-draw-icons-from-phosphor-generated-from-its-svgs.md), the wrapper kept
 - Date: 2026-11-01
 
 ## Context and problem statement

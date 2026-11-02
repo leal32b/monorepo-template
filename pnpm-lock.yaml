@@ -185,6 +185,9 @@ catalogs:
     '@kobalte/core':
       specifier: ^0.13.14
       version: 0.13.14
+    '@phosphor-icons/core':
+      specifier: ^2.1.1
+      version: 2.1.1
     '@solid-primitives/i18n':
       specifier: ^2.2.1
       version: 2.2.1
@@ -242,9 +245,6 @@ catalogs:
     lefthook:
       specifier: ^2.2.2
       version: 2.2.2
-    lucide-solid:
-      specifier: ^1.62.0
-      version: 1.65.0
     pg:
       specifier: ^8.23.1
       version: 8.23.1
@@ -457,10 +457,10 @@ importers:
       lean-qr:
         specifier: 'catalog:'
         version: 2.7.4
-      lucide-solid:
-        specifier: 'catalog:'
-        version: 1.65.0(solid-js@1.9.17)
     devDependencies:
+      '@phosphor-icons/core':
+        specifier: 'catalog:'
+        version: 2.1.1
       '@solidjs/testing-library':
         specifier: 'catalog:'
         version: 0.8.10(@solidjs/router@1.0.0(solid-js@1.9.17))(solid-js@1.9.17)
@@ -1443,6 +1443,9 @@ packages:
 
   '@oxc-project/types@0.155.0':
     resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
+
+  '@phosphor-icons/core@2.1.1':
+    resolution: {integrity: sha512-v4ARvrip4qBCImOE5rmPUylOEK4iiED9ZyKjcvzuezqMaiRASCHKcRIuvvxL/twvLpkfnEODCOJp5dM4eZilxQ==}
 
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
@@ -2815,11 +2818,6 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
-
-  lucide-solid@1.65.0:
-    resolution: {integrity: sha512-KZQqi/WlbQ/5f1TFaQ1EnNOOFi5YD70aLZkAUWb7E9SxS/KcO+UfkqEYNJeHT/CZTsnRQQ6vNA4tOS1lihu4lg==}
-    peerDependencies:
-      solid-js: ^1.4.7
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -4352,6 +4350,8 @@ snapshots:
 
   '@oxc-project/types@0.155.0': {}
 
+  '@phosphor-icons/core@2.1.1': {}
+
   '@pinojs/redact@0.4.0': {}
 
   '@poppinss/colors@4.1.6':
@@ -5524,10 +5524,6 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
-
-  lucide-solid@1.65.0(solid-js@1.9.17):
-    dependencies:
-      solid-js: 1.9.17
 
   lz-string@1.5.0: {}
 

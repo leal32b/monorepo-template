@@ -1,4 +1,4 @@
-import { cn, Icon, type IconName } from '@repo/ui'
+import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
 import { A, useMatch } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
 import type { ServiceStatus } from '#entities/health'
@@ -11,6 +11,8 @@ export type SidebarProps = {
   signOut: () => void
   /** Called after a link is followed, so the phone drawer can close. */
   onNavigate?: (() => void) | undefined
+  /** Whether this menu is the phone drawer, which stays open on the way to the settings. */
+  inDrawer?: boolean | undefined
   class?: string | undefined
 }
 
@@ -35,9 +37,18 @@ function NavLink(props: {
   onNavigate?: (() => void) | undefined
   children: JSX.Element
 }) {
+  const active = useMatch(() => props.href)
+  /** The current screen's icon in duotone, when it has one; the others are drawn in outline. */
+  const duotone = () => {
+    const name = props.icon
+    return active() && hasDuotone(name) ? name : undefined
+  }
+
   return (
     <A href={props.href} end onClick={props.onNavigate} class={linkClass}>
-      <Icon name={props.icon} />
+      <Show when={duotone()} fallback={<Icon name={props.icon} />}>
+        {(name) => <Icon name={name()} weight="duotone" />}
+      </Show>
       {props.children}
     </A>
   )
@@ -111,7 +122,7 @@ export function Sidebar(props: SidebarProps) {
       <div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
         <ServiceProblem status={props.status} />
         <div class="flex items-center gap-1">
-          <UserMenu signOut={props.signOut} class="flex-1" />
+          <UserMenu signOut={props.signOut} inDrawer={props.inDrawer} class="flex-1" />
           <ServiceStatusButton status={props.status} />
         </div>
       </div>

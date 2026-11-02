@@ -52,7 +52,14 @@ function renderShell({
                       </AppShell>
                     )}
                   />
-                  <Route path="/settings/profile" component={() => <p>The profile</p>} />
+                  <Route
+                    path="/settings/profile"
+                    component={() => (
+                      <AppShell title="Profile">
+                        <p>The profile</p>
+                      </AppShell>
+                    )}
+                  />
                   <Route path="/login" component={() => <p>The sign-in</p>} />
                 </MemoryRouter>
               </SessionProvider>
@@ -139,6 +146,45 @@ describe('AppShell', () => {
     ).toEqual(['Settings', 'Sign out'])
   })
 
+  it('keeps the phone drawer open on the way to the settings, to pick another screen than the first', async () => {
+    renderShell()
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+    fireEvent.keyDown(within(drawer).getByRole('button', { name: /Ada Lovelace/ }), { key: 'Enter' })
+
+    choose(await screen.findByRole('menuitem', { name: 'Settings' }))
+
+    // The Profile screen is up (behind the modal drawer, so hidden from the tree), with its own drawer open.
+    expect(await screen.findByRole('heading', { level: 1, name: 'Profile', hidden: true })).toBeInTheDocument()
+    const open = await screen.findByRole('dialog', { name: 'Menu' })
+    expect(within(open).getByRole('navigation', { name: 'Settings' })).toBeInTheDocument()
+    expect(within(open).getByRole('link', { name: 'Security' })).toBeInTheDocument()
+  })
+
+  it('does not open a drawer on the way to the settings from the desktop menu', async () => {
+    renderShell()
+    openAccountMenu()
+
+    choose(await screen.findByRole('menuitem', { name: 'Settings' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Profile' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('opens the drawer once, not on every screen after it', async () => {
+    renderShell()
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+    fireEvent.keyDown(within(drawer).getByRole('button', { name: /Ada Lovelace/ }), { key: 'Enter' })
+    choose(await screen.findByRole('menuitem', { name: 'Settings' }))
+    await screen.findByRole('heading', { level: 1, name: 'Profile', hidden: true })
+    const open = await screen.findByRole('dialog', { name: 'Menu' })
+
+    fireEvent.click(within(open).getByRole('link', { name: 'Security' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument())
+  })
+
   it('goes to the settings from the account menu', async () => {
     const history = renderShell()
     openAccountMenu()
@@ -206,6 +252,17 @@ describe('AppShell', () => {
       renderShell({ path: '/settings/security' })
 
       expect(phoneTitle()).toHaveTextContent('Settings')
+    })
+
+    it('draws the icon of the current screen in duotone, and the others in outline', () => {
+      renderShell({ path: '/settings/security' })
+      const menu = within(screen.getByRole('navigation', { name: 'Settings' }))
+      const iconOf = (name: string) => menu.getByRole('link', { name }).querySelector('svg')?.innerHTML
+
+      // Duotone draws a translucent layer under the line: the outline has none.
+      expect(iconOf('Security')).toContain('opacity')
+      expect(iconOf('Profile')).not.toContain('opacity')
+      expect(iconOf('Back to app')).not.toContain('opacity')
     })
 
     it('goes back to the app from the settings', async () => {

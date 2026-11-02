@@ -1,0 +1,7 @@
+# Crawlers have nothing to find behind the sign-in or in the API: keep them out of both.
+# This asks politely; it hides nothing, since those pages need a session anyway.
+User-agent: *
+Disallow: /api/
+Disallow: /settings
+Disallow: /account
+Allow: /

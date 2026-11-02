@@ -10,7 +10,7 @@ export { Badge, type BadgeProps, type BadgeVariantProps, badgeVariants } from '#
 export { Button, type ButtonProps, type ButtonVariantProps, buttonVariants } from '#button'
 export { type CommandItem, CommandPalette, type CommandPaletteProps } from '#command-palette'
 export { Field, type FieldProps } from '#field'
-export { Icon, type IconName, type IconProps } from '#icon'
+export { type DuotoneName, hasDuotone, Icon, type IconName, type IconProps, type IconWeight } from '#icon'
 export { Input, type InputProps, inputClass } from '#input'
 export { cn } from '#libs'
 export { Link, type LinkProps, linkClass } from '#link'

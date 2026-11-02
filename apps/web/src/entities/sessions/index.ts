@@ -1,2 +1,2 @@
-export { getMe } from './api/get-me'
+export { getSessionUser } from './api/get-session-user'
 export { SessionProvider, useSession } from './model/session'

@@ -31,8 +31,9 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0024](0024-write-schemas-with-zod-mini.md) | Write schemas with Zod Mini | accepted |
 | [0025](0025-add-a-passed-class-instead-of-merging-it.md) | Add a passed class instead of merging it | accepted |
 | [0026](0026-add-surface-and-state-colour-roles.md) | Add surface and state colour roles | accepted |
-| [0027](0027-wrap-one-icon-set-in-the-design-system.md) | Wrap one icon set in the design system | accepted |
+| [0027](0027-wrap-one-icon-set-in-the-design-system.md) | Wrap one icon set in the design system | accepted; set superseded by [0032](0032-draw-icons-from-phosphor-generated-from-its-svgs.md) |
 | [0028](0028-keep-theme-and-language-on-the-device.md) | Keep the theme and the language on the device | accepted |
 | [0029](0029-draw-brand-marks-in-their-own-colours.md) | Draw brand marks in their own colours | accepted |
 | [0030](0030-add-a-scrim-colour-role.md) | Add a scrim colour role | accepted |
 | [0031](0031-animate-layers-with-short-transform-and-opacity-motion.md) | Animate layers with short transform and opacity motion | accepted |
+| [0032](0032-draw-icons-from-phosphor-generated-from-its-svgs.md) | Draw icons from Phosphor, generated from its SVGs | accepted |
