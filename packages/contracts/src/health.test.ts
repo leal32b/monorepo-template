@@ -1,13 +1,13 @@
 import { healthResponseSchema, livenessResponseSchema } from './health'
 
-const valid = {
-  status: 'ok',
-  service: 'api',
-  timestamp: '2026-10-16T12:00:00.000Z',
-  database: 'up'
-}
-
 describe('healthResponseSchema', () => {
+  const valid = {
+    status: 'ok',
+    service: 'api',
+    timestamp: '2026-10-16T12:00:00.000Z',
+    database: 'up'
+  }
+
   it('accepts a valid health response', () => {
     expect(healthResponseSchema.safeParse(valid).success).toBe(true)
   })
@@ -28,10 +28,7 @@ describe('healthResponseSchema', () => {
   })
 
   it('rejects a timestamp that is not an ISO 8601 date-time', () => {
-    const result = healthResponseSchema.safeParse({
-      ...valid,
-      timestamp: 'yesterday'
-    })
+    const result = healthResponseSchema.safeParse({ ...valid, timestamp: 'yesterday' })
 
     expect(result.success).toBe(false)
   })

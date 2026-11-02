@@ -11,8 +11,16 @@ const healthFields = {
  * database is `down`, and is answered with HTTP 503.
  */
 export const healthResponseSchema = z.discriminatedUnion('status', [
-  z.object({ ...healthFields, status: z.literal('ok'), database: z.literal('up') }),
-  z.object({ ...healthFields, status: z.literal('degraded'), database: z.literal('down') })
+  z.object({
+    ...healthFields,
+    status: z.literal('ok'),
+    database: z.literal('up')
+  }),
+  z.object({
+    ...healthFields,
+    status: z.literal('degraded'),
+    database: z.literal('down')
+  })
 ])
 
 export type HealthResponse = z.infer<typeof healthResponseSchema>
