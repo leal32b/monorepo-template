@@ -11,6 +11,8 @@ export type SidebarProps = {
   signOut: () => void
   /** Called after a link is followed, so the phone drawer can close. */
   onNavigate?: (() => void) | undefined
+  /** Whether this menu is the phone drawer, which stays open on the way to the settings. */
+  inDrawer?: boolean | undefined
   class?: string | undefined
 }
 
@@ -120,7 +122,7 @@ export function Sidebar(props: SidebarProps) {
       <div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
         <ServiceProblem status={props.status} />
         <div class="flex items-center gap-1">
-          <UserMenu signOut={props.signOut} class="flex-1" />
+          <UserMenu signOut={props.signOut} inDrawer={props.inDrawer} class="flex-1" />
           <ServiceStatusButton status={props.status} />
         </div>
       </div>

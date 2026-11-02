@@ -5,6 +5,7 @@ import { createServiceStatus } from '#entities/health'
 import { createSignOut } from '#features/sign-out'
 import { useI18n, usePalette } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
+import { takeDrawerHandoff } from '../model/drawer-handoff'
 import { ShellPalette } from './shell-palette'
 import { Sidebar } from './sidebar'
 import { type Crumb, TopBar } from './top-bar'
@@ -20,14 +21,15 @@ export function AppShell(props: ParentProps<{ title: string }>) {
   const signOut = createSignOut(() => navigate('/login', { replace: true }))
   const palette = usePalette()
   const status = createServiceStatus()
-  const [drawerOpen, setDrawerOpen] = createSignal(false)
+  // Open from the start when the drawer of the previous screen asked to stay open (see the handoff).
+  const [drawerOpen, setDrawerOpen] = createSignal(takeDrawerHandoff())
   const inSettings = useMatch(() => '/settings/*')
   /** Where the screen sits, read from the route: a settings screen is under "Settings". */
   const parents = (): Crumb[] =>
     inSettings() ? [{ href: '/settings/profile', label: t('appShell.account.settings') }] : []
 
   const sidebar = (onNavigate?: () => void) => (
-    <Sidebar status={status} signOut={signOut.signOut} onNavigate={onNavigate} />
+    <Sidebar status={status} signOut={signOut.signOut} onNavigate={onNavigate} inDrawer={onNavigate !== undefined} />
   )
 
   return (
