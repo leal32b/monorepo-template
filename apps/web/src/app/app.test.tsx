@@ -7,9 +7,9 @@ describe('App', () => {
 
   it('serves the home page at the root route to whoever is signed in, with the given clients', async () => {
     const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-    const me = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }
-    const client = createApiClient({ fetch: async (path) => Response.json(path === '/api/me' ? me : health) })
-    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const client = createApiClient({ fetch: async () => Response.json(health) })
+    const auth = createAuthClient({ fetch: async () => Response.json({ session: { id: 's1' }, user }) })
 
     render(() => <App client={client} auth={auth} locale="en" />)
 
@@ -18,14 +18,16 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
   })
 
-  it('sends a visitor without a session from the home page to sign in', async () => {
-    const client = createApiClient({ fetch: async () => Response.json({ code: 'unauthenticated' }, { status: 401 }) })
+  it('sends a visitor without a session from the home page to sign in, without asking the API who they are', async () => {
+    const fetch = vi.fn(async () => Response.json({ google: false }))
+    const client = createApiClient({ fetch })
     const auth = createAuthClient({ fetch: async () => Response.json(null) })
 
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
     expect(window.location.search).toBe('?next=%2F')
+    expect(fetch).not.toHaveBeenCalledWith('/api/me', expect.anything())
   })
 
   it('serves the sign-up page at /signup', () => {

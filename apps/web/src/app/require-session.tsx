@@ -1,15 +1,16 @@
 import { Button } from '@repo/ui'
 import { Navigate, useLocation, useNavigate } from '@solidjs/router'
 import { createResource, Match, type ParentProps, Switch } from 'solid-js'
-import { getMe, SessionProvider } from '#entities/sessions'
-import { ApiError, ApiProvider, useApi, whenUnauthorized } from '#shared/api'
+import { getSessionUser, SessionProvider } from '#entities/sessions'
+import { ApiError, ApiProvider, useApi, useAuth, whenUnauthorized } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { ShellSkeleton } from '#widgets/app-shell'
 import { EntryLayout } from '#widgets/entry-layout'
 import { PaletteShortcut } from './palette-shortcut'
 
 /**
- * The routes below need a session: it asks the API who is signed in and gives the answer to the
+ * The routes below need a session: it asks Better Auth who is signed in (a visitor is a 200 with
+ * nothing, so a page opened without a session logs no error in the console) and gives the answer to the
  * screens, or sends a visitor without a session to sign in, to come back to the same page. Nothing
  * shows at first while it asks, so no screen flashes for someone who is about to be sent away; a slow
  * answer draws the empty frame of the shell, so the page does not jump from blank to full. Below it, any
@@ -17,10 +18,11 @@ import { PaletteShortcut } from './palette-shortcut'
  */
 export function RequireSession(props: ParentProps) {
   const api = useApi()
+  const auth = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const { t } = useI18n()
-  const [me, { refetch }] = createResource(() => getMe(api))
+  const [me, { refetch }] = createResource(() => getSessionUser(auth))
 
   /**
    * The sign-in, coming back here. An `error` in the address, from a confirmation link that failed,
