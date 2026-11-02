@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Monorepo template</title>
   <!-- The primary role's colours (blue-700 and blue-400, as in packages/ui tokens), for the light and the dark tab. -->
   <style>
     .tile { fill: #1d4ed8 }
