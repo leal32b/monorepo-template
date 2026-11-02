@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The primary role's colours (blue-700 and blue-400, as in packages/ui tokens), for the light and the dark tab. -->
+  <style>
+    .tile { fill: #1d4ed8 }
+    .block { fill: #ffffff }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #60a5fa }
+      .block { fill: #020617 }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="7" />
+  <!-- Three blocks of a two-by-two grid: a monorepo's packages, with room for the next. -->
+  <rect class="block" x="7" y="7" width="8" height="8" rx="2" />
+  <rect class="block" x="17" y="7" width="8" height="8" rx="2" />
+  <rect class="block" x="7" y="17" width="8" height="8" rx="2" />
+</svg>
