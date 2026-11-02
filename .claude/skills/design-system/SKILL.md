@@ -105,11 +105,14 @@ Elements must not "tremble" between states or screens.
   `success` or `info` (polite), each with its own icon, a bar and an icon in the kind's colour on a
   `surface`. A small state beside a control (a row's "Your password was changed") stays a line of
   text with the kind's icon; a field error stays text under its field. Never colour alone.
-- **Icons** ([ADR 0027](../../../docs/adr/0027-wrap-one-icon-set-in-the-design-system.md)): only
+- **Icons** ([ADR 0027](../../../docs/adr/0027-wrap-one-icon-set-in-the-design-system.md),
+  [ADR 0032](../../../docs/adr/0032-draw-icons-from-phosphor-generated-from-its-svgs.md)): only
   through `<Icon name>` from `@repo/ui`, never an import of the set or an inline `<svg>`. Named for
   what it means (`security`, not `shield`). An icon beside text is decorative and says nothing; an
   icon alone (an icon-only button) takes a `label`. It follows the text's size (`em`); colour comes
-  from the text role around it.
+  from the text role around it. Icons are `regular`; the ones that mark a state come in `duotone` too
+  (`weight="duotone"`, typed per name). A new icon or weight is a line in
+  `packages/ui/scripts/generate-icons.mjs`, then `pnpm --filter @repo/ui icons`.
 
 ## States and interaction
 

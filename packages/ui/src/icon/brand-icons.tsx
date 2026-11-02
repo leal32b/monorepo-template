@@ -1,10 +1,10 @@
-import type { LucideProps } from 'lucide-solid'
+import type { ComponentProps } from 'solid-js'
 
 /**
  * Google's "G", in the four colours of its brand guidelines. A brand mark keeps its own colours in
  * both themes (ADR 0029), so these are the one place in the design system where colour is not a role.
  */
-export function GoogleMark(props: LucideProps) {
+export function GoogleMark(props: ComponentProps<'svg'>) {
   return (
     // biome-ignore lint/a11y/noSvgWithoutTitle: `Icon` passes the name, or hides it from screen readers, in the props
     <svg viewBox="0 0 24 24" width="24" height="24" {...props}>

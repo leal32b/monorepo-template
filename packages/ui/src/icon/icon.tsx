@@ -1,10 +1,15 @@
-import { Dynamic } from 'solid-js/web'
+import { Show } from 'solid-js'
 import { cn } from '#libs'
-import { type IconName, icons } from './icons'
+import { GoogleMark } from './brand-icons'
+import { type DuotoneName, type IconName, type IconWeight, markupOf } from './icons'
 
-export type IconProps = {
-  /** Which icon, by what it means. */
-  name: IconName
+/** How the icons are drawn when a screen does not say. */
+const defaultWeight: IconWeight = 'regular'
+
+/** How an icon is drawn: always `regular`, and `duotone` only for the icons that come in it (the type says which). */
+type Drawn = { name: IconName; weight?: 'regular' | undefined } | { name: DuotoneName; weight?: IconWeight | undefined }
+
+export type IconProps = Drawn & {
   /** Names the icon for screen readers. Leave it out when text beside it already says the same. */
   label?: string | undefined
   class?: string | undefined
@@ -18,13 +23,26 @@ export type IconProps = {
  * not resize it.
  */
 export function Icon(props: IconProps) {
+  const classes = () => cn('size-[1.25em] shrink-0', props.class)
+  const hidden = () => (props.label ? undefined : 'true')
+  const role = () => (props.label ? 'img' : undefined)
+
   return (
-    <Dynamic
-      component={icons[props.name]}
-      class={cn('size-[1.25em] shrink-0', props.class)}
-      aria-hidden={props.label ? undefined : 'true'}
-      role={props.label ? 'img' : undefined}
-      aria-label={props.label}
-    />
+    <Show
+      when={markupOf(props.name, props.weight ?? defaultWeight)}
+      fallback={<GoogleMark class={classes()} aria-hidden={hidden()} role={role()} aria-label={props.label} />}
+    >
+      {(markup) => (
+        <svg
+          viewBox="0 0 256 256"
+          fill="currentColor"
+          class={classes()}
+          aria-hidden={hidden()}
+          role={role()}
+          aria-label={props.label}
+          innerHTML={markup()}
+        />
+      )}
+    </Show>
   )
 }

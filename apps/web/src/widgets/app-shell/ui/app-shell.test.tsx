@@ -208,6 +208,17 @@ describe('AppShell', () => {
       expect(phoneTitle()).toHaveTextContent('Settings')
     })
 
+    it('draws the icon of the current screen in duotone, and the others in outline', () => {
+      renderShell({ path: '/settings/security' })
+      const menu = within(screen.getByRole('navigation', { name: 'Settings' }))
+      const iconOf = (name: string) => menu.getByRole('link', { name }).querySelector('svg')?.innerHTML
+
+      // Duotone draws a translucent layer under the line: the outline has none.
+      expect(iconOf('Security')).toContain('opacity')
+      expect(iconOf('Profile')).not.toContain('opacity')
+      expect(iconOf('Back to app')).not.toContain('opacity')
+    })
+
     it('goes back to the app from the settings', async () => {
       const history = renderShell({ path: '/settings/security' })
 

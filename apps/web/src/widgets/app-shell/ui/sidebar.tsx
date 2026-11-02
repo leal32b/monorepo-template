@@ -1,4 +1,4 @@
-import { cn, Icon, type IconName } from '@repo/ui'
+import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
 import { A, useMatch } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
 import type { ServiceStatus } from '#entities/health'
@@ -35,9 +35,18 @@ function NavLink(props: {
   onNavigate?: (() => void) | undefined
   children: JSX.Element
 }) {
+  const active = useMatch(() => props.href)
+  /** The current screen's icon in duotone, when it has one; the others are drawn in outline. */
+  const duotone = () => {
+    const name = props.icon
+    return active() && hasDuotone(name) ? name : undefined
+  }
+
   return (
     <A href={props.href} end onClick={props.onNavigate} class={linkClass}>
-      <Icon name={props.icon} />
+      <Show when={duotone()} fallback={<Icon name={props.icon} />}>
+        {(name) => <Icon name={name()} weight="duotone" />}
+      </Show>
       {props.children}
     </A>
   )
