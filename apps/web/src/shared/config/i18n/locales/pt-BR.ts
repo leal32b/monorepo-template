@@ -219,15 +219,46 @@ export const ptBR: Messages = {
     }
   },
   organizations: {
+    create: {
+      name: 'Nome da organização',
+      submit: 'Criar organização'
+    },
+    errors: {
+      nameRequired: 'Digite um nome para a sua organização.',
+      nameTooLong: 'Use no máximo {{max}} caracteres.',
+      limitReached: 'Você participa do máximo de organizações permitido. Saia de uma para criar outra.'
+    },
     unavailable: {
       title: 'Não conseguimos carregar suas organizações',
       description: 'Confira sua conexão e tente de novo.',
       retry: 'Tentar de novo'
     }
   },
+  invitations: {
+    expires: 'Expira em {{date}}',
+    accept: 'Aceitar',
+    decline: 'Recusar',
+    acceptLabel: 'Aceitar o convite para {{organization}}',
+    declineLabel: 'Recusar o convite para {{organization}}',
+    errors: {
+      gone: 'Este convite expirou ou foi retirado. Peça a quem convidou você que envie um novo.',
+      full: 'Esta organização atingiu o limite de membros. Peça a um proprietário que abra espaço.'
+    }
+  },
   onboarding: {
     title: 'Dê um nome à sua organização',
-    description: 'Sua equipe trabalha junta em uma organização.'
+    description: 'Sua equipe trabalha junta em uma organização.',
+    invited: {
+      title: 'Você foi convidado',
+      description: 'Entre em uma equipe que já trabalha junta, ou crie a sua própria organização.',
+      invitations: 'Convites',
+      own: 'Ou crie a sua própria organização'
+    },
+    unavailable: {
+      title: 'Não conseguimos verificar seus convites',
+      description: 'Confira sua conexão e tente de novo.',
+      retry: 'Tentar de novo'
+    }
   },
   session: {
     unavailable: {

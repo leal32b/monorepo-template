@@ -220,15 +220,46 @@ export const es: Messages = {
     }
   },
   organizations: {
+    create: {
+      name: 'Nombre de la organización',
+      submit: 'Crear organización'
+    },
+    errors: {
+      nameRequired: 'Escribe un nombre para tu organización.',
+      nameTooLong: 'Usa como máximo {{max}} caracteres.',
+      limitReached: 'Perteneces al máximo de organizaciones permitido. Sal de una para crear otra.'
+    },
     unavailable: {
       title: 'No pudimos cargar tus organizaciones',
       description: 'Revisa tu conexión y vuelve a intentarlo.',
       retry: 'Intentar de nuevo'
     }
   },
+  invitations: {
+    expires: 'Vence el {{date}}',
+    accept: 'Aceptar',
+    decline: 'Rechazar',
+    acceptLabel: 'Aceptar la invitación a {{organization}}',
+    declineLabel: 'Rechazar la invitación a {{organization}}',
+    errors: {
+      gone: 'Esta invitación venció o fue retirada. Pide a quien te invitó que envíe una nueva.',
+      full: 'Esta organización llegó a su límite de miembros. Pide a un propietario que haga espacio.'
+    }
+  },
   onboarding: {
     title: 'Ponle nombre a tu organización',
-    description: 'Tu equipo trabaja junto en una organización.'
+    description: 'Tu equipo trabaja junto en una organización.',
+    invited: {
+      title: 'Te han invitado',
+      description: 'Únete a un equipo que ya trabaja junto, o crea tu propia organización.',
+      invitations: 'Invitaciones',
+      own: 'O crea tu propia organización'
+    },
+    unavailable: {
+      title: 'No pudimos revisar tus invitaciones',
+      description: 'Revisa tu conexión e inténtalo de nuevo.',
+      retry: 'Intentar de nuevo'
+    }
   },
   session: {
     unavailable: {

@@ -217,15 +217,46 @@ export const en = {
     }
   },
   organizations: {
+    create: {
+      name: 'Organization name',
+      submit: 'Create organization'
+    },
+    errors: {
+      nameRequired: 'Enter a name for your organization.',
+      nameTooLong: 'Use at most {{max}} characters.',
+      limitReached: 'You belong to as many organizations as allowed. Leave one to create another.'
+    },
     unavailable: {
       title: 'We could not load your organizations',
       description: 'Check your connection, then try again.',
       retry: 'Try again'
     }
   },
+  invitations: {
+    expires: 'Expires on {{date}}',
+    accept: 'Accept',
+    decline: 'Decline',
+    acceptLabel: 'Accept invitation to {{organization}}',
+    declineLabel: 'Decline invitation to {{organization}}',
+    errors: {
+      gone: 'This invitation expired or was withdrawn. Ask the person who invited you to send a new one.',
+      full: 'This organization has reached its limit of members. Ask an owner to make room.'
+    }
+  },
   onboarding: {
     title: 'Name your organization',
-    description: 'Your team works together in an organization.'
+    description: 'Your team works together in an organization.',
+    invited: {
+      title: 'You have been invited',
+      description: 'Join a team that is already working together, or create your own organization.',
+      invitations: 'Invitations',
+      own: 'Or create your own organization'
+    },
+    unavailable: {
+      title: 'We could not check your invitations',
+      description: 'Check your connection, then try again.',
+      retry: 'Try again'
+    }
   },
   session: {
     unavailable: {

@@ -93,7 +93,12 @@ export const reservedSlugs = [
   'signup'
 ] as const
 
-export const organizationNameSchema = z.string().check(z.trim(), z.minLength(1), z.maxLength(80))
+/** How long an organization's name may be; the web says it when the name is too long. */
+export const organizationNameLength = { max: 80 } as const
+
+export const organizationNameSchema = z
+  .string()
+  .check(z.trim(), z.minLength(1), z.maxLength(organizationNameLength.max))
 
 /** Lowercase letters and digits, single hyphens between them, at most 48 characters. */
 const kebab = /^[a-z0-9]+(?:-[a-z0-9]+)*$/

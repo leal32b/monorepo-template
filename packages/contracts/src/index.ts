@@ -14,6 +14,7 @@ export {
   covers,
   type OrganizationMembership,
   organizationMembershipSchema,
+  organizationNameLength,
   organizationNameSchema,
   organizationSlugSchema,
   ownerOnlyPermissions,
