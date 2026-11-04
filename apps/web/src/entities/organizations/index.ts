@@ -9,5 +9,5 @@ export {
   useCurrentOrganization,
   useOrganization
 } from './model/current-organization'
-export { OrganizationsProvider, useOrganizations } from './model/organizations'
+export { OrganizationsProvider, useOptionalOrganizations, useOrganizations } from './model/organizations'
 export { rememberOrganization, startingOrganization } from './model/remembered-organization'

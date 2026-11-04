@@ -1,6 +1,6 @@
-import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
+import { createMemoryHistory, MemoryRouter, Route, useNavigate } from '@solidjs/router'
 import { fireEvent, render, screen } from '@solidjs/testing-library'
-import { OrganizationsProvider, useOrganization } from '#entities/organizations'
+import { OrganizationsProvider, useOrganization, useOrganizations } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider } from '#shared/config'
 import { RequireOrganization } from './require-organization'
@@ -101,5 +101,61 @@ describe('RequireOrganization', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'We could not load your organizations' })
     ).toBeInTheDocument()
+  })
+
+  describe('when the address of the organization changes under the screen', () => {
+    function Controls() {
+      const current = useOrganization()
+      const { update } = useOrganizations()
+      const navigate = useNavigate()
+      return (
+        <>
+          <p>On {current.organization.slug}</p>
+          <button type="button" onClick={() => update({ ...current.organization, slug: 'acme-inc' })}>
+            Change address
+          </button>
+          <button type="button" onClick={() => navigate('/nowhere')}>
+            Go elsewhere
+          </button>
+        </>
+      )
+    }
+
+    function renderControls() {
+      const history = createMemoryHistory()
+      history.set({ value: '/acme' })
+      render(() => (
+        <I18nProvider locale="en">
+          <PaletteProvider>
+            <ApiProvider client={createApiClient({ fetch: async () => Response.json(admin) })}>
+              <AuthProvider client={createAuthClient({ fetch: async () => Response.json([acme]) })}>
+                <MemoryRouter history={history}>
+                  <Route path="/" component={OrganizationsProvider}>
+                    <Route path="/:orgSlug" component={RequireOrganization}>
+                      <Route path="/" component={Controls} />
+                    </Route>
+                  </Route>
+                </MemoryRouter>
+              </AuthProvider>
+            </ApiProvider>
+          </PaletteProvider>
+        </I18nProvider>
+      ))
+    }
+
+    it('keeps the screen on the same organization, with its new address, while the URL catches up', async () => {
+      renderControls()
+      fireEvent.click(await screen.findByRole('button', { name: 'Change address' }))
+
+      expect(await screen.findByText('On acme-inc')).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Page not found' })).not.toBeInTheDocument()
+    })
+
+    it('still shows "not found" for an address that is not one of the user’s organizations', async () => {
+      renderControls()
+      fireEvent.click(await screen.findByRole('button', { name: 'Go elsewhere' }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument()
+    })
   })
 })

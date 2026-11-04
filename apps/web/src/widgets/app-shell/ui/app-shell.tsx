@@ -1,11 +1,12 @@
 import { Sheet } from '@repo/ui'
-import { useMatch, useNavigate } from '@solidjs/router'
+import { useNavigate } from '@solidjs/router'
 import { createSignal, onMount, type ParentProps, Show } from 'solid-js'
 import { createServiceStatus } from '#entities/health'
 import { createSignOut } from '#features/sign-out'
 import { useI18n, usePalette } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
 import { takeDrawerHandoff } from '../model/drawer-handoff'
+import { useInSettings } from '../model/in-settings'
 import { ShellPalette } from './shell-palette'
 import { Sidebar } from './sidebar'
 import { type Crumb, TopBar } from './top-bar'
@@ -23,7 +24,7 @@ export function AppShell(props: ParentProps<{ title: string }>) {
   const status = createServiceStatus()
   // Open from the start when the drawer of the previous screen asked to stay open (see the handoff).
   const [drawerOpen, setDrawerOpen] = createSignal(takeDrawerHandoff())
-  const inSettings = useMatch(() => '/settings/*')
+  const inSettings = useInSettings()
   /** Where the screen sits, read from the route: a settings screen is under "Settings". */
   const parents = (): Crumb[] =>
     inSettings() ? [{ href: '/settings/profile', label: t('appShell.account.settings') }] : []

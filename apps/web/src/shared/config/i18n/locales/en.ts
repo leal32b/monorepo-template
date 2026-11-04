@@ -193,7 +193,9 @@ export const en = {
       account: 'Your account',
       profile: 'Profile',
       security: 'Security',
-      preferences: 'Preferences'
+      preferences: 'Preferences',
+      organization: 'Organization',
+      general: 'General'
     },
     account: {
       settings: 'Settings',
@@ -228,7 +230,12 @@ export const en = {
     errors: {
       nameRequired: 'Enter a name for your organization.',
       nameTooLong: 'Use at most {{max}} characters.',
-      limitReached: 'You belong to as many organizations as allowed. Leave one to create another.'
+      limitReached: 'You belong to as many organizations as allowed. Leave one to create another.',
+      slugRequired: 'Enter an address.',
+      slugInvalid: 'Use lowercase letters, numbers and single hyphens, up to 48 characters.',
+      slugReserved: 'This address is reserved. Choose another.',
+      slugTaken: 'Another organization already uses this address. Choose another.',
+      notAllowed: 'You no longer have permission to do this. Ask an owner of the organization.'
     },
     unavailable: {
       title: 'We could not load your organizations',
@@ -245,6 +252,41 @@ export const en = {
     errors: {
       gone: 'This invitation expired or was withdrawn. Ask the person who invited you to send a new one.',
       full: 'This organization has reached its limit of members. Ask an owner to make room.'
+    }
+  },
+  organizationGeneral: {
+    title: 'General',
+    details: {
+      title: 'Organization',
+      description: 'How your team sees and finds this organization.',
+      readOnly: 'You can see these details. Owners and admins can change them.',
+      name: {
+        title: 'Name',
+        change: 'Rename',
+        label: 'Organization name',
+        save: 'Save name',
+        saved: 'Name saved'
+      },
+      address: {
+        title: 'Address',
+        change: 'Change address',
+        label: 'Address',
+        warning: 'Bookmarks and links that use the current address stop working once you change it.',
+        save: 'Save address',
+        saved: 'Address saved'
+      }
+    },
+    delete: {
+      title: 'Delete organization',
+      description: 'For every member, this removes the organization and all it holds.',
+      row: 'Delete this organization',
+      rowDescription: 'This cannot be undone.',
+      open: 'Delete organization',
+      warning: 'This removes {{name}} and everything in it, for all its members. It cannot be undone.',
+      label: 'Type the organization name to confirm',
+      mismatch: 'The name does not match. Type it exactly as shown: {{name}}',
+      submit: 'Delete organization',
+      onlyOwner: 'Only an owner can delete the organization.'
     }
   },
   onboarding: {

@@ -195,7 +195,9 @@ export const ptBR: Messages = {
       account: 'Sua conta',
       profile: 'Perfil',
       security: 'Segurança',
-      preferences: 'Preferências'
+      preferences: 'Preferências',
+      organization: 'Organização',
+      general: 'Geral'
     },
     account: {
       settings: 'Configurações',
@@ -230,7 +232,12 @@ export const ptBR: Messages = {
     errors: {
       nameRequired: 'Digite um nome para a sua organização.',
       nameTooLong: 'Use no máximo {{max}} caracteres.',
-      limitReached: 'Você participa do máximo de organizações permitido. Saia de uma para criar outra.'
+      limitReached: 'Você participa do máximo de organizações permitido. Saia de uma para criar outra.',
+      slugRequired: 'Digite um endereço.',
+      slugInvalid: 'Use letras minúsculas, números e hifens simples, com até 48 caracteres.',
+      slugReserved: 'Este endereço é reservado. Escolha outro.',
+      slugTaken: 'Outra organização já usa este endereço. Escolha outro.',
+      notAllowed: 'Você não tem mais permissão para isso. Peça a um proprietário da organização.'
     },
     unavailable: {
       title: 'Não conseguimos carregar suas organizações',
@@ -247,6 +254,41 @@ export const ptBR: Messages = {
     errors: {
       gone: 'Este convite expirou ou foi retirado. Peça a quem convidou você que envie um novo.',
       full: 'Esta organização atingiu o limite de membros. Peça a um proprietário que abra espaço.'
+    }
+  },
+  organizationGeneral: {
+    title: 'Geral',
+    details: {
+      title: 'Organização',
+      description: 'Como sua equipe vê e encontra esta organização.',
+      readOnly: 'Você pode ver estes dados. Proprietários e administradores podem alterá-los.',
+      name: {
+        title: 'Nome',
+        change: 'Renomear',
+        label: 'Nome da organização',
+        save: 'Salvar nome',
+        saved: 'Nome salvo'
+      },
+      address: {
+        title: 'Endereço',
+        change: 'Alterar endereço',
+        label: 'Endereço',
+        warning: 'Favoritos e links que usam o endereço atual deixam de funcionar quando você o altera.',
+        save: 'Salvar endereço',
+        saved: 'Endereço salvo'
+      }
+    },
+    delete: {
+      title: 'Excluir organização',
+      description: 'Para todos os membros, isso remove a organização e tudo o que ela contém.',
+      row: 'Excluir esta organização',
+      rowDescription: 'Isso não pode ser desfeito.',
+      open: 'Excluir organização',
+      warning: 'Isso remove {{name}} e tudo o que há nela, para todos os membros. Não pode ser desfeito.',
+      label: 'Digite o nome da organização para confirmar',
+      mismatch: 'O nome não confere. Digite-o exatamente como aparece: {{name}}',
+      submit: 'Excluir organização',
+      onlyOwner: 'Apenas um proprietário pode excluir a organização.'
     }
   },
   onboarding: {

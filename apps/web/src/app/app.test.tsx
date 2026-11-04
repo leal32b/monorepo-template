@@ -1,4 +1,4 @@
-import { render, screen } from '@solidjs/testing-library'
+import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { createApiClient, createAuthClient } from '#shared/api'
 import { App } from './app'
 
@@ -182,6 +182,99 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
     expect(window.location.search).toBe('?next=%2Fsettings%2Fsecurity')
+  })
+
+  describe('the settings of the organization', () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const owner = { roles: ['owner'], permissions: { organization: ['update', 'delete'] } }
+
+    /** Ada in Acme, which she owns; every answer of the organization plugin is `true`. */
+    const inAcme = () => {
+      const client = createApiClient({
+        fetch: async (path) =>
+          Response.json(
+            path === '/api/organizations/org-1/me'
+              ? owner
+              : { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+          )
+      })
+      const auth = createAuthClient({
+        fetch: async (input) => {
+          const url = String(input)
+          if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+          if (url.includes('/organization/update')) return Response.json({ id: 'org-1' })
+          return Response.json({ session: { id: 's1' }, user })
+        }
+      })
+      return { client, auth }
+    }
+
+    it('opens /:orgSlug/settings on General', async () => {
+      window.history.replaceState(null, '', '/acme/settings')
+
+      render(() => <App {...inAcme()} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'General' })).toBeInTheDocument()
+      expect(window.location.pathname).toBe('/acme/settings/general')
+    })
+
+    it('keeps the page on screen after the address changes, now at the new address', async () => {
+      window.history.replaceState(null, '', '/acme/settings/general')
+      render(() => <App {...inAcme()} locale="en" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Change address' }))
+      fireEvent.input(await screen.findByRole('textbox', { name: 'Address' }), { target: { value: 'acme-inc' } })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save address' }))
+
+      expect(await screen.findByText('Address saved')).toBeInTheDocument()
+      await waitFor(() => expect(window.location.pathname).toBe('/acme-inc/settings/general'))
+      expect(screen.getByRole('heading', { level: 1, name: 'General' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Page not found' })).not.toBeInTheDocument()
+      expect(screen.getByText('/acme-inc')).toBeInTheDocument()
+    })
+
+    it('leaves for onboarding after deleting the only organization', async () => {
+      window.history.replaceState(null, '', '/acme/settings/general')
+      let deleted = false
+      const { client } = inAcme()
+      const auth = createAuthClient({
+        fetch: async (input) => {
+          const url = String(input)
+          if (url.includes('/organization/delete')) {
+            deleted = true
+            return Response.json({ id: 'org-1' })
+          }
+          if (url.includes('/organization/list')) {
+            return Response.json(deleted ? [] : [{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+          }
+          return Response.json({ session: { id: 's1' }, user })
+        }
+      })
+      render(() => <App client={client} auth={auth} locale="en" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Delete organization' }))
+      fireEvent.input(await screen.findByRole('textbox', { name: 'Type the organization name to confirm' }), {
+        target: { value: 'Acme' }
+      })
+
+      fireEvent.click(
+        within(screen.getByRole('group', { name: 'Delete organization' })).getByRole('button', {
+          name: 'Delete organization'
+        })
+      )
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Name your organization' })).toBeInTheDocument()
+      expect(window.location.pathname).toBe('/onboarding')
+    })
+
+    it('is offered by the account settings too, for the organization that / would open', async () => {
+      window.history.replaceState(null, '', '/settings/profile')
+
+      render(() => <App {...inAcme()} locale="en" />)
+
+      const menu = within(await screen.findByRole('navigation', { name: 'Settings' }))
+      const link = await menu.findByRole('link', { name: 'General' })
+      expect(link).toHaveAttribute('href', '/acme/settings/general')
+    })
   })
 
   it('answers an address that does not exist with a page that says so', () => {

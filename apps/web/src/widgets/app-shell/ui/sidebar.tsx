@@ -2,8 +2,9 @@ import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
 import { A, useMatch } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
 import type { ServiceStatus } from '#entities/health'
-import { homeOf, useCurrentOrganization } from '#entities/organizations'
+import { homeOf, startingOrganization, useCurrentOrganization, useOptionalOrganizations } from '#entities/organizations'
 import { useI18n } from '#shared/config'
+import { useInSettings } from '../model/in-settings'
 import { OrganizationSwitcher } from './organization-switcher'
 import { ServiceProblem, ServiceStatusButton } from './service-status'
 import { UserMenu } from './user-menu'
@@ -26,11 +27,16 @@ type Item<Label extends string> = { href: string; label: Label; icon: IconName }
  */
 const itemsOf = (home: string): Item<'home'>[] => [{ href: home, label: 'home', icon: 'home' }]
 
-/** The settings of the user's own account; the organization's join them in 6.5. */
+/** The settings of the user's own account. */
 const accountItems: Item<'profile' | 'security' | 'preferences'>[] = [
   { href: '/settings/profile', label: 'profile', icon: 'profile' },
   { href: '/settings/security', label: 'security', icon: 'security' },
   { href: '/settings/preferences', label: 'preferences', icon: 'monitor' }
+]
+
+/** The settings of the organization, under its slug (ADR 0034); Members and Roles join General. */
+const organizationItems = (home: string): Item<'general'>[] => [
+  { href: `${home}/settings/general`, label: 'general', icon: 'preferences' }
 ]
 
 const linkClass =
@@ -67,11 +73,20 @@ function NavLink(props: {
  */
 export function Sidebar(props: SidebarProps) {
   const { t } = useI18n()
-  const inSettings = useMatch(() => '/settings/*')
+  const inSettings = useInSettings()
   const accountLabel = createUniqueId()
+  const organizationLabel = createUniqueId()
   /** The current organization's home; outside any (the account settings) the root picks one. */
   const current = useCurrentOrganization()
   const home = () => homeOf(current?.organization)
+  const organizations = useOptionalOrganizations()
+  /**
+   * The organization the settings' own part is about: the screen's, or, on an account screen, the one
+   * `/` would open (the last one used here, else the first), once the list is read.
+   */
+  const settingsOrganization = () =>
+    current?.organization ??
+    (organizations?.list.state === 'ready' ? startingOrganization(organizations.list()) : undefined)
 
   return (
     <div class={cn('flex h-full flex-col gap-4 bg-surface p-3', props.class)}>
@@ -114,7 +129,7 @@ export function Sidebar(props: SidebarProps) {
         }
       >
         <nav aria-label={t('appShell.nav.settings')} class="flex flex-1 flex-col gap-4">
-          <NavLink href="/" icon="back" onNavigate={props.onNavigate}>
+          <NavLink href={home()} icon="back" onNavigate={props.onNavigate}>
             {t('appShell.nav.back')}
           </NavLink>
           <div class="flex flex-col gap-1">
@@ -133,6 +148,26 @@ export function Sidebar(props: SidebarProps) {
               </For>
             </ul>
           </div>
+          <Show when={settingsOrganization()}>
+            {(organization) => (
+              <div class="flex flex-col gap-1">
+                <p id={organizationLabel} class="m-0 px-2 text-sm font-medium text-muted-foreground">
+                  {t('appShell.nav.organization')}
+                </p>
+                <ul aria-labelledby={organizationLabel} class="m-0 flex list-none flex-col gap-1 p-0">
+                  <For each={organizationItems(homeOf(organization()))}>
+                    {(item) => (
+                      <li>
+                        <NavLink href={item.href} icon={item.icon} onNavigate={props.onNavigate}>
+                          {t(`appShell.nav.${item.label}`)}
+                        </NavLink>
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </div>
+            )}
+          </Show>
         </nav>
       </Show>
       <div class="flex flex-col gap-2 border-t border-border-subtle pt-3">

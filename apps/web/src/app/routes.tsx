@@ -1,4 +1,4 @@
-import { Navigate, type RouteDefinition } from '@solidjs/router'
+import { Navigate, type RouteDefinition, useParams } from '@solidjs/router'
 import { lazy } from 'solid-js'
 import { ForgotPasswordPage } from '#pages/forgot-password'
 import { NotFoundPage } from '#pages/not-found'
@@ -26,10 +26,19 @@ const RequireOrganization = lazy(() =>
   import('./require-organization').then((m) => ({ default: m.RequireOrganization }))
 )
 const HomePage = lazy(() => import('#pages/home').then((m) => ({ default: m.HomePage })))
+const OrganizationGeneralPage = lazy(() =>
+  import('#pages/organization-general').then((m) => ({ default: m.OrganizationGeneralPage }))
+)
 const OnboardingPage = lazy(() => import('#pages/onboarding').then((m) => ({ default: m.OnboardingPage })))
 const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: m.ProfilePage })))
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
+
+/** `/:orgSlug/settings` opens on General, as `/settings` opens on the profile. */
+function SettingsOfOrganization() {
+  const params = useParams<{ orgSlug: string }>()
+  return <Navigate href={`/${params.orgSlug}/settings/general`} />
+}
 
 /** The organization's slug is the first segment of every tenant screen (ADR 0034). */
 export const tenantPath = '/:orgSlug'
@@ -45,21 +54,36 @@ export const routes: RouteDefinition[] = [
     component: RequireSession,
     children: [
       {
-        path: '/settings',
-        children: [
-          { path: '/', component: () => <Navigate href="/settings/profile" /> },
-          { path: '/profile', component: ProfilePage },
-          { path: '/security', component: SecurityPage },
-          { path: '/preferences', component: PreferencesPage }
-        ]
-      },
-      {
+        // The organizations are read for every screen behind the session, the account settings
+        // included: their side menu offers the organization's settings beside the account's.
         path: '/',
         component: OrganizationsProvider,
         children: [
+          {
+            path: '/settings',
+            children: [
+              { path: '/', component: () => <Navigate href="/settings/profile" /> },
+              { path: '/profile', component: ProfilePage },
+              { path: '/security', component: SecurityPage },
+              { path: '/preferences', component: PreferencesPage }
+            ]
+          },
           { path: '/', component: OrganizationRedirect },
           { path: '/onboarding', component: OnboardingPage },
-          { path: tenantPath, component: RequireOrganization, children: [{ path: '/', component: HomePage }] }
+          {
+            path: tenantPath,
+            component: RequireOrganization,
+            children: [
+              { path: '/', component: HomePage },
+              {
+                path: '/settings',
+                children: [
+                  { path: '/', component: SettingsOfOrganization },
+                  { path: '/general', component: OrganizationGeneralPage }
+                ]
+              }
+            ]
+          }
         ]
       }
     ]

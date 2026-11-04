@@ -7,6 +7,8 @@ type Organizations = {
   list: Resource<Organization[]>
   /** Reads them again, after a failure or a change such as a new organization. */
   refetch: () => void
+  /** Puts a changed organization in the list (a new name or slug), with no new request. */
+  update: (organization: Organization) => void
 }
 
 const OrganizationsContext = createContext<Organizations>()
@@ -17,10 +19,19 @@ const OrganizationsContext = createContext<Organizations>()
  */
 export function OrganizationsProvider(props: ParentProps) {
   const auth = useAuth()
-  const [list, { refetch }] = createResource(() => listOrganizations(auth))
+  const [list, { refetch, mutate }] = createResource(() => listOrganizations(auth))
 
   return (
-    <OrganizationsContext.Provider value={{ list, refetch: () => void refetch() }}>
+    <OrganizationsContext.Provider
+      value={{
+        list,
+        refetch: () => void refetch(),
+        update: (changed) =>
+          mutate((organizations) =>
+            organizations?.map((organization) => (organization.id === changed.id ? changed : organization))
+          )
+      }}
+    >
       {props.children}
     </OrganizationsContext.Provider>
   )
@@ -30,4 +41,9 @@ export function useOrganizations(): Organizations {
   const organizations = useContext(OrganizationsContext)
   if (!organizations) throw new Error('useOrganizations must be used inside an OrganizationsProvider')
   return organizations
+}
+
+/** The organizations of a screen that may sit outside the provider, such as the side menu on the account settings. */
+export function useOptionalOrganizations(): Organizations | undefined {
+  return useContext(OrganizationsContext)
 }

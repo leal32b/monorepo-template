@@ -74,6 +74,14 @@ function renderShell({
                     )}
                   />
                   <Route
+                    path="/acme/settings/general"
+                    component={() => (
+                      <AppShell title="General">
+                        <p>The general</p>
+                      </AppShell>
+                    )}
+                  />
+                  <Route
                     path="/settings/security"
                     component={() => (
                       <AppShell title="Security">
@@ -326,6 +334,39 @@ describe('AppShell', () => {
       expect(iconOf('Security')).toContain('opacity')
       expect(iconOf('Profile')).not.toContain('opacity')
       expect(iconOf('Back to app')).not.toContain('opacity')
+    })
+
+    describe('of an organization', () => {
+      const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+
+      it('shares the settings’ menu: the organization’s own screens join the account’s, the current one marked', () => {
+        renderShell({ path: '/acme/settings/general', organization: acme })
+
+        const settings = within(screen.getByRole('navigation', { name: 'Settings' }))
+        expect(settings.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/settings/profile')
+        const organization = within(settings.getByRole('list', { name: 'Organization' }))
+        expect(organization.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+          ['General', '/acme/settings/general']
+        ])
+        expect(organization.getByRole('link', { name: 'General' })).toHaveAttribute('aria-current', 'page')
+      })
+
+      it('goes back to the home of the organization, titles the menu "Settings" and puts the settings in the breadcrumb', () => {
+        renderShell({ path: '/acme/settings/general', organization: acme })
+        const menu = within(screen.getByRole('complementary', { hidden: true }))
+
+        expect(menu.getByRole('link', { name: 'Back to app' })).toHaveAttribute('href', '/acme')
+        expect(menu.getByText('Settings', { selector: 'span' })).toBeInTheDocument()
+        expect(menu.queryByRole('button', { name: /Acme/ })).not.toBeInTheDocument()
+        const trail = within(screen.getByRole('navigation', { name: 'You are here' }))
+        expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual(['Settings', 'General'])
+      })
+
+      it('is not offered in the settings of a screen that has no organization to speak of', () => {
+        renderShell({ path: '/settings/security' })
+
+        expect(screen.queryByRole('list', { name: 'Organization' })).not.toBeInTheDocument()
+      })
     })
 
     it('goes back to the app from the settings', async () => {

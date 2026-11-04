@@ -196,7 +196,9 @@ export const es: Messages = {
       account: 'Tu cuenta',
       profile: 'Perfil',
       security: 'Seguridad',
-      preferences: 'Preferencias'
+      preferences: 'Preferencias',
+      organization: 'Organización',
+      general: 'General'
     },
     account: {
       settings: 'Ajustes',
@@ -231,7 +233,12 @@ export const es: Messages = {
     errors: {
       nameRequired: 'Escribe un nombre para tu organización.',
       nameTooLong: 'Usa como máximo {{max}} caracteres.',
-      limitReached: 'Perteneces al máximo de organizaciones permitido. Sal de una para crear otra.'
+      limitReached: 'Perteneces al máximo de organizaciones permitido. Sal de una para crear otra.',
+      slugRequired: 'Escribe una dirección.',
+      slugInvalid: 'Usa letras minúsculas, números y guiones simples, hasta 48 caracteres.',
+      slugReserved: 'Esta dirección está reservada. Elige otra.',
+      slugTaken: 'Otra organización ya usa esta dirección. Elige otra.',
+      notAllowed: 'Ya no tienes permiso para hacerlo. Pídeselo a un propietario de la organización.'
     },
     unavailable: {
       title: 'No pudimos cargar tus organizaciones',
@@ -248,6 +255,41 @@ export const es: Messages = {
     errors: {
       gone: 'Esta invitación venció o fue retirada. Pide a quien te invitó que envíe una nueva.',
       full: 'Esta organización llegó a su límite de miembros. Pide a un propietario que haga espacio.'
+    }
+  },
+  organizationGeneral: {
+    title: 'General',
+    details: {
+      title: 'Organización',
+      description: 'Cómo tu equipo ve y encuentra esta organización.',
+      readOnly: 'Puedes ver estos datos. Los propietarios y administradores pueden cambiarlos.',
+      name: {
+        title: 'Nombre',
+        change: 'Cambiar nombre',
+        label: 'Nombre de la organización',
+        save: 'Guardar nombre',
+        saved: 'Nombre guardado'
+      },
+      address: {
+        title: 'Dirección',
+        change: 'Cambiar dirección',
+        label: 'Dirección',
+        warning: 'Los marcadores y enlaces que usan la dirección actual dejarán de funcionar al cambiarla.',
+        save: 'Guardar dirección',
+        saved: 'Dirección guardada'
+      }
+    },
+    delete: {
+      title: 'Eliminar organización',
+      description: 'Para todos los miembros, esto elimina la organización y todo lo que contiene.',
+      row: 'Eliminar esta organización',
+      rowDescription: 'No se puede deshacer.',
+      open: 'Eliminar organización',
+      warning: 'Esto elimina {{name}} y todo lo que contiene, para todos sus miembros. No se puede deshacer.',
+      label: 'Escribe el nombre de la organización para confirmar',
+      mismatch: 'El nombre no coincide. Escríbelo tal como aparece: {{name}}',
+      submit: 'Eliminar organización',
+      onlyOwner: 'Solo un propietario puede eliminar la organización.'
     }
   },
   onboarding: {
