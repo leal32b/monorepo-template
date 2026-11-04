@@ -12,6 +12,8 @@ export type SettingsRowProps = Omit<ComponentProps<'div'>, 'title'> & {
   badge?: JSX.Element
   /** What the row does or what it is now, in one line. */
   description?: string | undefined
+  /** Why something cannot be done here, in a line under the description ("Make someone else an owner first"). */
+  note?: string | undefined
   /**
    * What just happened, such as "Your password was changed": announced politely, in the row where the
    * user acted. The area is always there, so a change to it is read out.
@@ -36,6 +38,7 @@ export function SettingsRow(props: SettingsRowProps) {
     'title',
     'badge',
     'description',
+    'note',
     'status',
     'action',
     'panel'
@@ -62,6 +65,12 @@ export function SettingsRow(props: SettingsRowProps) {
             </div>
             <Show when={local.description}>
               <p class="mt-0.5 text-sm text-muted-foreground">{local.description}</p>
+            </Show>
+            <Show when={local.note}>
+              <p class="mt-1.5 flex items-start gap-1.5 text-sm text-muted-foreground">
+                <Icon name="info" class="mt-0.5 size-4 shrink-0" />
+                {local.note}
+              </p>
             </Show>
             <p role="status" class="flex items-start gap-1.5 text-sm text-success not-empty:mt-1.5">
               <Show when={local.status}>

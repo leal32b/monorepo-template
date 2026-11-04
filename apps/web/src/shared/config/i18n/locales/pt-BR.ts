@@ -197,7 +197,8 @@ export const ptBR: Messages = {
       security: 'Segurança',
       preferences: 'Preferências',
       organization: 'Organização',
-      general: 'Geral'
+      general: 'Geral',
+      members: 'Membros'
     },
     account: {
       settings: 'Configurações',
@@ -289,6 +290,52 @@ export const ptBR: Messages = {
       mismatch: 'O nome não confere. Digite-o exatamente como aparece: {{name}}',
       submit: 'Excluir organização',
       onlyOwner: 'Apenas um proprietário pode excluir a organização.'
+    }
+  },
+  organizationMembers: {
+    title: 'Membros',
+    unavailable: 'Não conseguimos carregar os membros. Verifique sua conexão e tente de novo.',
+    retry: 'Tentar de novo',
+    section: {
+      title: 'Pessoas',
+      description: 'Todas as pessoas que podem abrir {{name}}.',
+      readOnly: 'Todas as pessoas que podem abrir {{name}}. Proprietários e administradores gerenciam quem está aqui.'
+    },
+    you: 'Você',
+    roles: {
+      owner: 'Proprietário',
+      admin: 'Administrador',
+      member: 'Membro'
+    },
+    actions: {
+      changeRole: 'Alterar papel',
+      remove: 'Remover',
+      leave: 'Sair'
+    },
+    notes: {
+      lastOwner: 'É o único proprietário. Torne outra pessoa proprietária antes de alterar este papel ou sair.',
+      outranks: 'Esta pessoa tem permissões que você não tem, então você não pode alterá-la nem removê-la.'
+    },
+    changeRole: {
+      label: 'Papel',
+      cannotGive: 'Um papel marcado aqui tem uma permissão que você não tem, então você não pode concedê-lo.',
+      locked: '{{role}} (você não pode conceder este papel)',
+      save: 'Salvar papel',
+      saved: 'Papel alterado para {{role}}'
+    },
+    remove: {
+      warning: 'Remover {{name}} de {{organization}}? A pessoa perde o acesso na hora.',
+      submit: 'Remover membro',
+      removed: 'Pessoa removida: {{name}}'
+    },
+    leave: {
+      warning: 'Sair de {{organization}}? Você perde o acesso na hora e precisará de um novo convite para voltar.',
+      submit: 'Sair da organização'
+    },
+    errors: {
+      notAllowed: 'Você não pode fazer isso com esta pessoa. Seu papel pode ter mudado.',
+      lastOwner: 'A organização precisa de um proprietário. Torne outra pessoa proprietária primeiro.',
+      gone: 'Esta pessoa não é mais membro. A lista foi atualizada.'
     }
   },
   onboarding: {

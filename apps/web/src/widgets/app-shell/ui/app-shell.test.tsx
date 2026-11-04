@@ -346,7 +346,8 @@ describe('AppShell', () => {
         expect(settings.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/settings/profile')
         const organization = within(settings.getByRole('list', { name: 'Organization' }))
         expect(organization.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
-          ['General', '/acme/settings/general']
+          ['General', '/acme/settings/general'],
+          ['Members', '/acme/settings/members']
         ])
         expect(organization.getByRole('link', { name: 'General' })).toHaveAttribute('aria-current', 'page')
       })

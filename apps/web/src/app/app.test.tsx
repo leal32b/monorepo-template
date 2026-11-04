@@ -201,8 +201,23 @@ describe('App', () => {
       const auth = createAuthClient({
         fetch: async (input) => {
           const url = String(input)
-          if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
           if (url.includes('/organization/update')) return Response.json({ id: 'org-1' })
+          if (url.includes('/organization/list-members')) {
+            return Response.json({
+              members: [
+                {
+                  id: 'm1',
+                  userId: 'u1',
+                  role: 'owner',
+                  createdAt: '2026-11-04T12:00:00.000Z',
+                  user: { name: 'Ada Lovelace', email: 'ada@example.com' }
+                }
+              ],
+              total: 1
+            })
+          }
+          if (url.includes('/organization/list-roles')) return Response.json([])
+          if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
           return Response.json({ session: { id: 's1' }, user })
         }
       })
@@ -216,6 +231,15 @@ describe('App', () => {
 
       expect(await screen.findByRole('heading', { level: 1, name: 'General' })).toBeInTheDocument()
       expect(window.location.pathname).toBe('/acme/settings/general')
+    })
+
+    it('serves the members of the organization under its settings', async () => {
+      window.history.replaceState(null, '', '/acme/settings/members')
+
+      render(() => <App {...inAcme()} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Members' })).toBeInTheDocument()
+      expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
     })
 
     it('keeps the page on screen after the address changes, now at the new address', async () => {

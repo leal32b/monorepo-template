@@ -34,9 +34,10 @@ const accountItems: Item<'profile' | 'security' | 'preferences'>[] = [
   { href: '/settings/preferences', label: 'preferences', icon: 'monitor' }
 ]
 
-/** The settings of the organization, under its slug (ADR 0034); Members and Roles join General. */
-const organizationItems = (home: string): Item<'general'>[] => [
-  { href: `${home}/settings/general`, label: 'general', icon: 'preferences' }
+/** The settings of the organization, under its slug (ADR 0034); Roles joins them. */
+const organizationItems = (home: string): Item<'general' | 'members'>[] => [
+  { href: `${home}/settings/general`, label: 'general', icon: 'preferences' },
+  { href: `${home}/settings/members`, label: 'members', icon: 'users' }
 ]
 
 const linkClass =

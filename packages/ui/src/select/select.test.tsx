@@ -21,6 +21,40 @@ describe('Select', () => {
     expect(select).toHaveValue('es')
   })
 
+  it('disables the options marked so, which stay in the list', () => {
+    render(() => (
+      <Select
+        aria-label="Role"
+        options={[
+          { value: 'member', label: 'Member' },
+          { value: 'owner', label: 'Owner', disabled: true }
+        ]}
+        value="member"
+        onChange={() => {}}
+      />
+    ))
+
+    expect(screen.getByRole('option', { name: 'Owner' })).toBeDisabled()
+    expect(screen.getByRole('option', { name: 'Member' })).toBeEnabled()
+  })
+
+  it('shows the current value even when disabled options come before it', () => {
+    render(() => (
+      <Select
+        aria-label="Role"
+        options={[
+          { value: 'owner', label: 'Owner', disabled: true },
+          { value: 'admin', label: 'Admin' },
+          { value: 'member', label: 'Member' }
+        ]}
+        value="member"
+        onChange={() => {}}
+      />
+    ))
+
+    expect(screen.getByRole('combobox', { name: 'Role' })).toHaveValue('member')
+  })
+
   it('tells the app the value chosen', () => {
     const onChange = vi.fn()
     render(() => <Select aria-label="Language" options={languages} value="en" onChange={onChange} />)

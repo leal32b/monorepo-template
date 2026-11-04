@@ -49,6 +49,21 @@ describe('SettingsRow', () => {
     expect(screen.getByRole('button', { name: 'Change' })).toBeInTheDocument()
   })
 
+  it('says why something cannot be done in a note under the description, with a hidden icon', () => {
+    const { container } = render(() => (
+      <SettingsRow title="Ada" description="ada@example.com" note="The only owner. Make someone else an owner first." />
+    ))
+
+    expect(screen.getByText('The only owner. Make someone else an owner first.')).toBeInTheDocument()
+    expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('has no note, and no room for one, unless given', () => {
+    const { container } = render(() => <SettingsRow title="Ada" description="ada@example.com" />)
+
+    expect(container.querySelector('svg')).toBeNull()
+  })
+
   it('has an icon only when given one, hidden from screen readers', () => {
     const { container } = render(() => (
       <>

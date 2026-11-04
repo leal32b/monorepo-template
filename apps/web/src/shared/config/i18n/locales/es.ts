@@ -198,7 +198,8 @@ export const es: Messages = {
       security: 'Seguridad',
       preferences: 'Preferencias',
       organization: 'Organización',
-      general: 'General'
+      general: 'General',
+      members: 'Miembros'
     },
     account: {
       settings: 'Ajustes',
@@ -290,6 +291,54 @@ export const es: Messages = {
       mismatch: 'El nombre no coincide. Escríbelo tal como aparece: {{name}}',
       submit: 'Eliminar organización',
       onlyOwner: 'Solo un propietario puede eliminar la organización.'
+    }
+  },
+  organizationMembers: {
+    title: 'Miembros',
+    unavailable: 'No pudimos cargar los miembros. Revisa tu conexión y vuelve a intentarlo.',
+    retry: 'Reintentar',
+    section: {
+      title: 'Personas',
+      description: 'Todas las personas que pueden abrir {{name}}.',
+      readOnly:
+        'Todas las personas que pueden abrir {{name}}. Los propietarios y administradores gestionan quién está aquí.'
+    },
+    you: 'Tú',
+    roles: {
+      owner: 'Propietario',
+      admin: 'Administrador',
+      member: 'Miembro'
+    },
+    actions: {
+      changeRole: 'Cambiar rol',
+      remove: 'Quitar',
+      leave: 'Salir'
+    },
+    notes: {
+      lastOwner: 'Es el único propietario. Nombra a otra persona propietaria antes de cambiar este rol o salir.',
+      outranks: 'Esta persona tiene permisos que tú no tienes, así que no puedes cambiarla ni quitarla.'
+    },
+    changeRole: {
+      label: 'Rol',
+      cannotGive: 'Un rol marcado aquí tiene un permiso que tú no tienes, así que no puedes darlo.',
+      locked: '{{role}} (no puedes dar este rol)',
+      save: 'Guardar rol',
+      saved: 'Rol cambiado a {{role}}'
+    },
+    remove: {
+      warning: '¿Quitar a {{name}} de {{organization}}? Pierde el acceso de inmediato.',
+      submit: 'Quitar miembro',
+      removed: 'Se quitó a {{name}}'
+    },
+    leave: {
+      warning:
+        '¿Salir de {{organization}}? Pierdes el acceso de inmediato y necesitarás una invitación nueva para volver.',
+      submit: 'Salir de la organización'
+    },
+    errors: {
+      notAllowed: 'No puedes hacer esto con esta persona. Puede que tu rol haya cambiado.',
+      lastOwner: 'La organización necesita un propietario. Nombra primero a otra persona propietaria.',
+      gone: 'Esta persona ya no es miembro. La lista se actualizó.'
     }
   },
   onboarding: {

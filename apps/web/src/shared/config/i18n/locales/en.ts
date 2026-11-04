@@ -195,7 +195,8 @@ export const en = {
       security: 'Security',
       preferences: 'Preferences',
       organization: 'Organization',
-      general: 'General'
+      general: 'General',
+      members: 'Members'
     },
     account: {
       settings: 'Settings',
@@ -287,6 +288,52 @@ export const en = {
       mismatch: 'The name does not match. Type it exactly as shown: {{name}}',
       submit: 'Delete organization',
       onlyOwner: 'Only an owner can delete the organization.'
+    }
+  },
+  organizationMembers: {
+    title: 'Members',
+    unavailable: 'We could not load the members. Check your connection, then try again.',
+    retry: 'Try again',
+    section: {
+      title: 'People',
+      description: 'Everyone who can open {{name}}.',
+      readOnly: 'Everyone who can open {{name}}. Owners and admins manage who is here.'
+    },
+    you: 'You',
+    roles: {
+      owner: 'Owner',
+      admin: 'Admin',
+      member: 'Member'
+    },
+    actions: {
+      changeRole: 'Change role',
+      remove: 'Remove',
+      leave: 'Leave'
+    },
+    notes: {
+      lastOwner: 'The only owner. Make someone else an owner before changing this role or leaving.',
+      outranks: 'This person holds permissions you do not, so you cannot change or remove them.'
+    },
+    changeRole: {
+      label: 'Role',
+      cannotGive: 'A role marked here holds a permission you do not, so you cannot give it.',
+      locked: '{{role}} (you cannot give this role)',
+      save: 'Save role',
+      saved: 'Role changed to {{role}}'
+    },
+    remove: {
+      warning: 'Remove {{name}} from {{organization}}? They lose access right away.',
+      submit: 'Remove member',
+      removed: '{{name}} was removed'
+    },
+    leave: {
+      warning: 'Leave {{organization}}? You lose access right away, and need a new invitation to come back.',
+      submit: 'Leave organization'
+    },
+    errors: {
+      notAllowed: 'You cannot do this with this person. Your role may have changed.',
+      lastOwner: 'The organization needs an owner. Make someone else an owner first.',
+      gone: 'This person is no longer a member. The list has been updated.'
     }
   },
   onboarding: {
