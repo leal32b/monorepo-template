@@ -5,7 +5,16 @@ export const ptBR: Messages = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Início'
+    title: 'Início',
+    gettingStarted: {
+      title: 'Primeiros passos',
+      description: 'Alguns passos para configurar {{name}}.',
+      invite: {
+        title: 'Convidar pessoas',
+        description: 'Peça à sua equipe para entrar em {{name}}.',
+        go: 'Convidar pessoas'
+      }
+    }
   },
   profile: {
     title: 'Perfil',
@@ -429,6 +438,41 @@ export const ptBR: Messages = {
       notAllowed: 'Você não pode fazer isso com este papel. Seu papel pode ter mudado.',
       inUse: 'Agora há membros ou convites com este papel. Dê outro papel a eles primeiro.',
       gone: 'Este papel não existe mais. A lista foi atualizada.'
+    }
+  },
+  organizationInvitations: {
+    section: {
+      title: 'Convites',
+      description: 'Pessoas convidadas para {{name}} que ainda não responderam.',
+      empty: 'Nenhum convite pendente.'
+    },
+    unavailable: 'Não conseguimos carregar os convites. Verifique sua conexão e tente de novo.',
+    retry: 'Tentar de novo',
+    invite: {
+      title: 'Convidar pessoas',
+      description: 'Elas recebem um e-mail com um link para entrar em {{name}}.',
+      open: 'Convidar pessoas'
+    },
+    form: {
+      email: 'E-mail',
+      role: 'Papel',
+      cannotGive: 'Um papel marcado aqui tem uma permissão que você não tem, então você não pode concedê-lo.',
+      locked: '{{role}} (você não pode conceder este papel)',
+      send: 'Enviar convite',
+      sent: 'Convite enviado para {{email}}'
+    },
+    row: {
+      resend: 'Reenviar',
+      resent: 'Convite enviado de novo para {{email}}',
+      revoke: 'Revogar',
+      revoked: 'Convite para {{email}} revogado'
+    },
+    errors: {
+      alreadyMember: 'Esta pessoa já é membro.',
+      notAllowed: 'Você não pode convidar com este papel. Seu papel pode ter mudado.',
+      limit: 'Esta organização tem o máximo de convites pendentes permitido. Revogue um para enviar outro.',
+      tooMany: 'Você enviou muitos convites em pouco tempo. Espere um minuto e tente de novo.',
+      gone: 'Este convite não está mais pendente. A lista foi atualizada.'
     }
   },
   onboarding: {

@@ -31,27 +31,61 @@ const everyone = [
 ]
 const editor = { id: 'r1', organizationId: 'org-1', role: 'editor', permission: { invitation: ['create'] } }
 
+const invitation = (id: string, role: string) => ({
+  id,
+  organizationId: 'org-1',
+  email: `${id}@example.com`,
+  role,
+  status: 'pending',
+  expiresAt: '2999-01-01T12:00:00.000Z'
+})
+
 type Options = {
   /** Which member the caller is. */
   as?: string
   roles?: string[]
   members?: ReturnType<typeof row>[]
+  /** The invitations still waiting; sending and revoking change this list. */
+  invitations?: ReturnType<typeof invitation>[]
+  /** What the caller holds, when not the built-in role named by `roles`. */
+  permissions?: Permissions
   auth?: Fetch
   locale?: Locale
 }
 
-function renderPage({ as = 'm1', roles = ['owner'], members = everyone, auth, locale = 'en' }: Options = {}) {
-  const permissions: Permissions = roles.includes('owner')
-    ? builtInRoles.owner
-    : roles.includes('admin')
-      ? builtInRoles.admin
-      : builtInRoles.member
+function renderPage({
+  as = 'm1',
+  roles = ['owner'],
+  members = everyone,
+  invitations = [],
+  permissions: given,
+  auth,
+  locale = 'en'
+}: Options = {}) {
+  const waiting = [...invitations]
+  const permissions: Permissions =
+    given ??
+    (roles.includes('owner') ? builtInRoles.owner : roles.includes('admin') ? builtInRoles.admin : builtInRoles.member)
   const authFetch: Fetch =
     auth ??
-    (async (input) => {
+    (async (input, init) => {
       const url = String(input)
       if (url.includes('/organization/list-members')) return Response.json({ members, total: members.length })
       if (url.includes('/organization/list-roles')) return Response.json([editor])
+      if (url.includes('/organization/list-invitations')) return Response.json(waiting)
+      if (url.includes('/organization/invite-member')) {
+        const body = JSON.parse(String(init?.body)) as { email: string; role: string | string[]; resend?: boolean }
+        if (!body.resend) waiting.push(invitation(body.email.split('@')[0] as string, [body.role].flat().join(',')))
+        return Response.json({ id: 'inv' })
+      }
+      if (url.includes('/organization/cancel-invitation')) {
+        const { invitationId } = JSON.parse(String(init?.body)) as { invitationId: string }
+        waiting.splice(
+          waiting.findIndex((candidate) => candidate.id === invitationId),
+          1
+        )
+        return Response.json({ id: invitationId })
+      }
       if (url.includes('/organization/list')) return Response.json([acme])
       return Response.json({ status: true })
     })
@@ -288,5 +322,173 @@ describe('OrganizationMembersPage', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Membros' })).toBeInTheDocument()
     expect((await rowOf('Grace')).getByText('Administrador')).toBeInTheDocument()
+  })
+
+  describe('the invitations', () => {
+    const waitingFor = [invitation('grace2', 'member'), invitation('ken2', 'member,editor')]
+
+    it('lists the invitations still waiting, with their roles and when they expire, to send again or revoke', async () => {
+      renderPage({ invitations: waitingFor })
+
+      const section = within(await screen.findByRole('region', { name: 'Invitations' }))
+      expect(await section.findByText('grace2@example.com')).toBeInTheDocument()
+      expect(section.getAllByText('Expires on Jan 1, 2999')).toHaveLength(2)
+      expect(
+        within(section.getByText('ken2@example.com').closest('div.flex-col') as HTMLElement).getByText('editor')
+      ).toBeInTheDocument()
+      expect(section.getAllByRole('button', { name: 'Resend' })).toHaveLength(2)
+      expect(section.getAllByRole('button', { name: 'Revoke' })).toHaveLength(2)
+      expect(section.getByRole('button', { name: 'Invite people' })).toBeInTheDocument()
+    })
+
+    it('says there are none, and still offers to invite', async () => {
+      renderPage()
+
+      const section = within(await screen.findByRole('region', { name: 'Invitations' }))
+      expect(await section.findByText('No pending invitations.')).toBeInTheDocument()
+      expect(section.getByRole('button', { name: 'Invite people' })).toBeInTheDocument()
+    })
+
+    it('does not show a plain member the section, nor ask for its list', async () => {
+      const auth = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(async (input) => {
+        const url = String(input)
+        if (url.includes('/organization/list-members')) return Response.json({ members: everyone, total: 4 })
+        if (url.includes('/organization/list-roles')) return Response.json([editor])
+        return Response.json([acme])
+      })
+      renderPage({ as: 'm3', roles: ['member'], auth })
+
+      expect(await screen.findByRole('region', { name: 'People' })).toBeInTheDocument()
+      expect(screen.queryByRole('region', { name: 'Invitations' })).not.toBeInTheDocument()
+      expect(auth.mock.calls.some(([input]) => String(input).includes('list-invitations'))).toBe(false)
+    })
+
+    it('invites someone: says so, and the invitation joins the list', async () => {
+      renderPage()
+      fireEvent.click(await screen.findByRole('button', { name: 'Invite people' }))
+      fireEvent.input(await screen.findByRole('textbox', { name: 'Email' }), { target: { value: 'New@Example.com' } })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }))
+
+      expect(await screen.findByText('Invitation sent to new@example.com')).toBeInTheDocument()
+      expect(await screen.findByText('new@example.com', { selector: 'div' })).toBeInTheDocument()
+      expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument()
+    })
+
+    it('closes the invite form from Cancel', async () => {
+      renderPage()
+      fireEvent.click(await screen.findByRole('button', { name: 'Invite people' }))
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+
+      await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument())
+    })
+
+    it('sends an invitation again, and says so in its row', async () => {
+      renderPage({ invitations: waitingFor })
+
+      fireEvent.click((await screen.findAllByRole('button', { name: 'Resend' }))[0] as HTMLElement)
+
+      expect(await screen.findByText('Invitation sent again to grace2@example.com')).toBeInTheDocument()
+    })
+
+    it('revokes an invitation: it leaves the list and the section says which', async () => {
+      renderPage({ invitations: waitingFor })
+
+      fireEvent.click((await screen.findAllByRole('button', { name: 'Revoke' }))[0] as HTMLElement)
+
+      expect(await screen.findByText('Invitation to grace2@example.com revoked')).toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByText('grace2@example.com', { selector: 'div' })).not.toBeInTheDocument())
+      expect(screen.getByText('ken2@example.com', { selector: 'div' })).toBeInTheDocument()
+    })
+
+    it('says what went wrong with an invitation, in its row, and clears it on the next try', async () => {
+      let attempts = 0
+      renderPage({
+        invitations: waitingFor,
+        auth: async (input) => {
+          const url = String(input)
+          if (url.includes('/organization/list-members')) return Response.json({ members: everyone, total: 4 })
+          if (url.includes('/organization/list-roles')) return Response.json([editor])
+          if (url.includes('/organization/list-invitations')) return Response.json(waitingFor)
+          if (url.includes('/organization/invite-member')) {
+            attempts += 1
+            return attempts === 1
+              ? Response.json({ code: 'INVITATION_NOT_FOUND' }, { status: 400 })
+              : Response.json({ id: 'inv' })
+          }
+          return Response.json([acme])
+        }
+      })
+      const resend = async () =>
+        fireEvent.click((await screen.findAllByRole('button', { name: 'Resend' }))[0] as HTMLElement)
+
+      await resend()
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'This invitation is no longer pending. The list has been updated.'
+      )
+      await resend()
+
+      expect(await screen.findByText('Invitation sent again to grace2@example.com')).toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('says what went wrong revoking an invitation, in its row', async () => {
+      renderPage({
+        invitations: waitingFor,
+        auth: async (input) => {
+          const url = String(input)
+          if (url.includes('/organization/list-members')) return Response.json({ members: everyone, total: 4 })
+          if (url.includes('/organization/list-roles')) return Response.json([editor])
+          if (url.includes('/organization/list-invitations')) return Response.json(waitingFor)
+          if (url.includes('/organization/cancel-invitation')) {
+            return Response.json({ code: 'INVITATION_NOT_FOUND' }, { status: 400 })
+          }
+          return Response.json([acme])
+        }
+      })
+
+      fireEvent.click((await screen.findAllByRole('button', { name: 'Revoke' }))[0] as HTMLElement)
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'This invitation is no longer pending. The list has been updated.'
+      )
+    })
+
+    it('says when the invitations could not be read, and tries again when asked', async () => {
+      let attempts = 0
+      renderPage({
+        auth: async (input) => {
+          const url = String(input)
+          if (url.includes('/organization/list-members')) return Response.json({ members: everyone, total: 4 })
+          if (url.includes('/organization/list-roles')) return Response.json([editor])
+          if (url.includes('/organization/list-invitations')) {
+            attempts += 1
+            return attempts === 1
+              ? Response.json({ code: 'INTERNAL_SERVER_ERROR' }, { status: 500 })
+              : Response.json([invitation('later', 'member')])
+          }
+          return Response.json([acme])
+        }
+      })
+
+      expect(
+        await screen.findByText('We could not load the invitations. Check your connection, then try again.')
+      ).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: 'People' })).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+
+      expect(await screen.findByText('later@example.com')).toBeInTheDocument()
+    })
+
+    it('lets someone who may only revoke see and revoke, not invite or resend', async () => {
+      const onlyRevoke = { ...builtInRoles.member, invitation: ['cancel' as const], ac: ['read' as const] }
+      renderPage({ as: 'm3', roles: ['member'], invitations: waitingFor, permissions: onlyRevoke })
+
+      const section = within(await screen.findByRole('region', { name: 'Invitations' }))
+      expect(await section.findAllByRole('button', { name: 'Revoke' })).toHaveLength(2)
+      expect(section.queryByRole('button', { name: 'Resend' })).not.toBeInTheDocument()
+      expect(section.queryByRole('button', { name: 'Invite people' })).not.toBeInTheDocument()
+    })
   })
 })

@@ -14,10 +14,11 @@ import {
   useRoleLabel
 } from '#entities/organizations'
 import { useSession } from '#entities/sessions'
-import { ChangeMemberRoleForm, LeaveOrganizationForm, RemoveMemberForm } from '#features/manage-members'
+import { ChangeMemberRoleForm, LeaveOrganizationForm, RemoveMemberForm } from '#features/organizations/manage-members'
 import { useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AppShell } from '#widgets/app-shell'
+import { InvitationsSection } from './invitations-section'
 import { Panel, type PanelName } from './panel'
 
 /**
@@ -211,10 +212,11 @@ export function OrganizationMembersPage() {
                 }}
                 tabIndex={-1}
                 role="status"
-                class="-mt-4 text-sm text-muted-foreground outline-none"
+                class="-my-4 text-sm text-muted-foreground outline-none"
               >
                 {pageStatus()}
               </p>
+              <InvitationsSection members={loaded().members} roles={loaded().roles} />
             </>
           )}
         </Match>

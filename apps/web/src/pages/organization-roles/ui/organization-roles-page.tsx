@@ -12,7 +12,7 @@ import {
   useOrganization,
   useRoleLabel
 } from '#entities/organizations'
-import { DeleteRoleForm, RoleForm, RoleView } from '#features/manage-roles'
+import { DeleteRoleForm, RoleForm, RoleView } from '#features/organizations/manage-roles'
 import { useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AppShell } from '#widgets/app-shell'

@@ -5,7 +5,16 @@ export const es: Messages = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Inicio'
+    title: 'Inicio',
+    gettingStarted: {
+      title: 'Primeros pasos',
+      description: 'Unos pasos para configurar {{name}}.',
+      invite: {
+        title: 'Invitar personas',
+        description: 'Pide a tu equipo que se una a {{name}}.',
+        go: 'Invitar personas'
+      }
+    }
   },
   profile: {
     title: 'Perfil',
@@ -432,6 +441,41 @@ export const es: Messages = {
       notAllowed: 'No puedes hacer esto con este rol. Puede que tu rol haya cambiado.',
       inUse: 'Ahora hay miembros o invitaciones con este rol. Dales otro rol primero.',
       gone: 'Este rol ya no existe. La lista se actualizó.'
+    }
+  },
+  organizationInvitations: {
+    section: {
+      title: 'Invitaciones',
+      description: 'Personas invitadas a {{name}} que aún no han respondido.',
+      empty: 'No hay invitaciones pendientes.'
+    },
+    unavailable: 'No pudimos cargar las invitaciones. Revisa tu conexión y vuelve a intentarlo.',
+    retry: 'Reintentar',
+    invite: {
+      title: 'Invitar personas',
+      description: 'Reciben un correo con un enlace para unirse a {{name}}.',
+      open: 'Invitar personas'
+    },
+    form: {
+      email: 'Correo electrónico',
+      role: 'Rol',
+      cannotGive: 'Un rol marcado aquí tiene un permiso que tú no tienes, así que no puedes darlo.',
+      locked: '{{role}} (no puedes dar este rol)',
+      send: 'Enviar invitación',
+      sent: 'Invitación enviada a {{email}}'
+    },
+    row: {
+      resend: 'Reenviar',
+      resent: 'Invitación enviada de nuevo a {{email}}',
+      revoke: 'Revocar',
+      revoked: 'Invitación a {{email}} revocada'
+    },
+    errors: {
+      alreadyMember: 'Esta persona ya es miembro.',
+      notAllowed: 'No puedes invitar con este rol. Puede que tu rol haya cambiado.',
+      limit: 'Esta organización tiene todas las invitaciones pendientes permitidas. Revoca una para enviar otra.',
+      tooMany: 'Enviaste muchas invitaciones en poco tiempo. Espera un minuto y vuelve a intentarlo.',
+      gone: 'Esta invitación ya no está pendiente. La lista se actualizó.'
     }
   },
   onboarding: {

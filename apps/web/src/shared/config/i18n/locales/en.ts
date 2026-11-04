@@ -3,7 +3,16 @@ export const en = {
     name: 'Monorepo Template'
   },
   home: {
-    title: 'Home'
+    title: 'Home',
+    gettingStarted: {
+      title: 'Getting started',
+      description: 'A few steps to set up {{name}}.',
+      invite: {
+        title: 'Invite people',
+        description: 'Ask your team to join {{name}}.',
+        go: 'Invite people'
+      }
+    }
   },
   profile: {
     title: 'Profile',
@@ -426,6 +435,41 @@ export const en = {
       notAllowed: 'You cannot do this with this role. Your role may have changed.',
       inUse: 'Members or invitations hold this role now. Give them another role first.',
       gone: 'This role no longer exists. The list has been updated.'
+    }
+  },
+  organizationInvitations: {
+    section: {
+      title: 'Invitations',
+      description: 'People invited to {{name}} who have not answered yet.',
+      empty: 'No pending invitations.'
+    },
+    unavailable: 'We could not load the invitations. Check your connection, then try again.',
+    retry: 'Try again',
+    invite: {
+      title: 'Invite people',
+      description: 'They get an email with a link to join {{name}}.',
+      open: 'Invite people'
+    },
+    form: {
+      email: 'Email',
+      role: 'Role',
+      cannotGive: 'A role marked here holds a permission you do not, so you cannot give it.',
+      locked: '{{role}} (you cannot give this role)',
+      send: 'Send invitation',
+      sent: 'Invitation sent to {{email}}'
+    },
+    row: {
+      resend: 'Resend',
+      resent: 'Invitation sent again to {{email}}',
+      revoke: 'Revoke',
+      revoked: 'Invitation to {{email}} revoked'
+    },
+    errors: {
+      alreadyMember: 'This person is already a member.',
+      notAllowed: 'You cannot invite with this role. Your role may have changed.',
+      limit: 'This organization has as many pending invitations as allowed. Revoke one to send another.',
+      tooMany: 'You sent many invitations in a short time. Wait a minute, then try again.',
+      gone: 'This invitation is no longer pending. The list has been updated.'
     }
   },
   onboarding: {
