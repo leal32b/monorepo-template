@@ -8,3 +8,4 @@ export {
   MenuRadioItem,
   MenuSeparator
 } from './menu'
+export { MenuTriggerContent, menuTriggerClass } from './menu-trigger'

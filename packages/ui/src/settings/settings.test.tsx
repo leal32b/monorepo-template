@@ -96,6 +96,15 @@ describe('SettingsRow', () => {
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
   })
 
+  it("has an avatar in the icon's place, for a row about a person", () => {
+    const { container } = render(() => (
+      <SettingsRow title="Grace" icon="profile" avatar={<span data-testid="avatar">G</span>} />
+    ))
+
+    expect(screen.getByTestId('avatar')).toBeInTheDocument()
+    expect(container.querySelector('svg')).toBeNull()
+  })
+
   it("has a letter in the icon's place for a mark the icon set lacks", () => {
     const { container } = render(() => <SettingsRow title="Google" letter="G" />)
 

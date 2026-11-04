@@ -5,6 +5,8 @@ import { cn } from '#libs'
 export type SettingsRowProps = Omit<ComponentProps<'div'>, 'title'> & {
   /** A decorative icon before the title. */
   icon?: IconName | undefined
+  /** An `Avatar` in the icon's place, for a row about a person or an organization. */
+  avatar?: JSX.Element
   /** A decorative letter in the icon's place, for a mark the icon set lacks, such as "G" for Google. */
   letter?: string | undefined
   /** What the row is about. */
@@ -43,6 +45,7 @@ export function SettingsRow(props: SettingsRowProps) {
   const [local, rest] = splitProps(props, [
     'class',
     'icon',
+    'avatar',
     'letter',
     'title',
     'badge',
@@ -59,7 +62,8 @@ export function SettingsRow(props: SettingsRowProps) {
     <div class={cn('@container', local.class)} {...rest}>
       <div class="flex flex-col gap-3 p-4 @md:flex-row @md:items-center @md:gap-4 @md:px-5">
         <div class="flex min-w-0 flex-1 items-start gap-3">
-          <Show when={local.icon || local.letter}>
+          <Show when={local.avatar}>{local.avatar}</Show>
+          <Show when={!local.avatar && (local.icon || local.letter)}>
             <span
               aria-hidden="true"
               class="flex size-9 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-surface text-muted-foreground"
