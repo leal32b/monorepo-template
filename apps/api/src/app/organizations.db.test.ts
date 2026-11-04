@@ -1,6 +1,7 @@
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
+import { organizationMembershipSchema } from '@repo/contracts'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
@@ -140,6 +141,52 @@ describe('organizations through Better Auth (ADR 0033)', () => {
   }
 
   const person = (people: Record<string, Person>, name: string) => people[name] as Person
+
+  describe('GET /api/organizations/:organizationId/me', () => {
+    const me = (organizationId: string, cookie = '') => get(`/api/organizations/${organizationId}/me`, cookie)
+
+    it('answers 401 without a session', async () => {
+      const { id } = await organization({})
+
+      expect((await me(id)).status).toBe(401)
+    })
+
+    it('answers 404 for an organization that does not exist', async () => {
+      const { cookie } = await account()
+
+      expect(await outcome(me('no-such-organization', cookie))).toEqual({ status: 404, code: 'organization_not_found' })
+    })
+
+    it('answers the same 404 for an organization the caller is not in', async () => {
+      const { id } = await organization({})
+      const { cookie } = await account()
+
+      expect(await outcome(me(id, cookie))).toEqual({ status: 404, code: 'organization_not_found' })
+    })
+
+    it('answers the roles and permissions of a built-in role', async () => {
+      const { id, people } = await organization({ member: 'member' })
+
+      const response = await me(id, person(people, 'member').cookie)
+
+      expect(response.status).toBe(200)
+      expect(organizationMembershipSchema.parse(await response.json())).toEqual({
+        roles: ['member'],
+        permissions: { ac: ['read'] }
+      })
+    })
+
+    it('answers the permissions of a custom role', async () => {
+      const { id, people } = await organization({ editor: 'editor' }, { editor: { invitation: ['create'] } })
+
+      const response = await me(id, person(people, 'editor').cookie)
+
+      expect(organizationMembershipSchema.parse(await response.json())).toEqual({
+        roles: ['editor'],
+        permissions: { invitation: ['create'] }
+      })
+    })
+  })
 
   describe('names and slugs', () => {
     it('creates an organization with a valid name and slug, its creator as owner', async () => {

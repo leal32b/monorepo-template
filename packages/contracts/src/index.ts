@@ -12,6 +12,8 @@ export {
   builtInRoles,
   can,
   covers,
+  type OrganizationMembership,
+  organizationMembershipSchema,
   organizationNameSchema,
   organizationSlugSchema,
   ownerOnlyPermissions,

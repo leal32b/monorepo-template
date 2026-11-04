@@ -2,6 +2,7 @@ import {
   builtInRoles,
   can,
   covers,
+  organizationMembershipSchema,
   organizationNameSchema,
   organizationSlugSchema,
   ownerOnlyPermissions,
@@ -145,5 +146,20 @@ describe('organizationSlugSchema', () => {
     for (const word of ['login', 'signup', 'settings', 'account', 'invitations', 'onboarding', 'api']) {
       expect(reservedSlugs).toContain(word)
     }
+  })
+})
+
+describe('organizationMembershipSchema', () => {
+  it('accepts the roles and the permissions they resolve to', () => {
+    const membership = { roles: ['member', 'editor'], permissions: { ac: ['read'], invitation: ['create'] } }
+
+    expect(organizationMembershipSchema.parse(membership)).toEqual(membership)
+  })
+
+  it.each([
+    ['no role', { roles: [], permissions: {} }],
+    ['an unknown permission', { roles: ['member'], permissions: { project: ['read'] } }]
+  ])('rejects %s', (_case, value) => {
+    expect(organizationMembershipSchema.safeParse(value).success).toBe(false)
   })
 })

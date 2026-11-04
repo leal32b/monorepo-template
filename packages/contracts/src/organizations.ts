@@ -30,6 +30,17 @@ export const permissionsSchema = z.strictObject({
   ac: actionsOf(statements.ac)
 })
 
+/**
+ * `GET /api/organizations/:organizationId/me`: the caller's place in the organization. `permissions`
+ * is what their roles resolve to, so the web never infers rights from a role name (ADR 0033).
+ */
+export const organizationMembershipSchema = z.object({
+  roles: z.array(z.string()).check(z.minLength(1)),
+  permissions: permissionsSchema
+})
+
+export type OrganizationMembership = z.infer<typeof organizationMembershipSchema>
+
 /** Permissions only the owner holds; no custom role may include them (ADR 0033, D3). */
 export const ownerOnlyPermissions = { organization: ['delete'] } as const satisfies Permissions
 
