@@ -4,6 +4,7 @@ import { createUniqueId, For, type JSX, Show } from 'solid-js'
 import type { ServiceStatus } from '#entities/health'
 import { homeOf, useCurrentOrganization } from '#entities/organizations'
 import { useI18n } from '#shared/config'
+import { OrganizationSwitcher } from './organization-switcher'
 import { ServiceProblem, ServiceStatusButton } from './service-status'
 import { UserMenu } from './user-menu'
 
@@ -59,7 +60,8 @@ function NavLink(props: {
 }
 
 /**
- * The side menu: the brand at the top, the product's screens, and at the foot the account with the
+ * The side menu: at the top the organization you are in, with the way to change it (the brand on a screen
+ * outside any), the product's screens, and at the foot the account with the
  * service status. In the settings, the screens give way to the way back and the settings' own list.
  * A problem with the service is said in a line above the account; when all is well only the icon stays.
  */
@@ -74,16 +76,23 @@ export function Sidebar(props: SidebarProps) {
   return (
     <div class={cn('flex h-full flex-col gap-4 bg-surface p-3', props.class)}>
       {/* As tall as the top bar, so the two titles share one baseline; no line under it, to keep the menu clean. */}
-      <div class="-mx-3 -mt-3 flex h-14 shrink-0 items-center px-5 font-semibold tracking-tight">
+      <div class="-mx-3 -mt-3 flex h-14 shrink-0 items-center px-3 font-semibold tracking-tight">
         <Show
           when={inSettings()}
           fallback={
-            <A href={home()} onClick={props.onNavigate} class="truncate">
-              {t('app.name')}
-            </A>
+            <Show
+              when={current}
+              fallback={
+                <A href={home()} onClick={props.onNavigate} class="truncate px-2">
+                  {t('app.name')}
+                </A>
+              }
+            >
+              <OrganizationSwitcher onNavigate={props.onNavigate} />
+            </Show>
           }
         >
-          <span class="truncate">{t('appShell.nav.settings')}</span>
+          <span class="truncate px-2">{t('appShell.nav.settings')}</span>
         </Show>
       </div>
       <Show

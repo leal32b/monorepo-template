@@ -201,6 +201,10 @@ export const ptBR: Messages = {
       settings: 'Configurações',
       signOut: 'Sair'
     },
+    organizations: {
+      label: 'Suas organizações',
+      create: 'Criar organização'
+    },
     status: {
       title: 'Status do serviço',
       button: 'Status do serviço: {{state}}',

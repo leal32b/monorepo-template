@@ -202,6 +202,10 @@ export const es: Messages = {
       settings: 'Ajustes',
       signOut: 'Cerrar sesión'
     },
+    organizations: {
+      label: 'Tus organizaciones',
+      create: 'Crear organización'
+    },
     status: {
       title: 'Estado del servicio',
       button: 'Estado del servicio: {{state}}',

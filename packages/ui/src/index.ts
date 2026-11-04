@@ -14,7 +14,16 @@ export { type DuotoneName, hasDuotone, Icon, type IconName, type IconProps, type
 export { Input, type InputProps, inputClass } from '#input'
 export { cn } from '#libs'
 export { Link, type LinkProps, linkClass } from '#link'
-export { Menu, MenuHeader, MenuItem, type MenuItemProps, type MenuProps, MenuSeparator } from '#menu'
+export {
+  Menu,
+  MenuHeader,
+  MenuItem,
+  type MenuItemProps,
+  type MenuProps,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator
+} from '#menu'
 export { PasswordField, type PasswordFieldProps } from '#password-field'
 export { Popover, type PopoverProps } from '#popover'
 export { QrCode, type QrCodeProps } from '#qr-code'

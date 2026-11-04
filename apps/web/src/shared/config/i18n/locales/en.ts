@@ -199,6 +199,10 @@ export const en = {
       settings: 'Settings',
       signOut: 'Sign out'
     },
+    organizations: {
+      label: 'Your organizations',
+      create: 'Create organization'
+    },
     status: {
       title: 'Service status',
       button: 'Service status: {{state}}',

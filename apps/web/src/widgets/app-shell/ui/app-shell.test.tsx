@@ -1,6 +1,6 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import { CurrentOrganizationProvider, type Organization } from '#entities/organizations'
+import { CurrentOrganizationProvider, type Organization, OrganizationsProvider } from '#entities/organizations'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
@@ -21,13 +21,19 @@ type Options = {
 
 /** An app page at `/projects` in the shell, Better Auth and the API answering through `fetch`. */
 function renderShell({
-  auth = async () => Response.json({ success: true }),
+  auth,
   api = async () => Response.json(health),
   locale = 'en',
   path = '/projects',
   organization
 }: Options = {}) {
   const membership = { roles: ['owner'], permissions: {} }
+  const authFetch: Fetch =
+    auth ??
+    (async (input) =>
+      String(input).includes('/organization/list')
+        ? Response.json(organization === undefined ? [] : [organization])
+        : Response.json({ success: true }))
   const history = createMemoryHistory()
   history.set({ value: path })
   render(() => (
@@ -35,7 +41,7 @@ function renderShell({
       <ThemeProvider>
         <PaletteProvider>
           <ApiProvider client={createApiClient({ fetch: api })}>
-            <AuthProvider client={createAuthClient({ fetch: auth })}>
+            <AuthProvider client={createAuthClient({ fetch: authFetch })}>
               <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
                 <MemoryRouter
                   history={history}
@@ -43,9 +49,11 @@ function renderShell({
                     organization === undefined ? (
                       root.children
                     ) : (
-                      <CurrentOrganizationProvider organization={organization} membership={membership}>
-                        {root.children}
-                      </CurrentOrganizationProvider>
+                      <OrganizationsProvider>
+                        <CurrentOrganizationProvider organization={organization} membership={membership}>
+                          {root.children}
+                        </CurrentOrganizationProvider>
+                      </OrganizationsProvider>
                     )
                   }
                 >
@@ -122,20 +130,38 @@ describe('AppShell', () => {
     expect(trail.getByText('Projects')).toHaveAttribute('aria-current', 'page')
   })
 
-  it('leads Home, the menu’s title and the palette to the home of the organization in the URL (ADR 0034)', async () => {
+  it('leads Home and the palette to the home of the organization in the URL (ADR 0034)', async () => {
     const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
 
     expect(
       within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Home' })
-    ).toHaveAttribute('href', '/acme')
-    expect(
-      within(screen.getByRole('complementary', { hidden: true })).getByRole('link', { name: 'Monorepo Template' })
     ).toHaveAttribute('href', '/acme')
     fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
     fireEvent.click(
       within(await screen.findByRole('dialog', { name: 'Command palette' })).getByRole('option', { name: 'Home' })
     )
     await waitFor(() => expect(history.get()).toBe('/acme'))
+  })
+
+  it('puts the organization you are in at the top of the side menu, in place of the app’s name', () => {
+    renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    const menu = within(screen.getByRole('complementary', { hidden: true }))
+
+    const switcher = menu.getByRole('button', { name: /Acme/ })
+    expect(switcher.parentElement).toHaveClass('h-14')
+    expect(menu.queryByRole('link', { name: 'Monorepo Template' })).not.toBeInTheDocument()
+  })
+
+  it('switches organization from the phone drawer, which closes after the move', async () => {
+    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+    fireEvent.keyDown(within(drawer).getByRole('button', { name: /Acme/ }), { key: 'Enter' })
+
+    choose(await screen.findByRole('menuitem', { name: 'Create organization' }))
+
+    await waitFor(() => expect(history.get()).toBe('/onboarding'))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument())
   })
 
   it('titles the side menu with the app, a link home, as tall as the top bar so the titles line up, with no line under it', () => {
