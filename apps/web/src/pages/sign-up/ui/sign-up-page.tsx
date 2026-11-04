@@ -5,7 +5,7 @@ import { ResendConfirmation } from '#features/resend-confirmation'
 import { SignInWithGoogle } from '#features/sign-in-with-google'
 import { SignUpForm, type SignUpValues } from '#features/sign-up'
 import { useI18n } from '#shared/config'
-import { safeNext } from '#shared/lib'
+import { safeNext, withNext } from '#shared/lib'
 import { OpenMail } from '#shared/ui'
 import { EntryLayout } from '#widgets/entry-layout'
 
@@ -23,7 +23,6 @@ export function SignUpPage() {
   const [params] = useSearchParams()
 
   const next = () => safeNext(params.next, window.location.origin)
-  const signIn = () => (next() === '/' ? '/login' : `/login?next=${encodeURIComponent(next())}`)
 
   const signedUp = (values: SignUpValues) => {
     setSent(values)
@@ -39,7 +38,7 @@ export function SignUpPage() {
           description={t('signUp.description')}
           footer={
             <>
-              {t('signUp.haveAccount')} <Link href={signIn()}>{t('signUp.signIn')}</Link>
+              {t('signUp.haveAccount')} <Link href={withNext('/login', next())}>{t('signUp.signIn')}</Link>
             </>
           }
         >

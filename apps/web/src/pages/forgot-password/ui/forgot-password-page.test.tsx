@@ -8,16 +8,17 @@ import { ForgotPasswordPage } from './forgot-password-page'
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 /** The page, navigated to with what the sign-in carried over in the history's state, if anything. */
-function renderPage(state?: unknown) {
+function renderPage(state?: unknown, path = '/forgot-password') {
+  const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => Response.json({ status: true }))
   const From = () => {
     const navigate = useNavigate()
-    onMount(() => navigate('/forgot-password', { state }))
+    onMount(() => navigate(path, { state }))
     return null
   }
   render(() => (
     <I18nProvider locale="en">
       <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
-        <AuthProvider client={createAuthClient({ fetch: async () => Response.json({ status: true }) })}>
+        <AuthProvider client={createAuthClient({ fetch })}>
           <MemoryRouter>
             <Route path="/" component={From} />
             <Route path="/forgot-password" component={ForgotPasswordPage} />
@@ -26,6 +27,7 @@ function renderPage(state?: unknown) {
       </ApiProvider>
     </I18nProvider>
   ))
+  return fetch
 }
 
 describe('ForgotPasswordPage', () => {
@@ -37,6 +39,19 @@ describe('ForgotPasswordPage', () => {
     expect(screen.getByRole('button', { name: 'Send link' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login')
     expect(screen.getByRole('textbox', { name: 'Email' })).toHaveValue('')
+  })
+
+  it('keeps where the sign-in was headed, through the link and back to the sign-in', async () => {
+    const fetch = renderPage({ email: 'ada@example.com' }, '/forgot-password?next=%2Finvitations%2Finv-1')
+    await screen.findByRole('heading', { level: 1, name: 'Reset your password' })
+
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login?next=%2Finvitations%2Finv-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }))
+
+    await screen.findByRole('status')
+    expect(JSON.parse(String(fetch.mock.lastCall?.[1]?.body))).toMatchObject({
+      redirectTo: '/reset-password?next=%2Finvitations%2Finv-1'
+    })
   })
 
   it('fills in the email the sign-in carried over, so it is not typed twice', async () => {

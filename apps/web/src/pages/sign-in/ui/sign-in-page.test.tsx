@@ -68,6 +68,15 @@ describe('SignInPage', () => {
     )
   })
 
+  it('offers a new password that comes back to where the user was headed', () => {
+    renderPage('/login?next=%2Finvitations%2Finv-1')
+
+    expect(screen.getByRole('link', { name: 'Forgot your password?' })).toHaveAttribute(
+      'href',
+      '/forgot-password?next=%2Finvitations%2Finv-1'
+    )
+  })
+
   it('sends the confirmation link again to come back where the user was headed', async () => {
     const fetch = vi.fn<Fetch>(async (input) =>
       String(input).endsWith('/sign-in/email')

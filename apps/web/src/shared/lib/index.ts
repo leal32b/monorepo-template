@@ -9,5 +9,5 @@ export {
   newPasswordProblem
 } from './password'
 export { reloadOnStaleBuild } from './reload-on-stale-build'
-export { safeNext } from './safe-next'
+export { safeNext, withNext } from './safe-next'
 export { type CodeProblem, type CodeValues, validateBackupCode, validateCode } from './validate-code'

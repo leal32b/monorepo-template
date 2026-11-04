@@ -5,7 +5,7 @@ import { ResendConfirmation } from '#features/resend-confirmation'
 import { SignInForm } from '#features/sign-in'
 import { SignInWithGoogle } from '#features/sign-in-with-google'
 import { useI18n } from '#shared/config'
-import { safeNext } from '#shared/lib'
+import { safeNext, withNext } from '#shared/lib'
 import { EntryLayout } from '#widgets/entry-layout'
 
 /** The errors a confirmation link comes back with, which the session guard brings here. */
@@ -30,7 +30,6 @@ export function SignInPage() {
   const signedIn = () => navigate(next(), { replace: true })
   const linkExpired = () => typeof params.error === 'string' && linkErrors.has(params.error)
   const secondStep = () => navigate(`/login/two-factor?next=${encodeURIComponent(next())}`, { replace: true })
-  const signUp = () => (next() === '/' ? '/signup' : `/signup?next=${encodeURIComponent(next())}`)
 
   return (
     <EntryLayout
@@ -38,7 +37,7 @@ export function SignInPage() {
       description={t('signIn.description')}
       footer={
         <>
-          {t('signIn.noAccount')} <Link href={signUp()}>{t('signIn.signUp')}</Link>
+          {t('signIn.noAccount')} <Link href={withNext('/signup', next())}>{t('signIn.signUp')}</Link>
         </>
       }
     >
@@ -53,7 +52,11 @@ export function SignInPage() {
         }
         resend={(email) => <ResendConfirmation email={email} next={next()} />}
         forgotPassword={(email) => (
-          <A href="/forgot-password" state={{ email: email() }} class={cn(linkClass, 'py-1 text-sm')}>
+          <A
+            href={withNext('/forgot-password', next())}
+            state={{ email: email() }}
+            class={cn(linkClass, 'py-1 text-sm')}
+          >
             {t('signIn.forgot')}
           </A>
         )}
