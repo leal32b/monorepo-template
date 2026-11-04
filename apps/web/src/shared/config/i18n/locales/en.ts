@@ -472,6 +472,55 @@ export const en = {
       gone: 'This invitation is no longer pending. The list has been updated.'
     }
   },
+  invitation: {
+    pending: {
+      title: 'Join {{organization}}',
+      description: '{{inviter}} invited you. The invitation is open until {{date}}.',
+      accept: 'Join {{organization}}',
+      decline: 'Decline'
+    },
+    signedInAs: 'Signed in as {{email}}.',
+    switchAccount: 'Use another account',
+    accepted: {
+      title: 'You are in {{organization}}',
+      description: 'You accepted this invitation already.',
+      open: 'Open {{organization}}'
+    },
+    used: {
+      title: 'This invitation was already used',
+      description:
+        'You joined {{organization}} with it and are no longer a member. Ask {{inviter}} to invite you again.'
+    },
+    expired: {
+      title: 'This invitation expired',
+      description: 'Invitations last 7 days. Ask {{inviter}} to send you a new one.'
+    },
+    declined: {
+      title: 'You declined this invitation',
+      description: 'Changed your mind? Ask {{inviter}} to invite you again.'
+    },
+    withdrawn: {
+      title: 'This invitation was withdrawn',
+      description:
+        '{{inviter}} may have sent you a newer one: look for the latest email about {{organization}}. If there is none, ask {{inviter}}.'
+    },
+    notFound: {
+      title: 'We could not find this invitation',
+      description:
+        'The link may be cut short. Open it again from the email, or ask whoever invited you to send a new one.'
+    },
+    otherAccount: {
+      title: 'This invitation is for another address',
+      description: 'You are signed in as {{email}}. Sign in with the address the invitation was sent to.',
+      switch: 'Sign in with another account'
+    },
+    unavailable: {
+      title: 'We could not open this invitation',
+      description: 'Check your connection, then try again.',
+      retry: 'Try again'
+    },
+    continue: 'Continue to the app'
+  },
   onboarding: {
     title: 'Name your organization',
     description: 'Your team works together in an organization.',

@@ -1,3 +1,4 @@
+export { getInvitation } from './api/get-invitation'
 export { getMembership } from './api/get-membership'
 export { type Invitation, listInvitations } from './api/list-invitations'
 export { listMembers } from './api/list-members'

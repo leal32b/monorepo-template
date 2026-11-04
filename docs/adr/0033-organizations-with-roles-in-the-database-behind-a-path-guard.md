@@ -127,6 +127,12 @@ Chosen options 1 and a.
 - The email is the kind `invitation` of [ADR 0021](0021-send-email-through-a-provider-neutral-port.md),
   in the inviter's language.
 - An expired invitation stays `pending` in the table, so the web filters on `expiresAt`.
+- The plugin answers "not found" for an invitation that expired, was withdrawn or was already
+  answered, so the link's screen could not say what to do. `GET /api/invitations/:invitationId`
+  (contract `Invitation`) tells the invited address what became of it: `pending`, `expired`,
+  `accepted` (and whether they are still a member), `declined` or `withdrawn`, with the
+  organization's and the inviter's names. It answers 401 without a session, 404 for an unknown id
+  and 403, with nothing more, to any other account. Accepting and declining stay with the plugin.
 
 ### Limits (D6), overridable from one config object
 

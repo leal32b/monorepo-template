@@ -41,6 +41,32 @@ export const organizationMembershipSchema = z.object({
 
 export type OrganizationMembership = z.infer<typeof organizationMembershipSchema>
 
+/**
+ * What became of an invitation, in the web's words: the plugin's `rejected` is `declined` and its
+ * `canceled` is `withdrawn`, and a `pending` one past its date is `expired` (ADR 0033, D5).
+ */
+export const invitationStatuses = ['pending', 'expired', 'accepted', 'declined', 'withdrawn'] as const
+
+export type InvitationStatus = (typeof invitationStatuses)[number]
+
+/**
+ * `GET /api/invitations/:invitationId`: an invitation as its recipient sees it, so the web can say
+ * what to do in every case (the plugin answers "not found" for all but `pending`). `member` says
+ * whether the caller is in the organization now. Only the invited address reads it.
+ */
+export const invitationSchema = z.object({
+  id: z.string(),
+  organizationName: z.string(),
+  organizationSlug: z.string(),
+  inviterName: z.string(),
+  status: z.enum(invitationStatuses),
+  /** ISO 8601. */
+  expiresAt: z.iso.datetime(),
+  member: z.boolean()
+})
+
+export type Invitation = z.infer<typeof invitationSchema>
+
 /** Permissions only the owner holds; no custom role may include them (ADR 0033, D3). */
 export const ownerOnlyPermissions = { organization: ['delete'] } as const satisfies Permissions
 

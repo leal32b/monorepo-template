@@ -1,7 +1,7 @@
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
-import { organizationMembershipSchema } from '@repo/contracts'
+import { invitationSchema, organizationMembershipSchema } from '@repo/contracts'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
@@ -314,6 +314,105 @@ describe('organizations through Better Auth (ADR 0033)', () => {
         await invite(second.people.owner.cookie, second.id, `ip-b-${n}@example.com`, 'member', ip)
 
       expect((await invite(second.people.owner.cookie, second.id, 'ip-b-5@example.com', 'member', ip)).status).toBe(429)
+    })
+  })
+
+  describe('GET /api/invitations/:invitationId', () => {
+    const read = (invitationId: string, cookie = '') => get(`/api/invitations/${invitationId}`, cookie)
+
+    /** An invitation from a new organization's owner to a new account, and both of them. */
+    async function invited() {
+      const { id, people } = await organization({})
+      const invitee = await account()
+      const created = await invite(people.owner.cookie, id, invitee.email, 'member')
+      const { id: invitationId } = (await created.json()) as { id: string }
+      return { organizationId: id, owner: people.owner, invitee, invitationId }
+    }
+
+    const setStatus = (invitationId: string, status: string) =>
+      sql`update auth.invitation set status = ${status} where id = ${invitationId}`.execute(db)
+
+    it('answers 401 without a session', async () => {
+      const { invitationId } = await invited()
+
+      expect((await read(invitationId)).status).toBe(401)
+    })
+
+    it('answers 404 for an invitation that does not exist', async () => {
+      const { cookie } = await account()
+
+      expect(await outcome(read('no-such-invitation', cookie))).toEqual({ status: 404, code: 'invitation_not_found' })
+    })
+
+    it('answers 403 to an account the invitation was not sent to, and tells it nothing more', async () => {
+      const { invitationId } = await invited()
+      const stranger = await account()
+
+      const response = await read(invitationId, stranger.cookie)
+
+      expect(response.status).toBe(403)
+      const body = (await response.json()) as Record<string, unknown>
+      expect(body.code).toBe('not_the_recipient')
+      expect(JSON.stringify(body)).not.toContain('Acme')
+    })
+
+    it('tells the invitee the organization, who invited them and that the invitation is open', async () => {
+      const { owner, invitee, invitationId } = await invited()
+
+      const response = await read(invitationId, invitee.cookie)
+
+      expect(response.status).toBe(200)
+      const invitation = invitationSchema.parse(await response.json())
+      expect(invitation).toMatchObject({
+        id: invitationId,
+        organizationName: 'Acme',
+        inviterName: owner.email.replace(/^person-(\d+)@example\.com$/, 'Person $1'),
+        status: 'pending',
+        member: false
+      })
+      expect(invitation.organizationSlug).toMatch(/^acme-\d+$/)
+    })
+
+    it('says the invitation expired once its date has passed, though the plugin keeps it pending', async () => {
+      const { invitee, invitationId } = await invited()
+      await sql`update auth.invitation set "expiresAt" = '2026-11-01T00:00:00Z' where id = ${invitationId}`.execute(db)
+
+      const invitation = invitationSchema.parse(await (await read(invitationId, invitee.cookie)).json())
+
+      expect(invitation.status).toBe('expired')
+    })
+
+    it('says it was accepted, and whether the invitee is still a member', async () => {
+      const { organizationId, owner, invitee, invitationId } = await invited()
+      await post('/organization/accept-invitation', { invitationId }, invitee.cookie)
+
+      expect(invitationSchema.parse(await (await read(invitationId, invitee.cookie)).json())).toMatchObject({
+        status: 'accepted',
+        member: true
+      })
+
+      const memberId = await memberIdOf(owner.cookie, organizationId, invitee.email)
+      await post('/organization/remove-member', { organizationId, memberIdOrEmail: memberId }, owner.cookie)
+      expect(invitationSchema.parse(await (await read(invitationId, invitee.cookie)).json())).toMatchObject({
+        status: 'accepted',
+        member: false
+      })
+    })
+
+    it('says it was declined or withdrawn, in the web’s words for the plugin’s statuses', async () => {
+      const { invitee, invitationId } = await invited()
+
+      await setStatus(invitationId, 'rejected')
+      expect(invitationSchema.parse(await (await read(invitationId, invitee.cookie)).json()).status).toBe('declined')
+      await setStatus(invitationId, 'canceled')
+      expect(invitationSchema.parse(await (await read(invitationId, invitee.cookie)).json()).status).toBe('withdrawn')
+    })
+
+    it('matches the invitee’s address whatever its case', async () => {
+      const { invitee, invitationId } = await invited()
+      await sql`update auth.invitation set email = upper(email) where id = ${invitationId}`.execute(db)
+
+      expect((await read(invitationId, invitee.cookie)).status).toBe(200)
     })
   })
 

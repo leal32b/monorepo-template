@@ -2,6 +2,7 @@ import type { HttpHandler, HttpRouter } from '#libs/http/router'
 import type { GetHealthController } from '#modules/health/queries/get-health/get-health.http-controller'
 import type { GetLivenessController } from '#modules/health/queries/get-liveness/get-liveness.http-controller'
 import type { GetIdentityOptionsController } from '#modules/identity/queries/get-identity-options/get-identity-options.http-controller'
+import type { GetInvitationController } from '#modules/identity/queries/get-invitation/get-invitation.http-controller'
 import type { GetMeController } from '#modules/identity/queries/get-me/get-me.http-controller'
 import type { GetMembershipController } from '#modules/identity/queries/get-membership/get-membership.http-controller'
 
@@ -15,12 +16,13 @@ export type Controllers = {
   auth: HttpHandler
   getMe: GetMeController
   getMembership: GetMembershipController
+  getInvitation: GetInvitationController
   getIdentityOptions: GetIdentityOptionsController
 }
 
 export function registerRoutes(
   router: HttpRouter,
-  { getHealth, getLiveness, auth, getMe, getMembership, getIdentityOptions }: Controllers
+  { getHealth, getLiveness, auth, getMe, getMembership, getInvitation, getIdentityOptions }: Controllers
 ): void {
   router.get('/api/health', getHealth.handle)
   router.get('/api/health/live', getLiveness.handle)
@@ -28,5 +30,6 @@ export function registerRoutes(
   router.post('/api/auth/*', auth)
   router.get('/api/me', getMe.handle)
   router.get('/api/organizations/:organizationId/me', getMembership.handle)
+  router.get('/api/invitations/:invitationId', getInvitation.handle)
   router.get('/api/identity/options', getIdentityOptions.handle)
 }

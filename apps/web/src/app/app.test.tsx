@@ -43,6 +43,48 @@ describe('App', () => {
     expect(window.location.pathname).toBe('/onboarding')
   })
 
+  it('opens the invitation of an email’s link, for the signed-in user', async () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const invitation = {
+      id: 'inv-1',
+      organizationName: 'Acme',
+      organizationSlug: 'acme',
+      inviterName: 'Grace Hopper',
+      status: 'pending',
+      expiresAt: '2026-11-11T12:00:00.000Z',
+      member: false
+    }
+    const client = createApiClient({
+      fetch: async (path) => Response.json(path === '/api/invitations/inv-1' ? invitation : null)
+    })
+    const auth = createAuthClient({
+      fetch: async (input) =>
+        String(input).includes('/organization/list')
+          ? Response.json([])
+          : Response.json({ session: { id: 's1' }, user })
+    })
+    window.history.replaceState(null, '', '/invitations/inv-1')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Join Acme' })).toBeInTheDocument()
+  })
+
+  it('sends a visitor who opens an invitation to sign in, to come back to it', async () => {
+    const client = createApiClient({ fetch: async () => Response.json({ google: false }) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/invitations/inv-1')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
+    expect(window.location.search).toBe('?next=%2Finvitations%2Finv-1')
+    expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute(
+      'href',
+      '/signup?next=%2Finvitations%2Finv-1'
+    )
+  })
+
   it('sends a visitor who opens an organization’s link to sign in, to come back to it', async () => {
     const client = createApiClient({ fetch: async () => Response.json({ google: false }) })
     const auth = createAuthClient({ fetch: async () => Response.json(null) })

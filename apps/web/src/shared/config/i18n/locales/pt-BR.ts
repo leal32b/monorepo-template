@@ -475,6 +475,54 @@ export const ptBR: Messages = {
       gone: 'Este convite não está mais pendente. A lista foi atualizada.'
     }
   },
+  invitation: {
+    pending: {
+      title: 'Entrar em {{organization}}',
+      description: '{{inviter}} convidou você. O convite vale até {{date}}.',
+      accept: 'Entrar em {{organization}}',
+      decline: 'Recusar'
+    },
+    signedInAs: 'Você entrou como {{email}}.',
+    switchAccount: 'Usar outra conta',
+    accepted: {
+      title: 'Você está em {{organization}}',
+      description: 'Você já aceitou este convite.',
+      open: 'Abrir {{organization}}'
+    },
+    used: {
+      title: 'Este convite já foi usado',
+      description: 'Você entrou em {{organization}} com ele e não é mais membro. Peça a {{inviter}} um novo convite.'
+    },
+    expired: {
+      title: 'Este convite expirou',
+      description: 'Convites valem 7 dias. Peça a {{inviter}} para enviar um novo.'
+    },
+    declined: {
+      title: 'Você recusou este convite',
+      description: 'Mudou de ideia? Peça a {{inviter}} um novo convite.'
+    },
+    withdrawn: {
+      title: 'Este convite foi revogado',
+      description:
+        '{{inviter}} pode ter enviado um mais novo: procure o e-mail mais recente sobre {{organization}}. Se não houver, fale com {{inviter}}.'
+    },
+    notFound: {
+      title: 'Não encontramos este convite',
+      description:
+        'O link pode estar incompleto. Abra-o de novo pelo e-mail, ou peça a quem convidou você um novo convite.'
+    },
+    otherAccount: {
+      title: 'Este convite é para outro endereço',
+      description: 'Você entrou como {{email}}. Entre com o endereço para o qual o convite foi enviado.',
+      switch: 'Entrar com outra conta'
+    },
+    unavailable: {
+      title: 'Não conseguimos abrir este convite',
+      description: 'Verifique sua conexão e tente de novo.',
+      retry: 'Tentar de novo'
+    },
+    continue: 'Continuar para o app'
+  },
   onboarding: {
     title: 'Dê um nome à sua organização',
     description: 'Sua equipe trabalha junta em uma organização.',

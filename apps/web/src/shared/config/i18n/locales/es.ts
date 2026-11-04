@@ -478,6 +478,55 @@ export const es: Messages = {
       gone: 'Esta invitación ya no está pendiente. La lista se actualizó.'
     }
   },
+  invitation: {
+    pending: {
+      title: 'Unirte a {{organization}}',
+      description: '{{inviter}} te invitó. La invitación está abierta hasta el {{date}}.',
+      accept: 'Unirte a {{organization}}',
+      decline: 'Rechazar'
+    },
+    signedInAs: 'Iniciaste sesión como {{email}}.',
+    switchAccount: 'Usar otra cuenta',
+    accepted: {
+      title: 'Ya estás en {{organization}}',
+      description: 'Ya aceptaste esta invitación.',
+      open: 'Abrir {{organization}}'
+    },
+    used: {
+      title: 'Esta invitación ya se usó',
+      description:
+        'Te uniste a {{organization}} con ella y ya no eres miembro. Pide a {{inviter}} que te invite de nuevo.'
+    },
+    expired: {
+      title: 'Esta invitación caducó',
+      description: 'Las invitaciones duran 7 días. Pide a {{inviter}} que te envíe una nueva.'
+    },
+    declined: {
+      title: 'Rechazaste esta invitación',
+      description: '¿Cambiaste de idea? Pide a {{inviter}} que te invite de nuevo.'
+    },
+    withdrawn: {
+      title: 'Esta invitación fue retirada',
+      description:
+        'Puede que {{inviter}} te haya enviado una más reciente: busca el último correo sobre {{organization}}. Si no hay ninguno, pregunta a {{inviter}}.'
+    },
+    notFound: {
+      title: 'No encontramos esta invitación',
+      description:
+        'Puede que el enlace esté incompleto. Ábrelo de nuevo desde el correo, o pide a quien te invitó una nueva.'
+    },
+    otherAccount: {
+      title: 'Esta invitación es para otra dirección',
+      description: 'Iniciaste sesión como {{email}}. Inicia sesión con la dirección a la que se envió la invitación.',
+      switch: 'Iniciar sesión con otra cuenta'
+    },
+    unavailable: {
+      title: 'No pudimos abrir esta invitación',
+      description: 'Revisa tu conexión e inténtalo de nuevo.',
+      retry: 'Intentar de nuevo'
+    },
+    continue: 'Continuar a la app'
+  },
   onboarding: {
     title: 'Ponle nombre a tu organización',
     description: 'Tu equipo trabaja junto en una organización.',

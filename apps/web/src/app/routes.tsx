@@ -35,6 +35,7 @@ const OrganizationMembersPage = lazy(() =>
 const OrganizationRolesPage = lazy(() =>
   import('#pages/organization-roles').then((m) => ({ default: m.OrganizationRolesPage }))
 )
+const InvitationPage = lazy(() => import('#pages/invitation').then((m) => ({ default: m.InvitationPage })))
 const OnboardingPage = lazy(() => import('#pages/onboarding').then((m) => ({ default: m.OnboardingPage })))
 const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: m.ProfilePage })))
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
@@ -76,6 +77,8 @@ export const routes: RouteDefinition[] = [
           },
           { path: '/', component: OrganizationRedirect },
           { path: '/onboarding', component: OnboardingPage },
+          // The invitation email's link (ADR 0033, D5); a visitor signs in or signs up and comes back.
+          { path: '/invitations/:id', component: InvitationPage },
           {
             path: tenantPath,
             component: RequireOrganization,

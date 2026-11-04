@@ -12,8 +12,10 @@ import { GetHealthService } from '#modules/health/queries/get-health/get-health.
 import { GetLivenessController } from '#modules/health/queries/get-liveness/get-liveness.http-controller'
 import { createAuth } from '#modules/identity/infrastructure/auth'
 import { BetterAuthCurrentSession } from '#modules/identity/infrastructure/better-auth-current-session'
+import { KyselyInvitations } from '#modules/identity/infrastructure/kysely-invitations'
 import { KyselyMembership } from '#modules/identity/infrastructure/kysely-membership'
 import { GetIdentityOptionsController } from '#modules/identity/queries/get-identity-options/get-identity-options.http-controller'
+import { GetInvitationController } from '#modules/identity/queries/get-invitation/get-invitation.http-controller'
 import { GetMeController } from '#modules/identity/queries/get-me/get-me.http-controller'
 import { GetMembershipController } from '#modules/identity/queries/get-membership/get-membership.http-controller'
 import { PUBLIC_PATHS, registerRoutes } from './http-routes'
@@ -61,12 +63,14 @@ export function createApp({
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
   const auth = createAuth({ db, logger, emailSender, webOrigin, secret: authSecret, google })
   const session = new BetterAuthCurrentSession(auth)
+  const membership = new KyselyMembership(db)
   registerRoutes(router, {
     getHealth: new GetHealthController(new GetHealthService(clock, serviceName, databaseProbe)),
     getLiveness: new GetLivenessController(),
     auth: fromFetchHandler(auth.handler, webOrigin),
     getMe: new GetMeController(session),
-    getMembership: new GetMembershipController(session, new KyselyMembership(db)),
+    getMembership: new GetMembershipController(session, membership),
+    getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
     getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined })
   })
   return createHttpServer({
