@@ -1,5 +1,6 @@
-import { type ComponentProps, type JSX, Show, splitProps } from 'solid-js'
+import { type ComponentProps, children, type JSX, Show, splitProps } from 'solid-js'
 import { Icon, type IconName } from '#icon'
+import { cn } from '#libs'
 
 export type SettingsRowProps = Omit<ComponentProps<'div'>, 'title'> & {
   /** A decorative icon before the title. */
@@ -19,15 +20,23 @@ export type SettingsRowProps = Omit<ComponentProps<'div'>, 'title'> & {
    * user acted. The area is always there, so a change to it is read out.
    */
   status?: string | undefined
-  /** The row's action, such as a `Button`: on the right, and full width on phones. */
+  /** The row's actions, such as `Button`s: on the right, and full width where the row is narrow. */
   action?: JSX.Element
-  /** The form the action opens, inline below the row. One panel at a time is the screen's job. */
+  /**
+   * The form an action opens, inline below the row, such as a `SettingsPanel`. The area shows only
+   * while there is something in it, so a `<Show>` that is off draws nothing. One panel at a time:
+   * `createPanels`.
+   */
   panel?: JSX.Element
 }
 
+/** Whether resolved children hold anything to draw: a `<Show>` that is off resolves to nothing. */
+const drawn = (resolved: unknown[]) => resolved.some((item) => item !== undefined && item !== null && item !== false)
+
 /**
- * One setting: icon, title with its state, a line of description, and the action on the right. On
- * phones the action drops below and takes the full width. What the action opens appears under the
+ * One setting: icon, title with its state, a line of description, and the action on the right. Where
+ * the row is narrow (a phone, or a narrow column such as onboarding's) the action drops below and takes
+ * the full width: the row follows its own width, not the screen's. What the action opens appears under the
  * row in the `panel`, never on another page. Put it inside a `SettingsSection`.
  */
 export function SettingsRow(props: SettingsRowProps) {
@@ -43,10 +52,12 @@ export function SettingsRow(props: SettingsRowProps) {
     'action',
     'panel'
   ])
+  const action = children(() => local.action)
+  const panel = children(() => local.panel)
 
   return (
-    <div class={local.class} {...rest}>
-      <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+    <div class={cn('@container', local.class)} {...rest}>
+      <div class="flex flex-col gap-3 p-4 @md:flex-row @md:items-center @md:gap-4 @md:px-5">
         <div class="flex min-w-0 flex-1 items-start gap-3">
           <Show when={local.icon || local.letter}>
             <span
@@ -80,14 +91,12 @@ export function SettingsRow(props: SettingsRowProps) {
             </p>
           </div>
         </div>
-        <Show when={local.action}>
-          {(action) => <div class="flex shrink-0 gap-2 *:flex-1 sm:*:flex-none">{action()}</div>}
+        <Show when={drawn(action.toArray())}>
+          <div class="flex shrink-0 gap-2 *:flex-1 @md:*:flex-none">{action()}</div>
         </Show>
       </div>
-      <Show when={local.panel}>
-        {(panel) => (
-          <div class="flex flex-col gap-4 border-t border-border-subtle bg-surface p-4 sm:p-5">{panel()}</div>
-        )}
+      <Show when={drawn(panel.toArray())}>
+        <div class="flex flex-col gap-4 border-t border-border-subtle bg-surface p-4 @md:p-5">{panel()}</div>
       </Show>
     </div>
   )

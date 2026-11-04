@@ -1,2 +1,5 @@
+export { PanelButton, type PanelButtonProps } from './panel-button'
+export { createPanels, type Panels } from './panels'
+export { SettingsPanel, type SettingsPanelProps } from './settings-panel'
 export { SettingsRow, type SettingsRowProps } from './settings-row'
 export { SettingsSection, type SettingsSectionProps } from './settings-section'

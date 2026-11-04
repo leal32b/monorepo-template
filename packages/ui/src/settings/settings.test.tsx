@@ -1,4 +1,5 @@
 import { render, screen, within } from '@solidjs/testing-library'
+import { createSignal, Show } from 'solid-js'
 import { Badge } from '#badge'
 import { Button } from '#button'
 import { SettingsRow } from './settings-row'
@@ -16,6 +17,25 @@ describe('SettingsSection', () => {
     expect(within(region).getByRole('heading', { level: 2, name: 'Ways to sign in' })).toBeInTheDocument()
     expect(region).toHaveTextContent('How you get into your account.')
     expect(within(region).getByText('Password')).toBeInTheDocument()
+  })
+
+  it('says what happened to the section below its rows, and gives that line focus', async () => {
+    const [status, setStatus] = createSignal<string>()
+    render(() => (
+      <SettingsSection title="People" status={status()}>
+        <SettingsRow title="Grace" />
+      </SettingsSection>
+    ))
+    const line = within(screen.getByRole('region', { name: 'People' }))
+      .getAllByRole('status')
+      .at(-1) as HTMLElement
+    expect(line).toBeEmptyDOMElement()
+    expect(line).not.toHaveFocus()
+
+    setStatus('Grace was removed.')
+
+    expect(line).toHaveTextContent('Grace was removed.')
+    expect(line).toHaveFocus()
   })
 
   it('needs no description, and adds a passed class to its own', () => {
@@ -123,12 +143,27 @@ describe('SettingsRow', () => {
     expect(panel).toHaveClass('bg-surface', 'border-t')
   })
 
-  it('stacks the action below on phones, full width, and puts it on the right from sm up', () => {
-    render(() => <SettingsRow title="Password" action={<Button>Change</Button>} />)
+  it('stacks the action below where the row is narrow, full width, and puts it on the right where it is wide', () => {
+    render(() => <SettingsRow title="Password" action={<Button>Change</Button>} data-testid="row" />)
     const button = screen.getByRole('button', { name: 'Change' })
 
-    expect(button.parentElement).toHaveClass('*:flex-1', 'sm:*:flex-none')
-    expect(button.parentElement?.parentElement).toHaveClass('flex-col', 'sm:flex-row')
+    // The row's own width decides, not the screen's: it is a container, and its parts query it.
+    expect(screen.getByTestId('row')).toHaveClass('@container')
+    expect(button.parentElement).toHaveClass('*:flex-1', '@md:*:flex-none')
+    expect(button.parentElement?.parentElement).toHaveClass('flex-col', '@md:flex-row')
+  })
+
+  it('draws no action area and no panel when what it was given draws nothing, such as a Show that is off', () => {
+    const { container } = render(() => (
+      <SettingsRow
+        title="Password"
+        action={<Show when={false}>{<Button>Change</Button>}</Show>}
+        panel={<Show when={false}>A form</Show>}
+      />
+    ))
+
+    expect(container.querySelector('.bg-surface.border-t')).toBeNull()
+    expect(container.querySelector('.shrink-0.gap-2')).toBeNull()
   })
 
   it('adds a passed class to its own and passes other attributes on', () => {
