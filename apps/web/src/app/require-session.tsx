@@ -46,7 +46,7 @@ export function RequireSession(props: ParentProps) {
       <Match when={me.error}>
         <EntryLayout title={t('session.unavailable.title')} description={t('session.unavailable.description')}>
           <Button variant="primary" class="w-full" onClick={() => refetch()}>
-            {t('session.unavailable.retry')}
+            {t('actions.retry')}
           </Button>
         </EntryLayout>
       </Match>

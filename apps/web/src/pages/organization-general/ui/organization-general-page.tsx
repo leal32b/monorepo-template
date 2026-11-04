@@ -1,4 +1,4 @@
-import { Button, SettingsRow, SettingsSection } from '@repo/ui'
+import { createPanels, PanelButton, SettingsPanel, SettingsRow, SettingsSection } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { batch, createSignal, Show } from 'solid-js'
 import { useOrganization, useOrganizations } from '#entities/organizations'
@@ -6,7 +6,6 @@ import { DeleteOrganizationForm } from '#features/organizations/delete-organizat
 import { ChangeAddressForm, RenameOrganizationForm } from '#features/organizations/edit-organization'
 import { useI18n } from '#shared/config'
 import { AppShell } from '#widgets/app-shell'
-import { Panel, type PanelName } from './panel'
 
 /**
  * `/:orgSlug/settings/general`: the organization's name and address, and deleting it. What each role
@@ -20,20 +19,12 @@ export function OrganizationGeneralPage() {
   const navigate = useNavigate()
   const current = useOrganization()
   const { update, refetch } = useOrganizations()
-  const [open, setOpen] = createSignal<PanelName>()
+  const panels = createPanels<'name' | 'address' | 'delete'>()
   const [nameStatus, setNameStatus] = createSignal<string>()
   const [addressStatus, setAddressStatus] = createSignal<string>()
-  let rename: HTMLButtonElement | undefined
-  let address: HTMLButtonElement | undefined
-  let removal: HTMLButtonElement | undefined
 
   const organization = () => current.organization
   const canUpdate = () => current.can('organization', 'update')
-  /** Closes the form and hands focus back to the button that opened it. */
-  const close = (opener: () => HTMLButtonElement | undefined) => {
-    setOpen(undefined)
-    queueMicrotask(() => opener()?.focus())
-  }
 
   return (
     <AppShell title={t('organizationGeneral.title')}>
@@ -44,39 +35,30 @@ export function OrganizationGeneralPage() {
         )}
       >
         <SettingsRow
-          icon="users"
+          icon="organization"
           title={t('organizationGeneral.details.name.title')}
           description={organization().name}
           status={nameStatus()}
           action={
-            <Show when={canUpdate() && open() !== 'name'}>
-              <Button
-                ref={(button) => {
-                  rename = button
-                }}
-                disabled={open() !== undefined}
-                onClick={() => {
-                  setNameStatus(undefined)
-                  setOpen('name')
-                }}
-              >
+            <Show when={canUpdate()}>
+              <PanelButton panels={panels} panel="name" onOpen={() => setNameStatus(undefined)}>
                 {t('organizationGeneral.details.name.change')}
-              </Button>
+              </PanelButton>
             </Show>
           }
           panel={
-            <Show when={open() === 'name'}>
-              <Panel label={t('organizationGeneral.details.name.change')}>
+            <Show when={panels.isOpen('name')}>
+              <SettingsPanel label={t('organizationGeneral.details.name.change')}>
                 <RenameOrganizationForm
                   organization={organization()}
                   onSaved={(name) => {
                     update({ ...organization(), name })
                     setNameStatus(t('organizationGeneral.details.name.saved'))
-                    close(() => rename)
+                    panels.close()
                   }}
-                  onCancel={() => close(() => rename)}
+                  onCancel={panels.close}
                 />
-              </Panel>
+              </SettingsPanel>
             </Show>
           }
         />
@@ -86,24 +68,15 @@ export function OrganizationGeneralPage() {
           description={`/${organization().slug}`}
           status={addressStatus()}
           action={
-            <Show when={canUpdate() && open() !== 'address'}>
-              <Button
-                ref={(button) => {
-                  address = button
-                }}
-                disabled={open() !== undefined}
-                onClick={() => {
-                  setAddressStatus(undefined)
-                  setOpen('address')
-                }}
-              >
+            <Show when={canUpdate()}>
+              <PanelButton panels={panels} panel="address" onOpen={() => setAddressStatus(undefined)}>
                 {t('organizationGeneral.details.address.change')}
-              </Button>
+              </PanelButton>
             </Show>
           }
           panel={
-            <Show when={open() === 'address'}>
-              <Panel label={t('organizationGeneral.details.address.change')}>
+            <Show when={panels.isOpen('address')}>
+              <SettingsPanel label={t('organizationGeneral.details.address.change')}>
                 <ChangeAddressForm
                   organization={organization()}
                   onSaved={(slug) => {
@@ -113,11 +86,11 @@ export function OrganizationGeneralPage() {
                       navigate(`/${slug}/settings/general`, { replace: true })
                     })
                     setAddressStatus(t('organizationGeneral.details.address.saved'))
-                    close(() => address)
+                    panels.close()
                   }}
-                  onCancel={() => close(() => address)}
+                  onCancel={panels.close}
                 />
-              </Panel>
+              </SettingsPanel>
             </Show>
           }
         />
@@ -132,22 +105,13 @@ export function OrganizationGeneralPage() {
             title={t('organizationGeneral.delete.row')}
             description={t('organizationGeneral.delete.rowDescription')}
             action={
-              <Show when={open() !== 'delete'}>
-                <Button
-                  variant="outline"
-                  ref={(button) => {
-                    removal = button
-                  }}
-                  disabled={open() !== undefined}
-                  onClick={() => setOpen('delete')}
-                >
-                  {t('organizationGeneral.delete.open')}
-                </Button>
-              </Show>
+              <PanelButton panels={panels} panel="delete">
+                {t('organizationGeneral.delete.open')}
+              </PanelButton>
             }
             panel={
-              <Show when={open() === 'delete'}>
-                <Panel label={t('organizationGeneral.delete.open')}>
+              <Show when={panels.isOpen('delete')}>
+                <SettingsPanel label={t('organizationGeneral.delete.open')}>
                   <DeleteOrganizationForm
                     organization={organization()}
                     onDeleted={() => {
@@ -156,9 +120,9 @@ export function OrganizationGeneralPage() {
                       navigate('/', { replace: true })
                       refetch()
                     }}
-                    onCancel={() => close(() => removal)}
+                    onCancel={panels.close}
                   />
-                </Panel>
+                </SettingsPanel>
               </Show>
             }
           />

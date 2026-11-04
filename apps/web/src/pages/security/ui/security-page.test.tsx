@@ -91,6 +91,16 @@ function confirmWith(button: string) {
 }
 
 describe('SecurityPage', () => {
+  it('holds the place of the sections while a slow answer comes', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderPage(() => new Promise<Response>(() => {}))
+
+    vi.advanceTimersByTime(300)
+
+    expect(screen.getAllByRole('status').some((line) => line.textContent === 'Loading…')).toBe(true)
+    vi.useRealTimers()
+  })
+
   it('is a page of two sections, each a group of rows', async () => {
     renderPage(betterAuth(['credential', 'google'], true))
 

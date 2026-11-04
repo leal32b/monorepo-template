@@ -72,6 +72,18 @@ describe('DeleteOrganizationForm', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Delete organization' })).toBeDisabled())
   })
 
+  it('checks the name again when the field is left after a submit', () => {
+    renderForm(vi.fn<Fetch>())
+    const field = screen.getByRole('textbox')
+    fireEvent.click(screen.getByRole('button', { name: /^Delete/ }))
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+
+    fireEvent.input(field, { target: { value: 'Acme Inc' } })
+    fireEvent.focusOut(field)
+
+    expect(field).not.toHaveAttribute('aria-invalid', 'true')
+  })
+
   it('leaves through Cancel', () => {
     const { onCancel } = renderForm(vi.fn<Fetch>())
 

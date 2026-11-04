@@ -1,4 +1,4 @@
-import { Alert, Button, SettingsSection } from '@repo/ui'
+import { Alert, Button, SettingsSection, SettingsSkeleton } from '@repo/ui'
 import { Navigate, useSearchParams } from '@solidjs/router'
 import { createResource, createSignal, Match, Switch } from 'solid-js'
 import { getAccountSecurity } from '#entities/accounts'
@@ -35,12 +35,12 @@ export function SecurityPage() {
 
   return (
     <AppShell title={t('account.title')}>
-      <Switch>
+      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} />}>
         <Match when={security.error instanceof ApiError && security.error.status === 401}>
           <Navigate href="/login?next=%2Fsettings%2Fsecurity" />
         </Match>
         <Match when={security.error}>
-          <Alert variant="error" action={<Button onClick={() => refetch()}>{t('account.retry')}</Button>}>
+          <Alert variant="error" action={<Button onClick={() => refetch()}>{t('actions.retry')}</Button>}>
             {t('account.unavailable')}
           </Alert>
         </Match>

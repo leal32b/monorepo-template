@@ -1,11 +1,11 @@
-import { Badge, Button, SettingsRow, Stepper } from '@repo/ui'
+import { Badge, Button, SettingsPanel, SettingsRow, Stepper } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { DisableTwoFactor } from '#features/disable-two-factor'
 import { EnableTwoFactor } from '#features/enable-two-factor'
 import { useI18n } from '#shared/config'
 import { BackupCodes } from './backup-codes'
-import { Panel, type RowPanelProps } from './panel'
+import type { RowPanelProps } from './panel'
 
 export type AuthenticatorRowProps = RowPanelProps & {
   security: AccountSecurity
@@ -85,7 +85,7 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
       }
       panel={
         props.open === 'turn-on' ? (
-          <Panel label={t('account.authenticator.stepper')}>
+          <SettingsPanel label={t('account.authenticator.stepper')}>
             <Stepper
               aria-label={t('account.authenticator.stepper')}
               steps={[
@@ -120,9 +120,9 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
                 />
               )}
             </Show>
-          </Panel>
+          </SettingsPanel>
         ) : props.open === 'turn-off' ? (
-          <Panel label={t('account.authenticator.turnOff')}>
+          <SettingsPanel label={t('account.authenticator.turnOff')}>
             <DisableTwoFactor
               onDisabled={() => {
                 turned(false)
@@ -130,7 +130,7 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
               }}
               onCancel={close}
             />
-          </Panel>
+          </SettingsPanel>
         ) : undefined
       }
     />

@@ -1,6 +1,6 @@
 import { covers, type Permissions } from '@repo/contracts'
-import { Button, Field, Select } from '@repo/ui'
-import { createSignal, createUniqueId, Show } from 'solid-js'
+import { Button, Field, FormActions, SelectField } from '@repo/ui'
+import { createSignal, Show } from 'solid-js'
 import { type Role, useRoleLabel } from '#entities/organizations'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -33,7 +33,6 @@ export function InvitePeopleForm(props: InvitePeopleFormProps) {
   const auth = useAuth()
   const { t } = useI18n()
   const label = useRoleLabel()
-  const selectId = createUniqueId()
   const grantable = (role: Role) => covers(props.held, role.permissions)
   const first = props.roles.find((role) => role.name === 'member' && grantable(role)) ?? props.roles.find(grantable)
   const [email, setEmail] = createSignal('')
@@ -97,23 +96,24 @@ export function InvitePeopleForm(props: InvitePeopleFormProps) {
         onChange={setEmail}
         error={error()}
       />
-      <div class="flex flex-col gap-1.5">
-        <label for={selectId} class="text-sm font-medium">
-          {t('organizationInvitations.form.role')}
-        </label>
-        <Select id={selectId} options={options()} value={role()} onChange={setRole} />
-        <Show when={options().some((option) => option.disabled)}>
-          <p class="text-sm text-muted-foreground">{t('organizationInvitations.form.cannotGive')}</p>
-        </Show>
-      </div>
-      <div class="mt-2 flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" variant="primary" class="w-full sm:w-auto" disabled={pending()}>
+      <SelectField
+        label={t('organizationInvitations.form.role')}
+        name="role"
+        options={options()}
+        value={role()}
+        onChange={setRole}
+        description={
+          options().some((option) => option.disabled) ? t('organizationInvitations.form.cannotGive') : undefined
+        }
+      />
+      <FormActions>
+        <Button type="submit" variant="primary" disabled={pending()}>
           {t('organizationInvitations.form.send')}
         </Button>
-        <Button variant="ghost" class="w-full sm:w-auto" onClick={props.onCancel}>
+        <Button variant="ghost" onClick={props.onCancel}>
           {t('actions.cancel')}
         </Button>
-      </div>
+      </FormActions>
       <Show when={failure()}>{(current) => <InvitationFailure failure={current()} />}</Show>
     </form>
   )

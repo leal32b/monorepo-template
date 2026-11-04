@@ -1,4 +1,4 @@
-import { Button } from '@repo/ui'
+import { ConfirmForm } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import { type Member, memberFailureKind } from '#entities/organizations'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
@@ -27,8 +27,7 @@ export function RemoveMemberForm(props: RemoveMemberFormProps) {
   const [failure, setFailure] = createSignal<AuthFailure>()
   const [pending, setPending] = createSignal(false)
 
-  const submit = async (event: SubmitEvent) => {
-    event.preventDefault()
+  const submit = async () => {
     setFailure(undefined)
     setPending(true)
     const failed = await callAuth((options) =>
@@ -49,22 +48,21 @@ export function RemoveMemberForm(props: RemoveMemberFormProps) {
   }
 
   return (
-    <form noValidate onSubmit={submit} class="flex flex-col gap-4">
-      <p class="text-muted-foreground">
-        {t('organizationMembers.remove.warning', {
-          name: props.member.name,
-          organization: props.organizationName
-        })}
-      </p>
-      <div class="mt-2 flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" variant="destructive" class="w-full sm:w-auto" disabled={pending()}>
-          {t('organizationMembers.remove.submit')}
-        </Button>
-        <Button variant="ghost" class="w-full sm:w-auto" onClick={props.onCancel}>
-          {t('actions.cancel')}
-        </Button>
-      </div>
-      <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} message={message(current())} />}</Show>
-    </form>
+    <ConfirmForm
+      message={t('organizationMembers.remove.warning', {
+        name: props.member.name,
+        organization: props.organizationName
+      })}
+      confirmLabel={t('organizationMembers.remove.submit')}
+      cancelLabel={t('actions.cancel')}
+      pending={pending()}
+      onConfirm={submit}
+      onCancel={props.onCancel}
+      failure={
+        <Show when={failure()}>
+          {(current) => <AuthFailureAlert failure={current()} message={message(current())} />}
+        </Show>
+      }
+    />
   )
 }

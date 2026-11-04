@@ -1,5 +1,15 @@
 import { covers, statements } from '@repo/contracts'
-import { Alert, Badge, Button, SettingsRow, SettingsSection } from '@repo/ui'
+import {
+  Alert,
+  Badge,
+  Button,
+  createPanels,
+  PanelButton,
+  SettingsPanel,
+  SettingsRow,
+  SettingsSection,
+  SettingsSkeleton
+} from '@repo/ui'
 import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
 import {
   holdersOf,
@@ -16,7 +26,6 @@ import { DeleteRoleForm, RoleForm, RoleView } from '#features/organizations/mana
 import { useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AppShell } from '#widgets/app-shell'
-import { Panel, type PanelName } from './panel'
 
 type Team = { members: Member[]; roles: Role[]; invitations: PendingInvitation[] }
 
@@ -49,27 +58,22 @@ export function OrganizationRolesPage() {
       return { members, roles, invitations }
     }
   )
-  const [open, setOpen] = createSignal<{ panel: PanelName; role?: string }>()
+  const panels = createPanels()
   const [rowStatus, setRowStatus] = createSignal<{ role: string; text: string }>()
-  const [pageStatus, setPageStatus] = createSignal<string>()
-  let status: HTMLParagraphElement | undefined
+  const [sectionStatus, setSectionStatus] = createSignal<string>()
 
   const held = () => current.membership.permissions
-  const close = () => setOpen(undefined)
-  const openPanel = (panel: PanelName, role?: Role) => {
+  const forget = () => {
     setRowStatus(undefined)
-    setPageStatus(undefined)
-    setOpen(role === undefined ? { panel } : { panel, role: role.name })
+    setSectionStatus(undefined)
   }
-  const opened = (panel: PanelName, role?: Role) => open()?.panel === panel && open()?.role === role?.name
-  /** The role left the list (deleted here, or already gone): focus goes to the line that says so. */
-  const announce = (text: string) => {
-    close()
-    setPageStatus(text)
-    queueMicrotask(() => status?.focus())
+  /** The role left the list (deleted here, or already gone): said below the section, which takes focus. */
+  const left = (text: string) => {
+    panels.dismiss()
+    setSectionStatus(text)
   }
   const gone = () => {
-    announce(t('organizationRoles.errors.gone'))
+    left(t('organizationRoles.errors.gone'))
     void refetch()
   }
 
@@ -91,23 +95,16 @@ export function OrganizationRolesPage() {
     const exceeds = () => !role.builtIn && !covers(held(), role.permissions)
     const canEdit = () => !role.builtIn && !exceeds() && current.can('ac', 'update')
     const canDelete = () => !role.builtIn && !exceeds() && current.can('ac', 'delete')
-    const busy = () => open() !== undefined
     const note = () =>
       inUse()
         ? t('organizationRoles.notes.heldBy', { who: whoIn(holders().members, holders().invitations) })
         : exceeds() && (current.can('ac', 'update') || current.can('ac', 'delete'))
           ? t('organizationRoles.notes.exceeds')
           : undefined
-    const reason = () =>
-      role.builtIn
-        ? t('organizationRoles.builtIn.readOnly')
-        : exceeds()
-          ? t('organizationRoles.notes.exceeds')
-          : undefined
 
     return (
       <SettingsRow
-        icon="key"
+        icon="role"
         title={roleLabel(role.name)}
         badge={
           <Show when={role.builtIn}>
@@ -119,32 +116,34 @@ export function OrganizationRolesPage() {
         status={rowStatus()?.role === role.name ? rowStatus()?.text : undefined}
         action={
           <>
-            <Show when={!canEdit() && !opened('view', role)}>
-              <Button disabled={busy()} onClick={() => openPanel('view', role)}>
-                {t('organizationRoles.actions.view')}
-              </Button>
-            </Show>
-            <Show when={canEdit() && !opened('edit', role)}>
-              <Button disabled={busy()} onClick={() => openPanel('edit', role)}>
+            <Show
+              when={canEdit()}
+              fallback={
+                <PanelButton panels={panels} panel={`view:${role.name}`} onOpen={forget}>
+                  {t('organizationRoles.actions.view')}
+                </PanelButton>
+              }
+            >
+              <PanelButton panels={panels} panel={`edit:${role.name}`} onOpen={forget}>
                 {t('organizationRoles.actions.edit')}
-              </Button>
+              </PanelButton>
             </Show>
-            <Show when={canDelete() && !opened('delete', role)}>
-              <Button disabled={busy() || inUse()} onClick={() => openPanel('delete', role)}>
+            <Show when={canDelete()}>
+              <PanelButton panels={panels} panel={`delete:${role.name}`} onOpen={forget} disabled={inUse()}>
                 {t('organizationRoles.actions.delete')}
-              </Button>
+              </PanelButton>
             </Show>
           </>
         }
         panel={
           <>
-            <Show when={opened('view', role)}>
-              <Panel label={t('organizationRoles.actions.view')}>
-                <RoleView role={role} reason={reason()} onClose={close} />
-              </Panel>
+            <Show when={panels.isOpen(`view:${role.name}`)}>
+              <SettingsPanel label={t('organizationRoles.actions.view')}>
+                <RoleView role={role} onClose={panels.close} />
+              </SettingsPanel>
             </Show>
-            <Show when={opened('edit', role)}>
-              <Panel label={t('organizationRoles.actions.edit')}>
+            <Show when={panels.isOpen(`edit:${role.name}`)}>
+              <SettingsPanel label={t('organizationRoles.actions.edit')}>
                 <RoleForm
                   organizationId={current.organization.id}
                   role={role}
@@ -156,27 +155,30 @@ export function OrganizationRolesPage() {
                       ...data(),
                       roles: data().roles.map((candidate) => (candidate.name === role.name ? saved : candidate))
                     })
-                    setRowStatus({ role: saved.name, text: t('organizationRoles.form.saved', { role: saved.name }) })
-                    close()
+                    setRowStatus({
+                      role: saved.name,
+                      text: t('organizationRoles.form.saved', { role: roleLabel(saved.name) })
+                    })
+                    panels.close()
                   }}
                   onGone={gone}
-                  onCancel={close}
+                  onCancel={panels.close}
                 />
-              </Panel>
+              </SettingsPanel>
             </Show>
-            <Show when={opened('delete', role)}>
-              <Panel label={t('organizationRoles.actions.delete')}>
+            <Show when={panels.isOpen(`delete:${role.name}`)}>
+              <SettingsPanel label={t('organizationRoles.actions.delete')}>
                 <DeleteRoleForm
                   organizationId={current.organization.id}
                   role={role}
                   onDeleted={() => {
                     mutate({ ...data(), roles: data().roles.filter((candidate) => candidate.name !== role.name) })
-                    announce(t('organizationRoles.remove.deleted', { role: role.name }))
+                    left(t('organizationRoles.remove.deleted', { role: roleLabel(role.name) }))
                   }}
                   onGone={gone}
-                  onCancel={close}
+                  onCancel={panels.close}
                 />
-              </Panel>
+              </SettingsPanel>
             </Show>
           </>
         }
@@ -186,16 +188,13 @@ export function OrganizationRolesPage() {
 
   return (
     <AppShell title={t('organizationRoles.title')}>
-      <Switch>
+      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} />}>
         <Match when={team.error}>
-          <Alert
-            variant="error"
-            action={<Button onClick={() => void refetch()}>{t('organizationRoles.retry')}</Button>}
-          >
+          <Alert variant="error" action={<Button onClick={() => void refetch()}>{t('actions.retry')}</Button>}>
             {t('organizationRoles.unavailable')}
           </Alert>
         </Match>
-        <Match when={team.state === 'ready' && team()}>
+        <Match when={team.latest}>
           {(loaded) => {
             const custom = () => loaded().roles.filter((role) => !role.builtIn)
             return (
@@ -210,6 +209,7 @@ export function OrganizationRolesPage() {
                   <SettingsSection
                     title={t('organizationRoles.custom.title', { name: current.organization.name })}
                     description={t('organizationRoles.custom.description')}
+                    status={sectionStatus()}
                   >
                     <Show when={current.can('ac', 'create')}>
                       <SettingsRow
@@ -217,15 +217,13 @@ export function OrganizationRolesPage() {
                         title={t('organizationRoles.custom.create.title')}
                         description={t('organizationRoles.custom.create.description')}
                         action={
-                          <Show when={!opened('create')}>
-                            <Button disabled={open() !== undefined} onClick={() => openPanel('create')}>
-                              {t('organizationRoles.custom.create.open')}
-                            </Button>
-                          </Show>
+                          <PanelButton panels={panels} panel="create" onOpen={forget}>
+                            {t('organizationRoles.custom.create.open')}
+                          </PanelButton>
                         }
                         panel={
-                          <Show when={opened('create')}>
-                            <Panel label={t('organizationRoles.custom.create.open')}>
+                          <Show when={panels.isOpen('create')}>
+                            <SettingsPanel label={t('organizationRoles.custom.create.open')}>
                               <RoleForm
                                 organizationId={current.organization.id}
                                 roles={loaded().roles}
@@ -234,14 +232,14 @@ export function OrganizationRolesPage() {
                                   mutate({ ...loaded(), roles: [...loaded().roles, saved] })
                                   setRowStatus({
                                     role: saved.name,
-                                    text: t('organizationRoles.form.created', { role: saved.name })
+                                    text: t('organizationRoles.form.created', { role: roleLabel(saved.name) })
                                   })
-                                  close()
+                                  panels.close()
                                 }}
                                 onGone={gone}
-                                onCancel={close}
+                                onCancel={panels.close}
                               />
-                            </Panel>
+                            </SettingsPanel>
                           </Show>
                         }
                       />
@@ -249,16 +247,6 @@ export function OrganizationRolesPage() {
                     <For each={custom()}>{(role) => rowOf(role, loaded)}</For>
                   </SettingsSection>
                 </Show>
-                <p
-                  ref={(line) => {
-                    status = line
-                  }}
-                  tabIndex={-1}
-                  role="status"
-                  class="-mt-4 text-sm text-muted-foreground outline-none"
-                >
-                  {pageStatus()}
-                </p>
               </>
             )
           }}

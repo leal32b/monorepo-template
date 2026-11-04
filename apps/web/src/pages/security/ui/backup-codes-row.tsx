@@ -1,10 +1,10 @@
-import { Button, SettingsRow } from '@repo/ui'
+import { Button, SettingsPanel, SettingsRow } from '@repo/ui'
 import { createSignal } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { RegenerateBackupCodes } from '#features/regenerate-backup-codes'
 import { useI18n } from '#shared/config'
 import { BackupCodes } from './backup-codes'
-import { Panel, type RowPanelProps } from './panel'
+import type { RowPanelProps } from './panel'
 
 export type BackupCodesRowProps = RowPanelProps & {
   security: AccountSecurity
@@ -51,7 +51,7 @@ export function BackupCodesRow(props: BackupCodesRowProps) {
       }
       panel={
         opened() ? (
-          <Panel label={t('account.backupCodes.newCodes')}>
+          <SettingsPanel label={t('account.backupCodes.newCodes')}>
             {codes() ? (
               <BackupCodes
                 codes={codes() as string[]}
@@ -69,7 +69,7 @@ export function BackupCodesRow(props: BackupCodesRowProps) {
                 onCancel={close}
               />
             )}
-          </Panel>
+          </SettingsPanel>
         ) : undefined
       }
     />

@@ -44,6 +44,26 @@ describe('ConfirmForm', () => {
     expect(onCancel).toHaveBeenCalledTimes(1)
   })
 
+  it('tells the screen when the field is left, to check it again', () => {
+    const onFocusOut = vi.fn()
+    render(() => (
+      <ConfirmForm
+        message="Delete Acme?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        pending={false}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+        onFocusOut={onFocusOut}
+      />
+    ))
+
+    fireEvent.focusOut(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.focusOut(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(onFocusOut).toHaveBeenCalledTimes(2)
+  })
+
   it('keeps the button waiting while the request is on its way', () => {
     renderForm(true)
 

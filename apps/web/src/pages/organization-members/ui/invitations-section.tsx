@@ -1,4 +1,14 @@
-import { Alert, Badge, Button, SettingsRow, SettingsSection } from '@repo/ui'
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Button,
+  PanelButton,
+  type Panels,
+  SettingsPanel,
+  SettingsRow,
+  SettingsSection
+} from '@repo/ui'
 import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
 import {
   listPendingInvitations,
@@ -16,16 +26,23 @@ import {
 } from '#features/organizations/invite-people'
 import { type AuthFailure, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
-import { Panel } from './panel'
+import { formatDate } from '#shared/lib'
+
+export type InvitationsSectionProps = {
+  members: readonly Member[]
+  roles: readonly Role[]
+  /** The screen's panels: one form open at a time across the people and the invitations. */
+  panels: Panels
+}
 
 /**
  * The invitations of the organization: a row to invite someone, and the ones still waiting for an answer,
  * each with when it expires, to send again (the way out when the email did not arrive) or to revoke.
  * Whoever may create invitations sees the first, whoever may cancel them sees the second; anyone else does
  * not see the section. The list is read on its own, so it can fail or load again without the people above
- * it going blank.
+ * it going blank. While a form is open anywhere on the screen, every action here waits.
  */
-export function InvitationsSection(props: { members: readonly Member[]; roles: readonly Role[] }) {
+export function InvitationsSection(props: InvitationsSectionProps) {
   const { t, locale } = useI18n()
   const auth = useAuth()
   const current = useOrganization()
@@ -37,24 +54,26 @@ export function InvitationsSection(props: { members: readonly Member[]; roles: r
     () => (canSee() ? current.organization.id : undefined),
     (organizationId) => listPendingInvitations(auth, organizationId, new Date())
   )
-  const [inviting, setInviting] = createSignal(false)
-  const [leadStatus, setLeadStatus] = createSignal<string>()
+  const [inviteStatus, setInviteStatus] = createSignal<string>()
+  const [sectionStatus, setSectionStatus] = createSignal<string>()
   const [rowStatus, setRowStatus] = createSignal<{ id: string; text: string }>()
   const [rowFailure, setRowFailure] = createSignal<{ id: string; failure: AuthFailure }>()
   const [busy, setBusy] = createSignal(false)
 
-  const dateOf = (date: Date) => new Intl.DateTimeFormat(locale(), { dateStyle: 'medium' }).format(date)
+  const waiting = () => busy() || props.panels.busy()
   const forget = () => {
+    setInviteStatus(undefined)
+    setSectionStatus(undefined)
     setRowStatus(undefined)
     setRowFailure(undefined)
   }
 
   const rowOf = (invitation: PendingInvitation) => (
     <SettingsRow
-      letter="@"
+      avatar={<Avatar icon="mail" />}
       title={invitation.email}
       badge={<For each={invitation.roles}>{(role) => <Badge>{roleLabel(role)}</Badge>}</For>}
-      description={t('invitations.expires', { date: dateOf(invitation.expiresAt) })}
+      description={t('invitations.expires', { date: formatDate(invitation.expiresAt, locale()) })}
       status={rowStatus()?.id === invitation.id ? rowStatus()?.text : undefined}
       action={
         <>
@@ -62,7 +81,7 @@ export function InvitationsSection(props: { members: readonly Member[]; roles: r
             <ResendInvitation
               organizationId={current.organization.id}
               invitation={invitation}
-              disabled={busy()}
+              disabled={waiting()}
               onPending={setBusy}
               onSent={() => {
                 forget()
@@ -81,11 +100,11 @@ export function InvitationsSection(props: { members: readonly Member[]; roles: r
           <Show when={canRevoke()}>
             <RevokeInvitation
               invitation={invitation}
-              disabled={busy()}
+              disabled={waiting()}
               onPending={setBusy}
               onRevoked={() => {
                 forget()
-                setLeadStatus(t('organizationInvitations.row.revoked', { email: invitation.email }))
+                setSectionStatus(t('organizationInvitations.row.revoked', { email: invitation.email }))
                 void refetch()
               }}
               onFailure={(failure) => {
@@ -108,10 +127,7 @@ export function InvitationsSection(props: { members: readonly Member[]; roles: r
     <Show when={canSee()}>
       <Switch>
         <Match when={pending.error}>
-          <Alert
-            variant="error"
-            action={<Button onClick={() => void refetch()}>{t('organizationInvitations.retry')}</Button>}
-          >
+          <Alert variant="error" action={<Button onClick={() => void refetch()}>{t('actions.retry')}</Button>}>
             {t('organizationInvitations.unavailable')}
           </Alert>
         </Match>
@@ -120,41 +136,35 @@ export function InvitationsSection(props: { members: readonly Member[]; roles: r
             <SettingsSection
               title={t('organizationInvitations.section.title')}
               description={t('organizationInvitations.section.description', { name: current.organization.name })}
+              status={sectionStatus()}
             >
               <Show when={canInvite()}>
                 <SettingsRow
                   icon="plus"
                   title={t('organizationInvitations.invite.title')}
                   description={t('organizationInvitations.invite.description', { name: current.organization.name })}
-                  status={leadStatus()}
+                  status={inviteStatus()}
                   action={
-                    <Show when={!inviting()}>
-                      <Button
-                        onClick={() => {
-                          setLeadStatus(undefined)
-                          setInviting(true)
-                        }}
-                      >
-                        {t('organizationInvitations.invite.open')}
-                      </Button>
-                    </Show>
+                    <PanelButton panels={props.panels} panel="invite" onOpen={forget} disabled={busy()}>
+                      {t('organizationInvitations.invite.open')}
+                    </PanelButton>
                   }
                   panel={
-                    <Show when={inviting()}>
-                      <Panel label={t('organizationInvitations.invite.open')}>
+                    <Show when={props.panels.isOpen('invite')}>
+                      <SettingsPanel label={t('organizationInvitations.invite.open')}>
                         <InvitePeopleForm
                           organizationId={current.organization.id}
                           roles={props.roles}
                           held={current.membership.permissions}
                           memberEmails={new Set(props.members.map((member) => member.email.toLowerCase()))}
                           onInvited={(email) => {
-                            setInviting(false)
-                            setLeadStatus(t('organizationInvitations.form.sent', { email }))
+                            setInviteStatus(t('organizationInvitations.form.sent', { email }))
+                            props.panels.close()
                             void refetch()
                           }}
-                          onCancel={() => setInviting(false)}
+                          onCancel={props.panels.close}
                         />
-                      </Panel>
+                      </SettingsPanel>
                     </Show>
                   }
                 />

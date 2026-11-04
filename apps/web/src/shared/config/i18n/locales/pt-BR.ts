@@ -47,12 +47,12 @@ export const ptBR: Messages = {
   },
   /** Words that buttons share across screens. */
   actions: {
-    cancel: 'Cancelar'
+    cancel: 'Cancelar',
+    retry: 'Tentar de novo'
   },
   account: {
     title: 'Segurança',
     unavailable: 'Não conseguimos carregar a segurança da sua conta. Confira sua conexão e tente de novo.',
-    retry: 'Tentar de novo',
     signIn: {
       title: 'Formas de entrar',
       description: 'Como você acessa a sua conta.'
@@ -252,8 +252,7 @@ export const ptBR: Messages = {
     },
     unavailable: {
       title: 'Não conseguimos carregar suas organizações',
-      description: 'Confira sua conexão e tente de novo.',
-      retry: 'Tentar de novo'
+      description: 'Confira sua conexão e tente de novo.'
     }
   },
   invitations: {
@@ -305,7 +304,6 @@ export const ptBR: Messages = {
   organizationMembers: {
     title: 'Membros',
     unavailable: 'Não conseguimos carregar os membros. Verifique sua conexão e tente de novo.',
-    retry: 'Tentar de novo',
     section: {
       title: 'Pessoas',
       description: 'Todas as pessoas que podem abrir {{name}}.',
@@ -351,7 +349,6 @@ export const ptBR: Messages = {
   organizationRoles: {
     title: 'Papéis',
     unavailable: 'Não conseguimos carregar os papéis. Verifique sua conexão e tente de novo.',
-    retry: 'Tentar de novo',
     builtIn: {
       title: 'Papéis nativos',
       description: 'Toda organização tem estes três. Eles não podem ser alterados.',
@@ -362,7 +359,7 @@ export const ptBR: Messages = {
       title: 'Papéis de {{name}}',
       description: 'Papéis próprios reúnem permissões para dar a membros e convites.',
       create: {
-        title: 'Criar um papel',
+        title: 'Criar papel',
         description: 'Escolha o que as pessoas que o têm podem fazer.',
         open: 'Criar papel'
       }
@@ -411,7 +408,7 @@ export const ptBR: Messages = {
       nameHint: 'Letras minúsculas, números e hifens simples, com até 32 caracteres.',
       permissions: 'Permissões',
       notHeld: 'Você não tem esta permissão.',
-      ownerOnly: 'Só o papel de proprietário pode excluir a organização, então nenhum papel próprio pode.',
+      ownerOnly: 'Só o papel de proprietário tem esta permissão.',
       renameLocked:
         'Há membros ou convites com este papel, então ele não pode ser renomeado. As permissões podem mudar.',
       create: 'Criar papel',
@@ -419,9 +416,6 @@ export const ptBR: Messages = {
       close: 'Fechar',
       created: 'Papel {{role}} criado',
       saved: 'Papel {{role}} salvo'
-    },
-    view: {
-      none: 'Este papel não concede nenhuma permissão.'
     },
     remove: {
       warning: 'Excluir o papel {{role}}? Ninguém o tem, então ninguém perde acesso.',
@@ -447,7 +441,6 @@ export const ptBR: Messages = {
       empty: 'Nenhum convite pendente.'
     },
     unavailable: 'Não conseguimos carregar os convites. Verifique sua conexão e tente de novo.',
-    retry: 'Tentar de novo',
     invite: {
       title: 'Convidar pessoas',
       description: 'Elas recebem um e-mail com um link para entrar em {{name}}.',
@@ -518,8 +511,7 @@ export const ptBR: Messages = {
     },
     unavailable: {
       title: 'Não conseguimos abrir este convite',
-      description: 'Verifique sua conexão e tente de novo.',
-      retry: 'Tentar de novo'
+      description: 'Verifique sua conexão e tente de novo.'
     },
     continue: 'Continuar para o app'
   },
@@ -534,15 +526,13 @@ export const ptBR: Messages = {
     },
     unavailable: {
       title: 'Não conseguimos verificar seus convites',
-      description: 'Confira sua conexão e tente de novo.',
-      retry: 'Tentar de novo'
+      description: 'Confira sua conexão e tente de novo.'
     }
   },
   session: {
     unavailable: {
       title: 'Não conseguimos verificar seu login',
-      description: 'Confira sua conexão e tente de novo.',
-      retry: 'Tentar de novo'
+      description: 'Confira sua conexão e tente de novo.'
     }
   },
   failure: {

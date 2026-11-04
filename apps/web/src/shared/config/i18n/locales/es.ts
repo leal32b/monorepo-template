@@ -47,12 +47,12 @@ export const es: Messages = {
   },
   /** Words that buttons share across screens. */
   actions: {
-    cancel: 'Cancelar'
+    cancel: 'Cancelar',
+    retry: 'Intentar de nuevo'
   },
   account: {
     title: 'Seguridad',
     unavailable: 'No pudimos cargar la seguridad de tu cuenta. Revisa tu conexión y vuelve a intentarlo.',
-    retry: 'Intentar de nuevo',
     signIn: {
       title: 'Formas de iniciar sesión',
       description: 'Cómo entras a tu cuenta.'
@@ -253,8 +253,7 @@ export const es: Messages = {
     },
     unavailable: {
       title: 'No pudimos cargar tus organizaciones',
-      description: 'Revisa tu conexión y vuelve a intentarlo.',
-      retry: 'Intentar de nuevo'
+      description: 'Revisa tu conexión y vuelve a intentarlo.'
     }
   },
   invitations: {
@@ -306,7 +305,6 @@ export const es: Messages = {
   organizationMembers: {
     title: 'Miembros',
     unavailable: 'No pudimos cargar los miembros. Revisa tu conexión y vuelve a intentarlo.',
-    retry: 'Reintentar',
     section: {
       title: 'Personas',
       description: 'Todas las personas que pueden abrir {{name}}.',
@@ -354,7 +352,6 @@ export const es: Messages = {
   organizationRoles: {
     title: 'Roles',
     unavailable: 'No pudimos cargar los roles. Revisa tu conexión y vuelve a intentarlo.',
-    retry: 'Reintentar',
     builtIn: {
       title: 'Roles integrados',
       description: 'Toda organización tiene estos tres. No se pueden cambiar.',
@@ -365,7 +362,7 @@ export const es: Messages = {
       title: 'Roles de {{name}}',
       description: 'Los roles propios agrupan permisos para dar a miembros e invitaciones.',
       create: {
-        title: 'Crear un rol',
+        title: 'Crear rol',
         description: 'Elige qué pueden hacer las personas que lo tengan.',
         open: 'Crear rol'
       }
@@ -414,7 +411,7 @@ export const es: Messages = {
       nameHint: 'Letras minúsculas, números y guiones simples, hasta 32 caracteres.',
       permissions: 'Permisos',
       notHeld: 'No tienes este permiso.',
-      ownerOnly: 'Solo el rol de propietario puede eliminar la organización, así que ningún rol propio puede.',
+      ownerOnly: 'Solo el rol de propietario tiene este permiso.',
       renameLocked:
         'Hay miembros o invitaciones con este rol, así que no se puede renombrar. Sus permisos sí se pueden cambiar.',
       create: 'Crear rol',
@@ -422,9 +419,6 @@ export const es: Messages = {
       close: 'Cerrar',
       created: 'Rol {{role}} creado',
       saved: 'Rol {{role}} guardado'
-    },
-    view: {
-      none: 'Este rol no concede ningún permiso.'
     },
     remove: {
       warning: '¿Eliminar el rol {{role}}? Nadie lo tiene, así que nadie pierde acceso.',
@@ -450,7 +444,6 @@ export const es: Messages = {
       empty: 'No hay invitaciones pendientes.'
     },
     unavailable: 'No pudimos cargar las invitaciones. Revisa tu conexión y vuelve a intentarlo.',
-    retry: 'Reintentar',
     invite: {
       title: 'Invitar personas',
       description: 'Reciben un correo con un enlace para unirse a {{name}}.',
@@ -522,8 +515,7 @@ export const es: Messages = {
     },
     unavailable: {
       title: 'No pudimos abrir esta invitación',
-      description: 'Revisa tu conexión e inténtalo de nuevo.',
-      retry: 'Intentar de nuevo'
+      description: 'Revisa tu conexión e inténtalo de nuevo.'
     },
     continue: 'Continuar a la app'
   },
@@ -538,15 +530,13 @@ export const es: Messages = {
     },
     unavailable: {
       title: 'No pudimos revisar tus invitaciones',
-      description: 'Revisa tu conexión e inténtalo de nuevo.',
-      retry: 'Intentar de nuevo'
+      description: 'Revisa tu conexión e inténtalo de nuevo.'
     }
   },
   session: {
     unavailable: {
       title: 'No pudimos comprobar tu sesión',
-      description: 'Revisa tu conexión y vuelve a intentarlo.',
-      retry: 'Intentar de nuevo'
+      description: 'Revisa tu conexión y vuelve a intentarlo.'
     }
   },
   failure: {

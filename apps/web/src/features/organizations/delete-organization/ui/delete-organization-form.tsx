@@ -1,4 +1,4 @@
-import { Button, Field } from '@repo/ui'
+import { ConfirmForm, Field } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import type { Organization } from '#entities/organizations'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
@@ -34,7 +34,6 @@ export function DeleteOrganizationForm(props: DeleteOrganizationFormProps) {
     checks.problems().confirm && t('organizationGeneral.delete.mismatch', { name: props.organization.name })
 
   const submit = async (event: SubmitEvent & { currentTarget: HTMLFormElement }) => {
-    event.preventDefault()
     setFailure(undefined)
     if (checks.submit(event.currentTarget) === undefined) return
 
@@ -48,8 +47,29 @@ export function DeleteOrganizationForm(props: DeleteOrganizationFormProps) {
   }
 
   return (
-    <form noValidate onSubmit={submit} onFocusOut={checks.recheck} class="flex flex-col gap-4">
-      <p class="text-muted-foreground">{t('organizationGeneral.delete.warning', { name: props.organization.name })}</p>
+    <ConfirmForm
+      message={t('organizationGeneral.delete.warning', { name: props.organization.name })}
+      confirmLabel={t('organizationGeneral.delete.submit')}
+      cancelLabel={t('actions.cancel')}
+      pending={pending()}
+      onConfirm={submit}
+      onCancel={props.onCancel}
+      onFocusOut={checks.recheck}
+      failure={
+        <Show when={failure()}>
+          {(current) => (
+            <AuthFailureAlert
+              failure={current()}
+              message={
+                current().code !== undefined && refusals.has(current().code as string)
+                  ? t('organizationGeneral.delete.onlyOwner')
+                  : undefined
+              }
+            />
+          )}
+        </Show>
+      }
+    >
       <Field
         label={t('organizationGeneral.delete.label')}
         name="confirm"
@@ -58,26 +78,6 @@ export function DeleteOrganizationForm(props: DeleteOrganizationFormProps) {
         onChange={setTyped}
         error={error()}
       />
-      <div class="mt-2 flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" variant="destructive" class="w-full sm:w-auto" disabled={pending()}>
-          {t('organizationGeneral.delete.submit')}
-        </Button>
-        <Button variant="ghost" class="w-full sm:w-auto" onClick={props.onCancel}>
-          {t('actions.cancel')}
-        </Button>
-      </div>
-      <Show when={failure()}>
-        {(current) => (
-          <AuthFailureAlert
-            failure={current()}
-            message={
-              current().code !== undefined && refusals.has(current().code as string)
-                ? t('organizationGeneral.delete.onlyOwner')
-                : undefined
-            }
-          />
-        )}
-      </Show>
-    </form>
+    </ConfirmForm>
   )
 }

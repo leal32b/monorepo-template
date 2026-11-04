@@ -1,6 +1,6 @@
 import { covers, type Permissions } from '@repo/contracts'
-import { Button, Select } from '@repo/ui'
-import { createSignal, createUniqueId, Show } from 'solid-js'
+import { Button, FormActions, SelectField } from '@repo/ui'
+import { createSignal, Show } from 'solid-js'
 import { type Member, memberFailureKind, type Role, useRoleLabel } from '#entities/organizations'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -29,7 +29,6 @@ export function ChangeMemberRoleForm(props: ChangeMemberRoleFormProps) {
   const auth = useAuth()
   const { t } = useI18n()
   const label = useRoleLabel()
-  const selectId = createUniqueId()
   const [role, setRole] = createSignal(props.member.roles[0] as string)
   const [failure, setFailure] = createSignal<AuthFailure>()
   const [pending, setPending] = createSignal(false)
@@ -71,23 +70,24 @@ export function ChangeMemberRoleForm(props: ChangeMemberRoleFormProps) {
 
   return (
     <form noValidate onSubmit={submit} class="flex flex-col gap-4">
-      <div class="flex flex-col gap-1.5">
-        <label for={selectId} class="text-sm font-medium">
-          {t('organizationMembers.changeRole.label')}
-        </label>
-        <Select id={selectId} options={options()} value={role()} onChange={setRole} />
-        <Show when={options().some((option) => option.disabled)}>
-          <p class="text-sm text-muted-foreground">{t('organizationMembers.changeRole.cannotGive')}</p>
-        </Show>
-      </div>
-      <div class="mt-2 flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" variant="primary" class="w-full sm:w-auto" disabled={pending()}>
+      <SelectField
+        label={t('organizationMembers.changeRole.label')}
+        name="role"
+        options={options()}
+        value={role()}
+        onChange={setRole}
+        description={
+          options().some((option) => option.disabled) ? t('organizationMembers.changeRole.cannotGive') : undefined
+        }
+      />
+      <FormActions>
+        <Button type="submit" variant="primary" disabled={pending()}>
           {t('organizationMembers.changeRole.save')}
         </Button>
-        <Button variant="ghost" class="w-full sm:w-auto" onClick={props.onCancel}>
+        <Button variant="ghost" onClick={props.onCancel}>
           {t('actions.cancel')}
         </Button>
-      </div>
+      </FormActions>
       <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} message={message(current())} />}</Show>
     </form>
   )

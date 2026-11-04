@@ -1,5 +1,16 @@
 import { covers } from '@repo/contracts'
-import { Alert, Badge, Button, SettingsRow, SettingsSection } from '@repo/ui'
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Button,
+  createPanels,
+  PanelButton,
+  SettingsPanel,
+  SettingsRow,
+  SettingsSection,
+  SettingsSkeleton
+} from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
 import {
@@ -19,15 +30,16 @@ import { useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AppShell } from '#widgets/app-shell'
 import { InvitationsSection } from './invitations-section'
-import { Panel, type PanelName } from './panel'
+
+type Team = { members: Member[]; roles: Role[] }
 
 /**
- * `/:orgSlug/settings/members`: everyone in the organization, with their roles. Anyone in it may read
- * the list; what the buttons offer follows what the caller holds (ADR 0033). Whoever may update members
- * changes a role, whoever may delete removes one, but never a person whose roles grant more than the
- * caller's, and never a role the caller could not give: those show disabled, and a person above the
- * caller says so. Anyone may leave, except the only owner, who is told to name another first (D7). A form
- * opens inline below its row, one at a time.
+ * `/:orgSlug/settings/members`: everyone in the organization, with their roles, and its invitations.
+ * Anyone in it may read the list; what the buttons offer follows what the caller holds (ADR 0033). An
+ * action the caller may take in general shows on every row, and is disabled, with the reason in the
+ * row, where it cannot be taken: on a person whose roles grant more than the caller's, or the only
+ * owner leaving (D7). An action the caller may never take does not show. One form opens at a time on
+ * the whole screen, inline below its row; a person who leaves the list is said below the section.
  */
 export function OrganizationMembersPage() {
   const { t } = useI18n()
@@ -39,32 +51,26 @@ export function OrganizationMembersPage() {
   const roleLabel = useRoleLabel()
   const [team, { refetch, mutate }] = createResource(
     () => current.organization.id,
-    async (organizationId) => {
+    async (organizationId): Promise<Team> => {
       const [members, roles] = await Promise.all([listMembers(auth, organizationId), listRoles(auth, organizationId)])
       return { members, roles }
     }
   )
-  const [open, setOpen] = createSignal<{ panel: PanelName; member: string }>()
+  const panels = createPanels()
   const [rowStatus, setRowStatus] = createSignal<{ member: string; text: string }>()
-  const [pageStatus, setPageStatus] = createSignal<string>()
-  let status: HTMLParagraphElement | undefined
+  const [sectionStatus, setSectionStatus] = createSignal<string>()
 
-  const manages = () => current.can('member', 'update') || current.can('member', 'delete')
-  const close = () => setOpen(undefined)
-  const openPanel = (panel: PanelName, member: Member) => {
+  const canChange = () => current.can('member', 'update')
+  const canRemove = () => current.can('member', 'delete')
+  const forget = () => {
     setRowStatus(undefined)
-    setPageStatus(undefined)
-    setOpen({ panel, member: member.id })
+    setSectionStatus(undefined)
   }
-  const opened = (panel: PanelName, member: Member) => open()?.panel === panel && open()?.member === member.id
-  /** The person left the list (removed here, or already gone): focus goes to the line that says so. */
-  const announce = (text: string) => {
-    close()
-    setPageStatus(text)
-    queueMicrotask(() => status?.focus())
+  /** The person left the list (removed here, or already gone): said below the section, which takes focus. */
+  const left = (text: string) => {
+    panels.dismiss()
+    setSectionStatus(text)
   }
-
-  type Team = { members: Member[]; roles: Role[] }
 
   /** One person's row. What it offers is read as it is drawn, since one change can alter another row (who is the last owner). */
   const rowOf = (member: Member, data: () => Team) => {
@@ -72,19 +78,20 @@ export function OrganizationMembersPage() {
     const lastOwner = () => isLastOwner(member, data().members)
     const held = () => current.membership.permissions
     const outranks = () => !me && !covers(held(), permissionsOfRoles(member.roles, data().roles))
-    const busy = () => open() !== undefined
-    const canChange = () => !me && !outranks() && current.can('member', 'update')
-    const canRemove = () => !me && !outranks() && current.can('member', 'delete')
     const note = () =>
       me && lastOwner()
         ? t('organizationMembers.notes.lastOwner')
-        : outranks() && manages()
+        : outranks() && (canChange() || canRemove())
           ? t('organizationMembers.notes.outranks')
           : undefined
+    const gone = () => {
+      left(t('organizationMembers.errors.gone'))
+      void refetch()
+    }
 
     return (
       <SettingsRow
-        icon="profile"
+        avatar={<Avatar name={member.name} />}
         title={member.name}
         badge={
           <>
@@ -98,28 +105,30 @@ export function OrganizationMembersPage() {
         note={note()}
         status={rowStatus()?.member === member.id ? rowStatus()?.text : undefined}
         action={
-          <>
-            <Show when={canChange() && !opened('role', member)}>
-              <Button disabled={busy()} onClick={() => openPanel('role', member)}>
-                {t('organizationMembers.actions.changeRole')}
-              </Button>
-            </Show>
-            <Show when={canRemove() && !opened('remove', member)}>
-              <Button disabled={busy()} onClick={() => openPanel('remove', member)}>
-                {t('organizationMembers.actions.remove')}
-              </Button>
-            </Show>
-            <Show when={me && !lastOwner() && !opened('leave', member)}>
-              <Button disabled={busy()} onClick={() => openPanel('leave', member)}>
+          <Show
+            when={!me}
+            fallback={
+              <PanelButton panels={panels} panel={`leave:${member.id}`} onOpen={forget} disabled={lastOwner()}>
                 {t('organizationMembers.actions.leave')}
-              </Button>
+              </PanelButton>
+            }
+          >
+            <Show when={canChange()}>
+              <PanelButton panels={panels} panel={`role:${member.id}`} onOpen={forget} disabled={outranks()}>
+                {t('organizationMembers.actions.changeRole')}
+              </PanelButton>
             </Show>
-          </>
+            <Show when={canRemove()}>
+              <PanelButton panels={panels} panel={`remove:${member.id}`} onOpen={forget} disabled={outranks()}>
+                {t('organizationMembers.actions.remove')}
+              </PanelButton>
+            </Show>
+          </Show>
         }
         panel={
-          <>
-            <Show when={opened('role', member)}>
-              <Panel label={t('organizationMembers.actions.changeRole')}>
+          <Switch>
+            <Match when={panels.isOpen(`role:${member.id}`)}>
+              <SettingsPanel label={t('organizationMembers.actions.changeRole')}>
                 <ChangeMemberRoleForm
                   organizationId={current.organization.id}
                   member={member}
@@ -136,36 +145,30 @@ export function OrganizationMembersPage() {
                       member: member.id,
                       text: t('organizationMembers.changeRole.saved', { role: roleLabel(role) })
                     })
-                    close()
+                    panels.close()
                   }}
-                  onGone={() => {
-                    announce(t('organizationMembers.errors.gone'))
-                    void refetch()
-                  }}
-                  onCancel={close}
+                  onGone={gone}
+                  onCancel={panels.close}
                 />
-              </Panel>
-            </Show>
-            <Show when={opened('remove', member)}>
-              <Panel label={t('organizationMembers.actions.remove')}>
+              </SettingsPanel>
+            </Match>
+            <Match when={panels.isOpen(`remove:${member.id}`)}>
+              <SettingsPanel label={t('organizationMembers.actions.remove')}>
                 <RemoveMemberForm
                   organizationId={current.organization.id}
                   organizationName={current.organization.name}
                   member={member}
                   onRemoved={() => {
                     mutate({ ...data(), members: data().members.filter((candidate) => candidate.id !== member.id) })
-                    announce(t('organizationMembers.remove.removed', { name: member.name }))
+                    left(t('organizationMembers.remove.removed', { name: member.name }))
                   }}
-                  onGone={() => {
-                    announce(t('organizationMembers.errors.gone'))
-                    void refetch()
-                  }}
-                  onCancel={close}
+                  onGone={gone}
+                  onCancel={panels.close}
                 />
-              </Panel>
-            </Show>
-            <Show when={opened('leave', member)}>
-              <Panel label={t('organizationMembers.actions.leave')}>
+              </SettingsPanel>
+            </Match>
+            <Match when={panels.isOpen(`leave:${member.id}`)}>
+              <SettingsPanel label={t('organizationMembers.actions.leave')}>
                 <LeaveOrganizationForm
                   organization={current.organization}
                   onLeft={() => {
@@ -173,11 +176,11 @@ export function OrganizationMembersPage() {
                     navigate('/', { replace: true })
                     refetchOrganizations()
                   }}
-                  onCancel={close}
+                  onCancel={panels.close}
                 />
-              </Panel>
-            </Show>
-          </>
+              </SettingsPanel>
+            </Match>
+          </Switch>
         }
       />
     )
@@ -185,38 +188,28 @@ export function OrganizationMembersPage() {
 
   return (
     <AppShell title={t('organizationMembers.title')}>
-      <Switch>
+      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} />}>
         <Match when={team.error}>
-          <Alert
-            variant="error"
-            action={<Button onClick={() => void refetch()}>{t('organizationMembers.retry')}</Button>}
-          >
+          <Alert variant="error" action={<Button onClick={() => void refetch()}>{t('actions.retry')}</Button>}>
             {t('organizationMembers.unavailable')}
           </Alert>
         </Match>
-        <Match when={team.state === 'ready' && team()}>
+        <Match when={team.latest}>
           {(loaded) => (
             <>
               <SettingsSection
                 title={t('organizationMembers.section.title')}
                 description={t(
-                  manages() ? 'organizationMembers.section.description' : 'organizationMembers.section.readOnly',
+                  canChange() || canRemove()
+                    ? 'organizationMembers.section.description'
+                    : 'organizationMembers.section.readOnly',
                   { name: current.organization.name }
                 )}
+                status={sectionStatus()}
               >
                 <For each={loaded().members}>{(member) => rowOf(member, loaded)}</For>
               </SettingsSection>
-              <p
-                ref={(line) => {
-                  status = line
-                }}
-                tabIndex={-1}
-                role="status"
-                class="-my-4 text-sm text-muted-foreground outline-none"
-              >
-                {pageStatus()}
-              </p>
-              <InvitationsSection members={loaded().members} roles={loaded().roles} />
+              <InvitationsSection members={loaded().members} roles={loaded().roles} panels={panels} />
             </>
           )}
         </Match>

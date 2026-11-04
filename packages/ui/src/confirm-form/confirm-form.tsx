@@ -12,6 +12,8 @@ export type ConfirmFormProps = {
   pending: boolean
   onConfirm: (event: SubmitEvent & { currentTarget: HTMLFormElement }) => void
   onCancel: () => void
+  /** For the field in `children`: checked again when it is left, as in any form (`createFormChecks`). */
+  onFocusOut?: ((event: FocusEvent) => void) | undefined
   /** A field the user fills to confirm, such as the name typed to delete an organization. */
   children?: JSX.Element
   /** What went wrong, below the buttons, where nothing above moves. */
@@ -28,6 +30,7 @@ export function ConfirmForm(props: ConfirmFormProps) {
     <form
       noValidate
       class="flex flex-col gap-4"
+      onFocusOut={(event) => props.onFocusOut?.(event)}
       onSubmit={(event) => {
         event.preventDefault()
         props.onConfirm(event)

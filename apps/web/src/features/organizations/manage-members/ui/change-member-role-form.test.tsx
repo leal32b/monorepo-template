@@ -48,7 +48,7 @@ describe('ChangeMemberRoleForm', () => {
       'Owner (you cannot give this role)',
       'Admin',
       'Member',
-      'editor'
+      'Editor'
     ])
   })
 

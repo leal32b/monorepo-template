@@ -5,67 +5,39 @@ import { I18nProvider } from '#shared/config'
 import { RoleView } from './role-view'
 
 const admin: Role = { name: 'admin', permissions: builtInRoles.admin, builtIn: true }
-const owner: Role = { name: 'owner', permissions: builtInRoles.owner, builtIn: true }
 
-function renderView(role: Role, reason?: string) {
+function renderView(role: Role) {
   const onClose = vi.fn()
   render(() => (
     <I18nProvider locale="en">
-      <RoleView role={role} reason={reason} onClose={onClose} />
+      <RoleView role={role} onClose={onClose} />
     </I18nProvider>
   ))
   return { onClose }
 }
 
 describe('RoleView', () => {
-  it('lists what the role grants, a group per resource, and nothing it does not', () => {
+  it('shows every permission in the role form’s grid, what the role grants checked, nothing to change', () => {
     renderView(admin)
+    const members = screen.getByRole('group', { name: 'Members' })
 
-    expect(screen.getByText('Admin')).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Organization' })).getAllByRole('listitem')).toHaveLength(1)
-    expect(within(screen.getByRole('region', { name: 'Members' })).getAllByRole('listitem')).toHaveLength(3)
-    expect(within(screen.getByRole('region', { name: 'Roles' })).getAllByRole('listitem')).toHaveLength(4)
-    expect(screen.queryByText('Delete the organization')).not.toBeInTheDocument()
+    expect(within(members).getByRole('checkbox', { name: 'Add members' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Delete the organization' })).not.toBeChecked()
+    fireEvent.click(screen.getByText('Add members'))
+    expect(within(members).getByRole('checkbox', { name: 'Add members' })).toBeChecked()
   })
 
-  it('includes what only the owner has', () => {
-    renderView(owner)
-
-    expect(screen.getByText('Delete the organization')).toBeInTheDocument()
-  })
-
-  it('leaves out a resource the role grants nothing on', () => {
-    renderView({ name: 'editor', permissions: { invitation: ['create'] }, builtIn: false })
-
-    expect(screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'))).toEqual(['Invitations'])
-    expect(screen.getByText('Invite people')).toBeInTheDocument()
-    expect(screen.queryByText('This role grants no permission.')).not.toBeInTheDocument()
-  })
-
-  it('says so when the role grants nothing', () => {
+  it('shows a role that grants nothing with nothing checked', () => {
     renderView({ name: 'empty', permissions: {}, builtIn: false })
 
-    expect(screen.getByText('This role grants no permission.')).toBeInTheDocument()
-    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+    for (const box of screen.getAllByRole('checkbox')) expect(box).not.toBeChecked()
   })
 
-  it('says first why it cannot be changed, when it has a reason', () => {
-    renderView(admin, 'Built-in roles cannot be changed.')
-
-    expect(screen.getByText('Built-in roles cannot be changed.')).toBeInTheDocument()
-  })
-
-  it('has no reason line without one', () => {
-    renderView(admin)
-
-    expect(screen.queryByText('Built-in roles cannot be changed.')).not.toBeInTheDocument()
-  })
-
-  it('closes', () => {
+  it('closes from its button', () => {
     const { onClose } = renderView(admin)
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
-    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onClose).toHaveBeenCalled()
   })
 })

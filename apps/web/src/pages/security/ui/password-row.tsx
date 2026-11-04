@@ -1,4 +1,4 @@
-import { Badge, Button, SettingsRow } from '@repo/ui'
+import { Badge, Button, SettingsPanel, SettingsRow } from '@repo/ui'
 import { createSignal } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { ChangePasswordForm } from '#features/change-password'
@@ -6,7 +6,7 @@ import { SendPasswordLink } from '#features/request-password-reset'
 import type { AuthFailure } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
-import { Panel, type RowPanelProps } from './panel'
+import type { RowPanelProps } from './panel'
 
 /**
  * The password: changed here behind a form, or, for an account made with Google alone, created by a
@@ -72,7 +72,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
       }
       panel={
         opened() ? (
-          <Panel label={t('account.password.change')}>
+          <SettingsPanel label={t('account.password.change')}>
             <p class="text-muted-foreground">{t('changePassword.signsOut')}</p>
             <ChangePasswordForm
               onChanged={() => {
@@ -81,7 +81,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
               }}
               onCancel={close}
             />
-          </Panel>
+          </SettingsPanel>
         ) : (
           failure() && <AuthFailureAlert failure={failure() as AuthFailure} />
         )

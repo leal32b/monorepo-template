@@ -109,6 +109,16 @@ const buttonsOf = async (title: string) =>
   (await rowOf(title)).queryAllByRole('button').map((button) => button.textContent)
 
 describe('OrganizationRolesPage', () => {
+  it('holds the place of the list while a slow answer comes, so nothing jumps when it does', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderPage({ auth: () => new Promise<Response>(() => {}) })
+
+    vi.advanceTimersByTime(300)
+
+    expect(screen.getAllByRole('status').some((line) => line.textContent === 'Loading…')).toBe(true)
+    vi.useRealTimers()
+  })
+
   it('shows the three built-in roles, marked so, with how much each can do and a way to view it', async () => {
     renderPage()
 
@@ -121,23 +131,23 @@ describe('OrganizationRolesPage', () => {
     expect(await buttonsOf('Owner')).toEqual(['View permissions'])
   })
 
-  it('shows a built-in role as it is: what it grants, saying it cannot change', async () => {
+  it('shows a built-in role in the grid the form uses, read only, with what it grants checked', async () => {
     renderPage()
     fireEvent.click((await rowOf('Admin')).getByRole('button', { name: 'View permissions' }))
 
-    expect(await screen.findByText('Built-in roles cannot be changed.')).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Roles' })).getByText('Create roles')).toBeInTheDocument()
-    expect(screen.queryByText('Delete the organization')).not.toBeInTheDocument()
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    const roles = await screen.findByRole('group', { name: 'Roles' })
+    expect(within(roles).getByRole('checkbox', { name: 'Create roles' })).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Delete the organization' })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Create roles' })).not.toBeDisabled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    await waitFor(() => expect(screen.queryByText('Built-in roles cannot be changed.')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('checkbox')).not.toBeInTheDocument())
   })
 
   it('names who holds a role, members and invitations, and so blocks deleting and renaming it', async () => {
     renderPage()
 
-    const editor = await rowOf('editor')
+    const editor = await rowOf('Editor')
     expect(
       editor.getByText(
         'Held by Ken and new@example.com (invited). Give them another role before renaming or deleting this role.'
@@ -155,7 +165,7 @@ describe('OrganizationRolesPage', () => {
     renderPage({ members: holders, invitations: [] })
 
     expect(
-      (await rowOf('editor')).getByText(
+      (await rowOf('Editor')).getByText(
         'Held by A, B, C, D, and E +2 more. Give them another role before renaming or deleting this role.'
       )
     ).toBeInTheDocument()
@@ -164,24 +174,35 @@ describe('OrganizationRolesPage', () => {
   it('lets the owner edit and delete a role nobody holds', async () => {
     renderPage()
 
-    const billing = await rowOf('billing')
+    const billing = await rowOf('Billing')
     expect(billing.queryByText(/Held by/)).not.toBeInTheDocument()
-    expect(await buttonsOf('billing')).toEqual(['Edit', 'Delete'])
+    expect(await buttonsOf('Billing')).toEqual(['Edit', 'Delete'])
     expect(billing.getByRole('button', { name: 'Delete' })).toBeEnabled()
   })
 
   it('deletes a role nobody holds after asking, drops the row and says which was deleted', async () => {
     renderPage()
-    fireEvent.click((await rowOf('billing')).getByRole('button', { name: 'Delete' }))
+    fireEvent.click((await rowOf('Billing')).getByRole('button', { name: 'Delete' }))
     expect(
       await screen.findByText('Delete the role billing? Nobody holds it, so no one loses access.')
     ).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete role' }))
 
-    expect(await screen.findByText('Role billing deleted')).toBeInTheDocument()
-    expect(screen.queryByText('billing', { selector: 'div' })).not.toBeInTheDocument()
-    expect(screen.getByText('Role billing deleted')).toHaveFocus()
+    expect(await screen.findByText('Role Billing deleted')).toBeInTheDocument()
+    expect(screen.queryByText('Billing', { selector: 'div' })).not.toBeInTheDocument()
+    expect(screen.getByText('Role Billing deleted')).toHaveFocus()
+  })
+
+  it('leaves a deletion through Cancel, with focus back on its button', async () => {
+    renderPage()
+    fireEvent.click((await rowOf('Billing')).getByRole('button', { name: 'Delete' }))
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() =>
+      expect((async () => (await rowOf('Billing')).getByRole('button', { name: 'Delete' }))()).resolves.toHaveFocus()
+    )
   })
 
   it('creates a role: it appears with the permissions chosen, and the row says so', async () => {
@@ -193,25 +214,25 @@ describe('OrganizationRolesPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Create role' }))
 
-    expect(await screen.findByText('Role support created')).toBeInTheDocument()
-    expect((await rowOf('support')).getByText('2 of 11 permissions')).toBeInTheDocument()
+    expect(await screen.findByText('Role Support created')).toBeInTheDocument()
+    expect((await rowOf('Support')).getByText('2 of 11 permissions')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('edits a role: the row shows the new permissions and says it was saved', async () => {
     renderPage()
-    fireEvent.click((await rowOf('billing')).getByRole('button', { name: 'Edit' }))
+    fireEvent.click((await rowOf('Billing')).getByRole('button', { name: 'Edit' }))
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Add members' }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Save role' }))
 
-    expect(await screen.findByText('Role billing saved')).toBeInTheDocument()
-    expect((await rowOf('billing')).getByText('2 of 11 permissions')).toBeInTheDocument()
+    expect(await screen.findByText('Role Billing saved')).toBeInTheDocument()
+    expect((await rowOf('Billing')).getByText('2 of 11 permissions')).toBeInTheDocument()
   })
 
   it('opens one form at a time, and closes one from Cancel', async () => {
     renderPage()
-    fireEvent.click((await rowOf('billing')).getByRole('button', { name: 'Edit' }))
+    fireEvent.click((await rowOf('Billing')).getByRole('button', { name: 'Edit' }))
 
     expect(await screen.findByRole('group', { name: 'Edit' })).toHaveFocus()
     expect(screen.getByRole('button', { name: 'Create role' })).toBeDisabled()
@@ -223,23 +244,25 @@ describe('OrganizationRolesPage', () => {
   it('offers only to view a role that grants more than the caller holds, and says so', async () => {
     renderPage({ held: { ac: ['create', 'read', 'update', 'delete'], invitation: ['create'] } })
 
-    expect(await buttonsOf('billing')).toEqual(['View permissions'])
+    expect(await buttonsOf('Billing')).toEqual(['View permissions'])
     expect(
-      (await rowOf('billing')).getByText('This role holds permissions you do not, so you can only view it.')
+      (await rowOf('Billing')).getByText('This role holds permissions you do not, so you can only view it.')
     ).toBeInTheDocument()
-    expect(await buttonsOf('editor')).toEqual(['Edit', 'Delete'])
+    expect(await buttonsOf('Editor')).toEqual(['Edit', 'Delete'])
 
-    fireEvent.click((await rowOf('billing')).getByRole('button', { name: 'View permissions' }))
+    fireEvent.click((await rowOf('Billing')).getByRole('button', { name: 'View permissions' }))
+    // Said once, in the row: the grid below it does not say it again.
     expect(await screen.findAllByText('This role holds permissions you do not, so you can only view it.')).toHaveLength(
-      2
+      1
     )
+    expect(await screen.findByRole('group', { name: 'Invitations' })).toBeInTheDocument()
   })
 
   it('shows a plain member the roles to read, without a way to create, edit or delete any', async () => {
     renderPage({ held: builtInRoles.member as Permissions })
 
-    expect(await buttonsOf('editor')).toEqual(['View permissions'])
-    expect(await buttonsOf('billing')).toEqual(['View permissions'])
+    expect(await buttonsOf('Editor')).toEqual(['View permissions'])
+    expect(await buttonsOf('Billing')).toEqual(['View permissions'])
     expect(screen.queryByRole('button', { name: 'Create role' })).not.toBeInTheDocument()
     expect(
       screen.queryByText('This role holds permissions you do not, so you can only view it.')
@@ -254,13 +277,12 @@ describe('OrganizationRolesPage', () => {
       invitations: []
     })
 
-    fireEvent.click((await rowOf('reader')).getByRole('button', { name: 'View permissions' }))
+    fireEvent.click((await rowOf('Reader')).getByRole('button', { name: 'View permissions' }))
 
-    expect(await screen.findByText('See roles')).toBeInTheDocument()
+    expect(await screen.findByRole('checkbox', { name: 'See roles' })).toBeChecked()
     expect(
       screen.queryByText('This role holds permissions you do not, so you can only view it.')
     ).not.toBeInTheDocument()
-    expect(screen.queryByText('Built-in roles cannot be changed.')).not.toBeInTheDocument()
   })
 
   it('has no section of its own roles for a plain member when the organization has none', async () => {
@@ -287,12 +309,12 @@ describe('OrganizationRolesPage', () => {
         return Response.json([acme])
       }
     })
-    fireEvent.click((await rowOf('billing')).getByRole('button', { name: 'Delete' }))
+    fireEvent.click((await rowOf('Billing')).getByRole('button', { name: 'Delete' }))
 
     fireEvent.click(await screen.findByRole('button', { name: 'Delete role' }))
 
     expect(await screen.findByText('This role no longer exists. The list has been updated.')).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByText('billing', { selector: 'div' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText('Billing', { selector: 'div' })).not.toBeInTheDocument())
   })
 
   it('reads the list again when an edit finds the role gone', async () => {
@@ -312,7 +334,7 @@ describe('OrganizationRolesPage', () => {
         return Response.json([acme])
       }
     })
-    fireEvent.click((await rowOf('billing')).getByRole('button', { name: 'Edit' }))
+    fireEvent.click((await rowOf('Billing')).getByRole('button', { name: 'Edit' }))
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Add members' }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Save role' }))
@@ -342,7 +364,7 @@ describe('OrganizationRolesPage', () => {
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
-    expect(await screen.findByText('billing', { selector: 'div' })).toBeInTheDocument()
+    expect(await screen.findByText('Billing', { selector: 'div' })).toBeInTheDocument()
   })
 
   it('speaks the language of the provider', async () => {
@@ -350,6 +372,6 @@ describe('OrganizationRolesPage', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Papéis' })).toBeInTheDocument()
     expect(await screen.findByText('Proprietário', { selector: 'div' })).toBeInTheDocument()
-    expect((await rowOf('editor')).getByText(/Quem tem: Ken e new@example\.com \(convidado\)/)).toBeInTheDocument()
+    expect((await rowOf('Editor')).getByText(/Quem tem: Ken e new@example\.com \(convidado\)/)).toBeInTheDocument()
   })
 })

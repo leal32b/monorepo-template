@@ -9,7 +9,7 @@ export function OrganizationsUnavailable(props: { retry: () => void }) {
   return (
     <EntryLayout title={t('organizations.unavailable.title')} description={t('organizations.unavailable.description')}>
       <Button variant="primary" class="w-full" onClick={() => props.retry()}>
-        {t('organizations.unavailable.retry')}
+        {t('actions.retry')}
       </Button>
     </EntryLayout>
   )

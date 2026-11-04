@@ -44,7 +44,7 @@ export function OnboardingPage() {
       <Match when={invitations.error}>
         <EntryLayout title={t('onboarding.unavailable.title')} description={t('onboarding.unavailable.description')}>
           <Button variant="primary" class="w-full" onClick={() => void refetch()}>
-            {t('onboarding.unavailable.retry')}
+            {t('actions.retry')}
           </Button>
         </EntryLayout>
       </Match>

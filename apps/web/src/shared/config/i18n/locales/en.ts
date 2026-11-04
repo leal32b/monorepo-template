@@ -45,12 +45,12 @@ export const en = {
   },
   /** Words that buttons share across screens. */
   actions: {
-    cancel: 'Cancel'
+    cancel: 'Cancel',
+    retry: 'Try again'
   },
   account: {
     title: 'Security',
     unavailable: 'We could not load your account security. Check your connection, then try again.',
-    retry: 'Try again',
     signIn: {
       title: 'Ways to sign in',
       description: 'How you get into your account.'
@@ -250,8 +250,7 @@ export const en = {
     },
     unavailable: {
       title: 'We could not load your organizations',
-      description: 'Check your connection, then try again.',
-      retry: 'Try again'
+      description: 'Check your connection, then try again.'
     }
   },
   invitations: {
@@ -303,7 +302,6 @@ export const en = {
   organizationMembers: {
     title: 'Members',
     unavailable: 'We could not load the members. Check your connection, then try again.',
-    retry: 'Try again',
     section: {
       title: 'People',
       description: 'Everyone who can open {{name}}.',
@@ -349,7 +347,6 @@ export const en = {
   organizationRoles: {
     title: 'Roles',
     unavailable: 'We could not load the roles. Check your connection, then try again.',
-    retry: 'Try again',
     builtIn: {
       title: 'Built-in roles',
       description: 'Every organization has these three. They cannot be changed.',
@@ -360,7 +357,7 @@ export const en = {
       title: 'Roles of {{name}}',
       description: 'Roles of your own group permissions to give to members and invitations.',
       create: {
-        title: 'Create a role',
+        title: 'Create role',
         description: 'Choose what the people who hold it may do.',
         open: 'Create role'
       }
@@ -409,16 +406,13 @@ export const en = {
       nameHint: 'Lowercase letters, numbers and single hyphens, up to 32 characters.',
       permissions: 'Permissions',
       notHeld: 'You do not hold this permission.',
-      ownerOnly: 'Only the owner role can delete the organization, so no role of your own can.',
+      ownerOnly: 'Only the owner role holds this permission.',
       renameLocked: 'Members or invitations hold this role, so it cannot be renamed. Its permissions can change.',
       create: 'Create role',
       save: 'Save role',
       close: 'Close',
       created: 'Role {{role}} created',
       saved: 'Role {{role}} saved'
-    },
-    view: {
-      none: 'This role grants no permission.'
     },
     remove: {
       warning: 'Delete the role {{role}}? Nobody holds it, so no one loses access.',
@@ -444,7 +438,6 @@ export const en = {
       empty: 'No pending invitations.'
     },
     unavailable: 'We could not load the invitations. Check your connection, then try again.',
-    retry: 'Try again',
     invite: {
       title: 'Invite people',
       description: 'They get an email with a link to join {{name}}.',
@@ -516,8 +509,7 @@ export const en = {
     },
     unavailable: {
       title: 'We could not open this invitation',
-      description: 'Check your connection, then try again.',
-      retry: 'Try again'
+      description: 'Check your connection, then try again.'
     },
     continue: 'Continue to the app'
   },
@@ -532,15 +524,13 @@ export const en = {
     },
     unavailable: {
       title: 'We could not check your invitations',
-      description: 'Check your connection, then try again.',
-      retry: 'Try again'
+      description: 'Check your connection, then try again.'
     }
   },
   session: {
     unavailable: {
       title: 'We could not check your sign-in',
-      description: 'Check your connection, then try again.',
-      retry: 'Try again'
+      description: 'Check your connection, then try again.'
     }
   },
   /** What a screen says about a failed call it has no better words for. */

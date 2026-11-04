@@ -133,6 +133,16 @@ const buttonsOf = async (name: string) =>
   (await rowOf(name)).queryAllByRole('button').map((button) => button.textContent)
 
 describe('OrganizationMembersPage', () => {
+  it('holds the place of the list while a slow answer comes, so nothing jumps when it does', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderPage({ auth: () => new Promise<Response>(() => {}) })
+
+    vi.advanceTimersByTime(300)
+
+    expect(screen.getAllByRole('status').some((line) => line.textContent === 'Loading…')).toBe(true)
+    vi.useRealTimers()
+  })
+
   it('lists everyone with their email and roles, naming the built-in ones in the user’s language and the caller', async () => {
     renderPage()
 
@@ -143,7 +153,7 @@ describe('OrganizationMembersPage', () => {
     expect((await rowOf('Ada')).getByText('Owner')).toBeInTheDocument()
     expect((await rowOf('Grace')).getByText('Admin')).toBeInTheDocument()
     expect((await rowOf('Linus')).getByText('Member')).toBeInTheDocument()
-    expect((await rowOf('Ken')).getByText('editor')).toBeInTheDocument()
+    expect((await rowOf('Ken')).getByText('Editor')).toBeInTheDocument()
   })
 
   it('lets the owner change and remove everyone else, and not leave while the only owner, saying why', async () => {
@@ -151,7 +161,9 @@ describe('OrganizationMembersPage', () => {
 
     expect(await buttonsOf('Grace')).toEqual(['Change role', 'Remove'])
     expect(await buttonsOf('Ken')).toEqual(['Change role', 'Remove'])
-    expect(await buttonsOf('Ada')).toEqual([])
+    // Leaving is offered, and disabled with the reason, as any action that cannot be taken on this row.
+    expect(await buttonsOf('Ada')).toEqual(['Leave'])
+    expect((await rowOf('Ada')).getByRole('button', { name: 'Leave' })).toBeDisabled()
     expect(
       (await rowOf('Ada')).getByText('The only owner. Make someone else an owner before changing this role or leaving.')
     ).toBeInTheDocument()
@@ -161,13 +173,23 @@ describe('OrganizationMembersPage', () => {
     renderPage({ members: [row('m1', 'Ada', 'owner'), row('m2', 'Grace', 'owner')] })
 
     expect(await buttonsOf('Ada')).toEqual(['Leave'])
+    fireEvent.click((await rowOf('Ada')).getByRole('button', { name: 'Leave' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    await waitFor(() =>
+      expect(
+        (screen.getByText('Ada', { selector: 'div' }).closest('div.flex-col') as HTMLElement).querySelector('button')
+      ).toHaveFocus()
+    )
   })
 
   it('lets an admin manage the people below, and says it cannot touch the owner', async () => {
     renderPage({ as: 'm2', roles: ['admin'] })
 
     expect(await buttonsOf('Linus')).toEqual(['Change role', 'Remove'])
-    expect(await buttonsOf('Ada')).toEqual([])
+    expect(await buttonsOf('Ada')).toEqual(['Change role', 'Remove'])
+    for (const name of ['Change role', 'Remove']) {
+      expect((await rowOf('Ada')).getByRole('button', { name })).toBeDisabled()
+    }
     expect(
       (await rowOf('Ada')).getByText('This person holds permissions you do not, so you cannot change or remove them.')
     ).toBeInTheDocument()
@@ -334,11 +356,24 @@ describe('OrganizationMembersPage', () => {
       expect(await section.findByText('grace2@example.com')).toBeInTheDocument()
       expect(section.getAllByText('Expires on Jan 1, 2999')).toHaveLength(2)
       expect(
-        within(section.getByText('ken2@example.com').closest('div.flex-col') as HTMLElement).getByText('editor')
+        within(section.getByText('ken2@example.com').closest('div.flex-col') as HTMLElement).getByText('Editor')
       ).toBeInTheDocument()
       expect(section.getAllByRole('button', { name: 'Resend' })).toHaveLength(2)
       expect(section.getAllByRole('button', { name: 'Revoke' })).toHaveLength(2)
       expect(section.getByRole('button', { name: 'Invite people' })).toBeInTheDocument()
+    })
+
+    it('opens one form at a time across people and invitations, and gives focus back on Cancel', async () => {
+      renderPage({ invitations: waitingFor })
+      const section = within(await screen.findByRole('region', { name: 'Invitations' }))
+
+      fireEvent.click(section.getByRole('button', { name: 'Invite people' }))
+
+      expect((await rowOf('Linus')).getByRole('button', { name: 'Change role' })).toBeDisabled()
+      expect(section.getAllByRole('button', { name: 'Resend' })[0]).toBeDisabled()
+      fireEvent.click(section.getByRole('button', { name: 'Cancel' }))
+      await waitFor(() => expect(section.getByRole('button', { name: 'Invite people' })).toHaveFocus())
+      expect((await rowOf('Linus')).getByRole('button', { name: 'Change role' })).toBeEnabled()
     })
 
     it('says there are none, and still offers to invite', async () => {

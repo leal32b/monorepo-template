@@ -1,4 +1,4 @@
-import { Button, Field } from '@repo/ui'
+import { Button, Field, FormActions } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import type { Organization } from '#entities/organizations'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
@@ -72,14 +72,14 @@ export function ChangeAddressForm(props: ChangeAddressFormProps) {
         onChange={setSlug}
         error={error()}
       />
-      <div class="mt-2 flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" variant="primary" class="w-full sm:w-auto" disabled={pending()}>
+      <FormActions>
+        <Button type="submit" variant="primary" disabled={pending()}>
           {t('organizationGeneral.details.address.save')}
         </Button>
-        <Button variant="ghost" class="w-full sm:w-auto" onClick={props.onCancel}>
+        <Button variant="ghost" onClick={props.onCancel}>
           {t('actions.cancel')}
         </Button>
-      </div>
+      </FormActions>
       <Show when={failure()}>
         {(current) => (
           <AuthFailureAlert

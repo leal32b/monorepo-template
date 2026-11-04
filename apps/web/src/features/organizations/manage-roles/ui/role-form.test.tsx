@@ -53,19 +53,18 @@ describe('RoleForm', () => {
         group('Organization')
           .getAllByRole('checkbox')
           .map((checkbox) => checkbox.getAttribute('name'))
-      ).toEqual(['organization:update'])
+      ).toEqual(['organization:update', 'organization:delete'])
       expect(group('Members').getAllByRole('checkbox')).toHaveLength(3)
       expect(group('Invitations').getAllByRole('checkbox')).toHaveLength(2)
       expect(group('Roles').getAllByRole('checkbox')).toHaveLength(4)
     })
 
-    it('leaves out the owner’s permission and says why', () => {
+    it('keeps the owner’s permission in the grid, disabled, saying why', () => {
       renderForm(vi.fn<Fetch>())
+      const ownerOnly = screen.getByRole('checkbox', { name: 'Delete the organization' })
 
-      expect(screen.queryByRole('checkbox', { name: 'Delete the organization' })).not.toBeInTheDocument()
-      expect(
-        screen.getByText('Only the owner role can delete the organization, so no role of your own can.')
-      ).toBeInTheDocument()
+      expect(ownerOnly).toBeDisabled()
+      expect(ownerOnly).toHaveAccessibleDescription('Only the owner role holds this permission.')
     })
 
     it('creates the role with the permissions chosen, the name cleaned', async () => {

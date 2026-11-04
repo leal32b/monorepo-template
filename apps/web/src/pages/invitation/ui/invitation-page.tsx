@@ -98,7 +98,7 @@ export function InvitationPage() {
           t('invitation.unavailable.title'),
           t('invitation.unavailable.description'),
           <Button variant="primary" class="w-full" onClick={() => void refetch()}>
-            {t('invitation.unavailable.retry')}
+            {t('actions.retry')}
           </Button>
         )}
       </Match>
