@@ -35,15 +35,18 @@ are the phone; breakpoints only add.
 
 ## Checklist
 
-1. **Reuse first.** Compose existing components and the family's layout. A new component or
-   variant goes in `packages/ui`, used by every screen that needs it, with tests.
+1. **Reuse first.** Find the idea in "One idea, one presentation" below and use what it names. A
+   new component or variant goes in `packages/ui`, used by every screen that needs it, with tests.
+   Markup copied from another screen (a `panel.tsx`, a row of buttons, a label above a select) is
+   the sign that a component is missing.
 2. **Mobile first.** Build the 360px layout first, then the wider ones.
 3. **No shift.** Check that no state change moves what the user is looking at or touching (below).
 4. **States.** Cover hover, focus-visible, pressed, disabled, pending, invalid, empty and error.
 5. **Accessible.** Role and name, keyboard path, focus, live regions, touch size (below).
 6. **Copy.** Texts come from the i18n dictionaries, in both languages, following the copy rules.
 7. **Look at it.** Open the screen in the browser at 375×812 and at desktop width, light and dark,
-   before calling it done.
+   before calling it done, with real data: several roles, a long name, an empty list, a slow load.
+   Open two panels in a row and check that the second waits.
 
 ## Layout and positions
 
@@ -69,6 +72,29 @@ are the phone; breakpoints only add.
   - Right-aligned button rows are for dialog footers; the template edits inline and has none. Never
     right-align a form's buttons to sit under the button that opened it.
 
+## One idea, one presentation
+
+The same idea looks and behaves the same everywhere. Before building, find it here:
+
+| Idea | Use | Not |
+| --- | --- | --- |
+| A page of settings | `SettingsSection` of `SettingsRow`s | cards or lists of one's own |
+| A row's form, opened inline | `PanelButton` + `SettingsPanel`, one `createPanels()` per screen | a signal per section, a `panel.tsx` per page |
+| The buttons that end a form | `FormActions` | `div.flex` with `w-full sm:w-auto` on each button |
+| Asking before removing (remove, leave, delete, revoke with consequences) | `ConfirmForm` in the row's panel, a field in it when the action cannot be undone | a dialog, a bespoke warning + buttons |
+| A labelled select | `SelectField` | a `label` + `Select` + hint by hand |
+| A group of controls with one label and one error | `Fieldset`; a resource's checkboxes in a `CheckboxGroup` | a `fieldset` whose `legend` sits on the border, a `p role=alert` by hand |
+| A person, an organization, an invited address | `Avatar` (circle, square, `mail` icon) | `icon="profile"`, `letter="@"` |
+| Who or what a menu is about (organization, account) | `menuTriggerClass` + `MenuTriggerContent` | trigger classes copied |
+| A section loading | `SettingsSkeleton`; an entry screen: `EntrySkeleton`; the shell: `ShellSkeleton` | nothing (the page jumps) or another family's frame |
+| Nothing here yet | `EmptyState` | a blank page |
+| A row that left a list (removed, deleted, revoked) | the section's `status`, which takes focus | a `p role=status` with negative margins |
+| A date | `formatDate` from `#shared/lib` | `Intl.DateTimeFormat` with options of one's own |
+| Answering an invitation | `/invitations/:id` only; other screens link to it | buttons to accept in a list |
+
+When two screens need the same idea with a difference, the difference is a prop of the one
+component, never a second component.
+
 ## No layout shift
 
 Elements must not "tremble" between states or screens.
@@ -82,6 +108,13 @@ Elements must not "tremble" between states or screens.
   button below the field: the press itself moves focus, and errors coming or going above the button
   move it from under the pointer before the click lands, so the click is lost. A button beside the
   input (show password) does not move, so the check runs.
+- **Empty slots draw nothing.** `SettingsRow` draws its action and panel areas only when they hold
+  something, so `panel={<Show when={open}>…</Show>}` is safe. A component that takes a slot does the
+  same (`children()` and check what it resolved to), never `<Show when={props.slot}>`, which is always
+  truthy for JSX.
+- **Lay out by the container, not the screen.** A component that may sit in a narrow column (an entry
+  screen) and in a wide one (settings) switches with container queries (`@container`, `@md:`), as
+  `SettingsRow` and `FormActions` do; `sm:` only for the page's own frame.
 - **An error takes the hint's place.** A field shows its hint or its error, never both: they often
   say the same thing twice.
 - **Stable frame.** The layout keeps its scrollbar gutter (`scrollbar-gutter: stable` on `html`), so a
@@ -130,6 +163,18 @@ Elements must not "tremble" between states or screens.
 - Do not disable a submit button to signal invalid input: it cannot say why. Validate on submit and
   point to the field. Disable only while the request is pending, which also stops a double submit.
 - Keep what the user typed after an error.
+- **One panel open at a time, across the whole screen.** While one is open every other opener, and
+  every action that changes the same data (resend, revoke), waits disabled. Closing gives focus back
+  to the button that opened it; a row that left the list says so in its section's `status`.
+- **An action that cannot be taken here.** If the user may take it in general, it shows on every row
+  and is disabled where it cannot be taken, with the reason in the row's `note` (an owner above
+  you, the only owner leaving). If the user may never take it, it does not show, and the section's
+  description says the page is read only.
+- **Read only is not disabled.** A value shown but not editable (a built-in role's permissions, a role
+  name members hold) uses `readOnly`: quiet, on the surface, still readable. `disabled` is for a
+  control that could act but cannot now, faded, with the reason beside it.
+- **Every button that opens a panel is `secondary`,** the destructive ones included; `destructive`
+  colours only the button that confirms, inside `ConfirmForm`.
 
 ## Accessibility
 
@@ -168,8 +213,19 @@ Elements must not "tremble" between states or screens.
   | email | e-mail | correo electrónico as the label, *correo* in a sentence |
   | turn on / off | ativar / desativar, never "ligar" | activar / desactivar |
 
+  | join (an organization) | participar, aceitar convite, never "entrar em" | unirte |
+  | leave (an organization) | sair da organização, never "sair" alone | salir de la organización |
+
   Address the user as *você* (pt-BR) and *tú* (es), and avoid words that mark the user's gender
-  ("¿Eres nuevo?"). Write the plural when the text is about the codes ("Copiados").
+  ("¿Eres nuevo?", "Você foi convidado", "É o único proprietário"): rephrase around the thing
+  ("Há convites para você", "Ninguém mais é proprietário"). Write the plural when the text is about
+  the codes ("Copiados").
+- **One key for one text.** A word every screen says (Cancel, Try again) lives once, in `actions`;
+  a screen does not get its own copy of it.
+- **A row titled like its button says the action** ("Criar papel" / "Criar papel", "Convidar
+  pessoas" / "Convidar pessoas"), the description saying what follows.
+- **Names users give** are shown as the built-in ones are, with a capital (a custom role "editor"
+  reads "Editor" beside "Membro"); the stored name stays as typed in the field that edits it.
 - Short: one idea per sentence; no "Oops", no exclamation marks.
 
 ## Tests
