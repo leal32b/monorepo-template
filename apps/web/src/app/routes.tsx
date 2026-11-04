@@ -32,6 +32,9 @@ const OrganizationGeneralPage = lazy(() =>
 const OrganizationMembersPage = lazy(() =>
   import('#pages/organization-members').then((m) => ({ default: m.OrganizationMembersPage }))
 )
+const OrganizationRolesPage = lazy(() =>
+  import('#pages/organization-roles').then((m) => ({ default: m.OrganizationRolesPage }))
+)
 const OnboardingPage = lazy(() => import('#pages/onboarding').then((m) => ({ default: m.OnboardingPage })))
 const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: m.ProfilePage })))
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
@@ -83,7 +86,8 @@ export const routes: RouteDefinition[] = [
                 children: [
                   { path: '/', component: SettingsOfOrganization },
                   { path: '/general', component: OrganizationGeneralPage },
-                  { path: '/members', component: OrganizationMembersPage }
+                  { path: '/members', component: OrganizationMembersPage },
+                  { path: '/roles', component: OrganizationRolesPage }
                 ]
               }
             ]

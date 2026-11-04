@@ -242,6 +242,15 @@ describe('App', () => {
       expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
     })
 
+    it('serves the roles of the organization under its settings', async () => {
+      window.history.replaceState(null, '', '/acme/settings/roles')
+
+      render(() => <App {...inAcme()} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Roles' })).toBeInTheDocument()
+      expect(await screen.findByRole('region', { name: 'Built-in roles' })).toBeInTheDocument()
+    })
+
     it('keeps the page on screen after the address changes, now at the new address', async () => {
       window.history.replaceState(null, '', '/acme/settings/general')
       render(() => <App {...inAcme()} locale="en" />)

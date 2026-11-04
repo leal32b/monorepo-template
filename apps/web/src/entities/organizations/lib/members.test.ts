@@ -1,5 +1,13 @@
 import { builtInRoles } from '@repo/contracts'
-import { isLastOwner, type Member, permissionsOfRoles, type Role, rolesOf } from './members'
+import {
+  holdersOf,
+  isLastOwner,
+  type Member,
+  type PendingInvitation,
+  permissionsOfRoles,
+  type Role,
+  rolesOf
+} from './members'
 
 const builtIn: Role[] = [
   { name: 'owner', permissions: builtInRoles.owner, builtIn: true },
@@ -58,5 +66,31 @@ describe('isLastOwner', () => {
     const members = [member('1', ['owner']), member('2', ['admin'])]
 
     expect(isLastOwner(members[1] as Member, members)).toBe(false)
+  })
+})
+
+describe('holdersOf', () => {
+  const invitation = (id: string, roles: string[]): PendingInvitation => ({
+    id,
+    email: `${id}@example.com`,
+    roles,
+    expiresAt: new Date('2026-11-11T12:00:00.000Z')
+  })
+
+  it('finds the members and the pending invitations that hold a role', () => {
+    const members = [member('1', ['owner']), member('2', ['member', 'editor']), member('3', ['member'])]
+    const invitations = [invitation('a', ['editor']), invitation('b', ['member'])]
+
+    const holders = holdersOf('editor', members, invitations)
+
+    expect(holders.members.map((holder) => holder.id)).toEqual(['2'])
+    expect(holders.invitations.map((holder) => holder.id)).toEqual(['a'])
+  })
+
+  it('finds nobody for a role nobody holds', () => {
+    expect(holdersOf('editor', [member('1', ['owner'])], [invitation('a', ['member'])])).toEqual({
+      members: [],
+      invitations: []
+    })
   })
 })

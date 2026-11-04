@@ -199,7 +199,8 @@ export const es: Messages = {
       preferences: 'Preferencias',
       organization: 'Organización',
       general: 'General',
-      members: 'Miembros'
+      members: 'Miembros',
+      roles: 'Roles'
     },
     account: {
       settings: 'Ajustes',
@@ -339,6 +340,98 @@ export const es: Messages = {
       notAllowed: 'No puedes hacer esto con esta persona. Puede que tu rol haya cambiado.',
       lastOwner: 'La organización necesita un propietario. Nombra primero a otra persona propietaria.',
       gone: 'Esta persona ya no es miembro. La lista se actualizó.'
+    }
+  },
+  organizationRoles: {
+    title: 'Roles',
+    unavailable: 'No pudimos cargar los roles. Revisa tu conexión y vuelve a intentarlo.',
+    retry: 'Reintentar',
+    builtIn: {
+      title: 'Roles integrados',
+      description: 'Toda organización tiene estos tres. No se pueden cambiar.',
+      badge: 'Integrado',
+      readOnly: 'Los roles integrados no se pueden cambiar.'
+    },
+    custom: {
+      title: 'Roles de {{name}}',
+      description: 'Los roles propios agrupan permisos para dar a miembros e invitaciones.',
+      create: {
+        title: 'Crear un rol',
+        description: 'Elige qué pueden hacer las personas que lo tengan.',
+        open: 'Crear rol'
+      }
+    },
+    summary: '{{count}} de {{total}} permisos',
+    actions: {
+      view: 'Ver permisos',
+      edit: 'Editar',
+      delete: 'Eliminar'
+    },
+    notes: {
+      heldBy: 'Lo tienen {{who}}. Dales otro rol antes de renombrar o eliminar este rol.',
+      more: '+{{count}} más',
+      invited: '{{email}} (invitado)',
+      exceeds: 'Este rol tiene permisos que tú no tienes, así que solo puedes verlo.'
+    },
+    resources: {
+      organization: 'Organización',
+      member: 'Miembros',
+      invitation: 'Invitaciones',
+      ac: 'Roles'
+    },
+    permissions: {
+      organization: {
+        update: 'Cambiar el nombre y la dirección',
+        delete: 'Eliminar la organización'
+      },
+      member: {
+        create: 'Añadir miembros',
+        update: 'Cambiar los roles de los miembros',
+        delete: 'Quitar miembros'
+      },
+      invitation: {
+        create: 'Invitar personas',
+        cancel: 'Cancelar invitaciones'
+      },
+      ac: {
+        create: 'Crear roles',
+        read: 'Ver roles',
+        update: 'Editar roles',
+        delete: 'Eliminar roles'
+      }
+    },
+    form: {
+      name: 'Nombre del rol',
+      nameHint: 'Letras minúsculas, números y guiones simples, hasta 32 caracteres.',
+      permissions: 'Permisos',
+      notHeld: 'No tienes este permiso.',
+      ownerOnly: 'Solo el rol de propietario puede eliminar la organización, así que ningún rol propio puede.',
+      renameLocked:
+        'Hay miembros o invitaciones con este rol, así que no se puede renombrar. Sus permisos sí se pueden cambiar.',
+      create: 'Crear rol',
+      save: 'Guardar rol',
+      close: 'Cerrar',
+      created: 'Rol {{role}} creado',
+      saved: 'Rol {{role}} guardado'
+    },
+    view: {
+      none: 'Este rol no concede ningún permiso.'
+    },
+    remove: {
+      warning: '¿Eliminar el rol {{role}}? Nadie lo tiene, así que nadie pierde acceso.',
+      submit: 'Eliminar rol',
+      deleted: 'Rol {{role}} eliminado'
+    },
+    errors: {
+      nameRequired: 'Escribe un nombre para el rol.',
+      nameInvalid: 'Usa letras minúsculas, números y guiones simples, hasta 32 caracteres.',
+      nameBuiltIn: 'Propietario, administrador y miembro son roles integrados. Elige otro nombre.',
+      nameTaken: 'Esta organización ya tiene un rol con este nombre. Elige otro.',
+      noPermission: 'Elige al menos un permiso.',
+      tooMany: 'Esta organización tiene todos los roles permitidos. Elimina uno para crear otro.',
+      notAllowed: 'No puedes hacer esto con este rol. Puede que tu rol haya cambiado.',
+      inUse: 'Ahora hay miembros o invitaciones con este rol. Dales otro rol primero.',
+      gone: 'Este rol ya no existe. La lista se actualizó.'
     }
   },
   onboarding: {

@@ -8,6 +8,7 @@ export {
 } from '#alert'
 export { Badge, type BadgeProps, type BadgeVariantProps, badgeVariants } from '#badge'
 export { Button, type ButtonProps, type ButtonVariantProps, buttonVariants } from '#button'
+export { Checkbox, type CheckboxProps } from '#checkbox'
 export { type CommandItem, CommandPalette, type CommandPaletteProps } from '#command-palette'
 export { Field, type FieldProps } from '#field'
 export { type DuotoneName, hasDuotone, Icon, type IconName, type IconProps, type IconWeight } from '#icon'

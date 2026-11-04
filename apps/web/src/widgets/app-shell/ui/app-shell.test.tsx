@@ -347,7 +347,8 @@ describe('AppShell', () => {
         const organization = within(settings.getByRole('list', { name: 'Organization' }))
         expect(organization.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
           ['General', '/acme/settings/general'],
-          ['Members', '/acme/settings/members']
+          ['Members', '/acme/settings/members'],
+          ['Roles', '/acme/settings/roles']
         ])
         expect(organization.getByRole('link', { name: 'General' })).toHaveAttribute('aria-current', 'page')
       })

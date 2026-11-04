@@ -198,7 +198,8 @@ export const ptBR: Messages = {
       preferences: 'Preferências',
       organization: 'Organização',
       general: 'Geral',
-      members: 'Membros'
+      members: 'Membros',
+      roles: 'Papéis'
     },
     account: {
       settings: 'Configurações',
@@ -336,6 +337,98 @@ export const ptBR: Messages = {
       notAllowed: 'Você não pode fazer isso com esta pessoa. Seu papel pode ter mudado.',
       lastOwner: 'A organização precisa de um proprietário. Torne outra pessoa proprietária primeiro.',
       gone: 'Esta pessoa não é mais membro. A lista foi atualizada.'
+    }
+  },
+  organizationRoles: {
+    title: 'Papéis',
+    unavailable: 'Não conseguimos carregar os papéis. Verifique sua conexão e tente de novo.',
+    retry: 'Tentar de novo',
+    builtIn: {
+      title: 'Papéis nativos',
+      description: 'Toda organização tem estes três. Eles não podem ser alterados.',
+      badge: 'Nativo',
+      readOnly: 'Os papéis nativos não podem ser alterados.'
+    },
+    custom: {
+      title: 'Papéis de {{name}}',
+      description: 'Papéis próprios reúnem permissões para dar a membros e convites.',
+      create: {
+        title: 'Criar um papel',
+        description: 'Escolha o que as pessoas que o têm podem fazer.',
+        open: 'Criar papel'
+      }
+    },
+    summary: '{{count}} de {{total}} permissões',
+    actions: {
+      view: 'Ver permissões',
+      edit: 'Editar',
+      delete: 'Excluir'
+    },
+    notes: {
+      heldBy: 'Quem tem: {{who}}. Dê outro papel a essas pessoas antes de renomear ou excluir este papel.',
+      more: '+{{count}} outros',
+      invited: '{{email}} (convidado)',
+      exceeds: 'Este papel tem permissões que você não tem, então você só pode vê-lo.'
+    },
+    resources: {
+      organization: 'Organização',
+      member: 'Membros',
+      invitation: 'Convites',
+      ac: 'Papéis'
+    },
+    permissions: {
+      organization: {
+        update: 'Alterar o nome e o endereço',
+        delete: 'Excluir a organização'
+      },
+      member: {
+        create: 'Adicionar membros',
+        update: 'Alterar os papéis dos membros',
+        delete: 'Remover membros'
+      },
+      invitation: {
+        create: 'Convidar pessoas',
+        cancel: 'Cancelar convites'
+      },
+      ac: {
+        create: 'Criar papéis',
+        read: 'Ver papéis',
+        update: 'Editar papéis',
+        delete: 'Excluir papéis'
+      }
+    },
+    form: {
+      name: 'Nome do papel',
+      nameHint: 'Letras minúsculas, números e hifens simples, com até 32 caracteres.',
+      permissions: 'Permissões',
+      notHeld: 'Você não tem esta permissão.',
+      ownerOnly: 'Só o papel de proprietário pode excluir a organização, então nenhum papel próprio pode.',
+      renameLocked:
+        'Há membros ou convites com este papel, então ele não pode ser renomeado. As permissões podem mudar.',
+      create: 'Criar papel',
+      save: 'Salvar papel',
+      close: 'Fechar',
+      created: 'Papel {{role}} criado',
+      saved: 'Papel {{role}} salvo'
+    },
+    view: {
+      none: 'Este papel não concede nenhuma permissão.'
+    },
+    remove: {
+      warning: 'Excluir o papel {{role}}? Ninguém o tem, então ninguém perde acesso.',
+      submit: 'Excluir papel',
+      deleted: 'Papel {{role}} excluído'
+    },
+    errors: {
+      nameRequired: 'Digite um nome para o papel.',
+      nameInvalid: 'Use letras minúsculas, números e hifens simples, com até 32 caracteres.',
+      nameBuiltIn: 'Proprietário, administrador e membro são papéis nativos. Escolha outro nome.',
+      nameTaken: 'Esta organização já tem um papel com este nome. Escolha outro.',
+      noPermission: 'Escolha pelo menos uma permissão.',
+      tooMany: 'Esta organização tem o máximo de papéis permitido. Exclua um para criar outro.',
+      notAllowed: 'Você não pode fazer isso com este papel. Seu papel pode ter mudado.',
+      inUse: 'Agora há membros ou convites com este papel. Dê outro papel a eles primeiro.',
+      gone: 'Este papel não existe mais. A lista foi atualizada.'
     }
   },
   onboarding: {

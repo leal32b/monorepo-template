@@ -14,6 +14,9 @@ export type Member = {
   createdAt: Date
 }
 
+/** An invitation not yet answered, still within its week: it already holds the role it offers (ADR 0033). */
+export type PendingInvitation = { id: string; email: string; roles: string[]; expiresAt: Date }
+
 /** The role names Better Auth stores for a member, comma-separated. */
 export const rolesOf = (stored: string): string[] => stored.split(',').map((role) => role.trim())
 
@@ -35,4 +38,16 @@ export function permissionsOfRoles(names: readonly string[], roles: readonly Rol
 export function isLastOwner(member: Member, members: readonly Member[]): boolean {
   const owners = members.filter((candidate) => candidate.roles.includes('owner'))
   return member.roles.includes('owner') && owners.length === 1
+}
+
+/** Who holds `role`: the members that have it and the pending invitations that offer it. */
+export function holdersOf(
+  role: string,
+  members: readonly Member[],
+  invitations: readonly PendingInvitation[]
+): { members: Member[]; invitations: PendingInvitation[] } {
+  return {
+    members: members.filter((member) => member.roles.includes(role)),
+    invitations: invitations.filter((invitation) => invitation.roles.includes(role))
+  }
 }

@@ -196,7 +196,8 @@ export const en = {
       preferences: 'Preferences',
       organization: 'Organization',
       general: 'General',
-      members: 'Members'
+      members: 'Members',
+      roles: 'Roles'
     },
     account: {
       settings: 'Settings',
@@ -334,6 +335,97 @@ export const en = {
       notAllowed: 'You cannot do this with this person. Your role may have changed.',
       lastOwner: 'The organization needs an owner. Make someone else an owner first.',
       gone: 'This person is no longer a member. The list has been updated.'
+    }
+  },
+  organizationRoles: {
+    title: 'Roles',
+    unavailable: 'We could not load the roles. Check your connection, then try again.',
+    retry: 'Try again',
+    builtIn: {
+      title: 'Built-in roles',
+      description: 'Every organization has these three. They cannot be changed.',
+      badge: 'Built in',
+      readOnly: 'Built-in roles cannot be changed.'
+    },
+    custom: {
+      title: 'Roles of {{name}}',
+      description: 'Roles of your own group permissions to give to members and invitations.',
+      create: {
+        title: 'Create a role',
+        description: 'Choose what the people who hold it may do.',
+        open: 'Create role'
+      }
+    },
+    summary: '{{count}} of {{total}} permissions',
+    actions: {
+      view: 'View permissions',
+      edit: 'Edit',
+      delete: 'Delete'
+    },
+    notes: {
+      heldBy: 'Held by {{who}}. Give them another role before renaming or deleting this role.',
+      more: '+{{count}} more',
+      invited: '{{email}} (invited)',
+      exceeds: 'This role holds permissions you do not, so you can only view it.'
+    },
+    resources: {
+      organization: 'Organization',
+      member: 'Members',
+      invitation: 'Invitations',
+      ac: 'Roles'
+    },
+    permissions: {
+      organization: {
+        update: 'Change the name and the address',
+        delete: 'Delete the organization'
+      },
+      member: {
+        create: 'Add members',
+        update: 'Change members’ roles',
+        delete: 'Remove members'
+      },
+      invitation: {
+        create: 'Invite people',
+        cancel: 'Cancel invitations'
+      },
+      ac: {
+        create: 'Create roles',
+        read: 'See roles',
+        update: 'Edit roles',
+        delete: 'Delete roles'
+      }
+    },
+    form: {
+      name: 'Role name',
+      nameHint: 'Lowercase letters, numbers and single hyphens, up to 32 characters.',
+      permissions: 'Permissions',
+      notHeld: 'You do not hold this permission.',
+      ownerOnly: 'Only the owner role can delete the organization, so no role of your own can.',
+      renameLocked: 'Members or invitations hold this role, so it cannot be renamed. Its permissions can change.',
+      create: 'Create role',
+      save: 'Save role',
+      close: 'Close',
+      created: 'Role {{role}} created',
+      saved: 'Role {{role}} saved'
+    },
+    view: {
+      none: 'This role grants no permission.'
+    },
+    remove: {
+      warning: 'Delete the role {{role}}? Nobody holds it, so no one loses access.',
+      submit: 'Delete role',
+      deleted: 'Role {{role}} deleted'
+    },
+    errors: {
+      nameRequired: 'Enter a name for the role.',
+      nameInvalid: 'Use lowercase letters, numbers and single hyphens, up to 32 characters.',
+      nameBuiltIn: 'Owner, admin and member are built in. Choose another name.',
+      nameTaken: 'This organization already has a role with this name. Choose another.',
+      noPermission: 'Choose at least one permission.',
+      tooMany: 'This organization has as many roles as allowed. Delete one to create another.',
+      notAllowed: 'You cannot do this with this role. Your role may have changed.',
+      inUse: 'Members or invitations hold this role now. Give them another role first.',
+      gone: 'This role no longer exists. The list has been updated.'
     }
   },
   onboarding: {
