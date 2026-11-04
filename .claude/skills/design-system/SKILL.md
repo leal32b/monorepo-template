@@ -58,7 +58,16 @@ are the phone; breakpoints only add.
   `py-8` on phones to `sm:py-12` above. Use these, not new values.
 - **Type:** one `h1` per screen (`text-2xl font-semibold tracking-tight`), body `text-base` on
   phones, labels `text-sm font-medium`, hints and secondary text `text-sm text-muted-foreground`.
-- **Alignment:** text and forms are left-aligned; centred text only for a short standalone message.
+- **Alignment:** text and forms are left-aligned; centred text only for a short standalone message
+  (`EmptyState`).
+- **Where buttons go.** Two kinds, two places:
+  - A form's buttons (`FormActions`, `ConfirmForm`) start the line, aligned with its fields: the one
+    that sends first, Cancel after it. The eye goes label, field, action down one column, and the
+    order is the same when they stack full width on a phone.
+  - A row's own action (the button that opens its panel, `PanelButton`) sits at the row's end: it
+    belongs to the row, and the panel it opens holds the form, whose buttons start the line again.
+  - Right-aligned button rows are for dialog footers; the template edits inline and has none. Never
+    right-align a form's buttons to sit under the button that opened it.
 
 ## No layout shift
 

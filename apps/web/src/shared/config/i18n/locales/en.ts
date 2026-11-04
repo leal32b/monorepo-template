@@ -4,6 +4,10 @@ export const en = {
   },
   home: {
     title: 'Home',
+    empty: {
+      title: 'Nothing here yet',
+      description: 'What {{name}} works on will show up here.'
+    },
     gettingStarted: {
       title: 'Getting started',
       description: 'A few steps to set up {{name}}.',

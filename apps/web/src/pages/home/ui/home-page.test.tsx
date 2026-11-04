@@ -80,10 +80,12 @@ describe('HomePage', () => {
       expect(screen.getByRole('link', { name: 'Invite people' })).toHaveAttribute('href', '/acme/settings/members')
     })
 
-    it('offers nothing to someone who may not invite', () => {
+    it('tells someone who may not invite that there is nothing here yet, rather than a blank page', () => {
       renderHome(builtInRoles.member)
 
       expect(screen.queryByRole('region', { name: 'Getting started' })).not.toBeInTheDocument()
+      expect(screen.getByText('Nothing here yet')).toBeInTheDocument()
+      expect(screen.getByText(/will show up here\./)).toBeInTheDocument()
     })
   })
 })

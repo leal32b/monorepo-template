@@ -6,12 +6,16 @@ export const ptBR: Messages = {
   },
   home: {
     title: 'Início',
+    empty: {
+      title: 'Nada por aqui ainda',
+      description: 'O que {{name}} fizer vai aparecer aqui.'
+    },
     gettingStarted: {
       title: 'Primeiros passos',
       description: 'Alguns passos para configurar {{name}}.',
       invite: {
         title: 'Convidar pessoas',
-        description: 'Peça à sua equipe para entrar em {{name}}.',
+        description: 'Chame sua equipe para {{name}}.',
         go: 'Convidar pessoas'
       }
     }

@@ -12,6 +12,7 @@ export { Button, type ButtonProps, type ButtonVariantProps, buttonVariants } fro
 export { Checkbox, CheckboxGroup, type CheckboxGroupProps, type CheckboxProps } from '#checkbox'
 export { type CommandItem, CommandPalette, type CommandPaletteProps } from '#command-palette'
 export { ConfirmForm, type ConfirmFormProps } from '#confirm-form'
+export { EmptyState, type EmptyStateProps } from '#empty-state'
 export { Field, type FieldProps } from '#field'
 export { Fieldset, type FieldsetProps } from '#fieldset'
 export { FormActions, type FormActionsProps } from '#form-actions'

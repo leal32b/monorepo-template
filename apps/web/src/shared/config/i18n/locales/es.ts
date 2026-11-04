@@ -6,6 +6,10 @@ export const es: Messages = {
   },
   home: {
     title: 'Inicio',
+    empty: {
+      title: 'Aún no hay nada aquí',
+      description: 'Lo que haga {{name}} aparecerá aquí.'
+    },
     gettingStarted: {
       title: 'Primeros pasos',
       description: 'Unos pasos para configurar {{name}}.',
