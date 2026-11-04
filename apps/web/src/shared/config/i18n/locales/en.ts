@@ -316,10 +316,10 @@ export const en = {
     actions: {
       changeRole: 'Change role',
       remove: 'Remove',
-      leave: 'Leave'
+      leave: 'Leave organization'
     },
     notes: {
-      lastOwner: 'The only owner. Make someone else an owner before changing this role or leaving.',
+      lastOwner: 'No one else owns this organization. Make someone else an owner before changing this role or leaving.',
       outranks: 'This person holds permissions you do not, so you cannot change or remove them.'
     },
     changeRole: {

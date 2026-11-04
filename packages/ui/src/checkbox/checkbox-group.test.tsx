@@ -17,7 +17,7 @@ describe('CheckboxGroup', () => {
 })
 
 describe('Checkbox, read only', () => {
-  it('shows its value at full strength and does not change', () => {
+  it('shows its value without the accent of a control, the label readable, and does not change', () => {
     const onChange = vi.fn()
     render(() => <Checkbox label="Add members" checked readOnly onChange={onChange} />)
     const box = screen.getByRole('checkbox', { name: 'Add members' })
@@ -27,5 +27,9 @@ describe('Checkbox, read only', () => {
     expect(box).toBeChecked()
     expect(onChange).not.toHaveBeenCalled()
     expect(box).not.toBeDisabled()
+    const control = box.parentElement?.querySelector('.size-5')
+    // Kobalte marks the box read only, which is what its quiet look follows.
+    expect(control).toHaveAttribute('data-readonly')
+    expect(control).toHaveClass('data-[readonly]:data-[checked]:bg-surface', 'data-[readonly]:text-muted-foreground')
   })
 })

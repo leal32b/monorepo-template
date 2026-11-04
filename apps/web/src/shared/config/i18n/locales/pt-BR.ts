@@ -318,10 +318,11 @@ export const ptBR: Messages = {
     actions: {
       changeRole: 'Alterar papel',
       remove: 'Remover',
-      leave: 'Sair'
+      leave: 'Sair da organização'
     },
     notes: {
-      lastOwner: 'É o único proprietário. Torne outra pessoa proprietária antes de alterar este papel ou sair.',
+      lastOwner:
+        'Ninguém mais é proprietário desta organização. Torne outra pessoa proprietária antes de alterar este papel ou sair.',
       outranks: 'Esta pessoa tem permissões que você não tem, então você não pode alterá-la nem removê-la.'
     },
     changeRole: {

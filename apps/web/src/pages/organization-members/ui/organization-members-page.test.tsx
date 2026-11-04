@@ -162,18 +162,20 @@ describe('OrganizationMembersPage', () => {
     expect(await buttonsOf('Grace')).toEqual(['Change role', 'Remove'])
     expect(await buttonsOf('Ken')).toEqual(['Change role', 'Remove'])
     // Leaving is offered, and disabled with the reason, as any action that cannot be taken on this row.
-    expect(await buttonsOf('Ada')).toEqual(['Leave'])
-    expect((await rowOf('Ada')).getByRole('button', { name: 'Leave' })).toBeDisabled()
+    expect(await buttonsOf('Ada')).toEqual(['Leave organization'])
+    expect((await rowOf('Ada')).getByRole('button', { name: 'Leave organization' })).toBeDisabled()
     expect(
-      (await rowOf('Ada')).getByText('The only owner. Make someone else an owner before changing this role or leaving.')
+      (await rowOf('Ada')).getByText(
+        'No one else owns this organization. Make someone else an owner before changing this role or leaving.'
+      )
     ).toBeInTheDocument()
   })
 
   it('lets an owner leave when another owner remains', async () => {
     renderPage({ members: [row('m1', 'Ada', 'owner'), row('m2', 'Grace', 'owner')] })
 
-    expect(await buttonsOf('Ada')).toEqual(['Leave'])
-    fireEvent.click((await rowOf('Ada')).getByRole('button', { name: 'Leave' }))
+    expect(await buttonsOf('Ada')).toEqual(['Leave organization'])
+    fireEvent.click((await rowOf('Ada')).getByRole('button', { name: 'Leave organization' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
     await waitFor(() =>
       expect(
@@ -193,7 +195,7 @@ describe('OrganizationMembersPage', () => {
     expect(
       (await rowOf('Ada')).getByText('This person holds permissions you do not, so you cannot change or remove them.')
     ).toBeInTheDocument()
-    expect(await buttonsOf('Grace')).toEqual(['Leave'])
+    expect(await buttonsOf('Grace')).toEqual(['Leave organization'])
   })
 
   it('shows a plain member the list, who manages it, and only the way to leave', async () => {
@@ -203,7 +205,7 @@ describe('OrganizationMembersPage', () => {
       await screen.findByText('Everyone who can open Acme. Owners and admins manage who is here.')
     ).toBeInTheDocument()
     expect(await buttonsOf('Grace')).toEqual([])
-    expect(await buttonsOf('Linus')).toEqual(['Leave'])
+    expect(await buttonsOf('Linus')).toEqual(['Leave organization'])
     expect(screen.queryByText(/so you cannot change or remove them/)).not.toBeInTheDocument()
   })
 
@@ -253,7 +255,7 @@ describe('OrganizationMembersPage', () => {
 
   it('leaves the organization, and goes to the root', async () => {
     const history = renderPage({ members: [row('m1', 'Ada', 'owner'), row('m2', 'Grace', 'owner')] })
-    fireEvent.click((await rowOf('Ada')).getByRole('button', { name: 'Leave' }))
+    fireEvent.click((await rowOf('Ada')).getByRole('button', { name: 'Leave organization' }))
     expect(
       await screen.findByText('Leave Acme? You lose access right away, and need a new invitation to come back.')
     ).toBeInTheDocument()

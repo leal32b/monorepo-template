@@ -17,7 +17,8 @@ export type CheckboxProps = Pick<CheckboxRootOptions, 'disabled' | 'readOnly' | 
  * One yes or no among several that can be set together (the permissions of a role). Kobalte brings the
  * keyboard (Space toggles) and the wiring of label and description for screen readers. The mark inside
  * the box says "on" as well as the colour does, and the whole row is the touch target. `readOnly` shows
- * a value that cannot change here (a role that cannot be edited) at full strength, unlike `disabled`.
+ * a value that cannot change here (a role that cannot be edited): the box loses the accent and sits
+ * quiet on the surface, the mark alone saying "on", while the label stays readable, unlike `disabled`.
  */
 export function Checkbox(props: CheckboxProps) {
   const [local, root] = splitProps(props, ['class', 'label', 'description'])
@@ -31,7 +32,7 @@ export function Checkbox(props: CheckboxProps) {
       )}
     >
       <Kobalte.Input />
-      <Kobalte.Control class="mt-0.5 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm border border-border bg-background text-primary-foreground transition-colors data-[checked]:border-primary data-[checked]:bg-primary data-[readonly]:cursor-default data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50">
+      <Kobalte.Control class="mt-0.5 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm border border-border bg-background text-primary-foreground transition-colors data-[checked]:border-primary data-[checked]:bg-primary data-[readonly]:cursor-default data-[readonly]:border-border-subtle data-[readonly]:bg-surface data-[readonly]:text-muted-foreground data-[readonly]:data-[checked]:border-border-subtle data-[readonly]:data-[checked]:bg-surface data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50">
         <Kobalte.Indicator>
           <Icon name="check" />
         </Kobalte.Indicator>

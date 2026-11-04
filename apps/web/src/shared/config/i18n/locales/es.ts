@@ -320,10 +320,11 @@ export const es: Messages = {
     actions: {
       changeRole: 'Cambiar rol',
       remove: 'Quitar',
-      leave: 'Salir'
+      leave: 'Salir de la organización'
     },
     notes: {
-      lastOwner: 'Es el único propietario. Nombra a otra persona propietaria antes de cambiar este rol o salir.',
+      lastOwner:
+        'Nadie más es propietario de esta organización. Nombra a otra persona propietaria antes de cambiar este rol o salir.',
       outranks: 'Esta persona tiene permisos que tú no tienes, así que no puedes cambiarla ni quitarla.'
     },
     changeRole: {
