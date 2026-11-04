@@ -76,17 +76,17 @@ describe('InvitationPage', () => {
     const api = apiFor(() => Response.json(invitation()))
     renderPage(api)
 
-    await heading('Join Acme')
+    await heading('Invitation to Acme')
     expect(api.mock.calls.map(([path]) => path)).toContain('/api/invitations/inv-1')
   })
 
   it('offers an open invitation, saying who sent it, until when, and who is signed in', async () => {
     renderPage(apiFor(() => Response.json(invitation())))
 
-    expect(await heading('Join Acme')).toBeInTheDocument()
-    expect(screen.getByText('Grace Hopper invited you. The invitation is open until November 11, 2026.')).toBeVisible()
+    expect(await heading('Invitation to Acme')).toBeInTheDocument()
+    expect(screen.getByText('Grace Hopper invited you. The invitation is open until Nov 11, 2026.')).toBeVisible()
     expect(screen.getByText(/Signed in as ada@example.com/)).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Join Acme' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Accept invitation' })).toBeVisible()
   })
 
   it('after joining, remembers the organization on the device and opens it, with the list read again', async () => {
@@ -96,7 +96,7 @@ describe('InvitationPage', () => {
       auth
     )
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Join Acme' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation' }))
 
     expect(await screen.findByText('Acme home')).toBeInTheDocument()
     expect(history.get()).toBe('/acme')
@@ -131,7 +131,7 @@ describe('InvitationPage', () => {
       auth
     )
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Join Acme' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation' }))
 
     expect(await heading('This invitation was withdrawn')).toBeInTheDocument()
     expect(
@@ -215,6 +215,6 @@ describe('InvitationPage', () => {
     expect(await heading('We could not open this invitation')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
-    expect(await heading('Join Acme')).toBeInTheDocument()
+    expect(await heading('Invitation to Acme')).toBeInTheDocument()
   })
 })

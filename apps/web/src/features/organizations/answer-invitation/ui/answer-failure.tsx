@@ -5,13 +5,12 @@ import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
 
 const failureTexts = {
-  INVITATION_NOT_FOUND: 'invitations.errors.gone',
   ORGANIZATION_MEMBERSHIP_LIMIT_REACHED: 'invitations.errors.full'
 } as const
 
 /**
- * Why an answer did not go through: an invitation that expired or was withdrawn, or an organization
- * with no room left, in words that say what to do next; anything else is the generic failure.
+ * Why an answer did not go through: an organization with no room left, in words that say what to do
+ * next (an invitation that closed meanwhile is read again by the screen instead); anything else is the generic failure.
  */
 export function AnswerFailure(props: { failure: AuthFailure }) {
   const { t } = useI18n()

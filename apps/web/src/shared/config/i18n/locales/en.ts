@@ -255,12 +255,8 @@ export const en = {
   },
   invitations: {
     expires: 'Expires on {{date}}',
-    accept: 'Accept',
-    decline: 'Decline',
-    acceptLabel: 'Accept invitation to {{organization}}',
-    declineLabel: 'Decline invitation to {{organization}}',
+    open: 'View invitation',
     errors: {
-      gone: 'This invitation expired or was withdrawn. Ask the person who invited you to send a new one.',
       full: 'This organization has reached its limit of members. Ask an owner to make room.'
     }
   },
@@ -467,9 +463,9 @@ export const en = {
   },
   invitation: {
     pending: {
-      title: 'Join {{organization}}',
+      title: 'Invitation to {{organization}}',
       description: '{{inviter}} invited you. The invitation is open until {{date}}.',
-      accept: 'Join {{organization}}',
+      accept: 'Accept invitation',
       decline: 'Decline'
     },
     signedInAs: 'Signed in as {{email}}.',
@@ -516,8 +512,12 @@ export const en = {
   onboarding: {
     title: 'Name your organization',
     description: 'Your team works together in an organization.',
+    another: {
+      title: 'Create an organization',
+      description: 'Another organization, with its own people and roles.'
+    },
     invited: {
-      title: 'You have been invited',
+      title: 'You have invitations',
       description: 'Join a team that is already working together, or create your own organization.',
       invitations: 'Invitations',
       own: 'Or create your own organization'

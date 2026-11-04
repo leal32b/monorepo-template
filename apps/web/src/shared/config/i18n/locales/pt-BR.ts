@@ -257,12 +257,8 @@ export const ptBR: Messages = {
   },
   invitations: {
     expires: 'Expira em {{date}}',
-    accept: 'Aceitar',
-    decline: 'Recusar',
-    acceptLabel: 'Aceitar o convite para {{organization}}',
-    declineLabel: 'Recusar o convite para {{organization}}',
+    open: 'Ver convite',
     errors: {
-      gone: 'Este convite expirou ou foi retirado. Peça a quem convidou você que envie um novo.',
       full: 'Esta organização atingiu o limite de membros. Peça a um proprietário que abra espaço.'
     }
   },
@@ -470,9 +466,9 @@ export const ptBR: Messages = {
   },
   invitation: {
     pending: {
-      title: 'Entrar em {{organization}}',
+      title: 'Convite para {{organization}}',
       description: '{{inviter}} convidou você. O convite vale até {{date}}.',
-      accept: 'Entrar em {{organization}}',
+      accept: 'Aceitar convite',
       decline: 'Recusar'
     },
     signedInAs: 'Você entrou como {{email}}.',
@@ -518,9 +514,13 @@ export const ptBR: Messages = {
   onboarding: {
     title: 'Dê um nome à sua organização',
     description: 'Sua equipe trabalha junta em uma organização.',
+    another: {
+      title: 'Criar organização',
+      description: 'Outra organização, com suas próprias pessoas e papéis.'
+    },
     invited: {
-      title: 'Você foi convidado',
-      description: 'Entre em uma equipe que já trabalha junta, ou crie a sua própria organização.',
+      title: 'Há convites para você',
+      description: 'Participe de uma equipe que já trabalha junta, ou crie a sua própria organização.',
       invitations: 'Convites',
       own: 'Ou crie a sua própria organização'
     },

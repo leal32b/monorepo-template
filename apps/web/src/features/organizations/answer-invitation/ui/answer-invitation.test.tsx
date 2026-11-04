@@ -13,14 +13,14 @@ function renderAnswer(fetch: Fetch) {
   render(() => (
     <I18nProvider locale="en">
       <AuthProvider client={createAuthClient({ fetch })}>
-        <AnswerInvitation invitationId="inv-1" organizationName="Acme" onAnswered={onAnswered} onGone={onGone} />
+        <AnswerInvitation invitationId="inv-1" onAnswered={onAnswered} onGone={onGone} />
       </AuthProvider>
     </I18nProvider>
   ))
   return { onAnswered, onGone }
 }
 
-const join = () => screen.getByRole('button', { name: 'Join Acme' })
+const join = () => screen.getByRole('button', { name: 'Accept invitation' })
 const decline = () => screen.getByRole('button', { name: 'Decline' })
 
 describe('AnswerInvitation', () => {
@@ -66,6 +66,15 @@ describe('AnswerInvitation', () => {
     await waitFor(() => expect(onGone).toHaveBeenCalled())
     expect(onAnswered).not.toHaveBeenCalled()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('says anything else that goes wrong in the usual words, and lets the user try again', async () => {
+    renderAnswer(async () => Response.json({ code: 'BOOM' }, { status: 500 }))
+
+    fireEvent.click(join())
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Something went wrong on our side/)
+    expect(join()).toBeEnabled()
   })
 
   it('says below the buttons when the organization has no room for another member', async () => {

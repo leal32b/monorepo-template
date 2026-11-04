@@ -86,7 +86,7 @@ describe('OnboardingPage', () => {
         .client
     )
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'You have been invited' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'You have invitations' })).toBeInTheDocument()
     const region = within(screen.getByRole('region', { name: 'Invitations' }))
     expect(region.getByText('Acme')).toBeInTheDocument()
     expect(region.getByText('Globex')).toBeInTheDocument()
@@ -95,30 +95,28 @@ describe('OnboardingPage', () => {
     expect(screen.getByRole('textbox', { name: 'Organization name' })).toBeInTheDocument()
   })
 
-  it('after accepting one, goes to the start, which opens the organization joined', async () => {
-    const accepted = () => Response.json({ invitation: { id: '1' }, member: { id: 'm1' } })
-    const history = renderPage(auth([invitation('1', 'Acme', 7 * day)], { 'accept-invitation': accepted }).client)
+  it('opens each invitation on its own page, the one place an invitation is answered', async () => {
+    renderPage(auth([invitation('1', 'Acme', 7 * day)]).client)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation to Acme' }))
+    const region = within(await screen.findByRole('region', { name: 'Invitations' }))
 
-    expect(await screen.findByText('The root')).toBeInTheDocument()
-    expect(history.get()).toBe('/')
+    expect(region.getByRole('link', { name: 'View invitation' })).toHaveAttribute('href', '/invitations/1')
+    expect(region.queryByRole('button', { name: /Accept|Decline/ })).not.toBeInTheDocument()
   })
 
-  it('after declining one, takes it off the list; after the last, asks for the name instead', async () => {
-    const declined = () => Response.json({ invitation: { id: '1' } })
-    const { fetch, client } = auth([invitation('1', 'Acme', 7 * day), invitation('3', 'Globex', 2 * day)], {
-      'reject-invitation': declined
-    })
-    renderPage(client)
+  it('for someone who has an organization, offers another one, with the way back to the app', async () => {
+    renderPage(auth([], { list: () => Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }]) }).client)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Decline invitation to Acme' }))
-    await waitFor(() => expect(screen.queryByText('Acme')).not.toBeInTheDocument())
-    expect(screen.getByText('Globex')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Decline invitation to Globex' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Create an organization' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to app' })).toHaveAttribute('href', '/')
+  })
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Name your organization' })).toBeInTheDocument()
-    expect(fetch.mock.calls.filter(([input]) => String(input).endsWith('/reject-invitation'))).toHaveLength(2)
+  it('for someone without one, has no way back: there is no app to go back to yet', async () => {
+    renderPage(auth([]).client)
+
+    await screen.findByRole('heading', { level: 1, name: 'Name your organization' })
+
+    expect(screen.queryByRole('link', { name: 'Back to app' })).not.toBeInTheDocument()
   })
 
   it('waits for the invitations before it says anything, so an invited user is not asked to name an organization', async () => {
@@ -136,7 +134,7 @@ describe('OnboardingPage', () => {
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument()
     answer(Response.json([invitation('1', 'Acme', 7 * day)]))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'You have been invited' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'You have invitations' })).toBeInTheDocument()
   })
 
   it('when the invitations cannot be read, says so and offers to try again, instead of a form that could strand an invitation', async () => {
@@ -153,6 +151,6 @@ describe('OnboardingPage', () => {
     failing = false
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'You have been invited' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'You have invitations' })).toBeInTheDocument()
   })
 })

@@ -8,9 +8,9 @@ export type InvitationAnswerOptions = {
   onAnswered: (answer: InvitationAnswer) => void
   /**
    * Called instead of failing when the invitation is no longer open (it expired or was withdrawn
-   * since the screen read it), for a screen that can read it again and say what became of it.
+   * since the screen read it), so the screen reads it again and says what became of it.
    */
-  onGone?: (() => void) | undefined
+  onGone: () => void
 }
 
 /**
@@ -33,7 +33,7 @@ export function createInvitationAnswer(invitationId: () => string, options: Invi
     )
     setPending(false)
     if (failed === undefined) options.onAnswered(kind)
-    else if (failed.code === 'INVITATION_NOT_FOUND' && options.onGone) options.onGone()
+    else if (failed.code === 'INVITATION_NOT_FOUND') options.onGone()
     else setFailure(failed)
   }
 

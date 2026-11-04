@@ -8,9 +8,9 @@ import { AnswerInvitation } from '#features/organizations/answer-invitation'
 import { createSignOut } from '#features/sign-out'
 import { ApiError, useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
+import { formatDate } from '#shared/lib'
 import { AuthFailureAlert } from '#shared/ui'
-import { ShellSkeleton } from '#widgets/app-shell'
-import { EntryLayout } from '#widgets/entry-layout'
+import { EntryLayout, EntrySkeleton } from '#widgets/entry-layout'
 
 /** A link that is the screen's one action, drawn as its primary button. */
 const primaryLink = cn(buttonVariants({ variant: 'primary' }), 'w-full')
@@ -51,8 +51,7 @@ export function InvitationPage() {
   }
 
   const names = (current: Invitation) => ({ organization: current.organizationName, inviter: current.inviterName })
-  const date = (current: Invitation) =>
-    new Intl.DateTimeFormat(locale(), { dateStyle: 'long' }).format(new Date(current.expiresAt))
+  const date = (current: Invitation) => formatDate(new Date(current.expiresAt), locale())
 
   /** "Signed in as …" and the way to another account, for whoever opened the link in the wrong one. */
   const otherAccount = (
@@ -76,7 +75,7 @@ export function InvitationPage() {
   )
 
   return (
-    <Switch fallback={<ShellSkeleton />}>
+    <Switch fallback={<EntrySkeleton />}>
       <Match when={failedWith(404)}>
         {ended(t('invitation.notFound.title'), t('invitation.notFound.description'))}
       </Match>
@@ -114,7 +113,6 @@ export function InvitationPage() {
                 <div class="flex flex-col gap-4">
                   <AnswerInvitation
                     invitationId={current().id}
-                    organizationName={current().organizationName}
                     onAnswered={(answer) =>
                       answer === 'accepted' ? accepted(current()) : mutate({ ...current(), status: 'declined' })
                     }

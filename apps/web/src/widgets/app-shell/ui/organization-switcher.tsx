@@ -1,4 +1,13 @@
-import { Icon, Menu, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator } from '@repo/ui'
+import {
+  Avatar,
+  Menu,
+  MenuItem,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuTriggerContent,
+  menuTriggerClass
+} from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { For } from 'solid-js'
 import { homeOf, useOrganization, useOrganizations } from '#entities/organizations'
@@ -29,20 +38,12 @@ export function OrganizationSwitcher(props: {
   return (
     <Menu
       placement="bottom-start"
-      triggerClass="flex h-11 w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      triggerClass={menuTriggerClass}
       trigger={
-        <>
-          <span
-            aria-hidden="true"
-            class="flex size-8 shrink-0 items-center justify-center rounded-md border border-border-subtle bg-background text-sm font-semibold"
-          >
-            {current.organization.name.slice(0, 1).toUpperCase()}
-          </span>
-          <span class="min-w-0 flex-1 truncate text-base font-semibold tracking-tight sm:text-sm">
-            {current.organization.name}
-          </span>
-          <Icon name="expand" class="text-muted-foreground" />
-        </>
+        <MenuTriggerContent
+          avatar={<Avatar name={current.organization.name} shape="square" size="sm" />}
+          label={current.organization.name}
+        />
       }
     >
       <MenuRadioGroup

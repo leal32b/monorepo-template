@@ -67,7 +67,7 @@ describe('App', () => {
 
     render(() => <App client={client} auth={auth} locale="en" />)
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Join Acme' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Invitation to Acme' })).toBeInTheDocument()
   })
 
   it('sends a visitor who opens an invitation to sign in, to come back to it', async () => {

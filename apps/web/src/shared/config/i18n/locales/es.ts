@@ -258,12 +258,8 @@ export const es: Messages = {
   },
   invitations: {
     expires: 'Vence el {{date}}',
-    accept: 'Aceptar',
-    decline: 'Rechazar',
-    acceptLabel: 'Aceptar la invitación a {{organization}}',
-    declineLabel: 'Rechazar la invitación a {{organization}}',
+    open: 'Ver invitación',
     errors: {
-      gone: 'Esta invitación venció o fue retirada. Pide a quien te invitó que envíe una nueva.',
       full: 'Esta organización llegó a su límite de miembros. Pide a un propietario que haga espacio.'
     }
   },
@@ -473,9 +469,9 @@ export const es: Messages = {
   },
   invitation: {
     pending: {
-      title: 'Unirte a {{organization}}',
+      title: 'Invitación a {{organization}}',
       description: '{{inviter}} te invitó. La invitación está abierta hasta el {{date}}.',
-      accept: 'Unirte a {{organization}}',
+      accept: 'Aceptar invitación',
       decline: 'Rechazar'
     },
     signedInAs: 'Iniciaste sesión como {{email}}.',
@@ -522,8 +518,12 @@ export const es: Messages = {
   onboarding: {
     title: 'Ponle nombre a tu organización',
     description: 'Tu equipo trabaja junto en una organización.',
+    another: {
+      title: 'Crear organización',
+      description: 'Otra organización, con sus propias personas y roles.'
+    },
     invited: {
-      title: 'Te han invitado',
+      title: 'Tienes invitaciones',
       description: 'Únete a un equipo que ya trabaja junto, o crea tu propia organización.',
       invitations: 'Invitaciones',
       own: 'O crea tu propia organización'

@@ -6,7 +6,6 @@ import { AnswerFailure } from './answer-failure'
 
 export type AnswerInvitationProps = {
   invitationId: string
-  organizationName: string
   /** Called once Better Auth took the answer; the screen decides where the user goes next. */
   onAnswered: (answer: InvitationAnswer) => void
   /** Called when the invitation closed since the screen read it, so the screen reads it again. */
@@ -14,7 +13,8 @@ export type AnswerInvitationProps = {
 }
 
 /**
- * Accept, the action the screen is about, then Decline, each across the column; both wait while an
+ * Accept, the action the screen is about, then Decline, each across the column (the one place an
+ * invitation is answered: onboarding opens it here); both wait while an
  * answer is on its way, and why one did not go through shows below them, where nothing moves.
  */
 export function AnswerInvitation(props: AnswerInvitationProps) {
@@ -27,7 +27,7 @@ export function AnswerInvitation(props: AnswerInvitationProps) {
   return (
     <div class="flex flex-col gap-4">
       <Button variant="primary" class="w-full" disabled={pending()} onClick={() => answer('accepted')}>
-        {t('invitation.pending.accept', { organization: props.organizationName })}
+        {t('invitation.pending.accept')}
       </Button>
       <Button variant="outline" class="w-full" disabled={pending()} onClick={() => answer('declined')}>
         {t('invitation.pending.decline')}
