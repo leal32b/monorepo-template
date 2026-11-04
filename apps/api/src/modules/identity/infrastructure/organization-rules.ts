@@ -45,7 +45,7 @@ const refuse = (status: 'BAD_REQUEST' | 'FORBIDDEN' | 'TOO_MANY_REQUESTS', code:
 /** A custom role's stored permissions; anything that is not a valid `Permissions` grants nothing. */
 export function parseRolePermission(stored: string): Permissions {
   const parsed = permissionsSchema.safeParse(JSON.parse(stored))
-  return parsed.success ? (parsed.data as Permissions) : {}
+  return parsed.success ? parsed.data : {}
 }
 
 /** What a member's comma-separated roles hold: the union of built-in and custom roles; unknown names grant nothing. */
@@ -57,7 +57,8 @@ export function permissionsOfRoles(roles: string, custom: ReadonlyMap<string, Pe
       : (custom.get(name) ?? {})
     for (const [resource, actions] of Object.entries(granted)) {
       const set = held.get(resource) ?? new Set<string>()
-      for (const action of actions) set.add(action)
+      // A resource is present only with its actions: neither the roles nor the schema write `undefined`.
+      for (const action of actions as readonly string[]) set.add(action)
       held.set(resource, set)
     }
   }

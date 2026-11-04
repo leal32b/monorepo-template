@@ -2,6 +2,7 @@ import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
 import { A, useMatch } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
 import type { ServiceStatus } from '#entities/health'
+import { homeOf, useCurrentOrganization } from '#entities/organizations'
 import { useI18n } from '#shared/config'
 import { ServiceProblem, ServiceStatusButton } from './service-status'
 import { UserMenu } from './user-menu'
@@ -18,8 +19,11 @@ export type SidebarProps = {
 
 type Item<Label extends string> = { href: string; label: Label; icon: IconName }
 
-/** The product's own screens. Settings has its own menu, reached from the account. */
-const items: Item<'home'>[] = [{ href: '/', label: 'home', icon: 'home' }]
+/**
+ * The product's own screens, under the organization's slug (ADR 0034). Settings has its own menu,
+ * reached from the account.
+ */
+const itemsOf = (home: string): Item<'home'>[] => [{ href: home, label: 'home', icon: 'home' }]
 
 /** The settings of the user's own account; the organization's join them in 6.5. */
 const accountItems: Item<'profile' | 'security' | 'preferences'>[] = [
@@ -63,6 +67,9 @@ export function Sidebar(props: SidebarProps) {
   const { t } = useI18n()
   const inSettings = useMatch(() => '/settings/*')
   const accountLabel = createUniqueId()
+  /** The current organization's home; outside any (the account settings) the root picks one. */
+  const current = useCurrentOrganization()
+  const home = () => homeOf(current?.organization)
 
   return (
     <div class={cn('flex h-full flex-col gap-4 bg-surface p-3', props.class)}>
@@ -71,7 +78,7 @@ export function Sidebar(props: SidebarProps) {
         <Show
           when={inSettings()}
           fallback={
-            <A href="/" onClick={props.onNavigate} class="truncate">
+            <A href={home()} onClick={props.onNavigate} class="truncate">
               {t('app.name')}
             </A>
           }
@@ -84,7 +91,7 @@ export function Sidebar(props: SidebarProps) {
         fallback={
           <nav aria-label={t('appShell.nav.main')} class="flex-1">
             <ul class="m-0 flex list-none flex-col gap-1 p-0">
-              <For each={items}>
+              <For each={itemsOf(home())}>
                 {(item) => (
                   <li>
                     <NavLink href={item.href} icon={item.icon} onNavigate={props.onNavigate}>

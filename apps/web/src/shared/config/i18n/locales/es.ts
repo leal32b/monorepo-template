@@ -219,6 +219,17 @@ export const es: Messages = {
       }
     }
   },
+  organizations: {
+    unavailable: {
+      title: 'No pudimos cargar tus organizaciones',
+      description: 'Revisa tu conexión y vuelve a intentarlo.',
+      retry: 'Intentar de nuevo'
+    }
+  },
+  onboarding: {
+    title: 'Ponle nombre a tu organización',
+    description: 'Tu equipo trabaja junto en una organización.'
+  },
   session: {
     unavailable: {
       title: 'No pudimos comprobar tu sesión',

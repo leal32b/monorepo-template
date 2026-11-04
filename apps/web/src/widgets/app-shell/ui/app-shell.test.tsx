@@ -1,5 +1,6 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
+import { CurrentOrganizationProvider, type Organization } from '#entities/organizations'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
@@ -9,15 +10,24 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
-type Options = { auth?: Fetch; api?: () => Promise<Response>; locale?: Locale; path?: string }
+type Options = {
+  auth?: Fetch
+  api?: () => Promise<Response>
+  locale?: Locale
+  path?: string
+  /** The organization of a tenant screen; none for a screen outside any, such as the account settings. */
+  organization?: Organization
+}
 
 /** An app page at `/projects` in the shell, Better Auth and the API answering through `fetch`. */
 function renderShell({
   auth = async () => Response.json({ success: true }),
   api = async () => Response.json(health),
   locale = 'en',
-  path = '/projects'
+  path = '/projects',
+  organization
 }: Options = {}) {
+  const membership = { roles: ['owner'], permissions: {} }
   const history = createMemoryHistory()
   history.set({ value: path })
   render(() => (
@@ -27,7 +37,18 @@ function renderShell({
           <ApiProvider client={createApiClient({ fetch: api })}>
             <AuthProvider client={createAuthClient({ fetch: auth })}>
               <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-                <MemoryRouter history={history}>
+                <MemoryRouter
+                  history={history}
+                  root={(root) =>
+                    organization === undefined ? (
+                      root.children
+                    ) : (
+                      <CurrentOrganizationProvider organization={organization} membership={membership}>
+                        {root.children}
+                      </CurrentOrganizationProvider>
+                    )
+                  }
+                >
                   <Route
                     path="/projects"
                     component={() => (
@@ -99,6 +120,22 @@ describe('AppShell', () => {
     const trail = within(screen.getByRole('navigation', { name: 'You are here' }))
     expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual(['Projects'])
     expect(trail.getByText('Projects')).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('leads Home, the menu’s title and the palette to the home of the organization in the URL (ADR 0034)', async () => {
+    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+
+    expect(
+      within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Home' })
+    ).toHaveAttribute('href', '/acme')
+    expect(
+      within(screen.getByRole('complementary', { hidden: true })).getByRole('link', { name: 'Monorepo Template' })
+    ).toHaveAttribute('href', '/acme')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
+    fireEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Command palette' })).getByRole('option', { name: 'Home' })
+    )
+    await waitFor(() => expect(history.get()).toBe('/acme'))
   })
 
   it('titles the side menu with the app, a link home, as tall as the top bar so the titles line up, with no line under it', () => {

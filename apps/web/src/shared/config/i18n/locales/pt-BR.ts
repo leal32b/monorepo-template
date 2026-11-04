@@ -218,6 +218,17 @@ export const ptBR: Messages = {
       }
     }
   },
+  organizations: {
+    unavailable: {
+      title: 'Não conseguimos carregar suas organizações',
+      description: 'Confira sua conexão e tente de novo.',
+      retry: 'Tentar de novo'
+    }
+  },
+  onboarding: {
+    title: 'Dê um nome à sua organização',
+    description: 'Sua equipe trabalha junta em uma organização.'
+  },
   session: {
     unavailable: {
       title: 'Não conseguimos verificar seu login',

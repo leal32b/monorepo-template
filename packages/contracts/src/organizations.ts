@@ -16,7 +16,7 @@ export type Resource = keyof typeof statements
 export type Action<R extends Resource = Resource> = (typeof statements)[R][number]
 
 /** A set of permissions: for each resource, the actions held. */
-export type Permissions = { [R in Resource]?: readonly Action<R>[] }
+export type Permissions = { [R in Resource]?: readonly Action<R>[] | undefined }
 
 const resources = Object.keys(statements) as Resource[]
 

@@ -216,6 +216,17 @@ export const en = {
       }
     }
   },
+  organizations: {
+    unavailable: {
+      title: 'We could not load your organizations',
+      description: 'Check your connection, then try again.',
+      retry: 'Try again'
+    }
+  },
+  onboarding: {
+    title: 'Name your organization',
+    description: 'Your team works together in an organization.'
+  },
   session: {
     unavailable: {
       title: 'We could not check your sign-in',
