@@ -111,6 +111,20 @@ describe('OnboardingPage', () => {
     expect(screen.getByRole('link', { name: 'Back to app' })).toHaveAttribute('href', '/')
   })
 
+  it('asked for from the switcher, stays about creating, with the invitations after the form', async () => {
+    renderPage(
+      auth([invitation('1', 'Globex', 7 * day)], {
+        list: () => Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+      }).client
+    )
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Create an organization' })).toBeInTheDocument()
+    const name = screen.getByRole('textbox', { name: 'Organization name' })
+    const region = screen.getByRole('region', { name: 'Invitations' })
+    expect(name.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Back to app' })).toBeInTheDocument()
+  })
+
   it('for someone without one, has no way back: there is no app to go back to yet', async () => {
     renderPage(auth([]).client)
 

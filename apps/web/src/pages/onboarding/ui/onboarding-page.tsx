@@ -13,7 +13,8 @@ import { EntryLayout, EntrySkeleton } from '#widgets/entry-layout'
  * who has some creates another (the switcher's "Create organization"), with the way back to the app.
  * Invitations come first, the expired ones left out, because an invited user who names an organization
  * here ends up with a stray empty one; each opens its own page, `/invitations/:id`, the one place an
- * invitation is answered. The one-field form is always below them. Nothing is said until the
+ * invitation is answered, and the one-field form below them. Asked for from the switcher, the screen
+ * is "Create an organization", the form first and any invitations after it. Nothing is said until the
  * invitations are read, and if they cannot be, the screen offers to try again rather than a form.
  * Creating goes to the start (`/`), which opens the new organization once the list is read again.
  */
@@ -52,47 +53,55 @@ export function OnboardingPage() {
         </EntryLayout>
       </Match>
       <Match when={invitations.state === 'ready' && invitations()}>
-        {(open) => (
-          <Show
-            when={open().length > 0}
-            fallback={
-              <EntryLayout
-                title={t(another() ? 'onboarding.another.title' : 'onboarding.title')}
-                description={t(another() ? 'onboarding.another.description' : 'onboarding.description')}
-                footer={back()}
-              >
-                {form}
-              </EntryLayout>
-            }
-          >
-            <EntryLayout
-              title={t('onboarding.invited.title')}
-              description={t('onboarding.invited.description')}
-              footer={back()}
-            >
-              <SettingsSection title={t('onboarding.invited.invitations')}>
-                <For each={open()}>
-                  {(invitation) => (
-                    <SettingsRow
-                      avatar={<Avatar name={invitation.organizationName} shape="square" />}
-                      title={invitation.organizationName}
-                      description={t('invitations.expires', { date: formatDate(invitation.expiresAt, locale()) })}
-                      action={
-                        <A href={`/invitations/${encodeURIComponent(invitation.id)}`} class={buttonVariants()}>
-                          {t('invitations.open')}
-                        </A>
-                      }
-                    />
-                  )}
-                </For>
-              </SettingsSection>
-              <section class="flex flex-col gap-4">
-                <h2 class="text-base font-semibold">{t('onboarding.invited.own')}</h2>
-                {form}
-              </section>
-            </EntryLayout>
-          </Show>
-        )}
+        {(open) => {
+          const list = (
+            <SettingsSection title={t('onboarding.invited.invitations')}>
+              <For each={open()}>
+                {(invitation) => (
+                  <SettingsRow
+                    avatar={<Avatar name={invitation.organizationName} shape="square" />}
+                    title={invitation.organizationName}
+                    description={t('invitations.expires', { date: formatDate(invitation.expiresAt, locale()) })}
+                    action={
+                      <A href={`/invitations/${encodeURIComponent(invitation.id)}`} class={buttonVariants()}>
+                        {t('invitations.open')}
+                      </A>
+                    }
+                  />
+                )}
+              </For>
+            </SettingsSection>
+          )
+          return (
+            <Switch>
+              {/* Asked for from the switcher: the screen is what was asked for, the invitations after it. */}
+              <Match when={another()}>
+                <EntryLayout
+                  title={t('onboarding.another.title')}
+                  description={t('onboarding.another.description')}
+                  footer={back()}
+                >
+                  {form}
+                  <Show when={open().length > 0}>{list}</Show>
+                </EntryLayout>
+              </Match>
+              <Match when={open().length > 0}>
+                <EntryLayout title={t('onboarding.invited.title')} description={t('onboarding.invited.description')}>
+                  {list}
+                  <section class="flex flex-col gap-4">
+                    <h2 class="text-base font-semibold">{t('onboarding.invited.own')}</h2>
+                    {form}
+                  </section>
+                </EntryLayout>
+              </Match>
+              <Match when={true}>
+                <EntryLayout title={t('onboarding.title')} description={t('onboarding.description')}>
+                  {form}
+                </EntryLayout>
+              </Match>
+            </Switch>
+          )
+        }}
       </Match>
     </Switch>
   )
