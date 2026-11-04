@@ -37,3 +37,5 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0030](0030-add-a-scrim-colour-role.md) | Add a scrim colour role | accepted |
 | [0031](0031-animate-layers-with-short-transform-and-opacity-motion.md) | Animate layers with short transform and opacity motion | accepted |
 | [0032](0032-draw-icons-from-phosphor-generated-from-its-svgs.md) | Draw icons from Phosphor, generated from its SVGs | accepted |
+| [0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) | Run organizations on Better Auth, with roles in the database, behind a guard on the path | accepted |
+| [0034](0034-keep-the-organization-slug-in-the-web-url.md) | Keep the organization slug in the web URL | accepted |
