@@ -19,11 +19,16 @@ import { OrganizationsUnavailable } from './organizations-unavailable'
  * API answers 404 for both. Then it asks the API what the caller may do there, and keeps the slug on
  * this device as the place `/` opens next time. If the address is changed on the screen, it stays on the
  * same organization while the URL catches up.
+ *
+ * Coming here from another screen, or from another organization, the previous screen stays until the
+ * membership is in: it is read where the session's `Suspense` sees it, so the router's transition waits
+ * on it, and the progress bar shows if it is slow. A membership read before in this session draws at
+ * once, and is asked again behind it; if the caller is no longer a member, it is read for real.
  */
 export function RequireOrganization(props: ParentProps) {
   const params = useParams<{ orgSlug: string }>()
   const api = useApi()
-  const { list, refetch } = useOrganizations()
+  const { list, refetch, memberships } = useOrganizations()
   // A resource in error throws when read, so the list is read only once it is ready.
   const organization = createMemo<Organization | undefined>((previous) => {
     if (list.state !== 'ready') return undefined
@@ -35,10 +40,35 @@ export function RequireOrganization(props: ParentProps) {
     const renamed = organizations.find((candidate) => candidate.id === previous.id)
     return renamed !== undefined && renamed.slug !== previous.slug ? renamed : undefined
   })
-  const [membership, { refetch: refetchMembership }] = createResource(
+  const read = (id: string) =>
+    getMembership(api, id).then(
+      (answer) => {
+        memberships.set(id, answer)
+        return answer
+      },
+      (failure: unknown) => {
+        memberships.delete(id)
+        throw failure
+      }
+    )
+  const [membership, { refetch: refetchMembership, mutate }] = createResource(
     () => organization()?.id,
-    (id) => getMembership(api, id)
+    (id) => {
+      const known = memberships.get(id)
+      if (known === undefined) return read(id)
+      read(id).then(
+        (answer) => organization()?.id === id && mutate(answer),
+        (failure: unknown) => {
+          // No longer a member: read for real, so the screen says so. Any other failure keeps what is known.
+          if (organization()?.id === id && failure instanceof ApiError && failure.status === 404)
+            void refetchMembership()
+        }
+      )
+      return known
+    }
   )
+  // Read, not only checked, so a navigation here waits on it with the previous screen kept (see above).
+  createMemo(() => membership.error === undefined && membership())
 
   createEffect(() => {
     if (membership.state === 'ready') rememberOrganization(params.orgSlug)

@@ -1,3 +1,4 @@
+import type { OrganizationMembership } from '@repo/contracts'
 import { createContext, createResource, type ParentProps, type Resource, useContext } from 'solid-js'
 import { useAuth } from '#shared/api'
 import { listOrganizations, type Organization } from '../api/list-organizations'
@@ -9,6 +10,11 @@ type Organizations = {
   refetch: () => void
   /** Puts a changed organization in the list (a new name or slug), with no new request. */
   update: (organization: Organization) => void
+  /**
+   * What the caller may do in each organization visited in this session, by its id, so going back to
+   * one draws at once while the API is asked again behind it. Gone with the session.
+   */
+  memberships: Map<string, OrganizationMembership>
 }
 
 const OrganizationsContext = createContext<Organizations>()
@@ -20,6 +26,7 @@ const OrganizationsContext = createContext<Organizations>()
 export function OrganizationsProvider(props: ParentProps) {
   const auth = useAuth()
   const [list, { refetch, mutate }] = createResource(() => listOrganizations(auth))
+  const memberships = new Map<string, OrganizationMembership>()
 
   return (
     <OrganizationsContext.Provider
@@ -29,7 +36,8 @@ export function OrganizationsProvider(props: ParentProps) {
         update: (changed) =>
           mutate((organizations) =>
             organizations?.map((organization) => (organization.id === changed.id ? changed : organization))
-          )
+          ),
+        memberships
       }}
     >
       {props.children}

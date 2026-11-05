@@ -1,5 +1,6 @@
-import { createMemoryHistory, MemoryRouter, Route, useNavigate } from '@solidjs/router'
-import { fireEvent, render, screen } from '@solidjs/testing-library'
+import { A, createMemoryHistory, MemoryRouter, Route, useNavigate } from '@solidjs/router'
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
+import { type ParentProps, Show, Suspense } from 'solid-js'
 import { OrganizationsProvider, useOrganization, useOrganizations } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider } from '#shared/config'
@@ -156,6 +157,153 @@ describe('RequireOrganization', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Go elsewhere' }))
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument()
+    })
+  })
+
+  describe('coming from another screen', () => {
+    const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+    const member = { roles: ['member'], permissions: {} }
+
+    /** A screen outside the organizations, with links into them once they are read, as the account settings have. */
+    function Elsewhere() {
+      const { list } = useOrganizations()
+      return (
+        <>
+          <p>The account</p>
+          <Show when={list.state === 'ready'}>
+            <A href="/acme">To Acme</A>
+            <A href="/globex">To Globex</A>
+          </Show>
+        </>
+      )
+    }
+    function Links(props: ParentProps) {
+      return (
+        <>
+          {props.children}
+          <A href="/elsewhere">Back to the account</A>
+          <A href="/globex">To Globex</A>
+        </>
+      )
+    }
+
+    /** As in the app: the screens sit in the session's `Suspense`, which has already shown its content. */
+    function renderFrom(path: string, api: ApiFetch) {
+      const history = createMemoryHistory()
+      history.set({ value: path })
+      render(() => (
+        <I18nProvider locale="en">
+          <PaletteProvider>
+            <ApiProvider client={createApiClient({ fetch: api })}>
+              <AuthProvider client={createAuthClient({ fetch: async () => Response.json([acme, globex]) })}>
+                <MemoryRouter history={history} root={(props) => <Suspense>{props.children}</Suspense>}>
+                  <Route path="/" component={OrganizationsProvider}>
+                    <Route path="/elsewhere" component={Elsewhere} />
+                    <Route path="/:orgSlug" component={RequireOrganization}>
+                      <Route
+                        path="/"
+                        component={() => (
+                          <Links>
+                            <Rights />
+                          </Links>
+                        )}
+                      />
+                    </Route>
+                  </Route>
+                </MemoryRouter>
+              </AuthProvider>
+            </ApiProvider>
+          </PaletteProvider>
+        </I18nProvider>
+      ))
+      return history
+    }
+
+    /** An API whose answers come only when the test lets them, one per call. */
+    function slowApi() {
+      const answers: Array<(response: Response) => void> = []
+      const api = vi.fn<ApiFetch>(() => new Promise((resolve) => answers.push(resolve)))
+      return { api, answer: (response: Response) => answers.shift()?.(response) }
+    }
+
+    it('keeps the screen on view until the membership is in, instead of going blank', async () => {
+      const { api, answer } = slowApi()
+      renderFrom('/elsewhere', api)
+
+      fireEvent.click(await screen.findByRole('link', { name: 'To Acme' }))
+      await waitFor(() => expect(api).toHaveBeenCalledTimes(1))
+      expect(screen.getByText('The account')).toBeInTheDocument()
+
+      answer(Response.json(admin))
+      expect(await screen.findByText('Acme: add members true')).toBeInTheDocument()
+      expect(screen.queryByText('The account')).not.toBeInTheDocument()
+    })
+
+    it('keeps the organization on view while another one is read', async () => {
+      const { api, answer } = slowApi()
+      renderFrom('/acme', api)
+      await waitFor(() => expect(api).toHaveBeenCalledTimes(1))
+      answer(Response.json(admin))
+      fireEvent.click(await screen.findByRole('link', { name: 'To Globex' }))
+
+      await waitFor(() => expect(api).toHaveBeenCalledTimes(2))
+      expect(screen.getByText('Acme: add members true')).toBeInTheDocument()
+
+      answer(Response.json(member))
+      expect(await screen.findByText('Globex: add members false')).toBeInTheDocument()
+    })
+
+    it('draws an organization visited before at once, and takes what the API says behind it', async () => {
+      const { api, answer } = slowApi()
+      renderFrom('/acme', api)
+      await waitFor(() => expect(api).toHaveBeenCalledTimes(1))
+      answer(Response.json(admin))
+      fireEvent.click(await screen.findByRole('link', { name: 'Back to the account' }))
+      fireEvent.click(await screen.findByRole('link', { name: 'To Acme' }))
+
+      expect(await screen.findByText('Acme: add members true')).toBeInTheDocument()
+      await waitFor(() => expect(api).toHaveBeenCalledTimes(2))
+      answer(Response.json(member))
+      expect(await screen.findByText('Acme: add members false')).toBeInTheDocument()
+    })
+
+    it('says "not found" when the check behind says the caller is no longer a member', async () => {
+      let calls = 0
+      renderFrom('/acme', async () =>
+        ++calls === 1 ? Response.json(admin) : Response.json({ code: 'organization_not_found' }, { status: 404 })
+      )
+      fireEvent.click(await screen.findByRole('link', { name: 'Back to the account' }))
+      fireEvent.click(await screen.findByRole('link', { name: 'To Acme' }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument()
+    })
+
+    it('keeps what it knows when the check behind fails for another reason', async () => {
+      let calls = 0
+      renderFrom('/acme', async () => (++calls === 1 ? Response.json(admin) : Response.json({}, { status: 500 })))
+      fireEvent.click(await screen.findByRole('link', { name: 'Back to the account' }))
+      fireEvent.click(await screen.findByRole('link', { name: 'To Acme' }))
+
+      await waitFor(() => expect(calls).toBe(2))
+      expect(await screen.findByText('Acme: add members true')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
+
+    it('drops a late answer about an organization the screen has left', async () => {
+      const { api, answer } = slowApi()
+      renderFrom('/acme', api)
+      await waitFor(() => expect(api).toHaveBeenCalledTimes(1))
+      answer(Response.json(admin))
+      fireEvent.click(await screen.findByRole('link', { name: 'Back to the account' }))
+      fireEvent.click(await screen.findByRole('link', { name: 'To Acme' }))
+      await screen.findByText('Acme: add members true')
+      fireEvent.click(await screen.findByRole('link', { name: 'To Globex' }))
+      await waitFor(() => expect(api).toHaveBeenCalledTimes(3))
+
+      answer(new Response(null, { status: 404 }))
+      answer(Response.json(member))
+
+      expect(await screen.findByText('Globex: add members false')).toBeInTheDocument()
     })
   })
 })

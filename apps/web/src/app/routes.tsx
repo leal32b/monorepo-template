@@ -11,8 +11,9 @@ import { AccountRedirect } from './account-redirect'
 /**
  * What a visitor needs (the entry screens) is in the first download; what only someone signed in
  * needs (the session guard with the side menu, the menus, the palette and the screens behind it) loads
- * when they get there, so opening the sign-in does not pay for Kobalte's dialogs and menus. The router
- * keeps the page on screen until the next one is ready: no blank flash. The security screen is the
+ * when they get there, so opening the sign-in does not pay for Kobalte's dialogs and menus. Behind the
+ * session, the router keeps the page on screen until the next one is ready, its code and its data,
+ * under the session guard's `Suspense` (ADR 0036): no blank flash. The security screen is the
  * heaviest of those (QR code, backup codes, every security form), so it loads on its own.
  */
 const RequireSession = lazy(() => import('./require-session').then((m) => ({ default: m.RequireSession })))

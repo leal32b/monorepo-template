@@ -22,7 +22,7 @@ describe('App', () => {
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/acme')
+    await waitFor(() => expect(window.location.pathname).toBe('/acme'))
     expect(screen.getByRole('button', { name: /Ada Lovelace/ })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
   })
@@ -40,7 +40,7 @@ describe('App', () => {
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Name your organization' })).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/onboarding')
+    await waitFor(() => expect(window.location.pathname).toBe('/onboarding'))
   })
 
   it('opens the invitation of an email’s link, for the signed-in user', async () => {
@@ -78,7 +78,7 @@ describe('App', () => {
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
-    expect(window.location.search).toBe('?next=%2Finvitations%2Finv-1')
+    await waitFor(() => expect(window.location.search).toBe('?next=%2Finvitations%2Finv-1'))
     expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute(
       'href',
       '/signup?next=%2Finvitations%2Finv-1'
@@ -93,7 +93,7 @@ describe('App', () => {
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
-    expect(window.location.search).toBe('?next=%2Facme')
+    await waitFor(() => expect(window.location.search).toBe('?next=%2Facme'))
   })
 
   it('sends a visitor without a session from the home page to sign in, without asking the API who they are', async () => {
@@ -104,7 +104,7 @@ describe('App', () => {
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
-    expect(window.location.search).toBe('?next=%2F')
+    await waitFor(() => expect(window.location.search).toBe('?next=%2F'))
     expect(fetch).not.toHaveBeenCalledWith('/api/me', expect.anything())
   })
 
@@ -201,7 +201,7 @@ describe('App', () => {
     render(() => <App {...signedIn()} locale="en" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Profile' })).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/settings/profile')
+    await waitFor(() => expect(window.location.pathname).toBe('/settings/profile'))
   })
 
   it('sends /account, from older emails, bookmarks and the Google link, to the security, keeping its error', async () => {
@@ -223,7 +223,7 @@ describe('App', () => {
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
-    expect(window.location.search).toBe('?next=%2Fsettings%2Fsecurity')
+    await waitFor(() => expect(window.location.search).toBe('?next=%2Fsettings%2Fsecurity'))
   })
 
   describe('the settings of the organization', () => {
@@ -272,7 +272,7 @@ describe('App', () => {
       render(() => <App {...inAcme()} locale="en" />)
 
       expect(await screen.findByRole('heading', { level: 1, name: 'General' })).toBeInTheDocument()
-      expect(window.location.pathname).toBe('/acme/settings/general')
+      await waitFor(() => expect(window.location.pathname).toBe('/acme/settings/general'))
     })
 
     it('serves the members of the organization under its settings', async () => {
@@ -338,7 +338,7 @@ describe('App', () => {
       )
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Name your organization' })).toBeInTheDocument()
-      expect(window.location.pathname).toBe('/onboarding')
+      await waitFor(() => expect(window.location.pathname).toBe('/onboarding'))
     })
 
     it('is offered by the account settings too, for the organization that / would open', async () => {

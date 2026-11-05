@@ -1,6 +1,6 @@
 import { Button } from '@repo/ui'
 import { Navigate, useLocation, useNavigate } from '@solidjs/router'
-import { createResource, Match, type ParentProps, Switch } from 'solid-js'
+import { createResource, Match, type ParentProps, Suspense, Switch } from 'solid-js'
 import { getSessionUser, SessionProvider } from '#entities/sessions'
 import { ApiError, ApiProvider, useApi, useAuth, whenUnauthorized } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -15,6 +15,11 @@ import { PaletteShortcut } from './palette-shortcut'
  * shows at first while it asks, so no screen flashes for someone who is about to be sent away; a slow
  * answer draws the empty frame of the shell, so the page does not jump from blank to full. Below it, any
  * call the API answers with 401, because the session ended meanwhile, sends the user to sign in too.
+ *
+ * The screens below sit in one `Suspense`. The first time, it draws the shell's frame while what they
+ * need comes (a screen's code, the organizations, a membership). After that, a navigation keeps the
+ * screen on view until the next one is ready, instead of going blank: the router moves in a transition,
+ * and a transition waits on what is read under a `Suspense` that has already shown its content.
  */
 export function RequireSession(props: ParentProps) {
   const api = useApi()
@@ -54,7 +59,7 @@ export function RequireSession(props: ParentProps) {
         {(user) => (
           <ApiProvider client={guarded}>
             <SessionProvider user={user()}>
-              {props.children}
+              <Suspense fallback={<ShellSkeleton />}>{props.children}</Suspense>
               <PaletteShortcut />
             </SessionProvider>
           </ApiProvider>

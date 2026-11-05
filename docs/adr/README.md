@@ -40,3 +40,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) | Run organizations on Better Auth, with roles in the database, behind a guard on the path | accepted |
 | [0034](0034-keep-the-organization-slug-in-the-web-url.md) | Keep the organization slug in the web URL | accepted |
 | [0035](0035-show-the-server-working-with-one-progress-bar.md) | Show the server working with one progress bar | accepted |
+| [0036](0036-keep-the-screen-until-the-next-one-is-ready.md) | Keep the screen until the next one is ready | accepted |
