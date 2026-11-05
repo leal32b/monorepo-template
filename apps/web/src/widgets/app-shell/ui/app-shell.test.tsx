@@ -151,6 +151,17 @@ describe('AppShell', () => {
     await waitFor(() => expect(history.get()).toBe('/acme'))
   })
 
+  it('offers the organization’s screens in the palette, as the side menu does', async () => {
+    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
+    const dialog = within(await screen.findByRole('dialog', { name: 'Command palette' }))
+
+    for (const name of ['General', 'Members', 'Roles']) expect(dialog.getByRole('option', { name })).toBeInTheDocument()
+    fireEvent.click(dialog.getByRole('option', { name: 'Members' }))
+
+    await waitFor(() => expect(history.get()).toBe('/acme/settings/members'))
+  })
+
   it('puts the organization you are in at the top of the side menu, in place of the app’s name', () => {
     renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
     const menu = within(screen.getByRole('complementary', { hidden: true }))
@@ -417,6 +428,7 @@ describe('AppShell', () => {
         'Profile',
         'Security',
         'Preferences',
+        'Create organization',
         'Use the system theme',
         'Use the light theme',
         'Use the dark theme',

@@ -9,6 +9,9 @@ const themeIcons: Record<Theme, IconName> = { system: 'monitor', light: 'sun', d
  * The command palette of the shell: the screens to go to and a few actions to run (the theme, signing
  * out). The keys that open it live in the app; here is what it holds and what each item does.
  */
+/** The icons of the organization's screens, as the side menu draws them. */
+const organizationIcons = { general: 'organization', members: 'users', roles: 'role' } as const
+
 export function ShellPalette(props: { signOut: () => void }) {
   const { t } = useI18n()
   const palette = usePalette()
@@ -39,8 +42,25 @@ export function ShellPalette(props: { signOut: () => void }) {
       id: 'go:/settings/preferences',
       label: t('appShell.nav.preferences'),
       group: go,
-      icon: 'preferences',
+      icon: 'monitor',
       keywords: t('appShell.palette.keywords.preferences')
+    },
+    // The organization's own screens, when the screen is one of its: the same as the side menu offers.
+    ...(current
+      ? (['general', 'members', 'roles'] as const).map((screen) => ({
+          id: `go:${homeOf(current.organization)}/settings/${screen}`,
+          label: t(`appShell.nav.${screen}`),
+          group: go,
+          icon: organizationIcons[screen],
+          keywords: t(`appShell.palette.keywords.${screen}`)
+        }))
+      : []),
+    {
+      id: 'go:/onboarding',
+      label: t('appShell.organizations.create'),
+      group: actions,
+      icon: 'plus',
+      keywords: t('appShell.palette.keywords.create')
     },
     ...themes.map((theme) => ({
       id: `theme:${theme}`,

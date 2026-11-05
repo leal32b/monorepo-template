@@ -173,6 +173,8 @@ export const es: Messages = {
   notFound: {
     title: 'Página no encontrada',
     description: 'Puede que la dirección esté mal, o que la página se haya movido.',
+    organization:
+      'Las páginas de una organización de la que no formas parte se ven así. Si era una de ellas, pide una invitación a alguien de allí.',
     home: 'Ir al inicio'
   },
   appShell: {
@@ -190,6 +192,10 @@ export const es: Messages = {
         dark: 'Usar el tema oscuro'
       },
       keywords: {
+        general: 'organización nombre dirección eliminar',
+        members: 'personas equipo invitar quitar rol',
+        roles: 'permisos acceso',
+        create: 'organización nueva equipo',
         profile: 'cuenta nombre correo',
         security: 'contraseña dos pasos verificación autenticador códigos respaldo google',
         preferences: 'apariencia tema idioma',

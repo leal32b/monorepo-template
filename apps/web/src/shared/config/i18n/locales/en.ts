@@ -170,6 +170,8 @@ export const en = {
   notFound: {
     title: 'Page not found',
     description: 'The address may be wrong, or the page may have moved.',
+    organization:
+      'Pages of an organization you are not in look the same. If this was one, ask someone there to invite you.',
     home: 'Go to the start'
   },
   appShell: {
@@ -187,11 +189,15 @@ export const en = {
         dark: 'Use the dark theme'
       },
       keywords: {
+        general: 'organization name address delete',
+        members: 'people team invite remove role',
+        roles: 'permissions access',
+        create: 'organization new team',
         profile: 'account name email',
         security: 'password two-step verification authenticator backup codes google',
         preferences: 'appearance theme language',
         theme: 'appearance color dark light',
-        signOut: 'log out logout leave'
+        signOut: 'log out logout'
       }
     },
     openMenu: 'Open menu',

@@ -172,6 +172,8 @@ export const ptBR: Messages = {
   notFound: {
     title: 'Página não encontrada',
     description: 'O endereço pode estar errado, ou a página pode ter mudado.',
+    organization:
+      'Páginas de uma organização da qual você não faz parte aparecem assim. Se era uma delas, peça um convite a alguém de lá.',
     home: 'Ir para o início'
   },
   appShell: {
@@ -189,6 +191,10 @@ export const ptBR: Messages = {
         dark: 'Usar o tema escuro'
       },
       keywords: {
+        general: 'organização nome endereço excluir',
+        members: 'pessoas equipe convidar remover papel',
+        roles: 'permissões acesso',
+        create: 'organização nova equipe',
         profile: 'conta nome e-mail',
         security: 'senha duas etapas verificação autenticador códigos backup google',
         preferences: 'aparência tema idioma',
