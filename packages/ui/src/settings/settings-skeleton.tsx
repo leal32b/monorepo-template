@@ -1,7 +1,5 @@
 import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
-
-/** How long a load may take before the placeholder is drawn: a quick one shows nothing at all. */
-const delayMs = 300
+import { motion } from '#motion'
 
 export type SettingsSkeletonProps = {
   /** Said to screen readers while it waits ("Loading…"). */
@@ -17,7 +15,7 @@ export type SettingsSkeletonProps = {
 export function SettingsSkeleton(props: SettingsSkeletonProps) {
   const [late, setLate] = createSignal(false)
   onMount(() => {
-    const timer = setTimeout(() => setLate(true), delayMs)
+    const timer = setTimeout(() => setLate(true), motion.waitDelay)
     onCleanup(() => clearTimeout(timer))
   })
 

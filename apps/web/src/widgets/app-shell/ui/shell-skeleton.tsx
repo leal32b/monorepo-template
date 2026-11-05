@@ -1,8 +1,6 @@
+import { motion } from '@repo/ui'
 import { createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { useI18n } from '#shared/config'
-
-/** How long a session check may take before the frame is drawn: a quick one shows nothing at all. */
-const delayMs = 300
 
 /**
  * The frame of the shell, empty, for a slow wait on the session: the side menu and the top bar are
@@ -14,7 +12,7 @@ export function ShellSkeleton() {
   const [late, setLate] = createSignal(false)
 
   onMount(() => {
-    const timer = setTimeout(() => setLate(true), delayMs)
+    const timer = setTimeout(() => setLate(true), motion.waitDelay)
     onCleanup(() => clearTimeout(timer))
   })
 

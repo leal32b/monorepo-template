@@ -492,6 +492,21 @@ describe('OrganizationMembersPage', () => {
       )
     })
 
+    it('holds the place of the invitations while they are read, below the people already shown', async () => {
+      renderPage({
+        auth: async (input) => {
+          const url = String(input)
+          if (url.includes('/organization/list-members')) return Response.json({ members: everyone, total: 4 })
+          if (url.includes('/organization/list-roles')) return Response.json([editor])
+          if (url.includes('/organization/list-invitations')) return new Promise<Response>(() => {})
+          return Response.json([acme])
+        }
+      })
+
+      expect(await screen.findByRole('region', { name: 'People' })).toBeInTheDocument()
+      expect(await screen.findByText('Loading…', { selector: '[role="status"]' })).toBeInTheDocument()
+    })
+
     it('says when the invitations could not be read, and tries again when asked', async () => {
       let attempts = 0
       renderPage({

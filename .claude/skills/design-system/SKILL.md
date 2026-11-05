@@ -86,7 +86,7 @@ The same idea looks and behaves the same everywhere. Before building, find it he
 | A group of controls with one label and one error | `Fieldset`; a resource's checkboxes in a `CheckboxGroup` | a `fieldset` whose `legend` sits on the border, a `p role=alert` by hand |
 | A person, an organization, an invited address | `Avatar` (circle, square, `mail` icon) | `icon="profile"`, `letter="@"` |
 | Who or what a menu is about (organization, account) | `menuTriggerClass` + `MenuTriggerContent` | trigger classes copied |
-| A section loading | `SettingsSkeleton`; an entry screen: `EntrySkeleton`; the shell: `ShellSkeleton` | nothing (the page jumps) or another family's frame |
+| Waiting for the server ([ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md)) | nothing drawn yet: the family's skeleton (`SettingsSkeleton`, `EntrySkeleton`, `ShellSkeleton`); an action: its button's `pending`; the screen already drawn: the app's `ProgressBar`, which follows every request by itself | a spinner, an overlay, a "Loading…" text, a bar of one's own, a delay of one's own instead of `motion.waitDelay` |
 | Nothing here yet | `EmptyState` | a blank page |
 | A row that left a list (removed, deleted, revoked) | the section's `status`, which takes focus | a `p role=status` with negative margins |
 | A date | `formatDate` from `#shared/lib` | `Intl.DateTimeFormat` with options of one's own |
@@ -195,7 +195,9 @@ Elements must not "tremble" between states or screens.
   with the Kobalte layer's `data-expanded` and `data-closed`. Only `transform` and
   `opacity`, so nothing shifts; a layer centred with a `translate` utility must be centred another way
   (`inset-x-4 mx-auto`), or the animation undoes it. With `prefers-reduced-motion` they only fade.
-  Colour transitions stay on controls.
+  Colour transitions stay on controls. The one motion that is not a layer is the progress bar's
+  (`ds-progress`, [ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md)),
+  which stands still and pulses with reduced motion.
 
 ## Copy
 

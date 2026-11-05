@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import { createApiClient, createAuthClient } from '#shared/api'
+import { createApiClient, createAuthClient, createRequests } from '#shared/api'
 import { App } from './app'
 
 describe('App', () => {
@@ -360,5 +360,20 @@ describe('App', () => {
     render(() => <App client={client} auth={auth} locale="en" />)
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Page not found')
+  })
+
+  it('shows the progress bar while a request the clients make takes long, and hides it once answered', async () => {
+    const requests = createRequests()
+    let answer: (response: Response) => void = () => undefined
+    const client = createApiClient({ fetch: requests.track(async () => Response.json(null)) })
+    const auth = createAuthClient({
+      fetch: requests.track(() => new Promise((resolve) => (answer = resolve)))
+    })
+
+    render(() => <App client={client} auth={auth} requests={requests} locale="en" />)
+
+    expect(await screen.findByTestId('progress-bar')).toBeInTheDocument()
+    answer(Response.json(null))
+    await waitFor(() => expect(screen.queryByTestId('progress-bar')).not.toBeInTheDocument())
   })
 })

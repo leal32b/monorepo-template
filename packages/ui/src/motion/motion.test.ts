@@ -7,6 +7,11 @@ describe('motion', () => {
     expect(motion.dialogExit).toBeLessThan(motion.dialogEnter)
     expect(motion.popExit).toBeLessThan(motion.popEnter)
   })
+
+  it('shows the progress bar only for a wait the user would notice, and never as a flash', () => {
+    expect(motion.waitDelay).toBeGreaterThanOrEqual(200)
+    expect(motion.progressMinimum).toBeGreaterThan(motion.waitDelay)
+  })
 })
 
 describe('motionCss', () => {
@@ -38,6 +43,20 @@ describe('motionCss', () => {
     )
 
     expect([...moving].sort()).toEqual(['opacity', 'transform'])
+  })
+
+  it('sweeps the progress bar across, over and over', () => {
+    expect(motionCss).toContain(`.ds-progress{animation:ds-progress ${motion.progress}ms linear infinite}`)
+    expect(motionCss).toContain(
+      '@keyframes ds-progress{from{transform:translateX(-100%)}to{transform:translateX(100%)}}'
+    )
+  })
+
+  it('stands the progress bar still with reduced motion, and only pulses it', () => {
+    const reduced = motionCss.slice(motionCss.indexOf('@media (prefers-reduced-motion: reduce)'))
+
+    expect(reduced).toContain('.ds-progress{animation:ds-progress-pulse')
+    expect(reduced).toContain('transform:none}')
   })
 
   it('only fades with reduced motion, for every layer that moves', () => {

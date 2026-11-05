@@ -7,7 +7,8 @@ import {
   type Panels,
   SettingsPanel,
   SettingsRow,
-  SettingsSection
+  SettingsSection,
+  SettingsSkeleton
 } from '@repo/ui'
 import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
 import {
@@ -40,7 +41,7 @@ export type InvitationsSectionProps = {
  * each with when it expires, to send again (the way out when the email did not arrive) or to revoke.
  * Whoever may create invitations sees the first, whoever may cancel them sees the second; anyone else does
  * not see the section. The list is read on its own, so it can fail or load again without the people above
- * it going blank. While a form is open anywhere on the screen, every action here waits.
+ * it going blank; while it is read the first time, a placeholder holds its place. While a form is open anywhere on the screen, every action here waits.
  */
 export function InvitationsSection(props: InvitationsSectionProps) {
   const { t, locale } = useI18n()
@@ -125,7 +126,7 @@ export function InvitationsSection(props: InvitationsSectionProps) {
 
   return (
     <Show when={canSee()}>
-      <Switch>
+      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} rows={1} />}>
         <Match when={pending.error}>
           <Alert variant="error" action={<Button onClick={() => void refetch()}>{t('actions.retry')}</Button>}>
             {t('organizationInvitations.unavailable')}

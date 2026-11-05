@@ -1,8 +1,6 @@
+import { motion } from '@repo/ui'
 import { createSignal, onCleanup, onMount, Show } from 'solid-js'
 import { useI18n } from '#shared/config'
-
-/** How long a load may take before the frame is drawn: a quick one shows nothing at all. */
-const delayMs = 300
 
 /**
  * The frame of an entry screen, empty, for a slow wait (onboarding reading the invitations, an
@@ -14,7 +12,7 @@ export function EntrySkeleton() {
   const [late, setLate] = createSignal(false)
 
   onMount(() => {
-    const timer = setTimeout(() => setLate(true), delayMs)
+    const timer = setTimeout(() => setLate(true), motion.waitDelay)
     onCleanup(() => clearTimeout(timer))
   })
 
