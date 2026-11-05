@@ -1,7 +1,7 @@
 import type { IdentityOptions } from '@repo/contracts'
 import { createContext, createResource, type ParentProps, useContext } from 'solid-js'
 import { useApi } from '#shared/api'
-import { getIdentityOptions } from '../api/get-identity-options'
+import { identityOptionsQuery } from '../api/get-identity-options'
 
 const IdentityOptionsContext = createContext<IdentityOptions>()
 
@@ -25,6 +25,7 @@ export function useIdentityOptions(): () => IdentityOptions | undefined {
   if (given) return () => given
 
   const api = useApi()
-  const [asked] = createResource(() => getIdentityOptions(api))
+  const read = identityOptionsQuery(api)
+  const [asked] = createResource(() => read())
   return () => (asked.error ? { google: false } : asked())
 }

@@ -1,3 +1,4 @@
+import { MemoryRouter, Route } from '@solidjs/router'
 import { render, screen, waitFor } from '@solidjs/testing-library'
 import { ApiProvider, createApiClient } from '#shared/api'
 import { IdentityOptionsProvider, useIdentityOptions } from './identity-options'
@@ -11,7 +12,10 @@ function renderProbe(fetch: () => Promise<Response>, given?: { google: boolean }
   render(() => (
     <ApiProvider client={createApiClient({ fetch })}>
       <IdentityOptionsProvider options={given}>
-        <Probe />
+        {/* As in the app, under the router, whose cache of reads it uses (ADR 0038). */}
+        <MemoryRouter>
+          <Route path="/" component={Probe} />
+        </MemoryRouter>
       </IdentityOptionsProvider>
     </ApiProvider>
   ))

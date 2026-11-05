@@ -87,6 +87,43 @@ describe('App', () => {
     )
   })
 
+  it('asks for the ways to sign in and Google beside the session, on a cold load of the security screen (ADR 0038)', async () => {
+    const asked: string[] = []
+    const never = (input: RequestInfo | URL) => {
+      asked.push(new URL(String(input), 'http://localhost').pathname)
+      return new Promise<Response>(() => {})
+    }
+    window.history.replaceState(null, '', '/settings/security')
+
+    render(() => (
+      <App client={createApiClient({ fetch: never })} auth={createAuthClient({ fetch: never })} locale="en" />
+    ))
+
+    await waitFor(() =>
+      expect(asked).toEqual(
+        expect.arrayContaining(['/api/auth/get-session', '/api/auth/list-accounts', '/api/identity/options'])
+      )
+    )
+  })
+
+  it.each([
+    ['/onboarding', '/api/auth/organization/list-user-invitations'],
+    ['/invitations/inv-1', '/api/invitations/inv-1']
+  ])('asks for what %s shows beside the session, on a cold load (ADR 0038)', async (path, read) => {
+    const asked: string[] = []
+    const never = (input: RequestInfo | URL) => {
+      asked.push(new URL(String(input), 'http://localhost').pathname)
+      return new Promise<Response>(() => {})
+    }
+    const auth = createAuthClient({ fetch: never })
+    const client = createApiClient({ fetch: never })
+    window.history.replaceState(null, '', path)
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    await waitFor(() => expect(asked).toEqual(expect.arrayContaining(['/api/auth/get-session', read])))
+  })
+
   it('sends a signed-in user without an organization to name one', async () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
     const client = createApiClient({ fetch: async () => Response.json(null) })

@@ -1,6 +1,6 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
-import { OrganizationsProvider } from '#entities/organizations'
+import { invitationQuery, OrganizationsProvider } from '#entities/organizations'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
@@ -72,6 +72,14 @@ const heading = (name: string) => screen.findByRole('heading', { level: 1, name 
 describe('InvitationPage', () => {
   beforeEach(() => localStorage.clear())
 
+  it('draws at once an invitation read a moment ago, as when its link was hovered (ADR 0038)', async () => {
+    await invitationQuery(createApiClient({ fetch: async () => Response.json(invitation()) }))('inv-1')
+
+    renderPage(vi.fn<ApiFetch>(() => new Promise<Response>(() => {})))
+
+    expect(await heading('Invitation to Acme')).toBeInTheDocument()
+  })
+
   it('asks the API about the invitation of the link', async () => {
     const api = apiFor(() => Response.json(invitation()))
     renderPage(api)
@@ -99,7 +107,7 @@ describe('InvitationPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation' }))
 
     expect(await screen.findByText('Acme home')).toBeInTheDocument()
-    expect(history.get()).toBe('/acme')
+    await waitFor(() => expect(history.get()).toBe('/acme'))
     expect(localStorage.getItem('organization')).toBe('acme')
     const lists = () => auth.mock.calls.filter(([input]) => String(input).endsWith('/organization/list'))
     await waitFor(() => expect(lists()).toHaveLength(2))
@@ -178,7 +186,7 @@ describe('InvitationPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign in with another account' }))
 
     expect(await screen.findByText('The sign-in')).toBeInTheDocument()
-    expect(history.get()).toBe('/login?next=%2Finvitations%2Finv-1')
+    await waitFor(() => expect(history.get()).toBe('/login?next=%2Finvitations%2Finv-1'))
   })
 
   it('from an open invitation too, offers another account', async () => {

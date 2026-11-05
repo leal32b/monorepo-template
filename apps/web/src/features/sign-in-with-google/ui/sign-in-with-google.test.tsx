@@ -1,3 +1,4 @@
+import { MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
@@ -18,7 +19,10 @@ function renderGoogle({
     <I18nProvider locale="en">
       <ApiProvider client={createApiClient({ fetch: options })}>
         <AuthProvider client={createAuthClient({ fetch })}>
-          <SignInWithGoogle next="/projects" error={error} />
+          {/* As on the entry screens, under the router, whose cache of reads it uses (ADR 0038). */}
+          <MemoryRouter>
+            <Route path="/" component={() => <SignInWithGoogle next="/projects" error={error} />} />
+          </MemoryRouter>
         </AuthProvider>
       </ApiProvider>
     </I18nProvider>

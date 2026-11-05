@@ -1,9 +1,11 @@
-import { Alert, Button, createPanels, SettingsSection, SettingsSkeleton } from '@repo/ui'
-import { Navigate, useSearchParams } from '@solidjs/router'
-import { createResource, Match, Switch } from 'solid-js'
-import { getAccountSecurity } from '#entities/accounts'
-import { ApiError, useAuth } from '#shared/api'
+import { createPanels, SettingsSection } from '@repo/ui'
+import { useSearchParams } from '@solidjs/router'
+import { Show } from 'solid-js'
+import { type AccountSecurity, type SignInMethods, signInMethodsQuery } from '#entities/accounts'
+import { type SessionUser, sessionQuery } from '#entities/sessions'
+import { createRead, updateRead, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
+import { ReadFailure } from '#shared/ui'
 import { AppShell } from '#widgets/app-shell'
 import { AuthenticatorRow } from './authenticator-row'
 import { BackupCodesRow } from './backup-codes-row'
@@ -18,40 +20,60 @@ import { PasswordRow } from './password-row'
  * holds the authenticator app and the backup codes. A row's form opens inline below it, one at a time.
  * It reads Better Auth directly (ADR 0020); a session that ended on the way sends the user to sign in,
  * to come back here.
+ *
+ * The second step's state comes from the session the app read at its start, and only the ways to sign in
+ * are asked for, both by keys a change here updates (ADR 0038).
  */
 export function SecurityPage() {
-  const auth = useAuth()
   const { t } = useI18n()
-  const [params] = useSearchParams()
-  const [security, { refetch, mutate }] = createResource(() => getAccountSecurity(auth))
-  const panels = createPanels<PanelName>()
 
   return (
     <AppShell title={t('account.title')}>
-      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} />}>
-        <Match when={security.error instanceof ApiError && security.error.status === 401}>
-          <Navigate href="/login?next=%2Fsettings%2Fsecurity" />
-        </Match>
-        <Match when={security.error}>
-          <Alert variant="error" action={<Button onClick={() => refetch()}>{t('actions.retry')}</Button>}>
-            {t('account.unavailable')}
-          </Alert>
-        </Match>
-        <Match when={security.state === 'ready' && security()}>
-          {(current) => (
-            <>
-              <SettingsSection title={t('account.signIn.title')} description={t('account.signIn.description')}>
-                <PasswordRow panels={panels} security={current()} />
-                <GoogleRow panels={panels} security={current()} error={params.error} onChange={mutate} />
-              </SettingsSection>
-              <SettingsSection title={t('account.twoFactor.title')} description={t('account.twoFactor.description')}>
-                <AuthenticatorRow panels={panels} security={current()} onChange={mutate} />
-                <BackupCodesRow panels={panels} security={current()} onChange={mutate} />
-              </SettingsSection>
-            </>
-          )}
-        </Match>
-      </Switch>
+      <ReadFailure message={t('account.unavailable')}>
+        <Sections />
+      </ReadFailure>
     </AppShell>
+  )
+}
+
+/** The two sections once read. */
+function Sections() {
+  const auth = useAuth()
+  const { t } = useI18n()
+  const [params] = useSearchParams()
+  const session = sessionQuery(auth)
+  const methods = signInMethodsQuery(auth)
+  const user = createRead(() => session(), session.keyFor())
+  const ways = createRead(() => methods(), methods.keyFor())
+  const security = (): AccountSecurity | undefined => {
+    const signedIn = user()
+    const signIn = ways()
+    return signedIn && signIn ? { ...signIn, email: signedIn.email, twoFactor: signedIn.twoFactorEnabled } : undefined
+  }
+  /** A change made here, kept for the next visit and drawn at once. */
+  const change = (next: AccountSecurity) => {
+    updateRead<SessionUser>(session.keyFor(), (current) => ({ ...current, twoFactorEnabled: next.twoFactor }))
+    updateRead<SignInMethods>(methods.keyFor(), () => ({
+      password: next.password,
+      googleAccountId: next.googleAccountId
+    }))
+  }
+  const panels = createPanels<PanelName>()
+
+  return (
+    <Show when={security()}>
+      {(current) => (
+        <>
+          <SettingsSection title={t('account.signIn.title')} description={t('account.signIn.description')}>
+            <PasswordRow panels={panels} security={current()} />
+            <GoogleRow panels={panels} security={current()} error={params.error} onChange={change} />
+          </SettingsSection>
+          <SettingsSection title={t('account.twoFactor.title')} description={t('account.twoFactor.description')}>
+            <AuthenticatorRow panels={panels} security={current()} onChange={change} />
+            <BackupCodesRow panels={panels} security={current()} onChange={change} />
+          </SettingsSection>
+        </>
+      )}
+    </Show>
   )
 }

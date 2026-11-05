@@ -1,6 +1,6 @@
-export { getInvitation } from './api/get-invitation'
+export { getInvitation, invitationQuery } from './api/get-invitation'
 export { getMembership } from './api/get-membership'
-export { type Invitation, listInvitations } from './api/list-invitations'
+export { type Invitation, listInvitations, userInvitationsQuery } from './api/list-invitations'
 export { listMembers } from './api/list-members'
 export { listOrganizations, type Organization } from './api/list-organizations'
 export { listPendingInvitations } from './api/list-pending-invitations'

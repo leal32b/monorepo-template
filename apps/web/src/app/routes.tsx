@@ -6,7 +6,7 @@ import { ResetPasswordPage } from '#pages/reset-password'
 import { SignInPage } from '#pages/sign-in'
 import { SignUpPage } from '#pages/sign-up'
 import { TwoFactorPage } from '#pages/two-factor'
-import { type AuthClient, useAuth } from '#shared/api'
+import { type ApiClient, type AuthClient, useApi, useAuth } from '#shared/api'
 import { AccountRedirect } from './account-redirect'
 
 /**
@@ -45,27 +45,44 @@ const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ d
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
 
 /**
- * The session and the organizations are asked for together at boot, each by its route, as soon as the
- * router matches them (ADR 0038). Their code loads on demand, as their screens' does, so the reads start
- * once it is in; a read that fails is said by the screen that reads it.
+ * A screen's reads start in its route, as soon as the router matches it, and again when a link to it is
+ * hovered, focused or touched (ADR 0038): the session and the organizations together at boot, a screen's
+ * own reads beside them. The entities' code loads on demand, as the screens' does, so a read starts once
+ * its code is in; a read that fails is said by the screen that reads it.
  */
-const preloadSession = () => {
-  const auth = useAuth()
-  import('#entities/sessions').then((m) => m.sessionQuery(auth)()).catch(() => undefined)
+const preload = <Entity,>(
+  entity: () => Promise<Entity>,
+  start: (loaded: Entity, clients: { auth: AuthClient; api: ApiClient }) => unknown
+) => {
+  const clients = { auth: useAuth(), api: useApi() }
+  entity()
+    .then((loaded) => start(loaded, clients))
+    .catch(() => undefined)
 }
-/** Starts reads of the organizations' entity, once its code is in. */
-const preloadWith = (start: (entity: typeof import('#entities/organizations'), auth: AuthClient) => unknown) => {
-  const auth = useAuth()
-  import('#entities/organizations').then((entity) => start(entity, auth)).catch(() => undefined)
-}
-const preloadOrganizations = () => preloadWith((entity, auth) => entity.organizationsQuery(auth)())
+const sessions = () => import('#entities/sessions')
+const organizations = () => import('#entities/organizations')
+const accounts = () => import('#entities/accounts')
+const preloadSession = () => preload(sessions, (entity, { auth }) => entity.sessionQuery(auth)())
+const preloadOrganizations = () => preload(organizations, (entity, { auth }) => entity.organizationsQuery(auth)())
 /**
  * The members and roles screens' lists start as soon as the organization is known, beside its membership.
  * The slug is read now: the router's parameters change only once its transition commits.
  */
 const preloadTeam = ({ params }: RoutePreloadFuncArgs) => {
   const slug = params.orgSlug as string
-  preloadWith((entity, auth) => entity.preloadTeam(auth, slug))
+  preload(organizations, (entity, { auth }) => entity.preloadTeam(auth, slug))
+}
+const identityOptions = () => import('#entities/identity-options')
+/** The security screen reads the ways to sign in, and whether the API has Google for the Google row. */
+const preloadSecurity = () => {
+  preload(accounts, (entity, { auth }) => entity.signInMethodsQuery(auth)())
+  preload(identityOptions, (entity, { api }) => entity.identityOptionsQuery(api)())
+}
+const preloadUserInvitations = () => preload(organizations, (entity, { auth }) => entity.userInvitationsQuery(auth)())
+/** The invitation of a link, read now and again when the link is hovered, as `preloadTeam` reads its slug. */
+const preloadInvitation = ({ params }: RoutePreloadFuncArgs) => {
+  const id = params.id as string
+  preload(organizations, (entity, { api }) => entity.invitationQuery(api)(id))
 }
 
 /** `/:orgSlug/settings` opens on General, as `/settings` opens on the profile. */
@@ -113,9 +130,9 @@ export const routes: RouteDefinition[] = [
         preload: preloadOrganizations,
         children: [
           { path: '/', component: OrganizationRedirect },
-          { path: '/onboarding', component: OnboardingPage },
+          { path: '/onboarding', component: OnboardingPage, preload: preloadUserInvitations },
           // The invitation email's link (ADR 0033, D5); a visitor signs in or signs up and comes back.
-          { path: '/invitations/:id', component: InvitationPage },
+          { path: '/invitations/:id', component: InvitationPage, preload: preloadInvitation },
           {
             // The account settings and the organization's screens share one frame, drawn once (ADR 0037).
             path: '/',
@@ -126,7 +143,7 @@ export const routes: RouteDefinition[] = [
                 children: [
                   { path: '/', component: () => <Navigate href="/settings/profile" /> },
                   { path: '/profile', component: ProfilePage },
-                  { path: '/security', component: SecurityPage },
+                  { path: '/security', component: SecurityPage, preload: preloadSecurity },
                   { path: '/preferences', component: PreferencesPage }
                 ]
               },

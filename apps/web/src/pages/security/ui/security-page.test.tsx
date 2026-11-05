@@ -1,6 +1,6 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import { SessionProvider } from '#entities/sessions'
+import { SessionProvider, sessionQuery } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
 import { SecurityPage } from './security-page'
@@ -99,6 +99,19 @@ describe('SecurityPage', () => {
 
     expect(screen.getAllByRole('status').some((line) => line.textContent === 'Loading…')).toBe(true)
     vi.useRealTimers()
+  })
+
+  it('asks only for the ways to sign in, beside the session the app read at its start (ADR 0038)', async () => {
+    const answers = betterAuth(['credential'], true)
+    await sessionQuery(createAuthClient({ fetch: answers }))()
+    const asked = vi.fn<Fetch>((input, init) =>
+      String(input).includes('/get-session') ? new Promise<Response>(() => {}) : answers(input, init)
+    )
+
+    renderPage(asked)
+
+    expect(await screen.findByRole('region', { name: 'Two-step verification' })).toHaveTextContent('On')
+    expect(asked.mock.calls.some(([input]) => String(input).includes('/get-session'))).toBe(false)
   })
 
   it('is a page of two sections, each a group of rows', async () => {

@@ -1,6 +1,6 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import { OrganizationsProvider } from '#entities/organizations'
+import { OrganizationsProvider, userInvitationsQuery } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { OnboardingPage } from './onboarding-page'
@@ -58,6 +58,14 @@ function renderPage(client: ReturnType<typeof createAuthClient>) {
 describe('OnboardingPage', () => {
   beforeEach(() => localStorage.clear())
 
+  it('draws at once the invitations read a moment ago (ADR 0038)', async () => {
+    await userInvitationsQuery(auth([invitation('inv-1', 'Acme', day)]).client)()
+
+    renderPage(createAuthClient({ fetch: () => new Promise<Response>(() => {}) }))
+
+    expect(await screen.findByRole('region', { name: 'Invitations' })).toHaveTextContent('Acme')
+  })
+
   it('without invitations, asks for the name of the first organization', async () => {
     renderPage(auth([]).client)
 
@@ -76,7 +84,7 @@ describe('OnboardingPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create organization' }))
 
     expect(await screen.findByText('The root')).toBeInTheDocument()
-    expect(history.get()).toBe('/')
+    await waitFor(() => expect(history.get()).toBe('/'))
     expect(localStorage.getItem('organization')).toBe('acme-inc')
   })
 

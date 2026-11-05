@@ -12,9 +12,16 @@ describe('getSessionUser', () => {
     expect(await getSessionUser(createAuthClient({ fetch }))).toEqual({
       id: 'u1',
       email: 'ada@example.com',
-      name: 'Ada Lovelace'
+      name: 'Ada Lovelace',
+      twoFactorEnabled: true
     })
     expect(String(fetch.mock.calls[0]?.[0])).toBe(`${window.location.origin}/api/auth/get-session?disableRefresh=true`)
+  })
+
+  it('takes a second step Better Auth does not mention for one that is off', async () => {
+    const fetch = async () => Response.json({ session: { id: 's1' }, user: { ...ada, twoFactorEnabled: null } })
+
+    expect(await getSessionUser(createAuthClient({ fetch }))).toMatchObject({ twoFactorEnabled: false })
   })
 
   it('takes a visitor for what it is, a 401, without a failed request: Better Auth answers 200 with nothing', async () => {
