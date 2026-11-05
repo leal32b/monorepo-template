@@ -466,7 +466,7 @@ describe('AppShell', () => {
         expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual(['Settings', 'General'])
       })
 
-      it('marks the screen chosen at once, and keeps the one on view until the chosen one is ready', async () => {
+      it('opens the screen chosen at once, its title over its skeleton until its data is in (ADR 0038)', async () => {
         let arrive: (text: string) => void = () => undefined
         const members = vi.fn(
           () =>
@@ -474,19 +474,20 @@ describe('AppShell', () => {
               arrive = resolve
             })
         )
-        renderShell({ path: '/acme/settings/general', organization: acme, members })
+        const history = renderShell({ path: '/acme/settings/general', organization: acme, members })
         const list = within(screen.getByRole('list', { name: 'Organization' }))
 
         fireEvent.click(list.getByRole('link', { name: 'Members' }))
 
         expect(list.getByRole('link', { name: 'Members' })).toHaveAttribute('aria-current', 'page')
         expect(list.getByRole('link', { name: 'General' })).not.toHaveAttribute('aria-current')
-        await waitFor(() => expect(members).toHaveBeenCalled())
-        expect(screen.getByRole('heading', { level: 1, name: 'General' })).toBeInTheDocument()
-        expect(list.getByRole('link', { name: 'Members' })).toHaveAttribute('aria-current', 'page')
+        expect(await screen.findByRole('heading', { level: 1, name: 'Members' })).toBeInTheDocument()
+        await waitFor(() => expect(history.get()).toBe('/acme/settings/members'))
+        expect(screen.queryByText('The general')).not.toBeInTheDocument()
+        expect(await screen.findByRole('status')).toHaveTextContent('Loading…')
         arrive('The members')
         expect(await screen.findByText('The members')).toBeInTheDocument()
-        expect(list.getByRole('link', { name: 'Members' })).toHaveAttribute('aria-current', 'page')
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
       })
 
       it('is not offered in the settings of a screen that has no organization to speak of', () => {

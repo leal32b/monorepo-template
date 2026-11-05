@@ -1,6 +1,6 @@
 import { A, createMemoryHistory, MemoryRouter, Route, useNavigate } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
-import { type ParentProps, Show, Suspense } from 'solid-js'
+import { type Component, createResource, type ParentProps, Show, Suspense } from 'solid-js'
 import { OrganizationsProvider, useOrganization, useOrganizations } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider } from '#shared/config'
@@ -188,7 +188,15 @@ describe('RequireOrganization', () => {
     }
 
     /** As in the app: the screens sit in the session's `Suspense`, which has already shown its content. */
-    function renderFrom(path: string, api: ApiFetch) {
+    function renderFrom(
+      path: string,
+      api: ApiFetch,
+      screen: Component = () => (
+        <Links>
+          <Rights />
+        </Links>
+      )
+    ) {
       const history = createMemoryHistory()
       history.set({ value: path })
       render(() => (
@@ -200,14 +208,7 @@ describe('RequireOrganization', () => {
                   <Route path="/" component={OrganizationsProvider}>
                     <Route path="/elsewhere" component={Elsewhere} />
                     <Route path="/:orgSlug" component={RequireOrganization}>
-                      <Route
-                        path="/"
-                        component={() => (
-                          <Links>
-                            <Rights />
-                          </Links>
-                        )}
-                      />
+                      <Route path="/" component={screen} />
                     </Route>
                   </Route>
                 </MemoryRouter>
@@ -226,29 +227,28 @@ describe('RequireOrganization', () => {
       return { api, answer: (response: Response) => answers.shift()?.(response) }
     }
 
-    it('keeps the screen on view until the membership is in, instead of going blank', async () => {
+    it('opens the organization at once, its skeleton holding the place until the membership is in', async () => {
       const { api, answer } = slowApi()
-      renderFrom('/elsewhere', api)
+      const history = renderFrom('/elsewhere', api)
 
       fireEvent.click(await screen.findByRole('link', { name: 'To Acme' }))
-      await waitFor(() => expect(api).toHaveBeenCalledTimes(1))
-      expect(screen.getByText('The account')).toBeInTheDocument()
 
+      await waitFor(() => expect(history.get()).toBe('/acme'))
+      expect(screen.queryByText('The account')).not.toBeInTheDocument()
+      expect(await screen.findByRole('status')).toHaveTextContent('Loading…')
       answer(Response.json(admin))
       expect(await screen.findByText('Acme: add members true')).toBeInTheDocument()
-      expect(screen.queryByText('The account')).not.toBeInTheDocument()
     })
 
-    it('keeps the organization on view while another one is read', async () => {
+    it('swaps to another organization at once, its skeleton holding the place until its membership is in', async () => {
       const { api, answer } = slowApi()
-      renderFrom('/acme', api)
+      const history = renderFrom('/acme', api)
       await waitFor(() => expect(api).toHaveBeenCalledTimes(1))
       answer(Response.json(admin))
       fireEvent.click(await screen.findByRole('link', { name: 'To Globex' }))
 
-      await waitFor(() => expect(api).toHaveBeenCalledTimes(2))
-      expect(screen.getByText('Acme: add members true')).toBeInTheDocument()
-
+      await waitFor(() => expect(history.get()).toBe('/globex'))
+      expect(screen.queryByText('Acme: add members true')).not.toBeInTheDocument()
       answer(Response.json(member))
       expect(await screen.findByText('Globex: add members false')).toBeInTheDocument()
     })
@@ -287,6 +287,45 @@ describe('RequireOrganization', () => {
       await waitFor(() => expect(calls).toBe(2))
       expect(await screen.findByText('Acme: add members true')).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
+
+    it('draws the screens anew for another organization: the one leaving never reads the next (W13)', async () => {
+      const answers = new Map<string, (team: string) => void>()
+      const teams = vi.fn(
+        (id: string) =>
+          new Promise<string>((resolve) => {
+            answers.set(id, resolve)
+          })
+      )
+      /** A screen that reads its organization's data, as the settings do, and keeps it while it reads again. */
+      function Team() {
+        const current = useOrganization()
+        const [team] = createResource(() => current.organization.id, teams)
+        return (
+          <>
+            <p>{team.latest}</p>
+            <A href="/acme">To Acme</A>
+            <A href="/globex">To Globex</A>
+          </>
+        )
+      }
+      const asked = () => teams.mock.calls.map(([id]) => id)
+      const history = renderFrom('/acme', async () => Response.json(admin), Team)
+      await waitFor(() => expect(asked()).toEqual(['org-1']))
+      answers.get('org-1')?.('The team of Acme')
+
+      fireEvent.click(await screen.findByRole('link', { name: 'To Globex' }))
+      await waitFor(() => expect(asked()).toContain('org-2'))
+      answers.get('org-2')?.('The team of Globex')
+      await screen.findByText('The team of Globex')
+      expect(asked()).toEqual(['org-1', 'org-2'])
+
+      fireEvent.click(screen.getByRole('link', { name: 'To Acme' }))
+      await waitFor(() => expect(asked()).toEqual(['org-1', 'org-2', 'org-1']))
+      await waitFor(() => expect(history.get()).toBe('/acme'))
+      expect(screen.queryByText('The team of Globex')).not.toBeInTheDocument()
+      answers.get('org-1')?.('The team of Acme')
+      expect(await screen.findByText('The team of Acme')).toBeInTheDocument()
     })
 
     it('drops a late answer about an organization the screen has left', async () => {

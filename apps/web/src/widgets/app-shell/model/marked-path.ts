@@ -2,9 +2,10 @@ import { useBeforeLeave, useIsRouting, useLocation } from '@solidjs/router'
 import { createEffect, createSignal, on } from 'solid-js'
 
 /**
- * The path the side menu marks as current. While a navigation waits, the screen on view stays (ADR 0036)
- * but the menu marks the one chosen, so a click shows at once that it landed; otherwise, the screen on
- * view. A move through the browser's history names no path before it is made, so it is marked once made.
+ * The path the side menu marks as current. While a navigation waits, which only a screen's code not loaded
+ * yet makes it do (ADR 0038), the screen on view stays but the menu marks the one chosen, so a click shows
+ * at once that it landed; otherwise, the screen on view. A move through the browser's history names no
+ * path before it is made, so it is marked once made.
  */
 export function createMarkedPath(): () => string {
   const location = useLocation()

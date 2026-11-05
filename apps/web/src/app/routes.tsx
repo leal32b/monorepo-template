@@ -6,6 +6,7 @@ import { ResetPasswordPage } from '#pages/reset-password'
 import { SignInPage } from '#pages/sign-in'
 import { SignUpPage } from '#pages/sign-up'
 import { TwoFactorPage } from '#pages/two-factor'
+import { useAuth } from '#shared/api'
 import { AccountRedirect } from './account-redirect'
 
 /**
@@ -43,11 +44,42 @@ const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: 
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
 
+/**
+ * The session and the organizations are asked for together at boot, each by its route, as soon as the
+ * router matches them (ADR 0038). Their code loads on demand, as their screens' does, so the reads start
+ * once it is in; a read that fails is said by the screen that reads it.
+ */
+const preloadSession = () => {
+  const auth = useAuth()
+  import('#entities/sessions').then((m) => m.sessionQuery(auth)()).catch(() => undefined)
+}
+const preloadOrganizations = () => {
+  const auth = useAuth()
+  import('#entities/organizations').then((m) => m.organizationsQuery(auth)()).catch(() => undefined)
+}
+
 /** `/:orgSlug/settings` opens on General, as `/settings` opens on the profile. */
 function SettingsOfOrganization() {
   const params = useParams<{ orgSlug: string }>()
   return <Navigate href={`/${params.orgSlug}/settings/general`} />
 }
+
+/** The entry screens, a visitor's: signing up, signing in and choosing a new password. */
+const entryScreens: RouteDefinition[] = [
+  { path: '/signup', component: SignUpPage },
+  { path: '/login', component: SignInPage },
+  { path: '/login/two-factor', component: TwoFactorPage },
+  { path: '/forgot-password', component: ForgotPasswordPage },
+  { path: '/reset-password', component: ResetPasswordPage }
+]
+
+/**
+ * Whether the app opens on an entry screen: only those wait, a moment at most, for what the API offers
+ * for signing in before their first paint, so Google shows at once or not at all; a signed-in screen
+ * never waits for it (ADR 0038).
+ */
+export const opensOnEntryScreen = (pathname: string) =>
+  entryScreens.some((screen) => screen.path === pathname.replace(/(.)\/+$/, '$1'))
 
 /** The organization's slug is the first segment of every tenant screen (ADR 0034). */
 export const tenantPath = '/:orgSlug'
@@ -61,12 +93,14 @@ export const routes: RouteDefinition[] = [
   {
     path: '/',
     component: RequireSession,
+    preload: preloadSession,
     children: [
       {
         // The organizations are read for every screen behind the session, the account settings
         // included: their side menu offers the organization's settings beside the account's.
         path: '/',
         component: OrganizationsProvider,
+        preload: preloadOrganizations,
         children: [
           { path: '/', component: OrganizationRedirect },
           { path: '/onboarding', component: OnboardingPage },
@@ -109,10 +143,6 @@ export const routes: RouteDefinition[] = [
     ]
   },
   { path: '/account', component: AccountRedirect },
-  { path: '/signup', component: SignUpPage },
-  { path: '/login', component: SignInPage },
-  { path: '/login/two-factor', component: TwoFactorPage },
-  { path: '/forgot-password', component: ForgotPasswordPage },
-  { path: '/reset-password', component: ResetPasswordPage },
+  ...entryScreens,
   { path: '*404', component: NotFoundPage }
 ]

@@ -8,8 +8,7 @@ import {
   PanelButton,
   SettingsPanel,
   SettingsRow,
-  SettingsSection,
-  SettingsSkeleton
+  SettingsSection
 } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
@@ -188,7 +187,7 @@ export function OrganizationMembersPage() {
 
   return (
     <AppShell title={t('organizationMembers.title')}>
-      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} />}>
+      <Switch>
         <Match when={team.error}>
           <Alert variant="error" action={<Button onClick={() => void refetch()}>{t('actions.retry')}</Button>}>
             {t('organizationMembers.unavailable')}

@@ -28,6 +28,23 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
   })
 
+  it('asks for the session and the organizations together, before either answers (ADR 0038)', async () => {
+    const asked: string[] = []
+    const auth = createAuthClient({
+      fetch: (input) => {
+        asked.push(new URL(String(input), 'http://localhost').pathname)
+        return new Promise<Response>(() => {})
+      }
+    })
+    const client = createApiClient({ fetch: () => new Promise<Response>(() => {}) })
+    window.history.replaceState(null, '', '/acme')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    await waitFor(() => expect(asked).toContain('/api/auth/get-session'))
+    await waitFor(() => expect(asked).toContain('/api/auth/organization/list'))
+  })
+
   it('sends a signed-in user without an organization to name one', async () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
     const client = createApiClient({ fetch: async () => Response.json(null) })
@@ -452,16 +469,17 @@ describe('App', () => {
 
   it('shows the progress bar while a request the clients make takes long, and hides it once answered', async () => {
     const requests = createRequests()
-    let answer: (response: Response) => void = () => undefined
+    // The session and the organizations are asked for together: both answer when the test says.
+    const answers: Array<(response: Response) => void> = []
     const client = createApiClient({ fetch: requests.track(async () => Response.json(null)) })
     const auth = createAuthClient({
-      fetch: requests.track(() => new Promise((resolve) => (answer = resolve)))
+      fetch: requests.track(() => new Promise((resolve) => answers.push(resolve)))
     })
 
     render(() => <App client={client} auth={auth} requests={requests} locale="en" />)
 
     expect(await screen.findByTestId('progress-bar')).toBeInTheDocument()
-    answer(Response.json(null))
+    for (const answer of answers) answer(Response.json(null))
     await waitFor(() => expect(screen.queryByTestId('progress-bar')).not.toBeInTheDocument())
   })
 })

@@ -32,7 +32,7 @@ export {
   MenuTriggerContent,
   menuTriggerClass
 } from '#menu'
-export { motion } from '#motion'
+export { createLate, motion } from '#motion'
 export { PasswordField, type PasswordFieldProps } from '#password-field'
 export { Popover, type PopoverProps } from '#popover'
 export { ProgressBar, type ProgressBarProps } from '#progress-bar'

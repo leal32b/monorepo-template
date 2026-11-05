@@ -1,15 +1,5 @@
 import { covers, statements } from '@repo/contracts'
-import {
-  Alert,
-  Badge,
-  Button,
-  createPanels,
-  PanelButton,
-  SettingsPanel,
-  SettingsRow,
-  SettingsSection,
-  SettingsSkeleton
-} from '@repo/ui'
+import { Alert, Badge, Button, createPanels, PanelButton, SettingsPanel, SettingsRow, SettingsSection } from '@repo/ui'
 import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
 import {
   holdersOf,
@@ -188,7 +178,7 @@ export function OrganizationRolesPage() {
 
   return (
     <AppShell title={t('organizationRoles.title')}>
-      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} />}>
+      <Switch>
         <Match when={team.error}>
           <Alert variant="error" action={<Button onClick={() => void refetch()}>{t('actions.retry')}</Button>}>
             {t('organizationRoles.unavailable')}

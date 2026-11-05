@@ -263,7 +263,7 @@ describe('OrganizationMembersPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Leave organization' }))
 
     expect(await screen.findByText('The root')).toBeInTheDocument()
-    expect(history.get()).toBe('/')
+    await waitFor(() => expect(history.get()).toBe('/'))
   })
 
   it('reads the list again and says so when the person was already gone', async () => {

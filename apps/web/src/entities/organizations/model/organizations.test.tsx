@@ -1,5 +1,6 @@
+import { MemoryRouter, Route } from '@solidjs/router'
 import { render, screen } from '@solidjs/testing-library'
-import { Show } from 'solid-js'
+import { type JSX, Show } from 'solid-js'
 import { AuthProvider, createAuthClient } from '#shared/api'
 import { OrganizationsProvider, useOptionalOrganizations, useOrganizations } from './organizations'
 
@@ -23,16 +24,25 @@ function Names() {
   )
 }
 
+/** As in the app, the provider sits under the router, whose cache of reads it uses (ADR 0038). */
+const routed = (screen: () => JSX.Element) => (
+  <MemoryRouter>
+    <Route path="/" component={screen} />
+  </MemoryRouter>
+)
+
 describe('OrganizationsProvider', () => {
   it('reads the organizations once for every screen below, and again when asked', async () => {
     const fetch = vi.fn(async () => Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }]))
 
     render(() => (
       <AuthProvider client={createAuthClient({ fetch })}>
-        <OrganizationsProvider>
-          <Names />
-          <Names />
-        </OrganizationsProvider>
+        {routed(() => (
+          <OrganizationsProvider>
+            <Names />
+            <Names />
+          </OrganizationsProvider>
+        ))}
       </AuthProvider>
     ))
 
@@ -64,10 +74,12 @@ describe('OrganizationsProvider', () => {
 
     render(() => (
       <AuthProvider client={createAuthClient({ fetch })}>
-        <OrganizationsProvider>
-          <Names />
-          <Controls />
-        </OrganizationsProvider>
+        {routed(() => (
+          <OrganizationsProvider>
+            <Names />
+            <Controls />
+          </OrganizationsProvider>
+        ))}
       </AuthProvider>
     ))
     expect(await screen.findByText('Acme, Globex')).toBeInTheDocument()
@@ -87,9 +99,11 @@ describe('OrganizationsProvider', () => {
 
     render(() => (
       <AuthProvider client={createAuthClient({ fetch: async () => Response.json([]) })}>
-        <OrganizationsProvider>
-          <Probe />
-        </OrganizationsProvider>
+        {routed(() => (
+          <OrganizationsProvider>
+            <Probe />
+          </OrganizationsProvider>
+        ))}
       </AuthProvider>
     ))
     expect(await screen.findByText('some')).toBeInTheDocument()

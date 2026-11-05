@@ -5,6 +5,7 @@ export { listMembers } from './api/list-members'
 export { listOrganizations, type Organization } from './api/list-organizations'
 export { listPendingInvitations } from './api/list-pending-invitations'
 export { listRoles } from './api/list-roles'
+export { organizationsQuery } from './api/organizations-query'
 export { type MemberFailureKind, memberFailureKind } from './lib/member-failure'
 export {
   holdersOf,
@@ -15,6 +16,7 @@ export {
   type Role,
   rolesOf
 } from './lib/members'
+export { ownOrganization } from './lib/own-organization'
 export { slugFromName, withSuffix } from './lib/slug'
 export {
   type CurrentOrganization,
