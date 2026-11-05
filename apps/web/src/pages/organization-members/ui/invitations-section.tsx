@@ -1,8 +1,6 @@
 import {
-  Alert,
   Avatar,
   Badge,
-  Button,
   PanelButton,
   type Panels,
   SettingsPanel,
@@ -10,12 +8,12 @@ import {
   SettingsSection,
   SettingsSkeleton
 } from '@repo/ui'
-import { createResource, createSignal, For, Match, Show, Suspense, Switch } from 'solid-js'
+import { createSignal, For, Show, Suspense } from 'solid-js'
 import {
-  listPendingInvitations,
-  type Member,
+  membersQuery,
   type PendingInvitation,
-  type Role,
+  pendingInvitationsQuery,
+  rolesQuery,
   useOrganization,
   useRoleLabel
 } from '#entities/organizations'
@@ -25,13 +23,12 @@ import {
   ResendInvitation,
   RevokeInvitation
 } from '#features/organizations/invite-people'
-import { type AuthFailure, useAuth } from '#shared/api'
+import { type AuthFailure, createRead, readAgain, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { formatDate } from '#shared/lib'
+import { ReadFailure } from '#shared/ui'
 
 export type InvitationsSectionProps = {
-  members: readonly Member[]
-  roles: readonly Role[]
   /** The screen's panels: one form open at a time across the people and the invitations. */
   panels: Panels
 }
@@ -40,21 +37,49 @@ export type InvitationsSectionProps = {
  * The invitations of the organization: a row to invite someone, and the ones still waiting for an answer,
  * each with when it expires, to send again (the way out when the email did not arrive) or to revoke.
  * Whoever may create invitations sees the first, whoever may cancel them sees the second; anyone else does
- * not see the section. The list is read on its own, so it can fail or load again without the people above
- * it going blank; while it is read the first time, a placeholder holds its place. While a form is open anywhere on the screen, every action here waits.
+ * not see the section, and its list is not read. The list is read beside the people, under a boundary of
+ * its own (ADR 0038), so it can fail or load again without the people above it going blank; while it is
+ * read the first time, a placeholder holds its place. While a form is open anywhere on the screen, every
+ * action here waits.
  */
 export function InvitationsSection(props: InvitationsSectionProps) {
+  const { t } = useI18n()
+  const current = useOrganization()
+
+  return (
+    <Show when={current.can('invitation', 'create') || current.can('invitation', 'cancel')}>
+      <ReadFailure message={t('organizationInvitations.unavailable')}>
+        <Suspense fallback={<SettingsSkeleton label={t('appShell.loading')} rows={1} />}>
+          <Invitations panels={props.panels} />
+        </Suspense>
+      </ReadFailure>
+    </Show>
+  )
+}
+
+/** The section once read: the invitations, and the people and roles its form needs, shared by key with the screen. */
+function Invitations(props: InvitationsSectionProps) {
   const { t, locale } = useI18n()
   const auth = useAuth()
   const current = useOrganization()
   const roleLabel = useRoleLabel()
   const canInvite = () => current.can('invitation', 'create')
   const canRevoke = () => current.can('invitation', 'cancel')
-  const canSee = () => canInvite() || canRevoke()
-  const [pending, { refetch }] = createResource(
-    () => (canSee() ? current.organization.id : undefined),
-    (organizationId) => listPendingInvitations(auth, organizationId, new Date())
-  )
+  const id = current.organization.id
+  const pending = pendingInvitationsQuery(auth)
+  const members = membersQuery(auth)
+  const roles = rolesQuery(auth)
+  const invitations = createRead(() => pending(id), pending.keyFor(id))
+  const people = createRead(() => members(id), members.keyFor(id))
+  const all = createRead(() => roles(id), roles.keyFor(id))
+  const loaded = () => {
+    const list = invitations()
+    const team = people()
+    const choices = all()
+    return list && team && choices ? { list, team, choices } : undefined
+  }
+  /** After a change, the list is read again: the screen keeps it until the answer comes. */
+  const reread = () => readAgain(pending.keyFor(id))
   const [inviteStatus, setInviteStatus] = createSignal<string>()
   const [sectionStatus, setSectionStatus] = createSignal<string>()
   const [rowStatus, setRowStatus] = createSignal<{ id: string; text: string }>()
@@ -80,7 +105,7 @@ export function InvitationsSection(props: InvitationsSectionProps) {
         <>
           <Show when={canInvite()}>
             <ResendInvitation
-              organizationId={current.organization.id}
+              organizationId={id}
               invitation={invitation}
               disabled={waiting()}
               onPending={setBusy}
@@ -90,7 +115,7 @@ export function InvitationsSection(props: InvitationsSectionProps) {
                   id: invitation.id,
                   text: t('organizationInvitations.row.resent', { email: invitation.email })
                 })
-                void refetch()
+                reread()
               }}
               onFailure={(failure) => {
                 forget()
@@ -106,7 +131,7 @@ export function InvitationsSection(props: InvitationsSectionProps) {
               onRevoked={() => {
                 forget()
                 setSectionStatus(t('organizationInvitations.row.revoked', { email: invitation.email }))
-                void refetch()
+                reread()
               }}
               onFailure={(failure) => {
                 forget()
@@ -125,61 +150,50 @@ export function InvitationsSection(props: InvitationsSectionProps) {
   )
 
   return (
-    <Show when={canSee()}>
-      <Suspense fallback={<SettingsSkeleton label={t('appShell.loading')} rows={1} />}>
-        <Switch>
-          <Match when={pending.error}>
-            <Alert variant="error" action={<Button onClick={() => void refetch()}>{t('actions.retry')}</Button>}>
-              {t('organizationInvitations.unavailable')}
-            </Alert>
-          </Match>
-          <Match when={pending.latest}>
-            {(list) => (
-              <SettingsSection
-                title={t('organizationInvitations.section.title')}
-                description={t('organizationInvitations.section.description', { name: current.organization.name })}
-                status={sectionStatus()}
-              >
-                <Show when={canInvite()}>
-                  <SettingsRow
-                    icon="plus"
-                    title={t('organizationInvitations.invite.title')}
-                    description={t('organizationInvitations.invite.description', { name: current.organization.name })}
-                    status={inviteStatus()}
-                    action={
-                      <PanelButton panels={props.panels} panel="invite" onOpen={forget} disabled={busy()}>
-                        {t('organizationInvitations.invite.open')}
-                      </PanelButton>
-                    }
-                    panel={
-                      <Show when={props.panels.isOpen('invite')}>
-                        <SettingsPanel label={t('organizationInvitations.invite.open')}>
-                          <InvitePeopleForm
-                            organizationId={current.organization.id}
-                            roles={props.roles}
-                            held={current.membership.permissions}
-                            memberEmails={new Set(props.members.map((member) => member.email.toLowerCase()))}
-                            onInvited={(email) => {
-                              setInviteStatus(t('organizationInvitations.form.sent', { email }))
-                              props.panels.close()
-                              void refetch()
-                            }}
-                            onCancel={props.panels.close}
-                          />
-                        </SettingsPanel>
-                      </Show>
-                    }
-                  />
+    <Show when={loaded()}>
+      {(data) => (
+        <SettingsSection
+          title={t('organizationInvitations.section.title')}
+          description={t('organizationInvitations.section.description', { name: current.organization.name })}
+          status={sectionStatus()}
+        >
+          <Show when={canInvite()}>
+            <SettingsRow
+              icon="plus"
+              title={t('organizationInvitations.invite.title')}
+              description={t('organizationInvitations.invite.description', { name: current.organization.name })}
+              status={inviteStatus()}
+              action={
+                <PanelButton panels={props.panels} panel="invite" onOpen={forget} disabled={busy()}>
+                  {t('organizationInvitations.invite.open')}
+                </PanelButton>
+              }
+              panel={
+                <Show when={props.panels.isOpen('invite')}>
+                  <SettingsPanel label={t('organizationInvitations.invite.open')}>
+                    <InvitePeopleForm
+                      organizationId={id}
+                      roles={data().choices}
+                      held={current.membership.permissions}
+                      memberEmails={new Set(data().team.map((member) => member.email.toLowerCase()))}
+                      onInvited={(email) => {
+                        setInviteStatus(t('organizationInvitations.form.sent', { email }))
+                        props.panels.close()
+                        reread()
+                      }}
+                      onCancel={props.panels.close}
+                    />
+                  </SettingsPanel>
                 </Show>
-                <For each={list()}>{rowOf}</For>
-                <Show when={list().length === 0}>
-                  <p class="p-4 text-sm text-muted-foreground sm:px-5">{t('organizationInvitations.section.empty')}</p>
-                </Show>
-              </SettingsSection>
-            )}
-          </Match>
-        </Switch>
-      </Suspense>
+              }
+            />
+          </Show>
+          <For each={data().list}>{rowOf}</For>
+          <Show when={data().list.length === 0}>
+            <p class="p-4 text-sm text-muted-foreground sm:px-5">{t('organizationInvitations.section.empty')}</p>
+          </Show>
+        </SettingsSection>
+      )}
     </Show>
   )
 }

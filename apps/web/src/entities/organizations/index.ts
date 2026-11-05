@@ -5,7 +5,11 @@ export { listMembers } from './api/list-members'
 export { listOrganizations, type Organization } from './api/list-organizations'
 export { listPendingInvitations } from './api/list-pending-invitations'
 export { listRoles } from './api/list-roles'
+export { membersQuery } from './api/members-query'
 export { organizationsQuery } from './api/organizations-query'
+export { pendingInvitationsQuery } from './api/pending-invitations-query'
+export { preloadTeam } from './api/preload-team'
+export { rolesQuery } from './api/roles-query'
 export { type MemberFailureKind, memberFailureKind } from './lib/member-failure'
 export {
   holdersOf,

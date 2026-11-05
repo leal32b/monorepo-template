@@ -3,6 +3,14 @@ import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-lib
 import { createApiClient, createAuthClient, createRequests } from '#shared/api'
 import { App } from './app'
 
+/** Follows a link the way the router takes one, as a link elsewhere on the page or the palette does. */
+const follow = (href: string) => {
+  const link = Object.assign(document.createElement('a'), { href })
+  document.body.append(link)
+  link.click()
+  link.remove()
+}
+
 describe('App', () => {
   afterEach(() => window.history.replaceState(null, '', '/'))
 
@@ -43,6 +51,40 @@ describe('App', () => {
 
     await waitFor(() => expect(asked).toContain('/api/auth/get-session'))
     await waitFor(() => expect(asked).toContain('/api/auth/organization/list'))
+  })
+
+  it('asks for the members screen’s lists beside the membership, on a cold load (ADR 0038)', async () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const asked: string[] = []
+    const client = createApiClient({
+      fetch: (path) => {
+        asked.push(path)
+        return path.endsWith('/me') ? new Promise<Response>(() => {}) : Promise.resolve(Response.json(null))
+      }
+    })
+    const auth = createAuthClient({
+      fetch: async (input) => {
+        const url = String(input)
+        asked.push(new URL(url, 'http://localhost').pathname)
+        if (url.includes('/organization/list-')) return new Promise<Response>(() => {})
+        if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+        return Response.json({ session: { id: 's1' }, user })
+      }
+    })
+    window.history.replaceState(null, '', '/acme/settings/members')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    await waitFor(() =>
+      expect(asked).toEqual(
+        expect.arrayContaining([
+          '/api/organizations/org-1/me',
+          '/api/auth/organization/list-members',
+          '/api/auth/organization/list-roles',
+          '/api/auth/organization/list-invitations'
+        ])
+      )
+    )
   })
 
   it('sends a signed-in user without an organization to name one', async () => {
@@ -359,6 +401,18 @@ describe('App', () => {
       await waitFor(() => expect(window.location.pathname).toBe('/onboarding'))
     })
 
+    it('opens the members of the organization from the account settings, right after the start', async () => {
+      window.history.replaceState(null, '', '/settings/profile')
+      render(() => <App {...inAcme()} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Profile' })
+
+      follow('/acme/settings/members')
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Members' })).toBeInTheDocument()
+      expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Page not found' })).not.toBeInTheDocument()
+    })
+
     it('is offered by the account settings too, for the organization that / would open', async () => {
       window.history.replaceState(null, '', '/settings/profile')
 
@@ -410,13 +464,6 @@ describe('App', () => {
     /** Every answer a moment away, as over a network: the router's transition then waits on it. */
     const later = (body: unknown) =>
       new Promise<Response>((resolve) => setTimeout(() => resolve(Response.json(body)), 100))
-    /** Follows a link the way the router takes one, as a link elsewhere on the page or the palette does. */
-    const follow = (href: string) => {
-      const link = Object.assign(document.createElement('a'), { href })
-      document.body.append(link)
-      link.click()
-      link.remove()
-    }
 
     /** Ada owns Acme and Globex, so the home offers her the way to invite people. */
     const inTwo = () => {

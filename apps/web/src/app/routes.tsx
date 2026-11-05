@@ -1,4 +1,4 @@
-import { Navigate, type RouteDefinition, useParams } from '@solidjs/router'
+import { Navigate, type RouteDefinition, type RoutePreloadFuncArgs, useParams } from '@solidjs/router'
 import { lazy } from 'solid-js'
 import { ForgotPasswordPage } from '#pages/forgot-password'
 import { NotFoundPage } from '#pages/not-found'
@@ -6,7 +6,7 @@ import { ResetPasswordPage } from '#pages/reset-password'
 import { SignInPage } from '#pages/sign-in'
 import { SignUpPage } from '#pages/sign-up'
 import { TwoFactorPage } from '#pages/two-factor'
-import { useAuth } from '#shared/api'
+import { type AuthClient, useAuth } from '#shared/api'
 import { AccountRedirect } from './account-redirect'
 
 /**
@@ -53,9 +53,19 @@ const preloadSession = () => {
   const auth = useAuth()
   import('#entities/sessions').then((m) => m.sessionQuery(auth)()).catch(() => undefined)
 }
-const preloadOrganizations = () => {
+/** Starts reads of the organizations' entity, once its code is in. */
+const preloadWith = (start: (entity: typeof import('#entities/organizations'), auth: AuthClient) => unknown) => {
   const auth = useAuth()
-  import('#entities/organizations').then((m) => m.organizationsQuery(auth)()).catch(() => undefined)
+  import('#entities/organizations').then((entity) => start(entity, auth)).catch(() => undefined)
+}
+const preloadOrganizations = () => preloadWith((entity, auth) => entity.organizationsQuery(auth)())
+/**
+ * The members and roles screens' lists start as soon as the organization is known, beside its membership.
+ * The slug is read now: the router's parameters change only once its transition commits.
+ */
+const preloadTeam = ({ params }: RoutePreloadFuncArgs) => {
+  const slug = params.orgSlug as string
+  preloadWith((entity, auth) => entity.preloadTeam(auth, slug))
 }
 
 /** `/:orgSlug/settings` opens on General, as `/settings` opens on the profile. */
@@ -130,8 +140,8 @@ export const routes: RouteDefinition[] = [
                     children: [
                       { path: '/', component: SettingsOfOrganization },
                       { path: '/general', component: OrganizationGeneralPage },
-                      { path: '/members', component: OrganizationMembersPage },
-                      { path: '/roles', component: OrganizationRolesPage }
+                      { path: '/members', component: OrganizationMembersPage, preload: preloadTeam },
+                      { path: '/roles', component: OrganizationRolesPage, preload: preloadTeam }
                     ]
                   }
                 ]
