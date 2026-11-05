@@ -1,4 +1,4 @@
-import { Button, SettingsPanel, SettingsRow } from '@repo/ui'
+import { PanelButton, SettingsPanel, SettingsRow } from '@repo/ui'
 import { createSignal } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { RegenerateBackupCodes } from '#features/regenerate-backup-codes'
@@ -20,13 +20,10 @@ export type BackupCodesRowProps = RowPanelProps & {
 export function BackupCodesRow(props: BackupCodesRowProps) {
   const { t } = useI18n()
   const [codes, setCodes] = createSignal<string[]>()
-  let action: HTMLButtonElement | undefined
-
-  const opened = () => props.open === 'new-codes'
+  const opened = () => props.panels.isOpen('new-codes')
   const close = () => {
     setCodes(undefined)
-    props.onClose()
-    queueMicrotask(() => action?.focus())
+    props.panels.close()
   }
 
   return (
@@ -37,16 +34,10 @@ export function BackupCodesRow(props: BackupCodesRowProps) {
         props.security.twoFactor ? t('account.backupCodes.description') : t('account.backupCodes.unavailable')
       }
       action={
-        props.security.twoFactor && !opened() ? (
-          <Button
-            ref={(button) => {
-              action = button
-            }}
-            disabled={props.open !== undefined}
-            onClick={() => props.onOpen('new-codes')}
-          >
+        props.security.twoFactor ? (
+          <PanelButton panels={props.panels} panel="new-codes">
             {t('account.backupCodes.newCodes')}
-          </Button>
+          </PanelButton>
         ) : undefined
       }
       panel={

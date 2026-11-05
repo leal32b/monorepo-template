@@ -1,4 +1,4 @@
-import { Badge, Button, SettingsPanel, SettingsRow } from '@repo/ui'
+import { Badge, PanelButton, SettingsPanel, SettingsRow } from '@repo/ui'
 import { createSignal } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { ChangePasswordForm } from '#features/change-password'
@@ -17,13 +17,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
   const { t } = useI18n()
   const [status, setStatus] = createSignal<string>()
   const [failure, setFailure] = createSignal<AuthFailure>()
-  let change: HTMLButtonElement | undefined
-
-  const opened = () => props.open === 'password'
-  const close = () => {
-    props.onClose()
-    queueMicrotask(() => change?.focus())
-  }
+  const close = () => props.panels.close()
 
   return (
     <SettingsRow
@@ -42,20 +36,9 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
       status={status()}
       action={
         props.security.password ? (
-          opened() ? undefined : (
-            <Button
-              ref={(button) => {
-                change = button
-              }}
-              disabled={props.open !== undefined}
-              onClick={() => {
-                setStatus(undefined)
-                props.onOpen('password')
-              }}
-            >
-              {t('account.password.change')}
-            </Button>
-          )
+          <PanelButton panels={props.panels} panel="password" onOpen={() => setStatus(undefined)}>
+            {t('account.password.change')}
+          </PanelButton>
         ) : (
           <SendPasswordLink
             email={props.security.email}
@@ -71,7 +54,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
         )
       }
       panel={
-        opened() ? (
+        props.panels.isOpen('password') ? (
           <SettingsPanel label={t('account.password.change')}>
             <p class="text-muted-foreground">{t('changePassword.signsOut')}</p>
             <ChangePasswordForm

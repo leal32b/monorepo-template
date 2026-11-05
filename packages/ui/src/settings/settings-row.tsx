@@ -1,4 +1,13 @@
-import { type ComponentProps, children, type JSX, Show, splitProps } from 'solid-js'
+import {
+  type ComponentProps,
+  children,
+  createContext,
+  createUniqueId,
+  type JSX,
+  Show,
+  splitProps,
+  useContext
+} from 'solid-js'
 import { Icon, type IconName } from '#icon'
 import { cn } from '#libs'
 
@@ -41,7 +50,24 @@ const drawn = (resolved: unknown[]) => resolved.some((item) => item !== undefine
  * the full width: the row follows its own width, not the screen's. What the action opens appears under the
  * row in the `panel`, never on another page. Put it inside a `SettingsSection`.
  */
+/** The id of the row's note, while it has one: a button that cannot act points to it for its reason. */
+const NoteContext = createContext<() => string | undefined>(() => undefined)
+
+/** The id of the `note` of the row around, if it has one (`PanelButton` uses it when disabled). */
+export const useRowNote = () => useContext(NoteContext)
+
 export function SettingsRow(props: SettingsRowProps) {
+  const noteId = createUniqueId()
+
+  return (
+    <NoteContext.Provider value={() => (props.note ? noteId : undefined)}>
+      <Row {...props} noteId={noteId} />
+    </NoteContext.Provider>
+  )
+}
+
+/** The row itself, inside its note's context, so the actions it draws can read it. */
+function Row(props: SettingsRowProps & { noteId: string }) {
   const [local, rest] = splitProps(props, [
     'class',
     'icon',
@@ -53,7 +79,8 @@ export function SettingsRow(props: SettingsRowProps) {
     'note',
     'status',
     'action',
-    'panel'
+    'panel',
+    'noteId'
   ])
   const action = children(() => local.action)
   const panel = children(() => local.panel)
@@ -82,7 +109,7 @@ export function SettingsRow(props: SettingsRowProps) {
               <p class="mt-0.5 text-sm text-muted-foreground">{local.description}</p>
             </Show>
             <Show when={local.note}>
-              <p class="mt-1.5 flex items-start gap-1.5 text-sm text-muted-foreground">
+              <p id={local.noteId} class="mt-1.5 flex items-start gap-1.5 text-sm text-muted-foreground">
                 <Icon name="info" class="mt-0.5 size-4 shrink-0" />
                 {local.note}
               </p>

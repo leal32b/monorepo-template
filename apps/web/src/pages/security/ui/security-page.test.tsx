@@ -128,6 +128,17 @@ describe('SecurityPage', () => {
   })
 
   describe('the password', () => {
+    it('keeps Google waiting while a form is open, as every other change to the account', async () => {
+      renderPage(betterAuth(['credential', 'google'], false))
+      await screen.findByRole('button', { name: 'Unlink Google' })
+
+      click('Change password')
+
+      expect(screen.getByRole('button', { name: 'Unlink Google' })).toBeDisabled()
+      click('Cancel')
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Unlink Google' })).toBeEnabled())
+    })
+
     it('opens its form below the row, one at a time, and a cancelled form gives focus back', async () => {
       renderPage(betterAuth(['credential'], false))
       await screen.findByRole('button', { name: 'Change password' })

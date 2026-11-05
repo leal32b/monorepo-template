@@ -85,6 +85,35 @@ describe('createPanels and PanelButton', () => {
     expect(panels.open()).toBe('b')
   })
 
+  it('points to the row’s note for its reason when disabled for one, and only then', () => {
+    const panels = createPanels()
+    render(() => (
+      <>
+        <SettingsRow
+          title="Ada"
+          note="The only owner."
+          action={
+            <PanelButton panels={panels} panel="leave" disabled>
+              Leave
+            </PanelButton>
+          }
+        />
+        <SettingsRow
+          title="Grace"
+          note="Shown, but not why the button waits."
+          action={
+            <PanelButton panels={panels} panel="remove">
+              Remove
+            </PanelButton>
+          }
+        />
+      </>
+    ))
+
+    expect(screen.getByRole('button', { name: 'Leave' })).toHaveAccessibleDescription('The only owner.')
+    expect(screen.getByRole('button', { name: 'Remove' })).not.toHaveAttribute('aria-describedby')
+  })
+
   it('gives no focus back when the opener of the closed panel never drew', async () => {
     const panels = createPanels()
     render(() => <Button>Elsewhere</Button>)

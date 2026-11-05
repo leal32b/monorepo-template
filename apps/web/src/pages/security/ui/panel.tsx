@@ -1,10 +1,9 @@
-/** Which row's form is open. One at a time, so what the user is doing is always the one thing open. */
-export type PanelName = 'password' | 'turn-on' | 'turn-off' | 'new-codes'
+import type { Panels } from '@repo/ui'
 
-/** What every row needs to open and close its form. */
+/** The forms of the security screen. One at a time, so what the user is doing is always the one thing open. */
+export type PanelName = 'password' | 'authenticator' | 'new-codes'
+
+/** What every row needs: the screen's panels (`createPanels`), shared so one opens at a time. */
 export type RowPanelProps = {
-  /** The form that is open, if any. */
-  open: PanelName | undefined
-  onOpen: (panel: PanelName) => void
-  onClose: () => void
+  panels: Panels<PanelName>
 }

@@ -11,6 +11,8 @@ export type UnlinkGoogleProps = {
   onUnlinked: () => void
   /** Called with what went wrong, to show it where the user acted with `UnlinkGoogleFailure`. */
   onFailure: (failure: AuthFailure) => void
+  /** Keeps it from being pressed while another change to the account is open on the screen. */
+  disabled?: boolean | undefined
 }
 
 /**
@@ -32,7 +34,7 @@ export function UnlinkGoogle(props: UnlinkGoogleProps) {
   }
 
   return (
-    <Button disabled={pending()} onClick={unlink}>
+    <Button disabled={pending() || props.disabled} onClick={unlink}>
       {t('unlinkGoogle.submit')}
     </Button>
   )
