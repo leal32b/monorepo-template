@@ -53,7 +53,10 @@ are the phone; breakpoints only add.
 - **Families share a layout.** All entry screens (sign-up, sign-in, MFA, forgot and reset password)
   use one layout: brand at the top, then the `h1`, a one-line description, the form, the primary
   action as the form's last element, and secondary links in the same place below the form. App
-  screens share the app shell (header with the brand and the account menu, then `main`).
+  screens share the app shell: one `AppFrame` route (side menu, top bar, palette) drawn once and kept
+  between screens, and each screen an `AppShell` (its title and `main`), which tells the frame its title
+  and organization ([ADR 0037](../../../docs/adr/0037-keep-one-app-frame-across-screens.md)). Chrome
+  belongs in the frame, never copied into a screen.
 - **One column on phones.** Side by side only from `sm:` or wider, and only when the content needs it.
 - **Widths:** entry screens `max-w-sm`; content screens `max-w-2xl`; always `w-full mx-auto` with
   `px-4` on phones and `sm:px-6` above.

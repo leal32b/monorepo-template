@@ -1,69 +1,41 @@
-import { Sheet } from '@repo/ui'
-import { useNavigate } from '@solidjs/router'
-import { createSignal, onMount, type ParentProps, Show } from 'solid-js'
-import { createServiceStatus } from '#entities/health'
-import { createSignOut } from '#features/sign-out'
-import { useI18n, usePalette } from '#shared/config'
+import { createMemo, onCleanup, onMount, type ParentProps, Show } from 'solid-js'
+import { useCurrentOrganization } from '#entities/organizations'
 import { AuthFailureAlert } from '#shared/ui'
-import { takeDrawerHandoff } from '../model/drawer-handoff'
-import { useInSettings } from '../model/in-settings'
-import { ShellPalette } from './shell-palette'
-import { Sidebar } from './sidebar'
-import { type Crumb, TopBar } from './top-bar'
+import { useShell } from '../model/shell'
+import { AppFrame } from './app-frame'
 
 /**
- * The frame every app screen shares: the side menu (a drawer on phones), a sticky top bar with where
- * you are, and the screen's title and content in one column, mobile first. Focus moves to the title
- * when the screen opens; a failed sign-out shows below it.
+ * An app screen: its title and content in one column, mobile first, inside the frame the screens share
+ * (`AppFrame`, ADR 0037), which it tells its title and organization while it is on view. Focus moves to
+ * the title when the screen opens; a failed sign-out shows below it. A screen with no frame around it,
+ * such as one drawn on its own in a test, draws one.
  */
 export function AppShell(props: ParentProps<{ title: string }>) {
-  const { t } = useI18n()
-  const navigate = useNavigate()
-  const signOut = createSignOut(() => navigate('/login', { replace: true }))
-  const palette = usePalette()
-  const status = createServiceStatus()
-  // Open from the start when the drawer of the previous screen asked to stay open (see the handoff).
-  const [drawerOpen, setDrawerOpen] = createSignal(takeDrawerHandoff())
-  const inSettings = useInSettings()
-  /** Where the screen sits, read from the route: a settings screen is under "Settings". */
-  const parents = (): Crumb[] =>
-    inSettings() ? [{ href: '/settings/profile', label: t('appShell.account.settings') }] : []
+  const shell = useShell()
+  if (shell === undefined) {
+    return (
+      <AppFrame>
+        <AppShell title={props.title}>{props.children}</AppShell>
+      </AppFrame>
+    )
+  }
 
-  const sidebar = (onNavigate?: () => void) => (
-    <Sidebar status={status} signOut={signOut.signOut} onNavigate={onNavigate} inDrawer={onNavigate !== undefined} />
-  )
+  const current = useCurrentOrganization()
+  // A memo keeps its last value once its screen has left, when the guard's context no longer can.
+  const organization = createMemo(() => current?.organization)
+  onCleanup(shell.enter({ title: () => props.title, organization }))
 
   return (
-    <div class="md:grid md:grid-cols-[16rem_minmax(0,1fr)]">
-      <aside class="sticky top-0 hidden h-screen border-r border-border-subtle md:block">{sidebar()}</aside>
-      <Sheet
-        open={drawerOpen()}
-        onOpenChange={setDrawerOpen}
-        title={t('appShell.menu')}
-        closeLabel={t('appShell.closeMenu')}
+    <main class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-6 pb-8 sm:px-6 md:pt-8 md:pb-12">
+      <h1
+        ref={(heading) => onMount(() => heading.focus())}
+        tabIndex={-1}
+        class="text-2xl font-semibold tracking-tight outline-none"
       >
-        {sidebar(() => setDrawerOpen(false))}
-      </Sheet>
-      <ShellPalette signOut={signOut.signOut} />
-      <div class="min-w-0">
-        <TopBar
-          parents={parents()}
-          title={props.title}
-          onOpenMenu={() => setDrawerOpen(true)}
-          onSearch={() => palette.setOpen(true)}
-        />
-        <main class="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-6 pb-8 sm:px-6 md:pt-8 md:pb-12">
-          <h1
-            ref={(heading) => onMount(() => heading.focus())}
-            tabIndex={-1}
-            class="text-2xl font-semibold tracking-tight outline-none"
-          >
-            {props.title}
-          </h1>
-          <Show when={signOut.failure()}>{(failure) => <AuthFailureAlert failure={failure()} />}</Show>
-          {props.children}
-        </main>
-      </div>
-    </div>
+        {props.title}
+      </h1>
+      <Show when={shell.signOutFailure()}>{(failure) => <AuthFailureAlert failure={failure()} />}</Show>
+      {props.children}
+    </main>
   )
 }

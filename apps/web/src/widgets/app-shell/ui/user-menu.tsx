@@ -2,14 +2,18 @@ import { Avatar, cn, Menu, MenuHeader, MenuItem, MenuSeparator, MenuTriggerConte
 import { useNavigate } from '@solidjs/router'
 import { useSession } from '#entities/sessions'
 import { useI18n } from '#shared/config'
-import { keepDrawerOpenOnNextScreen } from '../model/drawer-handoff'
 
 /**
  * The account at the foot of the side menu: who is signed in, and what the account offers —
  * settings and signing out. The name is the trigger, so the menu is named by who it is for. In the
- * phone drawer, going to the settings keeps the drawer open, to pick another screen than the first.
+ * phone drawer, going to the settings says so first (`onSettings`), so the drawer can stay open.
  */
-export function UserMenu(props: { signOut: () => void; inDrawer?: boolean | undefined; class?: string | undefined }) {
+export function UserMenu(props: {
+  signOut: () => void
+  /** Called before going to the settings. */
+  onSettings?: (() => void) | undefined
+  class?: string | undefined
+}) {
   const { t } = useI18n()
   const user = useSession()
   const navigate = useNavigate()
@@ -28,7 +32,7 @@ export function UserMenu(props: { signOut: () => void; inDrawer?: boolean | unde
       <MenuItem
         icon="preferences"
         onSelect={() => {
-          if (props.inDrawer) keepDrawerOpenOnNextScreen()
+          props.onSettings?.()
           navigate('/settings/profile')
         }}
       >

@@ -23,6 +23,7 @@ const OrganizationsProvider = lazy(() =>
 const OrganizationRedirect = lazy(() =>
   import('./organization-redirect').then((m) => ({ default: m.OrganizationRedirect }))
 )
+const AppFrame = lazy(() => import('#widgets/app-shell').then((m) => ({ default: m.AppFrame })))
 const RequireOrganization = lazy(() =>
   import('./require-organization').then((m) => ({ default: m.RequireOrganization }))
 )
@@ -67,31 +68,38 @@ export const routes: RouteDefinition[] = [
         path: '/',
         component: OrganizationsProvider,
         children: [
-          {
-            path: '/settings',
-            children: [
-              { path: '/', component: () => <Navigate href="/settings/profile" /> },
-              { path: '/profile', component: ProfilePage },
-              { path: '/security', component: SecurityPage },
-              { path: '/preferences', component: PreferencesPage }
-            ]
-          },
           { path: '/', component: OrganizationRedirect },
           { path: '/onboarding', component: OnboardingPage },
           // The invitation email's link (ADR 0033, D5); a visitor signs in or signs up and comes back.
           { path: '/invitations/:id', component: InvitationPage },
           {
-            path: tenantPath,
-            component: RequireOrganization,
+            // The account settings and the organization's screens share one frame, drawn once (ADR 0037).
+            path: '/',
+            component: AppFrame,
             children: [
-              { path: '/', component: HomePage },
               {
                 path: '/settings',
                 children: [
-                  { path: '/', component: SettingsOfOrganization },
-                  { path: '/general', component: OrganizationGeneralPage },
-                  { path: '/members', component: OrganizationMembersPage },
-                  { path: '/roles', component: OrganizationRolesPage }
+                  { path: '/', component: () => <Navigate href="/settings/profile" /> },
+                  { path: '/profile', component: ProfilePage },
+                  { path: '/security', component: SecurityPage },
+                  { path: '/preferences', component: PreferencesPage }
+                ]
+              },
+              {
+                path: tenantPath,
+                component: RequireOrganization,
+                children: [
+                  { path: '/', component: HomePage },
+                  {
+                    path: '/settings',
+                    children: [
+                      { path: '/', component: SettingsOfOrganization },
+                      { path: '/general', component: OrganizationGeneralPage },
+                      { path: '/members', component: OrganizationMembersPage },
+                      { path: '/roles', component: OrganizationRolesPage }
+                    ]
+                  }
                 ]
               }
             ]

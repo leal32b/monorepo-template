@@ -1,6 +1,6 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/organizations'
+import { OrganizationsProvider } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale } from '#shared/config'
 import { OrganizationSwitcher } from './organization-switcher'
@@ -19,7 +19,6 @@ function renderSwitcher({
   locale?: Locale
   onNavigate?: () => void
 } = {}) {
-  const membership = { roles: ['owner'], permissions: {} }
   const history = createMemoryHistory()
   history.set({ value: '/acme' })
   render(() => (
@@ -30,11 +29,7 @@ function renderSwitcher({
             <Route path="/" component={OrganizationsProvider}>
               <Route
                 path="/:orgSlug"
-                component={() => (
-                  <CurrentOrganizationProvider organization={acme} membership={membership}>
-                    <OrganizationSwitcher onNavigate={onNavigate} />
-                  </CurrentOrganizationProvider>
-                )}
+                component={() => <OrganizationSwitcher organization={acme} onNavigate={onNavigate} />}
               />
               <Route path="/onboarding" component={() => <p>The onboarding</p>} />
             </Route>

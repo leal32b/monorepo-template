@@ -1,7 +1,8 @@
 import { type CommandItem, CommandPalette, type IconName } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
-import { homeOf, useCurrentOrganization } from '#entities/organizations'
+import { homeOf } from '#entities/organizations'
 import { type Theme, themes, useI18n, usePalette, useTheme } from '#shared/config'
+import { useShellOrganization } from '../model/shell'
 
 const themeIcons: Record<Theme, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' }
 
@@ -17,13 +18,13 @@ export function ShellPalette(props: { signOut: () => void }) {
   const palette = usePalette()
   const navigate = useNavigate()
   const { setTheme } = useTheme()
-  const current = useCurrentOrganization()
+  const current = useShellOrganization()
 
   const go = t('appShell.palette.go')
   const actions = t('appShell.palette.actions')
 
-  const items = (): CommandItem[] => [
-    { id: `go:${homeOf(current?.organization)}`, label: t('appShell.nav.home'), group: go, icon: 'home' },
+  const items = (organization = current()): CommandItem[] => [
+    { id: `go:${homeOf(organization)}`, label: t('appShell.nav.home'), group: go, icon: 'home' },
     {
       id: 'go:/settings/profile',
       label: t('appShell.nav.profile'),
@@ -46,9 +47,9 @@ export function ShellPalette(props: { signOut: () => void }) {
       keywords: t('appShell.palette.keywords.preferences')
     },
     // The organization's own screens, when the screen is one of its: the same as the side menu offers.
-    ...(current
+    ...(organization
       ? (['general', 'members', 'roles'] as const).map((screen) => ({
-          id: `go:${homeOf(current.organization)}/settings/${screen}`,
+          id: `go:${homeOf(organization)}/settings/${screen}`,
           label: t(`appShell.nav.${screen}`),
           group: go,
           icon: organizationIcons[screen],

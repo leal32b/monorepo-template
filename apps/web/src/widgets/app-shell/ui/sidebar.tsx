@@ -2,9 +2,10 @@ import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
 import { A, useMatch } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
 import type { ServiceStatus } from '#entities/health'
-import { homeOf, startingOrganization, useCurrentOrganization, useOptionalOrganizations } from '#entities/organizations'
+import { homeOf, startingOrganization, useOptionalOrganizations } from '#entities/organizations'
 import { useI18n } from '#shared/config'
 import { useInSettings } from '../model/in-settings'
+import { useShellOrganization } from '../model/shell'
 import { OrganizationSwitcher } from './organization-switcher'
 import { ServiceProblem, ServiceStatusButton } from './service-status'
 import { UserMenu } from './user-menu'
@@ -14,8 +15,8 @@ export type SidebarProps = {
   signOut: () => void
   /** Called after a link is followed, so the phone drawer can close. */
   onNavigate?: (() => void) | undefined
-  /** Whether this menu is the phone drawer, which stays open on the way to the settings. */
-  inDrawer?: boolean | undefined
+  /** Called as the account menu goes to the settings, so the phone drawer can stay open. */
+  onSettings?: (() => void) | undefined
   class?: string | undefined
 }
 
@@ -79,16 +80,15 @@ export function Sidebar(props: SidebarProps) {
   const accountLabel = createUniqueId()
   const organizationLabel = createUniqueId()
   /** The current organization's home; outside any (the account settings) the root picks one. */
-  const current = useCurrentOrganization()
-  const home = () => homeOf(current?.organization)
+  const current = useShellOrganization()
+  const home = () => homeOf(current())
   const organizations = useOptionalOrganizations()
   /**
    * The organization the settings' own part is about: the screen's, or, on an account screen, the one
    * `/` would open (the last one used here, else the first), once the list is read.
    */
   const settingsOrganization = () =>
-    current?.organization ??
-    (organizations?.list.state === 'ready' ? startingOrganization(organizations.list()) : undefined)
+    current() ?? (organizations?.list.state === 'ready' ? startingOrganization(organizations.list()) : undefined)
 
   return (
     <div class={cn('flex h-full flex-col gap-4 bg-surface p-3', props.class)}>
@@ -98,14 +98,15 @@ export function Sidebar(props: SidebarProps) {
           when={inSettings()}
           fallback={
             <Show
-              when={current}
+              when={current()}
+              keyed
               fallback={
                 <A href={home()} onClick={props.onNavigate} class="truncate px-2">
                   {t('app.name')}
                 </A>
               }
             >
-              <OrganizationSwitcher onNavigate={props.onNavigate} />
+              {(organization) => <OrganizationSwitcher organization={organization} onNavigate={props.onNavigate} />}
             </Show>
           }
         >
@@ -175,7 +176,7 @@ export function Sidebar(props: SidebarProps) {
       <div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
         <ServiceProblem status={props.status} />
         <div class="flex items-center gap-1">
-          <UserMenu signOut={props.signOut} inDrawer={props.inDrawer} class="flex-1" />
+          <UserMenu signOut={props.signOut} onSettings={props.onSettings} class="flex-1" />
           <ServiceStatusButton status={props.status} />
         </div>
       </div>

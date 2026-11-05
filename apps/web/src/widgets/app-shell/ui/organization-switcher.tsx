@@ -10,7 +10,7 @@ import {
 } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { For } from 'solid-js'
-import { homeOf, useOrganization, useOrganizations } from '#entities/organizations'
+import { homeOf, type Organization, useOrganizations } from '#entities/organizations'
 import { useI18n } from '#shared/config'
 
 /**
@@ -20,15 +20,16 @@ import { useI18n } from '#shared/config'
  * tenant screen only opens once the list was read, so the gap is a refetch.
  */
 export function OrganizationSwitcher(props: {
+  /** The organization of the screen. */
+  organization: Organization
   /** Called after the menu navigated, so the phone drawer can close. */
   onNavigate?: (() => void) | undefined
 }) {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const current = useOrganization()
   const { list } = useOrganizations()
   // A resource in error throws when read, so the list is read only once it is ready.
-  const organizations = () => (list.state === 'ready' ? list() : [current.organization])
+  const organizations = () => (list.state === 'ready' ? list() : [props.organization])
 
   const open = (path: string) => {
     navigate(path)
@@ -41,14 +42,14 @@ export function OrganizationSwitcher(props: {
       triggerClass={menuTriggerClass}
       trigger={
         <MenuTriggerContent
-          avatar={<Avatar name={current.organization.name} shape="square" size="sm" />}
-          label={current.organization.name}
+          avatar={<Avatar name={props.organization.name} shape="square" size="sm" />}
+          label={props.organization.name}
         />
       }
     >
       <MenuRadioGroup
         label={t('appShell.organizations.label')}
-        value={current.organization.slug}
+        value={props.organization.slug}
         onChange={(slug) => open(homeOf(organizations().find((organization) => organization.slug === slug)))}
       >
         <For each={organizations()}>

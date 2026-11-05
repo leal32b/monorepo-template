@@ -350,6 +350,40 @@ describe('App', () => {
       const link = await menu.findByRole('link', { name: 'General' })
       expect(link).toHaveAttribute('href', '/acme/settings/general')
     })
+
+    it('lets the frame stand aside for "not found" after the screens before it left, even through transitions', async () => {
+      window.history.replaceState(null, '', '/settings/profile')
+      render(() => <App {...inAcme()} locale="en" />)
+      const go = async (path: string, title: string) => {
+        window.history.pushState(null, '', path)
+        window.dispatchEvent(new PopStateEvent('popstate'))
+        expect(await screen.findByRole('heading', { level: 1, name: title })).toBeInTheDocument()
+      }
+      await screen.findByRole('heading', { level: 1, name: 'Profile' })
+
+      await go('/acme', 'Home')
+      await go('/settings/profile', 'Profile')
+      await go('/nowhere', 'Page not found')
+
+      await waitFor(() => expect(screen.queryByRole('banner')).not.toBeInTheDocument())
+      expect(document.querySelector('aside')).toBeNull()
+    })
+
+    it('keeps the frame from the account settings to the organization’s, reading the service status once', async () => {
+      window.history.replaceState(null, '', '/settings/profile')
+      const { client, auth } = inAcme()
+      const health = vi.spyOn(client, 'get')
+
+      render(() => <App client={client} auth={auth} locale="en" />)
+
+      const menu = within(await screen.findByRole('navigation', { name: 'Settings' }))
+      const frame = (await menu.findByRole('link', { name: 'General' })).closest('aside')
+      fireEvent.click(await menu.findByRole('link', { name: 'General' }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'General' })).toBeInTheDocument()
+      expect(screen.getByRole('navigation', { name: 'Settings' }).closest('aside')).toBe(frame)
+      expect(health.mock.calls.filter(([path]) => path === '/api/health')).toHaveLength(1)
+    })
   })
 
   it('answers an address that does not exist with a page that says so', () => {

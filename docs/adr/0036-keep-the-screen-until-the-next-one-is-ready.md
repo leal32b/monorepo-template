@@ -68,5 +68,5 @@ may never open.
 
 ## Revisit when
 
-The shell is made persistent (option 2), or a screen needs to read a resource directly where a refetch
-would make the whole tree fall back.
+The shell was made persistent (option 2) in [ADR 0037](0037-keep-one-app-frame-across-screens.md). Revisit when a screen needs to read
+a resource directly where a refetch would make the whole tree fall back.
