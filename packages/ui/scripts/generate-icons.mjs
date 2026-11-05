@@ -22,14 +22,17 @@ const icons = {
   info: 'info',
   key: 'key',
   list: 'list-bullets',
+  mail: 'envelope-simple',
   menu: 'list',
   monitor: 'monitor',
   moon: 'moon',
   next: 'caret-right',
+  organization: 'buildings',
   phone: 'device-mobile',
   plus: 'plus',
   preferences: 'sliders-horizontal',
   profile: 'user',
+  role: 'identification-badge',
   search: 'magnifying-glass',
   security: 'shield',
   'sign-out': 'sign-out',
@@ -46,7 +49,7 @@ const icons = {
  */
 const weights = {
   regular: Object.keys(icons),
-  duotone: ['home', 'profile', 'security', 'preferences']
+  duotone: ['home', 'profile', 'security', 'preferences', 'monitor', 'organization', 'users', 'role']
 }
 
 // The package keeps its SVGs in `assets/`, which it does not export: read them from where it is installed.

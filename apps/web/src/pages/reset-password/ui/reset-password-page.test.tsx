@@ -7,13 +7,13 @@ import { ResetPasswordPage } from './reset-password-page'
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 /** The page at `path`, as the link in the email lands on it. */
-function renderPage(path: string) {
+function renderPage(path: string, answer: () => Response = () => Response.json({ status: true })) {
   const history = createMemoryHistory()
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
       <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
-        <AuthProvider client={createAuthClient({ fetch: async () => Response.json({ status: true }) })}>
+        <AuthProvider client={createAuthClient({ fetch: async () => answer() })}>
           <MemoryRouter history={history}>
             <Route path="/reset-password" component={ResetPasswordPage} />
           </MemoryRouter>
@@ -32,6 +32,16 @@ describe('ResetPasswordPage', () => {
     expect(screen.getByLabelText('New password')).toBeInTheDocument()
   })
 
+  it('keeps where the sign-in was headed, on every way back to it', () => {
+    renderPage('/reset-password?error=INVALID_TOKEN&next=%2Finvitations%2Finv-1')
+
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login?next=%2Finvitations%2Finv-1')
+    expect(screen.getByRole('link', { name: 'Ask for a new link' })).toHaveAttribute(
+      'href',
+      '/forgot-password?next=%2Finvitations%2Finv-1'
+    )
+  })
+
   it('keeps a way back to sign in, for a change of mind', () => {
     renderPage('/reset-password?token=t0k3n')
 
@@ -47,6 +57,20 @@ describe('ResetPasswordPage', () => {
     expect(alert).toHaveTextContent('This link has expired or was already used.')
     expect(within(alert).getByRole('link', { name: 'Ask for a new link' })).toHaveAttribute('href', '/forgot-password')
     expect(screen.queryByLabelText('New password')).not.toBeInTheDocument()
+  })
+
+  it('when the link expires while the password is chosen, asks again still headed where it was', async () => {
+    renderPage('/reset-password?token=t0k3n&next=%2Finvitations%2Finv-1', () =>
+      Response.json({ code: 'INVALID_TOKEN' }, { status: 400 })
+    )
+
+    fireEvent.input(screen.getByLabelText('New password'), { target: { value: 'correct horse battery staple' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Change password' }))
+
+    expect(await screen.findByRole('link', { name: 'Ask for a new link' })).toHaveAttribute(
+      'href',
+      '/forgot-password?next=%2Finvitations%2Finv-1'
+    )
   })
 
   it('after the change, says so and offers to sign in with the new password', async () => {

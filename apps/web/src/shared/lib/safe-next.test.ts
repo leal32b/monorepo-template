@@ -1,6 +1,13 @@
-import { safeNext } from './safe-next'
+import { safeNext, withNext } from './safe-next'
 
 const origin = 'https://app.example.com'
+
+describe('withNext', () => {
+  it('carries the way back in the address, and nothing when it is home', () => {
+    expect(withNext('/login', '/invitations/inv-1')).toBe('/login?next=%2Finvitations%2Finv-1')
+    expect(withNext('/login', '/')).toBe('/login')
+  })
+})
 
 describe('safeNext', () => {
   it('keeps a path on this site, with its query and fragment', () => {

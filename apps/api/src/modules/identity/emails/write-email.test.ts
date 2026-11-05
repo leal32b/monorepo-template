@@ -27,6 +27,22 @@ describe('writeEmail', () => {
     expect(email.html).not.toContain('<script>')
   })
 
+  it('fills the tokens of the subject and the body, escaped in the HTML', () => {
+    const values = { organization: 'Acme <Labs>', inviter: 'Ada (ada@example.com)' }
+
+    const email = writeEmail('invitation', { to, locale: 'en', url, values })
+
+    expect(email.subject).toBe('Join Acme <Labs>')
+    expect(email.text).toContain('Ada (ada@example.com) invited you to join Acme <Labs>.')
+    expect(email.html).toContain('Ada (ada@example.com) invited you to join Acme &lt;Labs&gt;.')
+  })
+
+  it('leaves a token without a value as written', () => {
+    expect(writeEmail('invitation', { to, locale: 'en', url, values: { inviter: 'Ada' } }).subject).toBe(
+      'Join {organization}'
+    )
+  })
+
   it('has no empty text in any language', () => {
     const texts = Object.values(emailTexts).flatMap((language) => Object.values(language).flatMap(Object.values))
 

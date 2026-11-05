@@ -91,6 +91,16 @@ function confirmWith(button: string) {
 }
 
 describe('SecurityPage', () => {
+  it('holds the place of the sections while a slow answer comes', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderPage(() => new Promise<Response>(() => {}))
+
+    vi.advanceTimersByTime(300)
+
+    expect(screen.getAllByRole('status').some((line) => line.textContent === 'Loading…')).toBe(true)
+    vi.useRealTimers()
+  })
+
   it('is a page of two sections, each a group of rows', async () => {
     renderPage(betterAuth(['credential', 'google'], true))
 
@@ -118,6 +128,17 @@ describe('SecurityPage', () => {
   })
 
   describe('the password', () => {
+    it('keeps Google waiting while a form is open, as every other change to the account', async () => {
+      renderPage(betterAuth(['credential', 'google'], false))
+      await screen.findByRole('button', { name: 'Unlink Google' })
+
+      click('Change password')
+
+      expect(screen.getByRole('button', { name: 'Unlink Google' })).toBeDisabled()
+      click('Cancel')
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Unlink Google' })).toBeEnabled())
+    })
+
     it('opens its form below the row, one at a time, and a cancelled form gives focus back', async () => {
       renderPage(betterAuth(['credential'], false))
       await screen.findByRole('button', { name: 'Change password' })

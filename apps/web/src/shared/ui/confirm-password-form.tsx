@@ -1,4 +1,4 @@
-import { Button, PasswordField } from '@repo/ui'
+import { Button, FormActions, PasswordField } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import type { AuthFailure } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -69,18 +69,18 @@ export function ConfirmPasswordForm(props: ConfirmPasswordFormProps) {
         onChange={setPassword}
         error={error()}
       />
-      <div class="mt-2 flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" variant={props.variant ?? 'primary'} class="w-full sm:w-auto" disabled={pending()}>
+      <FormActions>
+        <Button type="submit" variant={props.variant ?? 'primary'} disabled={pending()}>
           {props.submit}
         </Button>
         <Show when={props.onCancel}>
           {(cancel) => (
-            <Button variant="ghost" class="w-full sm:w-auto" onClick={() => cancel()()}>
+            <Button variant="ghost" onClick={() => cancel()()}>
               {t('actions.cancel')}
             </Button>
           )}
         </Show>
-      </div>
+      </FormActions>
       <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} />}</Show>
     </form>
   )

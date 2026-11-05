@@ -13,9 +13,14 @@ const waitSeconds = 30
  * whether or not the address has an account to confirm (T08), so the screen can only say it was sent.
  * After a send the button waits 30 seconds and counts them out on itself, so a second press cannot
  * happen by accident and the API's limit is not met; `justSent` starts that wait at once, for a screen
- * that has just sent the first email.
+ * that has just sent the first email. The link signs the user in and goes to `next`, a path on this
+ * site (`safeNext`), home when none is given.
  */
-export function ResendConfirmation(props: { email: string; justSent?: boolean | undefined }) {
+export function ResendConfirmation(props: {
+  email: string
+  justSent?: boolean | undefined
+  next?: string | undefined
+}) {
   const auth = useAuth()
   const { t } = useI18n()
   const [pending, setPending] = createSignal(false)
@@ -29,7 +34,7 @@ export function ResendConfirmation(props: { email: string; justSent?: boolean | 
     setFailure(undefined)
     setPending(true)
     const failed = await callAuth((options) =>
-      auth.sendVerificationEmail({ email: props.email, callbackURL: '/' }, options)
+      auth.sendVerificationEmail({ email: props.email, callbackURL: props.next ?? '/' }, options)
     )
     setPending(false)
     if (failed === undefined) {

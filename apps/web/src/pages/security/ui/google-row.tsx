@@ -7,8 +7,9 @@ import { UnlinkGoogle, UnlinkGoogleFailure } from '#features/unlink-google'
 import type { AuthFailure } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
+import type { RowPanelProps } from './panel'
 
-export type GoogleRowProps = {
+export type GoogleRowProps = RowPanelProps & {
   security: AccountSecurity
   /** What linking Google came back with in `?error=`, if anything. */
   error?: string | string[] | undefined
@@ -63,6 +64,7 @@ export function GoogleRow(props: GoogleRowProps) {
           props.security.googleAccountId ? (
             props.security.password ? (
               <UnlinkGoogle
+                disabled={props.panels.busy()}
                 accountId={props.security.googleAccountId}
                 onUnlinked={() => {
                   setUnlinkFailure(undefined)
@@ -79,6 +81,7 @@ export function GoogleRow(props: GoogleRowProps) {
             ) : undefined
           ) : (
             <LinkGoogle
+              disabled={props.panels.busy()}
               onFailure={(failed) => {
                 setStatus(undefined)
                 setLinkFailure(failed)

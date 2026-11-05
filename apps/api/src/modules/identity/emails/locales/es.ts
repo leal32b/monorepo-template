@@ -18,5 +18,11 @@ export const es: EmailTexts = {
     body: 'Alguien intentó crear una cuenta con esta dirección de correo, que ya tiene una. Si fuiste tú, inicia sesión o restablece tu contraseña.',
     action: 'Iniciar sesión',
     footer: 'Si no fuiste tú, ignora este correo: nada cambió en tu cuenta.'
+  },
+  invitation: {
+    subject: 'Únete a {organization}',
+    body: '{inviter} te invitó a unirte a {organization}. Abre la invitación para aceptarla o rechazarla; puedes iniciar sesión o crear una cuenta con esta dirección de correo.',
+    action: 'Abrir la invitación',
+    footer: 'La invitación vence en 7 días. Si no la esperabas, ignora este correo.'
   }
 }

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
-import { Menu, MenuHeader, MenuItem, MenuSeparator } from './menu'
+import { Menu, MenuHeader, MenuItem, MenuRadioGroup, MenuRadioItem, MenuSeparator } from './menu'
 
 function Account(props: { onSettings?: () => void; onSignOut?: () => void }) {
   return (
@@ -101,5 +101,54 @@ describe('Menu', () => {
 
     expect(await screen.findByRole('menuitem', { name: 'Delete' })).toHaveClass('text-destructive')
     expect(baseElement.querySelector('[role="menuitem"] svg')).toBeNull()
+  })
+})
+
+describe('MenuRadioGroup', () => {
+  function Organizations(props: { onChange?: (value: string) => void }) {
+    return (
+      <Menu trigger="Acme">
+        <MenuRadioGroup value="acme" onChange={props.onChange ?? (() => {})} label="Your organizations">
+          <MenuRadioItem value="acme">Acme</MenuRadioItem>
+          <MenuRadioItem value="globex">Globex</MenuRadioItem>
+        </MenuRadioGroup>
+      </Menu>
+    )
+  }
+  const openOrganizations = () => fireEvent.keyDown(screen.getByRole('button', { name: 'Acme' }), { key: 'Enter' })
+
+  it('lists one choice of many, the current one checked, in a group with a name', async () => {
+    render(() => <Organizations />)
+    openOrganizations()
+
+    const group = await screen.findByRole('group', { name: 'Your organizations' })
+    expect(group).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('menuitemradio').map((item) => [item.textContent, item.getAttribute('aria-checked')])
+    ).toEqual([
+      ['Acme', 'true'],
+      ['Globex', 'false']
+    ])
+  })
+
+  it('draws the check only on the current choice, and keeps room for it on the others', async () => {
+    const { baseElement } = render(() => <Organizations />)
+    openOrganizations()
+    await screen.findByRole('menuitemradio', { name: 'Acme' })
+
+    expect(baseElement.querySelectorAll('[role="menuitemradio"] svg')).toHaveLength(1)
+    expect(screen.getByRole('menuitemradio', { name: 'Acme' }).querySelector('svg')).not.toBeNull()
+    expect(screen.getByRole('menuitemradio', { name: 'Globex' }).firstElementChild).toHaveClass('size-4')
+  })
+
+  it('tells which choice was made', async () => {
+    const onChange = vi.fn()
+    render(() => <Organizations onChange={onChange} />)
+    openOrganizations()
+
+    fireEvent.pointerUp(await screen.findByRole('menuitemradio', { name: 'Globex' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Globex' }))
+
+    expect(onChange).toHaveBeenCalledWith('globex')
   })
 })

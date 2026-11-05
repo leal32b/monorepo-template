@@ -18,6 +18,8 @@ describe('NotFoundPage', () => {
       </I18nProvider>
     ))
 
+    expect(screen.getByText(/Pages of an organization you are not in look the same/)).toBeInTheDocument()
+
     expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toHaveFocus()
     expect(screen.getByText('The address may be wrong, or the page may have moved.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Go to the start' })).toHaveAttribute('href', '/')

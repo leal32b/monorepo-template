@@ -37,6 +37,12 @@ Folders appear only when their phase of the plan reaches them.
 - **Design system.** A component in `packages/ui` or a screen in `apps/web`, new or changed,
   follows the [`design-system`](.claude/skills/design-system/SKILL.md) skill: simple and coherent,
   mobile first, with no layout shift.
+  One idea has one presentation: its table "One idea, one presentation" says which component each
+  idea uses (panels, confirmations, avatars, loading, empty states, dates); a second way to show the
+  same idea is a defect, and markup copied between screens is a component missing from `packages/ui`.
+- **Visual review.** Before a phase ends, walk every screen it touched in the browser at 375×812 and
+  desktop, light and dark, with seeded data (several roles, a long name, an empty list), and run
+  `minimize-support` again on what changed.
 - **Minimal scope.** Only what the current phase asks for; no collateral refactors; no
   feature of the reference repository that the plan does not list.
 - **Commit only when asked.** Conventional Commits.

@@ -16,6 +16,12 @@ export const en = {
     body: 'Someone tried to create an account with this email address, which already has one. If it was you, sign in or reset your password.',
     action: 'Sign in',
     footer: 'If it was not you, ignore this email: nothing changed in your account.'
+  },
+  invitation: {
+    subject: 'Join {organization}',
+    body: '{inviter} invited you to join {organization}. Open the invitation to accept or decline it; you can sign in or create an account with this email address.',
+    action: 'Open the invitation',
+    footer: 'The invitation expires in 7 days. If you did not expect it, ignore this email.'
   }
 }
 

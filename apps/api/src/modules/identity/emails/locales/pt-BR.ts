@@ -18,5 +18,11 @@ export const ptBR: EmailTexts = {
     body: 'Alguém tentou criar uma conta com este endereço de e-mail, que já tem uma. Se foi você, entre na sua conta ou redefina a senha.',
     action: 'Entrar',
     footer: 'Se não foi você, ignore este e-mail: nada mudou na sua conta.'
+  },
+  invitation: {
+    subject: 'Participe de {organization}',
+    body: '{inviter} convidou você para participar de {organization}. Abra o convite para aceitar ou recusar; você pode entrar ou criar uma conta com este endereço de e-mail.',
+    action: 'Abrir o convite',
+    footer: 'O convite expira em 7 dias. Se você não esperava por ele, ignore este e-mail.'
   }
 }

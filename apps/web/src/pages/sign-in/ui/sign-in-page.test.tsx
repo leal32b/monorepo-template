@@ -59,6 +59,39 @@ describe('SignInPage', () => {
     expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute('href', '/signup')
   })
 
+  it('offers an account that comes back to where the user was headed, such as an invitation', () => {
+    renderPage('/login?next=%2Finvitations%2Finv-1')
+
+    expect(screen.getByRole('link', { name: 'Create an account' })).toHaveAttribute(
+      'href',
+      '/signup?next=%2Finvitations%2Finv-1'
+    )
+  })
+
+  it('offers a new password that comes back to where the user was headed', () => {
+    renderPage('/login?next=%2Finvitations%2Finv-1')
+
+    expect(screen.getByRole('link', { name: 'Forgot your password?' })).toHaveAttribute(
+      'href',
+      '/forgot-password?next=%2Finvitations%2Finv-1'
+    )
+  })
+
+  it('sends the confirmation link again to come back where the user was headed', async () => {
+    const fetch = vi.fn<Fetch>(async (input) =>
+      String(input).endsWith('/sign-in/email')
+        ? Response.json({ code: 'EMAIL_NOT_VERIFIED' }, { status: 403 })
+        : Response.json({ status: true })
+    )
+    renderPage('/login?next=%2Finvitations%2Finv-1', fetch)
+
+    signIn()
+    fireEvent.click(await screen.findByRole('button', { name: 'Send it again' }))
+
+    await screen.findByRole('status')
+    expect(JSON.parse(String(fetch.mock.lastCall?.[1]?.body))).toMatchObject({ callbackURL: '/invitations/inv-1' })
+  })
+
   it('offers a new password next to the password field, carrying the email typed so far, not in the URL', async () => {
     const history = renderPage('/login')
     type(screen.getByRole('textbox', { name: 'Email' }), 'ada@example.com')

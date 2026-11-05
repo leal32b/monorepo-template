@@ -1,4 +1,4 @@
-import { Badge, Button, SettingsRow } from '@repo/ui'
+import { Badge, PanelButton, SettingsPanel, SettingsRow } from '@repo/ui'
 import { createSignal } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { ChangePasswordForm } from '#features/change-password'
@@ -6,7 +6,7 @@ import { SendPasswordLink } from '#features/request-password-reset'
 import type { AuthFailure } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
-import { Panel, type RowPanelProps } from './panel'
+import type { RowPanelProps } from './panel'
 
 /**
  * The password: changed here behind a form, or, for an account made with Google alone, created by a
@@ -17,13 +17,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
   const { t } = useI18n()
   const [status, setStatus] = createSignal<string>()
   const [failure, setFailure] = createSignal<AuthFailure>()
-  let change: HTMLButtonElement | undefined
-
-  const opened = () => props.open === 'password'
-  const close = () => {
-    props.onClose()
-    queueMicrotask(() => change?.focus())
-  }
+  const close = () => props.panels.close()
 
   return (
     <SettingsRow
@@ -42,20 +36,9 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
       status={status()}
       action={
         props.security.password ? (
-          opened() ? undefined : (
-            <Button
-              ref={(button) => {
-                change = button
-              }}
-              disabled={props.open !== undefined}
-              onClick={() => {
-                setStatus(undefined)
-                props.onOpen('password')
-              }}
-            >
-              {t('account.password.change')}
-            </Button>
-          )
+          <PanelButton panels={props.panels} panel="password" onOpen={() => setStatus(undefined)}>
+            {t('account.password.change')}
+          </PanelButton>
         ) : (
           <SendPasswordLink
             email={props.security.email}
@@ -71,8 +54,8 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
         )
       }
       panel={
-        opened() ? (
-          <Panel label={t('account.password.change')}>
+        props.panels.isOpen('password') ? (
+          <SettingsPanel label={t('account.password.change')}>
             <p class="text-muted-foreground">{t('changePassword.signsOut')}</p>
             <ChangePasswordForm
               onChanged={() => {
@@ -81,7 +64,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
               }}
               onCancel={close}
             />
-          </Panel>
+          </SettingsPanel>
         ) : (
           failure() && <AuthFailureAlert failure={failure() as AuthFailure} />
         )

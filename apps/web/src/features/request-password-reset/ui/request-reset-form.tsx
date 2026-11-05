@@ -2,7 +2,7 @@ import { Alert, Button, Field } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
-import { cleanEmail, createCooldown, createFormChecks } from '#shared/lib'
+import { cleanEmail, createCooldown, createFormChecks, withNext } from '#shared/lib'
 import { AuthFailureAlert, OpenMail } from '#shared/ui'
 
 /** Seconds before the same address can be sent another link: the API allows 3 a minute. */
@@ -12,9 +12,10 @@ const waitSeconds = 30
  * Asks for a link to choose a new password. The API answers the same whether or not the address has
  * an account (T08), so the screen says the link went out if there is one; it stays on the form, so
  * the user can fix the address or ask again; for the same address the button waits 30 seconds, counted
- * out on itself. It starts from `email`, the one typed at the sign-in, when there is one.
+ * out on itself. It starts from `email`, the one typed at the sign-in, when there is one; the link leads
+ * on to `next` (a path on this site) once the password is chosen.
  */
-export function RequestResetForm(props: { email?: string | undefined }) {
+export function RequestResetForm(props: { email?: string | undefined; next?: string | undefined }) {
   const auth = useAuth()
   const { t } = useI18n()
   const [email, setEmail] = createSignal(props.email ?? '')
@@ -45,7 +46,7 @@ export function RequestResetForm(props: { email?: string | undefined }) {
 
     setPending(true)
     const failed = await callAuth((options) =>
-      auth.requestPasswordReset({ ...values, redirectTo: '/reset-password' }, options)
+      auth.requestPasswordReset({ ...values, redirectTo: withNext('/reset-password', props.next ?? '/') }, options)
     )
     setPending(false)
     if (failed === undefined) {

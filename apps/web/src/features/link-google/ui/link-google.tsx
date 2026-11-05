@@ -6,6 +6,8 @@ import { useI18n } from '#shared/config'
 export type LinkGoogleProps = {
   /** Called with what went wrong linking could not start, to show where the user acted. */
   onFailure: (failure: AuthFailure) => void
+  /** Keeps it from being pressed while another change to the account is open on the screen. */
+  disabled?: boolean | undefined
 }
 
 export type LinkGoogleErrorProps = {
@@ -53,7 +55,7 @@ export function LinkGoogle(props: LinkGoogleProps) {
   }
 
   return (
-    <Button disabled={pending()} onClick={go}>
+    <Button disabled={pending() || props.disabled} onClick={go}>
       {t('linkGoogle.submit')}
     </Button>
   )

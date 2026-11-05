@@ -1,6 +1,6 @@
-import { Alert, Button, SettingsSection } from '@repo/ui'
+import { Alert, Button, createPanels, SettingsSection, SettingsSkeleton } from '@repo/ui'
 import { Navigate, useSearchParams } from '@solidjs/router'
-import { createResource, createSignal, Match, Switch } from 'solid-js'
+import { createResource, Match, Switch } from 'solid-js'
 import { getAccountSecurity } from '#entities/accounts'
 import { ApiError, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -24,23 +24,16 @@ export function SecurityPage() {
   const { t } = useI18n()
   const [params] = useSearchParams()
   const [security, { refetch, mutate }] = createResource(() => getAccountSecurity(auth))
-  const [open, setOpen] = createSignal<PanelName>()
-  const panel = {
-    get open() {
-      return open()
-    },
-    onOpen: setOpen,
-    onClose: () => setOpen(undefined)
-  }
+  const panels = createPanels<PanelName>()
 
   return (
     <AppShell title={t('account.title')}>
-      <Switch>
+      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} />}>
         <Match when={security.error instanceof ApiError && security.error.status === 401}>
           <Navigate href="/login?next=%2Fsettings%2Fsecurity" />
         </Match>
         <Match when={security.error}>
-          <Alert variant="error" action={<Button onClick={() => refetch()}>{t('account.retry')}</Button>}>
+          <Alert variant="error" action={<Button onClick={() => refetch()}>{t('actions.retry')}</Button>}>
             {t('account.unavailable')}
           </Alert>
         </Match>
@@ -48,12 +41,12 @@ export function SecurityPage() {
           {(current) => (
             <>
               <SettingsSection title={t('account.signIn.title')} description={t('account.signIn.description')}>
-                <PasswordRow {...panel} security={current()} />
-                <GoogleRow security={current()} error={params.error} onChange={mutate} />
+                <PasswordRow panels={panels} security={current()} />
+                <GoogleRow panels={panels} security={current()} error={params.error} onChange={mutate} />
               </SettingsSection>
               <SettingsSection title={t('account.twoFactor.title')} description={t('account.twoFactor.description')}>
-                <AuthenticatorRow {...panel} security={current()} onChange={mutate} />
-                <BackupCodesRow {...panel} security={current()} onChange={mutate} />
+                <AuthenticatorRow panels={panels} security={current()} onChange={mutate} />
+                <BackupCodesRow panels={panels} security={current()} onChange={mutate} />
               </SettingsSection>
             </>
           )}

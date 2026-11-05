@@ -72,3 +72,40 @@ export function MenuSeparator() {
 export function MenuHeader(props: { children: JSX.Element }) {
   return <div class="flex flex-col px-2 pt-1.5 pb-2 text-sm leading-snug">{props.children}</div>
 }
+
+export type MenuRadioGroupProps = {
+  /** The chosen value. */
+  value: string
+  onChange: (value: string) => void
+  /** Names the group for a screen reader, such as "Your organizations". */
+  label: string
+  children: JSX.Element
+}
+
+/** One choice of many in a `Menu`, such as the organization you are in. Choosing the current one only closes the menu. */
+export function MenuRadioGroup(props: MenuRadioGroupProps) {
+  return (
+    <DropdownMenu.Group aria-label={props.label}>
+      <DropdownMenu.RadioGroup value={props.value} onChange={props.onChange}>
+        {props.children}
+      </DropdownMenu.RadioGroup>
+    </DropdownMenu.Group>
+  )
+}
+
+/** A choice in a `MenuRadioGroup`; the chosen one shows a check, and the others keep its room so the labels line up. */
+export function MenuRadioItem(props: { value: string; children: JSX.Element }) {
+  return (
+    <DropdownMenu.RadioItem
+      value={props.value}
+      class="flex h-11 cursor-pointer select-none items-center gap-2.5 rounded-sm px-2 outline-none data-[highlighted]:bg-secondary sm:h-9"
+    >
+      <span class="flex size-4 shrink-0 items-center justify-center">
+        <DropdownMenu.ItemIndicator>
+          <Icon name="check" />
+        </DropdownMenu.ItemIndicator>
+      </span>
+      {props.children}
+    </DropdownMenu.RadioItem>
+  )
+}

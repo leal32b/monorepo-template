@@ -1,15 +1,18 @@
-import { MemoryRouter, Route } from '@solidjs/router'
-import { fireEvent, render, screen } from '@solidjs/testing-library'
+import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { SignUpPage } from './sign-up-page'
 
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
-function renderPage() {
+/** The sign-up at `path`, with Google on; Better Auth answers every call with a new account. */
+function renderPage(path = '/signup') {
   const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
     Response.json({ token: null, user: { id: 'u1', email: 'ada@example.com', name: 'Ada' } })
   )
+  const history = createMemoryHistory()
+  history.set({ value: path })
   const api = createApiClient({
     fetch: async (path) => Response.json(path === '/api/health' ? health : { google: true })
   })
@@ -17,7 +20,7 @@ function renderPage() {
     <I18nProvider locale="en">
       <ApiProvider client={api}>
         <AuthProvider client={createAuthClient({ fetch })}>
-          <MemoryRouter>
+          <MemoryRouter history={history}>
             <Route path="*" component={SignUpPage} />
           </MemoryRouter>
         </AuthProvider>
@@ -51,6 +54,36 @@ describe('SignUpPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Create your account' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login')
+  })
+
+  it('comes back to where the user was headed, through the confirmation link, a resend and Google', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const fetch = renderPage('/signup?next=%2Finvitations%2Finv-1')
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login?next=%2Finvitations%2Finv-1')
+
+    await signUp('ada@example.com')
+    expect(JSON.parse(String(fetch.mock.lastCall?.[1]?.body))).toMatchObject({ callbackURL: '/invitations/inv-1' })
+    vi.advanceTimersByTime(30_000)
+    fireEvent.click(screen.getByRole('button', { name: 'Send it again' }))
+    await screen.findByRole('status')
+    expect(JSON.parse(String(fetch.mock.lastCall?.[1]?.body))).toMatchObject({ callbackURL: '/invitations/inv-1' })
+    vi.useRealTimers()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use another email' }))
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => {})
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue with Google' }))
+    await waitFor(() => expect(assign).toHaveBeenCalled())
+    expect(JSON.parse(String(fetch.mock.lastCall?.[1]?.body))).toMatchObject({ callbackURL: '/invitations/inv-1' })
+    assign.mockRestore()
+  })
+
+  it('comes back home instead when the link it came from points to another site (T11)', async () => {
+    const fetch = renderPage('/signup?next=https%3A%2F%2Fevil.example')
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login')
+
+    await signUp('ada@example.com')
+
+    expect(JSON.parse(String(fetch.mock.lastCall?.[1]?.body))).toMatchObject({ callbackURL: '/' })
   })
 
   it('after the sign-up, tells the user to check the inbox the link went to', async () => {

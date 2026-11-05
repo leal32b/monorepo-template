@@ -1,11 +1,11 @@
-import { Badge, Button, SettingsRow, Stepper } from '@repo/ui'
+import { Badge, PanelButton, SettingsPanel, SettingsRow, Stepper } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { DisableTwoFactor } from '#features/disable-two-factor'
 import { EnableTwoFactor } from '#features/enable-two-factor'
 import { useI18n } from '#shared/config'
 import { BackupCodes } from './backup-codes'
-import { Panel, type RowPanelProps } from './panel'
+import type { RowPanelProps } from './panel'
 
 export type AuthenticatorRowProps = RowPanelProps & {
   security: AccountSecurity
@@ -24,19 +24,16 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
   const [status, setStatus] = createSignal<string>()
   const [step, setStep] = createSignal(0)
   const [codes, setCodes] = createSignal<string[]>()
-  let action: HTMLButtonElement | undefined
+  /** What the open panel does, fixed when it opens: turning on ends with the app on, the button now "Turn off". */
+  const [turning, setTurning] = createSignal<'turn-on' | 'turn-off'>('turn-on')
 
   const turned = (twoFactor: boolean) => props.onChange({ ...props.security, twoFactor })
   const close = () => {
     setStep(0)
     setCodes(undefined)
-    props.onClose()
-    queueMicrotask(() => action?.focus())
+    props.panels.close()
   }
-  const open = (panel: 'turn-on' | 'turn-off') => {
-    setStatus(undefined)
-    props.onOpen(panel)
-  }
+  const opened = (panel: 'turn-on' | 'turn-off') => props.panels.isOpen('authenticator') && turning() === panel
   const done = (twoFactor: boolean) => {
     setStatus(twoFactor ? t('account.authenticator.enabledDone') : t('account.authenticator.disabled'))
     close()
@@ -68,24 +65,22 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
       }
       status={status()}
       action={
-        props.open === 'turn-on' ||
-        props.open === 'turn-off' ||
-        !(props.security.twoFactor || props.security.password) ? undefined : (
-          <Button
-            ref={(button) => {
-              action = button
+        props.security.twoFactor || props.security.password ? (
+          <PanelButton
+            panels={props.panels}
+            panel="authenticator"
+            onOpen={() => {
+              setStatus(undefined)
+              setTurning(props.security.twoFactor ? 'turn-off' : 'turn-on')
             }}
-            variant={props.security.twoFactor ? 'outline' : 'secondary'}
-            disabled={props.open !== undefined}
-            onClick={() => open(props.security.twoFactor ? 'turn-off' : 'turn-on')}
           >
             {props.security.twoFactor ? t('account.authenticator.turnOff') : t('account.authenticator.turnOn')}
-          </Button>
-        )
+          </PanelButton>
+        ) : undefined
       }
       panel={
-        props.open === 'turn-on' ? (
-          <Panel label={t('account.authenticator.stepper')}>
+        opened('turn-on') ? (
+          <SettingsPanel label={t('account.authenticator.stepper')}>
             <Stepper
               aria-label={t('account.authenticator.stepper')}
               steps={[
@@ -120,9 +115,9 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
                 />
               )}
             </Show>
-          </Panel>
-        ) : props.open === 'turn-off' ? (
-          <Panel label={t('account.authenticator.turnOff')}>
+          </SettingsPanel>
+        ) : opened('turn-off') ? (
+          <SettingsPanel label={t('account.authenticator.turnOff')}>
             <DisableTwoFactor
               onDisabled={() => {
                 turned(false)
@@ -130,7 +125,7 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
               }}
               onCancel={close}
             />
-          </Panel>
+          </SettingsPanel>
         ) : undefined
       }
     />

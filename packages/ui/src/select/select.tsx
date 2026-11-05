@@ -1,4 +1,4 @@
-import { type ComponentProps, For, splitProps } from 'solid-js'
+import { type ComponentProps, createEffect, For, on, splitProps } from 'solid-js'
 import { Icon } from '#icon'
 import { inputWithActionClass } from '#input'
 import { cn } from '#libs'
@@ -6,6 +6,8 @@ import { cn } from '#libs'
 export type SelectOption = {
   value: string
   label: string
+  /** Keeps the option in the list but not choosable; the screen says why. */
+  disabled?: boolean | undefined
 }
 
 export type SelectProps = Omit<ComponentProps<'select'>, 'value' | 'onChange' | 'children'> & {
@@ -22,10 +24,20 @@ export type SelectProps = Omit<ComponentProps<'select'>, 'value' | 'onChange' | 
  */
 export function Select(props: SelectProps) {
   const [local, rest] = splitProps(props, ['class', 'options', 'value', 'onChange'])
+  let element: HTMLSelectElement | undefined
+  // Once the options exist, so a disabled one before the chosen cannot leave the wrong one showing.
+  createEffect(
+    on([() => local.value, () => local.options], ([value]) => {
+      ;(element as HTMLSelectElement).value = value
+    })
+  )
 
   return (
     <div class={cn('relative w-full sm:w-auto', local.class)}>
       <select
+        ref={(select) => {
+          element = select
+        }}
         class={cn(inputWithActionClass, 'cursor-pointer appearance-none')}
         onChange={(event) => local.onChange(event.currentTarget.value)}
         {...rest}
@@ -33,7 +45,7 @@ export function Select(props: SelectProps) {
         {/* The current option is marked on the option: a `value` on the select lands before its options exist. */}
         <For each={local.options}>
           {(option) => (
-            <option value={option.value} selected={option.value === local.value}>
+            <option value={option.value} selected={option.value === local.value} disabled={option.disabled}>
               {option.label}
             </option>
           )}

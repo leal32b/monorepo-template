@@ -1,23 +1,40 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
+import { CurrentOrganizationProvider, type Organization, OrganizationsProvider } from '#entities/organizations'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { AppFrame } from './app-frame'
 import { AppShell } from './app-shell'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
-type Options = { auth?: Fetch; api?: () => Promise<Response>; locale?: Locale; path?: string }
+type Options = {
+  auth?: Fetch
+  api?: () => Promise<Response>
+  locale?: Locale
+  path?: string
+  /** The organization of a tenant screen; none for a screen outside any, such as the account settings. */
+  organization?: Organization
+}
 
 /** An app page at `/projects` in the shell, Better Auth and the API answering through `fetch`. */
 function renderShell({
-  auth = async () => Response.json({ success: true }),
+  auth,
   api = async () => Response.json(health),
   locale = 'en',
-  path = '/projects'
+  path = '/projects',
+  organization
 }: Options = {}) {
+  const membership = { roles: ['owner'], permissions: {} }
+  const authFetch: Fetch =
+    auth ??
+    (async (input) =>
+      String(input).includes('/organization/list')
+        ? Response.json(organization === undefined ? [] : [organization])
+        : Response.json({ success: true }))
   const history = createMemoryHistory()
   history.set({ value: path })
   render(() => (
@@ -25,9 +42,22 @@ function renderShell({
       <ThemeProvider>
         <PaletteProvider>
           <ApiProvider client={createApiClient({ fetch: api })}>
-            <AuthProvider client={createAuthClient({ fetch: auth })}>
+            <AuthProvider client={createAuthClient({ fetch: authFetch })}>
               <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-                <MemoryRouter history={history}>
+                <MemoryRouter
+                  history={history}
+                  root={(root) =>
+                    organization === undefined ? (
+                      <AppFrame>{root.children}</AppFrame>
+                    ) : (
+                      <OrganizationsProvider>
+                        <CurrentOrganizationProvider organization={organization} membership={membership}>
+                          <AppFrame>{root.children}</AppFrame>
+                        </CurrentOrganizationProvider>
+                      </OrganizationsProvider>
+                    )
+                  }
+                >
                   <Route
                     path="/projects"
                     component={() => (
@@ -41,6 +71,14 @@ function renderShell({
                     component={() => (
                       <AppShell title="Start">
                         <p>The start</p>
+                      </AppShell>
+                    )}
+                  />
+                  <Route
+                    path="/acme/settings/general"
+                    component={() => (
+                      <AppShell title="General">
+                        <p>The general</p>
                       </AppShell>
                     )}
                   />
@@ -101,6 +139,51 @@ describe('AppShell', () => {
     expect(trail.getByText('Projects')).toHaveAttribute('aria-current', 'page')
   })
 
+  it('leads Home and the palette to the home of the organization in the URL (ADR 0034)', async () => {
+    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+
+    expect(
+      within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Home' })
+    ).toHaveAttribute('href', '/acme')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
+    fireEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Command palette' })).getByRole('option', { name: 'Home' })
+    )
+    await waitFor(() => expect(history.get()).toBe('/acme'))
+  })
+
+  it('offers the organization’s screens in the palette, as the side menu does', async () => {
+    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
+    const dialog = within(await screen.findByRole('dialog', { name: 'Command palette' }))
+
+    for (const name of ['General', 'Members', 'Roles']) expect(dialog.getByRole('option', { name })).toBeInTheDocument()
+    fireEvent.click(dialog.getByRole('option', { name: 'Members' }))
+
+    await waitFor(() => expect(history.get()).toBe('/acme/settings/members'))
+  })
+
+  it('puts the organization you are in at the top of the side menu, in place of the app’s name', () => {
+    renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    const menu = within(screen.getByRole('complementary', { hidden: true }))
+
+    const switcher = menu.getByRole('button', { name: /Acme/ })
+    expect(switcher.parentElement).toHaveClass('h-14')
+    expect(menu.queryByRole('link', { name: 'Monorepo Template' })).not.toBeInTheDocument()
+  })
+
+  it('switches organization from the phone drawer, which closes after the move', async () => {
+    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+    fireEvent.keyDown(within(drawer).getByRole('button', { name: /Acme/ }), { key: 'Enter' })
+
+    choose(await screen.findByRole('menuitem', { name: 'Create organization' }))
+
+    await waitFor(() => expect(history.get()).toBe('/onboarding'))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument())
+  })
+
   it('titles the side menu with the app, a link home, as tall as the top bar so the titles line up, with no line under it', () => {
     renderShell()
     const menu = screen.getByRole('complementary', { hidden: true })
@@ -154,11 +237,21 @@ describe('AppShell', () => {
 
     choose(await screen.findByRole('menuitem', { name: 'Settings' }))
 
-    // The Profile screen is up (behind the modal drawer, so hidden from the tree), with its own drawer open.
+    // The Profile screen is up (behind the modal drawer, so hidden from the tree), the drawer still open.
     expect(await screen.findByRole('heading', { level: 1, name: 'Profile', hidden: true })).toBeInTheDocument()
     const open = await screen.findByRole('dialog', { name: 'Menu' })
     expect(within(open).getByRole('navigation', { name: 'Settings' })).toBeInTheDocument()
     expect(within(open).getByRole('link', { name: 'Security' })).toBeInTheDocument()
+  })
+
+  it('closes the drawer when the screen changes from outside it, as with the back button', async () => {
+    const history = renderShell()
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    await screen.findByRole('dialog', { name: 'Menu' })
+
+    history.set({ value: '/' })
+
+    await waitFor(() => expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-closed'))
   })
 
   it('does not open a drawer on the way to the settings from the desktop menu', async () => {
@@ -171,7 +264,7 @@ describe('AppShell', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('opens the drawer once, not on every screen after it', async () => {
+  it('closes the drawer kept open for the settings once a link in it is followed', async () => {
     renderShell()
     fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
     const drawer = await screen.findByRole('dialog', { name: 'Menu' })
@@ -182,7 +275,7 @@ describe('AppShell', () => {
 
     fireEvent.click(within(open).getByRole('link', { name: 'Security' }))
 
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-closed'))
   })
 
   it('goes to the settings from the account menu', async () => {
@@ -213,6 +306,68 @@ describe('AppShell', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong on our side.')
     expect(history.get()).toBe('/projects')
+  })
+
+  describe('kept across screens (ADR 0037)', () => {
+    it('keeps the side menu and the top bar, and reads the service status once', async () => {
+      const api = vi.fn(async () => Response.json(health))
+      const history = renderShell({ api })
+      const menu = screen.getByRole('navigation', { name: 'Main' }).closest('aside')
+      await waitFor(() => expect(api).toHaveBeenCalledTimes(1))
+
+      history.set({ value: '/' })
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Start' })).toBeInTheDocument()
+      expect(screen.getByRole('navigation', { name: 'Main' }).closest('aside')).toBe(menu)
+      expect(within(screen.getByRole('navigation', { name: 'You are here' })).getByText('Start')).toBeInTheDocument()
+      expect(api).toHaveBeenCalledTimes(1)
+    })
+
+    it('stands aside for a page of its own kind, and comes back with the next screen', async () => {
+      const history = renderShell({
+        auth: async () => Response.json({ code: 'INTERNAL_SERVER_ERROR' }, { status: 500 })
+      })
+
+      history.set({ value: '/login' })
+
+      expect(await screen.findByText('The sign-in')).toBeInTheDocument()
+      expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('banner')).not.toBeInTheDocument()
+      history.set({ value: '/projects' })
+      expect(await screen.findByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    })
+
+    it('draws a frame of its own around a screen with none, as one drawn alone', () => {
+      const history = createMemoryHistory()
+      history.set({ value: '/' })
+      render(() => (
+        <I18nProvider locale="en">
+          <ThemeProvider>
+            <PaletteProvider>
+              <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+                <AuthProvider client={createAuthClient({ fetch: async () => Response.json({}) })}>
+                  <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
+                    <MemoryRouter history={history}>
+                      <Route
+                        path="/"
+                        component={() => (
+                          <AppShell title="Alone">
+                            <p>Alone</p>
+                          </AppShell>
+                        )}
+                      />
+                    </MemoryRouter>
+                  </SessionProvider>
+                </AuthProvider>
+              </ApiProvider>
+            </PaletteProvider>
+          </ThemeProvider>
+        </I18nProvider>
+      ))
+
+      expect(screen.getByRole('heading', { level: 1, name: 'Alone' })).toBeInTheDocument()
+      expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    })
   })
 
   describe('in the settings', () => {
@@ -265,6 +420,41 @@ describe('AppShell', () => {
       expect(iconOf('Back to app')).not.toContain('opacity')
     })
 
+    describe('of an organization', () => {
+      const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+
+      it('shares the settings’ menu: the organization’s own screens join the account’s, the current one marked', () => {
+        renderShell({ path: '/acme/settings/general', organization: acme })
+
+        const settings = within(screen.getByRole('navigation', { name: 'Settings' }))
+        expect(settings.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/settings/profile')
+        const organization = within(settings.getByRole('list', { name: 'Organization' }))
+        expect(organization.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+          ['General', '/acme/settings/general'],
+          ['Members', '/acme/settings/members'],
+          ['Roles', '/acme/settings/roles']
+        ])
+        expect(organization.getByRole('link', { name: 'General' })).toHaveAttribute('aria-current', 'page')
+      })
+
+      it('goes back to the home of the organization, titles the menu "Settings" and puts the settings in the breadcrumb', () => {
+        renderShell({ path: '/acme/settings/general', organization: acme })
+        const menu = within(screen.getByRole('complementary', { hidden: true }))
+
+        expect(menu.getByRole('link', { name: 'Back to app' })).toHaveAttribute('href', '/acme')
+        expect(menu.getByText('Settings', { selector: 'span' })).toBeInTheDocument()
+        expect(menu.queryByRole('button', { name: /Acme/ })).not.toBeInTheDocument()
+        const trail = within(screen.getByRole('navigation', { name: 'You are here' }))
+        expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual(['Settings', 'General'])
+      })
+
+      it('is not offered in the settings of a screen that has no organization to speak of', () => {
+        renderShell({ path: '/settings/security' })
+
+        expect(screen.queryByRole('list', { name: 'Organization' })).not.toBeInTheDocument()
+      })
+    })
+
     it('goes back to the app from the settings', async () => {
       const history = renderShell({ path: '/settings/security' })
 
@@ -311,6 +501,7 @@ describe('AppShell', () => {
         'Profile',
         'Security',
         'Preferences',
+        'Create organization',
         'Use the system theme',
         'Use the light theme',
         'Use the dark theme',

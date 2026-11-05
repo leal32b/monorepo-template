@@ -5,7 +5,7 @@ import { ResendConfirmation } from '#features/resend-confirmation'
 import { SignInForm } from '#features/sign-in'
 import { SignInWithGoogle } from '#features/sign-in-with-google'
 import { useI18n } from '#shared/config'
-import { safeNext } from '#shared/lib'
+import { safeNext, withNext } from '#shared/lib'
 import { EntryLayout } from '#widgets/entry-layout'
 
 /** The errors a confirmation link comes back with, which the session guard brings here. */
@@ -18,7 +18,8 @@ const linkErrors = new Set(['TOKEN_EXPIRED', 'INVALID_TOKEN'])
  * confirmation link that failed comes here with its own `?error=`, explained below the button, where
  * the answer to a sign-in takes its place. Google comes first, then "or", then the form. The way to a
  * new password sits beside the password's label and carries the email typed so far in the history's
- * state, never in the URL.
+ * state, never in the URL. A new account, and a confirmation link sent again, head to `next` too, so an
+ * invitation opened while signed out is where the user ends up whichever way they come in.
  */
 export function SignInPage() {
   const { t } = useI18n()
@@ -36,7 +37,7 @@ export function SignInPage() {
       description={t('signIn.description')}
       footer={
         <>
-          {t('signIn.noAccount')} <Link href="/signup">{t('signIn.signUp')}</Link>
+          {t('signIn.noAccount')} <Link href={withNext('/signup', next())}>{t('signIn.signUp')}</Link>
         </>
       }
     >
@@ -49,9 +50,13 @@ export function SignInPage() {
             <Alert variant="error">{t('signIn.errors.linkExpired')}</Alert>
           </Show>
         }
-        resend={(email) => <ResendConfirmation email={email} />}
+        resend={(email) => <ResendConfirmation email={email} next={next()} />}
         forgotPassword={(email) => (
-          <A href="/forgot-password" state={{ email: email() }} class={cn(linkClass, 'py-1 text-sm')}>
+          <A
+            href={withNext('/forgot-password', next())}
+            state={{ email: email() }}
+            class={cn(linkClass, 'py-1 text-sm')}
+          >
             {t('signIn.forgot')}
           </A>
         )}

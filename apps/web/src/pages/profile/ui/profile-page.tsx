@@ -12,7 +12,7 @@ export function ProfilePage() {
     <AppShell title={t('profile.title')}>
       <SettingsSection title={t('profile.details.title')} description={t('profile.details.description')}>
         <SettingsRow icon="profile" title={t('profile.details.name')} description={user.name} />
-        <SettingsRow letter="@" title={t('profile.details.email')} description={user.email} />
+        <SettingsRow icon="mail" title={t('profile.details.email')} description={user.email} />
       </SettingsSection>
     </AppShell>
   )

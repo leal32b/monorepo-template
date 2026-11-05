@@ -12,6 +12,8 @@ export type SignUpFormProps = {
   initial?: SignUpValues | undefined
   /** Called with what was sent, cleaned; the confirmation link went to its email. */
   onSignedUp: (values: SignUpValues) => void
+  /** Where the confirmation link goes once it signs the user in, a path on this site (`safeNext`); home by default. */
+  next?: string | undefined
 }
 
 /**
@@ -46,7 +48,7 @@ export function SignUpForm(props: SignUpFormProps) {
 
     setPending(true)
     const failed = await callAuth((options) =>
-      auth.signUp.email({ ...values, locale: locale(), callbackURL: '/' }, options)
+      auth.signUp.email({ ...values, locale: locale(), callbackURL: props.next ?? '/' }, options)
     )
     setPending(false)
 
