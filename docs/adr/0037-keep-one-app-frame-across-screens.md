@@ -1,6 +1,6 @@
 # 0037. Keep one app frame across screens
 
-- Status: accepted
+- Status: accepted; a guard's placeholder standing the frame aside is superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)
 - Date: 2026-11-05
 
 ## Context and problem statement

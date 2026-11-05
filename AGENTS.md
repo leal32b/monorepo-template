@@ -60,6 +60,8 @@ Folders appear only when their phase of the plan reaches them.
 - **Web:** FSD checked by Steiger ([ADR 0010](docs/adr/0010-web-architecture-feature-sliced-design.md)):
   imports go downwards only, slices and `shared` segments are reached through their `index.ts`.
 - **`index.ts` files contain re-exports only** (they are excluded from coverage).
+- **Loading:** server reads are router `query()`s, preloaded by their route and read with `createAsync`; a
+  navigation swaps at once and waits with the screen's skeleton ([ADR 0038](docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)).
 - **UI:** screens compose `@repo/ui` ([ADR 0017](docs/adr/0017-build-the-web-ui-from-the-design-system-first.md));
   a missing component is added there, with tests. Colours are roles only (`bg-primary`,
   `text-muted-foreground`), held to WCAG contrast ([ADR 0016](docs/adr/0016-design-system-on-kobalte-and-unocss.md));

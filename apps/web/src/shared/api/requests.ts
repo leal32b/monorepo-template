@@ -15,8 +15,8 @@ export type Requests = {
  *
  * The count is a plain number, not a signal: a request often starts inside a transition (a navigation
  * of the router), and Solid 1 keeps a signal written there aside until the transition commits, so the
- * bar would not see it and the count would end below zero. Readers are told of a change in a microtask,
- * which runs after the transition's own work, never inside it.
+ * bar would not see it and the count would end below zero (ADR 0038). Readers are told of a change in a
+ * microtask, which runs after the transition's own work, never inside it.
  */
 export function createRequests(): Requests {
   let pending = 0
