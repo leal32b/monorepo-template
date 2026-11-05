@@ -1,3 +1,4 @@
+import { builtInRoles } from '@repo/contracts'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { createApiClient, createAuthClient, createRequests } from '#shared/api'
 import { App } from './app'
@@ -383,6 +384,59 @@ describe('App', () => {
       expect(await screen.findByRole('heading', { level: 1, name: 'General' })).toBeInTheDocument()
       expect(screen.getByRole('navigation', { name: 'Settings' }).closest('aside')).toBe(frame)
       expect(health.mock.calls.filter(([path]) => path === '/api/health')).toHaveLength(1)
+    })
+  })
+
+  describe('switching organizations', () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+    /** Every answer a moment away, as over a network: the router's transition then waits on it. */
+    const later = (body: unknown) =>
+      new Promise<Response>((resolve) => setTimeout(() => resolve(Response.json(body)), 100))
+    /** Follows a link the way the router takes one, as a link elsewhere on the page or the palette does. */
+    const follow = (href: string) => {
+      const link = Object.assign(document.createElement('a'), { href })
+      document.body.append(link)
+      link.click()
+      link.remove()
+    }
+
+    /** Ada owns Acme and Globex, so the home offers her the way to invite people. */
+    const inTwo = () => {
+      const client = createApiClient({
+        fetch: (path) => later(path.endsWith('/me') ? { roles: ['owner'], permissions: builtInRoles.owner } : health)
+      })
+      const auth = createAuthClient({
+        fetch: (input) => {
+          const url = String(input)
+          if (url.includes('/organization/list-members')) return later({ members: [], total: 0 })
+          if (url.includes('/organization/list-roles') || url.includes('/organization/list-invitations')) {
+            return later([])
+          }
+          if (url.includes('/organization/list')) {
+            return later([
+              { id: 'org-1', name: 'Acme', slug: 'acme' },
+              { id: 'org-2', name: 'Globex', slug: 'globex' }
+            ])
+          }
+          return later({ session: { id: 's1' }, user })
+        }
+      })
+      return { client, auth }
+    }
+
+    it('draws the other organization in the same frame, then the next screen asked for (W13)', async () => {
+      window.history.replaceState(null, '', '/acme')
+      render(() => <App {...inTwo()} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Home' }, { timeout: 2000 })
+      const frame = document.querySelector('aside') as HTMLElement
+
+      follow('/globex')
+      expect(await within(frame).findByRole('button', { name: /Globex/ }, { timeout: 2000 })).toBeInTheDocument()
+      follow('/globex/settings/roles')
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Roles' }, { timeout: 2000 })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
     })
   })
 

@@ -5,6 +5,7 @@ import { createServiceStatus } from '#entities/health'
 import { createSignOut } from '#features/sign-out'
 import { useI18n, usePalette } from '#shared/config'
 import { useInSettings } from '../model/in-settings'
+import { createMarkedPath } from '../model/marked-path'
 import { createShell, ShellContext } from '../model/shell'
 import { ShellPalette } from './shell-palette'
 import { Sidebar } from './sidebar'
@@ -39,6 +40,7 @@ export function AppFrame(props: ParentProps) {
     )
   )
   const inSettings = useInSettings()
+  const marked = createMarkedPath()
   const shell = createShell(signOut.failure)
   const framed = () => shell.screen() !== undefined
   /** Where the screen sits, read from the route: a settings screen is under "Settings". */
@@ -46,7 +48,7 @@ export function AppFrame(props: ParentProps) {
     inSettings() ? [{ href: '/settings/profile', label: t('appShell.account.settings') }] : []
 
   const sidebar = (onNavigate?: () => void, onSettings?: () => void) => (
-    <Sidebar status={status} signOut={signOut.signOut} onNavigate={onNavigate} onSettings={onSettings} />
+    <Sidebar status={status} path={marked} signOut={signOut.signOut} onNavigate={onNavigate} onSettings={onSettings} />
   )
 
   return (

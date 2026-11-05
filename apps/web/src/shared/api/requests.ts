@@ -12,18 +12,30 @@ export type Requests = {
 /**
  * Counts the requests to the server, so the app shows one progress bar for all of them (ADR 0035).
  * Both clients go through the `fetch` this wraps, so no screen has to remember to say it is waiting.
+ *
+ * The count is a plain number, not a signal: a request often starts inside a transition (a navigation
+ * of the router), and Solid 1 keeps a signal written there aside until the transition commits, so the
+ * bar would not see it and the count would end below zero. Readers are told of a change in a microtask,
+ * which runs after the transition's own work, never inside it.
  */
 export function createRequests(): Requests {
-  const [pending, setPending] = createSignal(0)
+  let pending = 0
+  const [changed, setChanged] = createSignal(undefined, { equals: false })
+  const tell = () => queueMicrotask(() => setChanged())
 
   return {
-    busy: () => pending() > 0,
+    busy: () => {
+      changed()
+      return pending > 0
+    },
     track: (fetch) => async (input, init) => {
-      setPending((count) => count + 1)
+      pending += 1
+      tell()
       try {
         return await fetch(input, init)
       } finally {
-        setPending((count) => count - 1)
+        pending -= 1
+        tell()
       }
     }
   }

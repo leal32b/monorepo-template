@@ -1,9 +1,9 @@
 import type { IdentityOptions } from '@repo/contracts'
-import { ProgressBar } from '@repo/ui'
 import { Router } from '@solidjs/router'
 import { IdentityOptionsProvider } from '#entities/identity-options'
 import { type ApiClient, ApiProvider, type AuthClient, AuthProvider, createRequests, type Requests } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { NavigationProgress } from './navigation-progress'
 import { routes } from './routes'
 
 export function App(props: {
@@ -18,13 +18,21 @@ export function App(props: {
   const requests = props.requests ?? createRequests()
   return (
     <ThemeProvider>
-      <ProgressBar active={requests.busy()} />
       <I18nProvider locale={props.locale}>
         <PaletteProvider>
           <ApiProvider client={props.client}>
             <AuthProvider client={props.auth}>
               <IdentityOptionsProvider options={props.identity}>
-                <Router>{routes}</Router>
+                <Router
+                  root={(root) => (
+                    <>
+                      <NavigationProgress requests={requests} />
+                      {root.children}
+                    </>
+                  )}
+                >
+                  {routes}
+                </Router>
               </IdentityOptionsProvider>
             </AuthProvider>
           </ApiProvider>

@@ -90,11 +90,14 @@ export function RequireOrganization(props: ParentProps) {
         <OrganizationsUnavailable retry={() => void refetchMembership()} />
       </Match>
       <Match when={membership.state === 'ready' && organization()}>
-        {(current) => (
-          <CurrentOrganizationProvider organization={current()} membership={membership() as OrganizationMembership}>
-            {props.children}
-          </CurrentOrganizationProvider>
-        )}
+        {/* The guard's own memo, not the Match's narrowed value: a screen leaving for another organization still
+            reads its own inside the router's transition after the Match stopped matching, and that throws (W13). */}
+        <CurrentOrganizationProvider
+          organization={organization() as Organization}
+          membership={membership() as OrganizationMembership}
+        >
+          {props.children}
+        </CurrentOrganizationProvider>
       </Match>
     </Switch>
   )
