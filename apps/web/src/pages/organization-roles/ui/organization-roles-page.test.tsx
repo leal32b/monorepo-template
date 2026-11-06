@@ -2,7 +2,13 @@ import { builtInRoles, type OrganizationMembership, type Permissions } from '@re
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import type { ParentProps } from 'solid-js'
-import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/organizations'
+import {
+  CurrentOrganizationProvider,
+  membersQuery,
+  OrganizationsProvider,
+  pendingInvitationsQuery,
+  rolesQuery
+} from '#entities/organizations'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
@@ -117,6 +123,27 @@ describe('OrganizationRolesPage', () => {
 
     expect(screen.getAllByRole('status').some((line) => line.textContent === 'Loading…')).toBe(true)
     vi.useRealTimers()
+  })
+
+  it('draws at once what another screen read, such as Members, and reads it again behind (ADR 0038)', async () => {
+    const answers: Fetch = async (input) => {
+      const url = String(input)
+      if (url.includes('/organization/list-members')) return Response.json({ members: defaults.members, total: 2 })
+      if (url.includes('/organization/list-roles')) return Response.json(defaults.roles)
+      return Response.json(defaults.invitations)
+    }
+    const before = createAuthClient({ fetch: answers })
+    await Promise.all([
+      membersQuery(before)('org-1'),
+      rolesQuery(before)('org-1'),
+      pendingInvitationsQuery(before)('org-1')
+    ])
+    const asked = vi.fn(() => new Promise<Response>(() => {}))
+
+    renderPage({ auth: asked })
+
+    expect(await rowOf('Editor')).toBeTruthy()
+    expect(screen.getByText(/Ken and new@example.com \(invited\)/)).toBeInTheDocument()
   })
 
   it('shows the three built-in roles, marked so, with how much each can do and a way to view it', async () => {

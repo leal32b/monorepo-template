@@ -1,9 +1,9 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
-import { OrganizationsProvider } from '#entities/organizations'
+import { invitationQuery, OrganizationsProvider } from '#entities/organizations'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider } from '#shared/config'
+import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
 import { InvitationPage } from './invitation-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -48,20 +48,24 @@ function renderPage(api: ApiFetch, auth: Fetch = authFor(), path = '/invitations
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <ApiProvider client={createApiClient({ fetch: api })}>
-        <AuthProvider client={createAuthClient({ fetch: auth })}>
-          <SessionProvider user={ada}>
-            <MemoryRouter history={history}>
-              <Route path="/" component={OrganizationsProvider}>
-                <Route path="/invitations/:id" component={InvitationPage} />
-                <Route path="/acme" component={() => <p>Acme home</p>} />
-                <Route path="/" component={() => <p>The start</p>} />
-              </Route>
-              <Route path="/login" component={() => <p>The sign-in</p>} />
-            </MemoryRouter>
-          </SessionProvider>
-        </AuthProvider>
-      </ApiProvider>
+      <ThemeProvider>
+        <PaletteProvider>
+          <ApiProvider client={createApiClient({ fetch: api })}>
+            <AuthProvider client={createAuthClient({ fetch: auth })}>
+              <SessionProvider user={ada}>
+                <MemoryRouter history={history}>
+                  <Route path="/" component={OrganizationsProvider}>
+                    <Route path="/invitations/:id" component={InvitationPage} />
+                    <Route path="/acme" component={() => <p>Acme home</p>} />
+                    <Route path="/" component={() => <p>The start</p>} />
+                  </Route>
+                  <Route path="/login" component={() => <p>The sign-in</p>} />
+                </MemoryRouter>
+              </SessionProvider>
+            </AuthProvider>
+          </ApiProvider>
+        </PaletteProvider>
+      </ThemeProvider>
     </I18nProvider>
   ))
   return history
@@ -71,6 +75,14 @@ const heading = (name: string) => screen.findByRole('heading', { level: 1, name 
 
 describe('InvitationPage', () => {
   beforeEach(() => localStorage.clear())
+
+  it('draws at once an invitation read a moment ago, as when its screen was open before (ADR 0038)', async () => {
+    await invitationQuery(createApiClient({ fetch: async () => Response.json(invitation()) }))('inv-1')
+
+    renderPage(vi.fn<ApiFetch>(() => new Promise<Response>(() => {})))
+
+    expect(await heading('Invitation to Acme')).toBeInTheDocument()
+  })
 
   it('asks the API about the invitation of the link', async () => {
     const api = apiFor(() => Response.json(invitation()))
@@ -99,7 +111,7 @@ describe('InvitationPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation' }))
 
     expect(await screen.findByText('Acme home')).toBeInTheDocument()
-    expect(history.get()).toBe('/acme')
+    await waitFor(() => expect(history.get()).toBe('/acme'))
     expect(localStorage.getItem('organization')).toBe('acme')
     const lists = () => auth.mock.calls.filter(([input]) => String(input).endsWith('/organization/list'))
     await waitFor(() => expect(lists()).toHaveLength(2))
@@ -178,7 +190,7 @@ describe('InvitationPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign in with another account' }))
 
     expect(await screen.findByText('The sign-in')).toBeInTheDocument()
-    expect(history.get()).toBe('/login?next=%2Finvitations%2Finv-1')
+    await waitFor(() => expect(history.get()).toBe('/login?next=%2Finvitations%2Finv-1'))
   })
 
   it('from an open invitation too, offers another account', async () => {
@@ -216,5 +228,47 @@ describe('InvitationPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
     expect(await heading('Invitation to Acme')).toBeInTheDocument()
+  })
+
+  describe('for someone who has an organization (D3, ADR 0039)', () => {
+    const initech = { id: 'org-9', name: 'Initech', slug: 'initech' }
+    const inInitech = (others: Record<string, () => Response> = {}) =>
+      authFor({ 'organization/list': () => Response.json([initech]), ...others })
+
+    it('is an app screen in the frame, whose side menu holds the account', async () => {
+      renderPage(
+        apiFor(() => Response.json(invitation())),
+        inInitech()
+      )
+
+      expect(await heading('Invitation to Acme')).toBeInTheDocument()
+      expect(screen.getByText('Grace Hopper invited you. The invitation is open until Nov 11, 2026.')).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Accept invitation' })).toBeVisible()
+      expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+      expect(screen.queryByText(/Signed in as/)).not.toBeInTheDocument()
+    })
+
+    it('says in the frame too what became of an invitation, with the way on to the app', async () => {
+      renderPage(apiFor(problem(404, 'invitation_not_found')), inInitech())
+
+      expect(await heading('We could not find this invitation')).toBeInTheDocument()
+      expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Continue to the app' })).toHaveAttribute('href', '/')
+    })
+
+    it('after joining, opens the organization, with the list read again', async () => {
+      const auth = inInitech({ 'organization/accept-invitation': () => Response.json({ member: { id: 'm1' } }) })
+      const history = renderPage(
+        apiFor(() => Response.json(invitation())),
+        auth
+      )
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation' }))
+
+      expect(await screen.findByText('Acme home')).toBeInTheDocument()
+      await waitFor(() => expect(history.get()).toBe('/acme'))
+      const lists = () => auth.mock.calls.filter(([input]) => String(input).endsWith('/organization/list'))
+      await waitFor(() => expect(lists()).toHaveLength(2))
+    })
   })
 })

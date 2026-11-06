@@ -1,10 +1,11 @@
 import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
-import { A, useMatch } from '@solidjs/router'
+import { A } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
 import type { ServiceStatus } from '#entities/health'
 import { homeOf, startingOrganization, useOptionalOrganizations } from '#entities/organizations'
 import { useI18n } from '#shared/config'
 import { useInSettings } from '../model/in-settings'
+import { samePath } from '../model/marked-path'
 import { useShellOrganization } from '../model/shell'
 import { OrganizationSwitcher } from './organization-switcher'
 import { ServiceProblem, ServiceStatusButton } from './service-status'
@@ -12,6 +13,8 @@ import { UserMenu } from './user-menu'
 
 export type SidebarProps = {
   status: ServiceStatus
+  /** The path the menu marks as current: the screen chosen while it is on its way (`createMarkedPath`). */
+  path: () => string
   signOut: () => void
   /** Called after a link is followed, so the phone drawer can close. */
   onNavigate?: (() => void) | undefined
@@ -45,26 +48,31 @@ const organizationItems = (home: string): Item<'general' | 'members' | 'roles'>[
 const linkClass =
   'flex h-11 items-center gap-2.5 rounded-md px-2 text-base text-muted-foreground transition-colors hover:bg-secondary aria-[current=page]:bg-secondary aria-[current=page]:font-medium aria-[current=page]:text-foreground sm:h-9 sm:text-sm'
 
+/**
+ * A screen in the menu, marked when it is the one the menu marks (`SidebarProps.path`). A plain link, which
+ * the router follows as it does its own, since the router's own link marks only the screen already on view.
+ */
 function NavLink(props: {
   href: string
   icon: IconName
+  path: () => string
   onNavigate?: (() => void) | undefined
   children: JSX.Element
 }) {
-  const active = useMatch(() => props.href)
+  const current = () => samePath(props.path(), props.href)
   /** The current screen's icon in duotone, when it has one; the others are drawn in outline. */
   const duotone = () => {
     const name = props.icon
-    return active() && hasDuotone(name) ? name : undefined
+    return current() && hasDuotone(name) ? name : undefined
   }
 
   return (
-    <A href={props.href} end onClick={props.onNavigate} class={linkClass}>
+    <a href={props.href} aria-current={current() ? 'page' : undefined} onClick={props.onNavigate} class={linkClass}>
       <Show when={duotone()} fallback={<Icon name={props.icon} />}>
         {(name) => <Icon name={name()} weight="duotone" />}
       </Show>
       {props.children}
-    </A>
+    </a>
   )
 }
 
@@ -121,7 +129,7 @@ export function Sidebar(props: SidebarProps) {
               <For each={itemsOf(home())}>
                 {(item) => (
                   <li>
-                    <NavLink href={item.href} icon={item.icon} onNavigate={props.onNavigate}>
+                    <NavLink href={item.href} icon={item.icon} path={props.path} onNavigate={props.onNavigate}>
                       {t(`appShell.nav.${item.label}`)}
                     </NavLink>
                   </li>
@@ -132,7 +140,7 @@ export function Sidebar(props: SidebarProps) {
         }
       >
         <nav aria-label={t('appShell.nav.settings')} class="flex flex-1 flex-col gap-4">
-          <NavLink href={home()} icon="back" onNavigate={props.onNavigate}>
+          <NavLink href={home()} icon="back" path={props.path} onNavigate={props.onNavigate}>
             {t('appShell.nav.back')}
           </NavLink>
           <div class="flex flex-col gap-1">
@@ -143,7 +151,7 @@ export function Sidebar(props: SidebarProps) {
               <For each={accountItems}>
                 {(item) => (
                   <li>
-                    <NavLink href={item.href} icon={item.icon} onNavigate={props.onNavigate}>
+                    <NavLink href={item.href} icon={item.icon} path={props.path} onNavigate={props.onNavigate}>
                       {t(`appShell.nav.${item.label}`)}
                     </NavLink>
                   </li>
@@ -161,7 +169,7 @@ export function Sidebar(props: SidebarProps) {
                   <For each={organizationItems(homeOf(organization()))}>
                     {(item) => (
                       <li>
-                        <NavLink href={item.href} icon={item.icon} onNavigate={props.onNavigate}>
+                        <NavLink href={item.href} icon={item.icon} path={props.path} onNavigate={props.onNavigate}>
                           {t(`appShell.nav.${item.label}`)}
                         </NavLink>
                       </li>

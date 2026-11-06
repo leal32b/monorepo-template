@@ -160,7 +160,7 @@ describe('OrganizationGeneralPage', () => {
     )
 
     expect(await screen.findByText('The root')).toBeInTheDocument()
-    expect(history.get()).toBe('/')
+    await waitFor(() => expect(history.get()).toBe('/'))
   })
 
   it('closes the deletion from Cancel without deleting', async () => {

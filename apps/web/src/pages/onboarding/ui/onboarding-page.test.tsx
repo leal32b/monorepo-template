@@ -1,8 +1,9 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import { OrganizationsProvider } from '#entities/organizations'
+import { OrganizationsProvider, organizationsQuery, userInvitationsQuery } from '#entities/organizations'
+import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider } from '#shared/config'
+import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
 import { OnboardingPage } from './onboarding-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -10,6 +11,7 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 const api = createApiClient({ fetch: async () => Response.json(health) })
 
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
 const day = 24 * 60 * 60 * 1000
 const invitation = (id: string, name: string, expiresIn: number) => ({
   id,
@@ -40,16 +42,22 @@ function renderPage(client: ReturnType<typeof createAuthClient>) {
   history.set({ value: '/onboarding' })
   render(() => (
     <I18nProvider locale="en">
-      <ApiProvider client={api}>
-        <AuthProvider client={client}>
-          <MemoryRouter history={history}>
-            <Route path="/" component={OrganizationsProvider}>
-              <Route path="/onboarding" component={OnboardingPage} />
-              <Route path="/" component={() => <p>The root</p>} />
-            </Route>
-          </MemoryRouter>
-        </AuthProvider>
-      </ApiProvider>
+      <ThemeProvider>
+        <PaletteProvider>
+          <ApiProvider client={api}>
+            <AuthProvider client={client}>
+              <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
+                <MemoryRouter history={history}>
+                  <Route path="/" component={OrganizationsProvider}>
+                    <Route path="/onboarding" component={OnboardingPage} />
+                    <Route path="/" component={() => <p>The root</p>} />
+                  </Route>
+                </MemoryRouter>
+              </SessionProvider>
+            </AuthProvider>
+          </ApiProvider>
+        </PaletteProvider>
+      </ThemeProvider>
     </I18nProvider>
   ))
   return history
@@ -57,6 +65,16 @@ function renderPage(client: ReturnType<typeof createAuthClient>) {
 
 describe('OnboardingPage', () => {
   beforeEach(() => localStorage.clear())
+
+  it('draws at once the invitations read a moment ago (ADR 0038)', async () => {
+    const before = auth([invitation('inv-1', 'Acme', day)]).client
+    await userInvitationsQuery(before)()
+    await organizationsQuery(before)()
+
+    renderPage(createAuthClient({ fetch: () => new Promise<Response>(() => {}) }))
+
+    expect(await screen.findByRole('region', { name: 'Invitations' })).toHaveTextContent('Acme')
+  })
 
   it('without invitations, asks for the name of the first organization', async () => {
     renderPage(auth([]).client)
@@ -76,7 +94,7 @@ describe('OnboardingPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create organization' }))
 
     expect(await screen.findByText('The root')).toBeInTheDocument()
-    expect(history.get()).toBe('/')
+    await waitFor(() => expect(history.get()).toBe('/'))
     expect(localStorage.getItem('organization')).toBe('acme-inc')
   })
 
@@ -104,25 +122,58 @@ describe('OnboardingPage', () => {
     expect(region.queryByRole('button', { name: /Accept|Decline/ })).not.toBeInTheDocument()
   })
 
-  it('for someone who has an organization, offers another one, with the way back to the app', async () => {
-    renderPage(auth([], { list: () => Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }]) }).client)
+  describe('for someone who has an organization (D3, ADR 0039)', () => {
+    it('is an app screen in the frame, whose side menu is the way back', async () => {
+      renderPage(auth([], { list: () => Response.json([acme]) }).client)
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Create an organization' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Back to app' })).toHaveAttribute('href', '/')
-  })
+      expect(await screen.findByRole('heading', { level: 1, name: 'Create an organization' })).toBeInTheDocument()
+      expect(screen.getByText('Another organization, with its own people and roles.')).toBeInTheDocument()
+      const menu = within(screen.getByRole('navigation', { name: 'Main' }))
+      expect(menu.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
+      expect(screen.queryByRole('link', { name: 'Back to app' })).not.toBeInTheDocument()
+    })
 
-  it('asked for from the switcher, stays about creating, with the invitations after the form', async () => {
-    renderPage(
-      auth([invitation('1', 'Globex', 7 * day)], {
-        list: () => Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
-      }).client
-    )
+    it('draws the form at once, before the invitations are read', async () => {
+      const fetch = vi.fn<Fetch>(async (input) =>
+        String(input).endsWith('/list-user-invitations')
+          ? new Promise<Response>(() => {})
+          : Response.json(String(input).endsWith('/organization/list') ? [acme] : [])
+      )
+      renderPage(createAuthClient({ fetch }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Create an organization' })).toBeInTheDocument()
-    const name = screen.getByRole('textbox', { name: 'Organization name' })
-    const region = screen.getByRole('region', { name: 'Invitations' })
-    expect(name.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Back to app' })).toBeInTheDocument()
+      expect(await screen.findByRole('textbox', { name: 'Organization name' })).toBeInTheDocument()
+      expect(screen.queryByRole('region', { name: 'Invitations' })).not.toBeInTheDocument()
+    })
+
+    it('puts the invitations after the form, once they are read', async () => {
+      renderPage(auth([invitation('1', 'Globex', 7 * day)], { list: () => Response.json([acme]) }).client)
+
+      const name = await screen.findByRole('textbox', { name: 'Organization name' })
+      const region = await screen.findByRole('region', { name: 'Invitations' })
+      expect(region).toHaveTextContent('Globex')
+      expect(name.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('says in their place that the invitations could not be read, keeping the form, and reads them again on request', async () => {
+      let failing = true
+      const { client } = auth(
+        () =>
+          failing
+            ? Response.json({ code: 'BOOM' }, { status: 500 })
+            : Response.json([invitation('1', 'Globex', 7 * day)]),
+        { list: () => Response.json([acme]) }
+      )
+      renderPage(client)
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'We could not check your invitations. Check your connection, then try again.'
+      )
+      expect(screen.getByRole('textbox', { name: 'Organization name' })).toBeInTheDocument()
+      failing = false
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+
+      expect(await screen.findByRole('region', { name: 'Invitations' })).toHaveTextContent('Globex')
+    })
   })
 
   it('for someone without one, has no way back: there is no app to go back to yet', async () => {

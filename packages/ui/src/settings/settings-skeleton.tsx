@@ -1,5 +1,5 @@
-import { createSignal, For, onCleanup, onMount, Show } from 'solid-js'
-import { motion } from '#motion'
+import { For, Show } from 'solid-js'
+import { createLate } from '#motion'
 
 export type SettingsSkeletonProps = {
   /** Said to screen readers while it waits ("Loading…"). */
@@ -10,14 +10,11 @@ export type SettingsSkeletonProps = {
 
 /**
  * The place of a `SettingsSection` while its rows load: a heading bar and rows of the same height, so
- * nothing below jumps when they arrive. It appears only after a moment, so a quick load does not flash.
+ * nothing below jumps when they arrive. It appears only after a moment, so a quick load does not flash, and
+ * on time when it takes over from another placeholder of the same wait (`createLate`).
  */
 export function SettingsSkeleton(props: SettingsSkeletonProps) {
-  const [late, setLate] = createSignal(false)
-  onMount(() => {
-    const timer = setTimeout(() => setLate(true), motion.waitDelay)
-    onCleanup(() => clearTimeout(timer))
-  })
+  const late = createLate()
 
   return (
     <Show when={late()}>

@@ -1,5 +1,6 @@
+import { MemoryRouter, Route } from '@solidjs/router'
 import { render, screen } from '@solidjs/testing-library'
-import { Show } from 'solid-js'
+import { type JSX, Show } from 'solid-js'
 import { AuthProvider, createAuthClient } from '#shared/api'
 import { OrganizationsProvider, useOptionalOrganizations, useOrganizations } from './organizations'
 
@@ -23,16 +24,25 @@ function Names() {
   )
 }
 
+/** As in the app, the provider sits under the router, whose cache of reads it uses (ADR 0038). */
+const routed = (screen: () => JSX.Element) => (
+  <MemoryRouter>
+    <Route path="/" component={screen} />
+  </MemoryRouter>
+)
+
 describe('OrganizationsProvider', () => {
   it('reads the organizations once for every screen below, and again when asked', async () => {
     const fetch = vi.fn(async () => Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }]))
 
     render(() => (
       <AuthProvider client={createAuthClient({ fetch })}>
-        <OrganizationsProvider>
-          <Names />
-          <Names />
-        </OrganizationsProvider>
+        {routed(() => (
+          <OrganizationsProvider>
+            <Names />
+            <Names />
+          </OrganizationsProvider>
+        ))}
       </AuthProvider>
     ))
 
@@ -64,10 +74,12 @@ describe('OrganizationsProvider', () => {
 
     render(() => (
       <AuthProvider client={createAuthClient({ fetch })}>
-        <OrganizationsProvider>
-          <Names />
-          <Controls />
-        </OrganizationsProvider>
+        {routed(() => (
+          <OrganizationsProvider>
+            <Names />
+            <Controls />
+          </OrganizationsProvider>
+        ))}
       </AuthProvider>
     ))
     expect(await screen.findByText('Acme, Globex')).toBeInTheDocument()
@@ -87,11 +99,80 @@ describe('OrganizationsProvider', () => {
 
     render(() => (
       <AuthProvider client={createAuthClient({ fetch: async () => Response.json([]) })}>
-        <OrganizationsProvider>
-          <Probe />
-        </OrganizationsProvider>
+        {routed(() => (
+          <OrganizationsProvider>
+            <Probe />
+          </OrganizationsProvider>
+        ))}
       </AuthProvider>
     ))
     expect(await screen.findByText('some')).toBeInTheDocument()
+  })
+
+  describe('the list as last read', () => {
+    const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+
+    function Known() {
+      const { known, hasOrganization, refetch } = useOrganizations()
+      return (
+        <>
+          <p data-testid="known">
+            {known()
+              ?.map((organization) => organization.name)
+              .join(', ') ?? 'unknown'}
+          </p>
+          <p data-testid="has">{String(hasOrganization())}</p>
+          <button type="button" onClick={refetch}>
+            Again
+          </button>
+        </>
+      )
+    }
+
+    function renderKnown(fetch: () => Promise<Response>) {
+      render(() => (
+        <AuthProvider client={createAuthClient({ fetch })}>
+          {routed(() => (
+            <OrganizationsProvider>
+              <Known />
+            </OrganizationsProvider>
+          ))}
+        </AuthProvider>
+      ))
+    }
+
+    it('is unknown until the first answer, then kept while the list is read again (W10)', async () => {
+      let answer: (response: Response) => void = () => {}
+      const fetch = vi
+        .fn<() => Promise<Response>>()
+        .mockResolvedValueOnce(Response.json([acme]))
+        .mockImplementationOnce(
+          () =>
+            new Promise<Response>((resolve) => {
+              answer = resolve
+            })
+        )
+      renderKnown(fetch)
+
+      expect(screen.getByTestId('known')).toHaveTextContent('unknown')
+      expect(screen.getByTestId('has')).toHaveTextContent('undefined')
+      await vi.waitFor(() => expect(screen.getByTestId('known')).toHaveTextContent('Acme'))
+      expect(screen.getByTestId('has')).toHaveTextContent('true')
+      screen.getByRole('button', { name: 'Again' }).click()
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+      expect(screen.getByTestId('known')).toHaveTextContent('Acme')
+
+      answer(Response.json([]))
+
+      await vi.waitFor(() => expect(screen.getByTestId('has')).toHaveTextContent('false'))
+      expect(screen.getByTestId('known')).toHaveTextContent('')
+    })
+
+    it('has no organization to speak of when the list could not be read', async () => {
+      renderKnown(async () => Response.json({ code: 'INTERNAL_SERVER_ERROR' }, { status: 500 }))
+
+      await vi.waitFor(() => expect(screen.getByTestId('has')).toHaveTextContent('false'))
+      expect(screen.getByTestId('known')).toHaveTextContent('unknown')
+    })
   })
 })

@@ -16,8 +16,8 @@ import { useI18n } from '#shared/config'
 /**
  * The organization you are in, at the top of the side menu, and a menu to move to another of yours or
  * to create one (ADR 0034). Choosing one opens its home, since the screens differ by what the roles
- * allow. Until the list is read, or if it cannot be, the menu holds the current organization alone: a
- * tenant screen only opens once the list was read, so the gap is a refetch.
+ * allow. While the list is read again it keeps the last one (W10); if it cannot be read, the menu holds
+ * the current organization alone.
  */
 export function OrganizationSwitcher(props: {
   /** The organization of the screen. */
@@ -27,9 +27,8 @@ export function OrganizationSwitcher(props: {
 }) {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { list } = useOrganizations()
-  // A resource in error throws when read, so the list is read only once it is ready.
-  const organizations = () => (list.state === 'ready' ? list() : [props.organization])
+  const { known } = useOrganizations()
+  const organizations = () => known() ?? [props.organization]
 
   const open = (path: string) => {
     navigate(path)

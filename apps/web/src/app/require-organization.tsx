@@ -1,38 +1,49 @@
 import type { OrganizationMembership } from '@repo/contracts'
 import { useParams } from '@solidjs/router'
-import { createEffect, createMemo, createResource, Match, type ParentProps, Switch } from 'solid-js'
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  Match,
+  type ParentProps,
+  Suspense,
+  Switch
+} from 'solid-js'
 import {
   CurrentOrganizationProvider,
   getMembership,
   type Organization,
+  ownOrganization,
   rememberOrganization,
   useOrganizations
 } from '#entities/organizations'
 import { NotFoundPage } from '#pages/not-found'
 import { ApiError, useApi } from '#shared/api'
-import { ShellSkeleton } from '#widgets/app-shell'
+import { PageSkeleton, ShellSkeleton } from '#widgets/app-shell'
 import { OrganizationsUnavailable } from './organizations-unavailable'
 
 /**
  * The tenant screens under `/:orgSlug` (ADR 0034). The slug is looked up only among the user's own
  * organizations, so one that does not exist and one of somebody else's both show "not found", as the
- * API answers 404 for both. Then it asks the API what the caller may do there, and keeps the slug on
- * this device as the place `/` opens next time. If the address is changed on the screen, it stays on the
- * same organization while the URL catches up.
+ * API answers 404 for both. If the address is changed on the screen, it stays on the same organization
+ * while the URL catches up.
  *
- * Coming here from another screen, or from another organization, the previous screen stays until the
- * membership is in: it is read where the session's `Suspense` sees it, so the router's transition waits
- * on it, and the progress bar shows if it is slow. A membership read before in this session draws at
- * once, and is asked again behind it; if the caller is no longer a member, it is read for real.
+ * The screens are drawn anew for each organization (`OrganizationScreens`), so a screen leaving for
+ * another one never reads it (W13), and moving to one never waits on what the caller may do there: its
+ * skeleton holds the place in the frame until the API says (ADR 0038).
+ *
+ * While the organizations are read again (one deleted, left or joined), the list as last read stands
+ * (W10): the screen on view stays, and an organization only the new list has waits for it in the frame,
+ * where "not found" waits for the new list too.
  */
 export function RequireOrganization(props: ParentProps) {
   const params = useParams<{ orgSlug: string }>()
-  const api = useApi()
-  const { list, refetch, memberships } = useOrganizations()
-  // A resource in error throws when read, so the list is read only once it is ready.
+  const { list, known, refetch } = useOrganizations()
   const organization = createMemo<Organization | undefined>((previous) => {
-    if (list.state !== 'ready') return undefined
-    const organizations = list()
+    const organizations = known()
+    if (organizations === undefined) return undefined
     const named = organizations.find((candidate) => candidate.slug === params.orgSlug)
     if (named || previous === undefined) return named
     // The address was just changed on this screen: the list has the new one while the URL still has
@@ -40,62 +51,82 @@ export function RequireOrganization(props: ParentProps) {
     const renamed = organizations.find((candidate) => candidate.id === previous.id)
     return renamed !== undefined && renamed.slug !== previous.slug ? renamed : undefined
   })
-  const read = (id: string) =>
-    getMembership(api, id).then(
-      (answer) => {
-        memberships.set(id, answer)
-        return answer
-      },
-      (failure: unknown) => {
-        memberships.delete(id)
-        throw failure
-      }
-    )
-  const [membership, { refetch: refetchMembership, mutate }] = createResource(
-    () => organization()?.id,
-    (id) => {
-      const known = memberships.get(id)
-      if (known === undefined) return read(id)
-      read(id).then(
-        (answer) => organization()?.id === id && mutate(answer),
-        (failure: unknown) => {
-          // No longer a member: read for real, so the screen says so. Any other failure keeps what is known.
-          if (organization()?.id === id && failure instanceof ApiError && failure.status === 404)
-            void refetchMembership()
-        }
-      )
-      return known
-    }
-  )
-  // Read, not only checked, so a navigation here waits on it with the previous screen kept (see above).
-  createMemo(() => membership.error === undefined && membership())
-
-  createEffect(() => {
-    if (membership.state === 'ready') rememberOrganization(params.orgSlug)
-  })
-
-  const missing = () =>
-    (list.state === 'ready' && organization() === undefined) ||
-    (membership.error instanceof ApiError && membership.error.status === 404)
 
   return (
     <Switch fallback={<ShellSkeleton />}>
       <Match when={list.error}>
         <OrganizationsUnavailable retry={refetch} />
       </Match>
-      <Match when={missing()}>
+      <Match when={list.state === 'ready' && organization() === undefined}>
         <NotFoundPage />
       </Match>
-      <Match when={membership.error}>
-        <OrganizationsUnavailable retry={() => void refetchMembership()} />
-      </Match>
-      <Match when={membership.state === 'ready' && organization()}>
-        {(current) => (
-          <CurrentOrganizationProvider organization={current()} membership={membership() as OrganizationMembership}>
+      <Match when={organization()?.id} keyed>
+        {(id) => (
+          <OrganizationScreens id={id} organization={organization}>
             {props.children}
-          </CurrentOrganizationProvider>
+          </OrganizationScreens>
         )}
       </Match>
+      <Match when={list.state === 'refreshing'}>
+        <PageSkeleton />
+      </Match>
     </Switch>
+  )
+}
+
+/**
+ * The screens of one organization, and what the caller may do there, from the API's tenant guard
+ * (ADR 0033). A membership read before in this session draws at once and is asked again behind it: a new
+ * answer replaces the old, a 404 (no longer a member) shows "not found", and any other failure keeps what
+ * is known. One not read yet is read under a boundary of its own, which shows the screen's skeleton in the
+ * frame meanwhile; the organization is then kept on this device as the place `/` opens next time.
+ */
+function OrganizationScreens(props: ParentProps<{ id: string; organization: Accessor<Organization | undefined> }>) {
+  const api = useApi()
+  const { memberships } = useOrganizations()
+  const shown = createMemo<Organization>(
+    (last) => ownOrganization(props.id, props.organization(), last),
+    props.organization() as Organization
+  )
+  const [held, setHeld] = createSignal(memberships.get(props.id))
+  const [gone, setGone] = createSignal(false)
+
+  const ask = () =>
+    getMembership(api, props.id).then(
+      (answer) => {
+        memberships.set(props.id, answer)
+        setHeld(answer)
+        return answer
+      },
+      (failure: unknown) => {
+        memberships.delete(props.id)
+        if (failure instanceof ApiError && failure.status === 404) setGone(true)
+        throw failure
+      }
+    )
+  if (held() !== undefined) ask().catch(() => undefined)
+  // Read only when nothing is known; reading it below waits under the boundary, with the skeleton.
+  const [first, { refetch }] = createResource(() => held() === undefined && !gone(), ask)
+
+  createEffect(() => {
+    if (held() !== undefined) rememberOrganization(shown().slug)
+  })
+
+  return (
+    <Suspense fallback={<PageSkeleton organization={shown()} />}>
+      <Switch>
+        <Match when={gone()}>
+          <NotFoundPage />
+        </Match>
+        <Match when={first.error}>
+          <OrganizationsUnavailable retry={() => void refetch()} />
+        </Match>
+        <Match when={held() ?? first()}>
+          <CurrentOrganizationProvider organization={shown()} membership={held() as OrganizationMembership}>
+            {props.children}
+          </CurrentOrganizationProvider>
+        </Match>
+      </Switch>
+    </Suspense>
   )
 }

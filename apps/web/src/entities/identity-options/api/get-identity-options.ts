@@ -1,8 +1,15 @@
 import { type IdentityOptions, identityOptionsSchema } from '@repo/contracts'
-import type { ApiClient } from '#shared/api'
+import { type ApiClient, createQuery } from '#shared/api'
 
 /** `GET /api/identity/options`: what the API offers for signing in, such as Google. */
 export const getIdentityOptions = (client: ApiClient) => client.get('/api/identity/options', identityOptionsSchema)
+
+/**
+ * What the API offers for signing in, as a router query (ADR 0038): a screen that shows Google reads it,
+ * and the routes of such screens start it.
+ */
+export const identityOptionsQuery = (client: ApiClient) =>
+  createQuery(() => getIdentityOptions(client), 'identity-options')
 
 /**
  * The options asked for at start-up, so the entry screens know at their first paint whether to show

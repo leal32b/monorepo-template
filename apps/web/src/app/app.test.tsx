@@ -1,6 +1,15 @@
+import { builtInRoles } from '@repo/contracts'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { createApiClient, createAuthClient, createRequests } from '#shared/api'
 import { App } from './app'
+
+/** Follows a link the way the router takes one, as a link elsewhere on the page or the palette does. */
+const follow = (href: string) => {
+  const link = Object.assign(document.createElement('a'), { href })
+  document.body.append(link)
+  link.click()
+  link.remove()
+}
 
 describe('App', () => {
   afterEach(() => window.history.replaceState(null, '', '/'))
@@ -27,7 +36,95 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
   })
 
-  it('sends a signed-in user without an organization to name one', async () => {
+  it('asks for the session and the organizations together, before either answers (ADR 0038)', async () => {
+    const asked: string[] = []
+    const auth = createAuthClient({
+      fetch: (input) => {
+        asked.push(new URL(String(input), 'http://localhost').pathname)
+        return new Promise<Response>(() => {})
+      }
+    })
+    const client = createApiClient({ fetch: () => new Promise<Response>(() => {}) })
+    window.history.replaceState(null, '', '/acme')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    await waitFor(() => expect(asked).toContain('/api/auth/get-session'))
+    await waitFor(() => expect(asked).toContain('/api/auth/organization/list'))
+  })
+
+  it('asks for the members screen’s lists beside the membership, on a cold load (ADR 0038)', async () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const asked: string[] = []
+    const client = createApiClient({
+      fetch: (path) => {
+        asked.push(path)
+        return path.endsWith('/me') ? new Promise<Response>(() => {}) : Promise.resolve(Response.json(null))
+      }
+    })
+    const auth = createAuthClient({
+      fetch: async (input) => {
+        const url = String(input)
+        asked.push(new URL(url, 'http://localhost').pathname)
+        if (url.includes('/organization/list-')) return new Promise<Response>(() => {})
+        if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+        return Response.json({ session: { id: 's1' }, user })
+      }
+    })
+    window.history.replaceState(null, '', '/acme/settings/members')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    await waitFor(() =>
+      expect(asked).toEqual(
+        expect.arrayContaining([
+          '/api/organizations/org-1/me',
+          '/api/auth/organization/list-members',
+          '/api/auth/organization/list-roles',
+          '/api/auth/organization/list-invitations'
+        ])
+      )
+    )
+  })
+
+  it('asks for the ways to sign in and Google beside the session, on a cold load of the security screen (ADR 0038)', async () => {
+    const asked: string[] = []
+    const never = (input: RequestInfo | URL) => {
+      asked.push(new URL(String(input), 'http://localhost').pathname)
+      return new Promise<Response>(() => {})
+    }
+    window.history.replaceState(null, '', '/settings/security')
+
+    render(() => (
+      <App client={createApiClient({ fetch: never })} auth={createAuthClient({ fetch: never })} locale="en" />
+    ))
+
+    await waitFor(() =>
+      expect(asked).toEqual(
+        expect.arrayContaining(['/api/auth/get-session', '/api/auth/list-accounts', '/api/identity/options'])
+      )
+    )
+  })
+
+  it.each([
+    ['/onboarding', '/api/auth/organization/list-user-invitations'],
+    ['/invitations/inv-1', '/api/invitations/inv-1']
+  ])('asks for what %s shows beside the session, on a cold load (ADR 0038)', async (path, read) => {
+    const asked: string[] = []
+    const never = (input: RequestInfo | URL) => {
+      asked.push(new URL(String(input), 'http://localhost').pathname)
+      return new Promise<Response>(() => {})
+    }
+    const auth = createAuthClient({ fetch: never })
+    const client = createApiClient({ fetch: never })
+    window.history.replaceState(null, '', path)
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    await waitFor(() => expect(asked).toEqual(expect.arrayContaining(['/api/auth/get-session', read])))
+  })
+
+  it('sends a signed-in user without an organization to name one, on an entry screen without the frame', async () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
     const client = createApiClient({ fetch: async () => Response.json(null) })
     const auth = createAuthClient({
@@ -41,6 +138,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Name your organization' })).toBeInTheDocument()
     await waitFor(() => expect(window.location.pathname).toBe('/onboarding'))
+    expect(document.querySelector('aside')).toBeNull()
   })
 
   it('opens the invitation of an email’s link, for the signed-in user', async () => {
@@ -341,6 +439,18 @@ describe('App', () => {
       await waitFor(() => expect(window.location.pathname).toBe('/onboarding'))
     })
 
+    it('opens the members of the organization from the account settings, right after the start', async () => {
+      window.history.replaceState(null, '', '/settings/profile')
+      render(() => <App {...inAcme()} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Profile' })
+
+      follow('/acme/settings/members')
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Members' })).toBeInTheDocument()
+      expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Page not found' })).not.toBeInTheDocument()
+    })
+
     it('is offered by the account settings too, for the organization that / would open', async () => {
       window.history.replaceState(null, '', '/settings/profile')
 
@@ -384,6 +494,252 @@ describe('App', () => {
       expect(screen.getByRole('navigation', { name: 'Settings' }).closest('aside')).toBe(frame)
       expect(health.mock.calls.filter(([path]) => path === '/api/health')).toHaveLength(1)
     })
+
+    it('asks nothing for a screen whose link is only hovered: its reads start with the click (ADR 0040)', async () => {
+      window.history.replaceState(null, '', '/acme/settings/general')
+      const { client } = inAcme()
+      const asked: string[] = []
+      const auth = createAuthClient({
+        fetch: async (input) => {
+          const url = String(input)
+          asked.push(new URL(url, 'http://localhost').pathname)
+          if (url.includes('/organization/list-members')) return Response.json({ members: [], total: 0 })
+          if (url.includes('/organization/list-')) return Response.json([])
+          if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+          return Response.json({ session: { id: 's1' }, user })
+        }
+      })
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'General' })
+      const members = within(screen.getByRole('navigation', { name: 'Settings' })).getByRole('link', {
+        name: 'Members'
+      })
+
+      // The router takes a link the pointer rests on for 20 ms as a sign the user may follow it.
+      fireEvent.mouseMove(members)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      expect(asked).not.toContain('/api/auth/organization/list-members')
+      fireEvent.click(members)
+      await waitFor(() => expect(asked).toContain('/api/auth/organization/list-members'))
+    })
+  })
+
+  describe('switching organizations', () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+    /** Every answer a moment away, as over a network: the router's transition then waits on it. */
+    const later = (body: unknown) =>
+      new Promise<Response>((resolve) => setTimeout(() => resolve(Response.json(body)), 100))
+
+    /** Ada owns Acme and Globex, so the home offers her the way to invite people. */
+    const inTwo = () => {
+      const client = createApiClient({
+        fetch: (path) => later(path.endsWith('/me') ? { roles: ['owner'], permissions: builtInRoles.owner } : health)
+      })
+      const auth = createAuthClient({
+        fetch: (input) => {
+          const url = String(input)
+          if (url.includes('/organization/list-members')) return later({ members: [], total: 0 })
+          if (url.includes('/organization/list-roles') || url.includes('/organization/list-invitations')) {
+            return later([])
+          }
+          if (url.includes('/organization/list')) {
+            return later([
+              { id: 'org-1', name: 'Acme', slug: 'acme' },
+              { id: 'org-2', name: 'Globex', slug: 'globex' }
+            ])
+          }
+          return later({ session: { id: 's1' }, user })
+        }
+      })
+      return { client, auth }
+    }
+
+    it('draws the other organization in the same frame, then the next screen asked for (W13)', async () => {
+      window.history.replaceState(null, '', '/acme')
+      render(() => <App {...inTwo()} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Home' }, { timeout: 2000 })
+      const frame = document.querySelector('aside') as HTMLElement
+
+      follow('/globex')
+      expect(await within(frame).findByRole('button', { name: /Globex/ }, { timeout: 2000 })).toBeInTheDocument()
+      follow('/globex/settings/roles')
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Roles' }, { timeout: 2000 })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+    })
+  })
+
+  describe('the frame of someone who has an organization (W08, ADR 0039)', () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+    const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+    const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+    const invitation = {
+      id: 'inv-1',
+      organizationName: 'Globex',
+      organizationSlug: 'globex',
+      inviterName: 'Grace Hopper',
+      status: 'pending',
+      expiresAt: '2026-11-11T12:00:00.000Z',
+      member: false
+    }
+
+    /** Ada, owner of `organizations`, invited to Globex, which she joins by accepting; `deleted` names the ones gone since. */
+    const signedIn = (organizations = [acme], deleted = new Set<string>()) => {
+      let joined = false
+      const client = createApiClient({
+        fetch: async (path) => {
+          if (path.endsWith('/me')) return Response.json({ roles: ['owner'], permissions: builtInRoles.owner })
+          if (path === '/api/invitations/inv-1') return Response.json(invitation)
+          return Response.json(health)
+        }
+      })
+      const auth = createAuthClient({
+        fetch: async (input, init) => {
+          const url = String(input)
+          if (url.includes('/organization/delete')) {
+            deleted.add(JSON.parse(String(init?.body)).organizationId)
+            return Response.json({ id: 'org-1' })
+          }
+          if (url.includes('/organization/accept-invitation')) {
+            joined = true
+            return Response.json({ member: { id: 'm2' } })
+          }
+          if (url.includes('/organization/list-members')) return Response.json({ members: [], total: 0 })
+          if (url.includes('/organization/list-')) return Response.json([])
+          if (url.includes('/organization/list')) {
+            const mine = joined ? [...organizations, globex] : organizations
+            return Response.json(mine.filter((organization) => !deleted.has(organization.id)))
+          }
+          return Response.json({ session: { id: 's1' }, user })
+        }
+      })
+      return { client, auth, get: vi.spyOn(client, 'get') }
+    }
+    const healthChecks = (get: ReturnType<typeof signedIn>['get']) =>
+      get.mock.calls.filter(([path]) => path === '/api/health').length
+
+    it('keeps it from an organization to creating another, and back through its side menu', async () => {
+      window.history.replaceState(null, '', '/acme')
+      const { client, auth, get } = signedIn()
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Home' })
+      const frame = document.querySelector('aside') as HTMLElement
+
+      follow('/onboarding')
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Create an organization' })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+      fireEvent.click(within(frame).getByRole('link', { name: 'Home' }))
+      expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+      await waitFor(() => expect(window.location.pathname).toBe('/acme'))
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(healthChecks(get)).toBe(1)
+    })
+
+    it('keeps it on an invitation', async () => {
+      window.history.replaceState(null, '', '/acme')
+      const { client, auth, get } = signedIn()
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Home' })
+      const frame = document.querySelector('aside') as HTMLElement
+
+      follow('/invitations/inv-1')
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Invitation to Globex' })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(healthChecks(get)).toBe(1)
+    })
+
+    it('keeps it from an invitation accepted to its organization, while the list is read again', async () => {
+      window.history.replaceState(null, '', '/acme')
+      const { client, auth } = signedIn()
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Home' })
+      const frame = document.querySelector('aside') as HTMLElement
+      follow('/invitations/inv-1')
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation' }))
+
+      await waitFor(() => expect(window.location.pathname).toBe('/globex'))
+      expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(within(frame).getByRole('button', { name: /Globex/ })).toBeInTheDocument()
+    })
+
+    it('keeps it from the account settings back to the app', async () => {
+      window.history.replaceState(null, '', '/settings/profile')
+      const { client, auth, get } = signedIn()
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Profile' })
+      const frame = document.querySelector('aside') as HTMLElement
+      // Once the organizations are in, as the menu shows by offering the organization's settings.
+      await within(frame).findByRole('link', { name: 'General' })
+
+      fireEvent.click(within(frame).getByRole('link', { name: 'Back to app' }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+      await waitFor(() => expect(window.location.pathname).toBe('/acme'))
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(healthChecks(get)).toBe(1)
+    })
+
+    it('keeps it from an organization just deleted to the next one, while the list is read again (W10)', async () => {
+      window.history.replaceState(null, '', '/acme/settings/general')
+      const { client, auth } = signedIn([acme, globex])
+      render(() => <App client={client} auth={auth} locale="en" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Delete organization' }))
+      fireEvent.input(await screen.findByRole('textbox', { name: 'Type the organization name to confirm' }), {
+        target: { value: 'Acme' }
+      })
+      const frame = document.querySelector('aside') as HTMLElement
+
+      fireEvent.click(
+        within(screen.getByRole('group', { name: 'Delete organization' })).getByRole('button', {
+          name: 'Delete organization'
+        })
+      )
+
+      await waitFor(() => expect(window.location.pathname).toBe('/globex'))
+      expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(within(frame).getByRole('button', { name: /Globex/ })).toBeInTheDocument()
+    })
+  })
+
+  it('asks for the service status once, from the sign-in to the app (W09)', async () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+    let signedIn = false
+    const client = createApiClient({
+      fetch: async (path) =>
+        Response.json(path.endsWith('/me') ? { roles: ['owner'], permissions: builtInRoles.owner } : health)
+    })
+    const get = vi.spyOn(client, 'get')
+    const auth = createAuthClient({
+      fetch: async (input) => {
+        const url = String(input)
+        if (url.includes('/sign-in/email')) {
+          signedIn = true
+          return Response.json({ redirect: false, token: 'session', user: { id: 'u1' } })
+        }
+        if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+        return Response.json(signedIn ? { session: { id: 's1' }, user } : null)
+      }
+    })
+    window.history.replaceState(null, '', '/login')
+    render(() => <App client={client} auth={auth} locale="en" identity={{ google: false }} />)
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/api/health', expect.anything(), expect.anything()))
+
+    fireEvent.input(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'ada@example.com' } })
+    fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'correct horse battery staple' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
+    expect(get.mock.calls.filter(([path]) => path === '/api/health')).toHaveLength(1)
   })
 
   it('answers an address that does not exist with a page that says so', () => {
@@ -398,16 +754,17 @@ describe('App', () => {
 
   it('shows the progress bar while a request the clients make takes long, and hides it once answered', async () => {
     const requests = createRequests()
-    let answer: (response: Response) => void = () => undefined
+    // The session and the organizations are asked for together: both answer when the test says.
+    const answers: Array<(response: Response) => void> = []
     const client = createApiClient({ fetch: requests.track(async () => Response.json(null)) })
     const auth = createAuthClient({
-      fetch: requests.track(() => new Promise((resolve) => (answer = resolve)))
+      fetch: requests.track(() => new Promise((resolve) => answers.push(resolve)))
     })
 
     render(() => <App client={client} auth={auth} requests={requests} locale="en" />)
 
     expect(await screen.findByTestId('progress-bar')).toBeInTheDocument()
-    answer(Response.json(null))
+    for (const answer of answers) answer(Response.json(null))
     await waitFor(() => expect(screen.queryByTestId('progress-bar')).not.toBeInTheDocument())
   })
 })

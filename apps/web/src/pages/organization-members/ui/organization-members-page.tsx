@@ -1,33 +1,32 @@
 import { covers } from '@repo/contracts'
 import {
-  Alert,
   Avatar,
   Badge,
-  Button,
   createPanels,
   PanelButton,
+  type Panels,
   SettingsPanel,
   SettingsRow,
-  SettingsSection,
-  SettingsSkeleton
+  SettingsSection
 } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
-import { createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
+import { createSignal, For, Match, Show, Switch } from 'solid-js'
 import {
   isLastOwner,
-  listMembers,
-  listRoles,
   type Member,
+  membersQuery,
   permissionsOfRoles,
   type Role,
+  rolesQuery,
   useOrganization,
   useOrganizations,
   useRoleLabel
 } from '#entities/organizations'
 import { useSession } from '#entities/sessions'
 import { ChangeMemberRoleForm, LeaveOrganizationForm, RemoveMemberForm } from '#features/organizations/manage-members'
-import { useAuth } from '#shared/api'
+import { createRead, readAgain, updateRead, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
+import { ReadFailure } from '#shared/ui'
 import { AppShell } from '#widgets/app-shell'
 import { InvitationsSection } from './invitations-section'
 
@@ -40,8 +39,25 @@ type Team = { members: Member[]; roles: Role[] }
  * row, where it cannot be taken: on a person whose roles grant more than the caller's, or the only
  * owner leaving (D7). An action the caller may never take does not show. One form opens at a time on
  * the whole screen, inline below its row; a person who leaves the list is said below the section.
+ *
+ * The people, the roles and the invitations are read together, by keys other screens share (ADR 0038).
  */
 export function OrganizationMembersPage() {
+  const { t } = useI18n()
+  const panels = createPanels()
+
+  return (
+    <AppShell title={t('organizationMembers.title')}>
+      <ReadFailure message={t('organizationMembers.unavailable')}>
+        <People panels={panels} />
+        <InvitationsSection panels={panels} />
+      </ReadFailure>
+    </AppShell>
+  )
+}
+
+/** The people of the organization, with what the caller may do to each. */
+function People(props: { panels: Panels }) {
   const { t } = useI18n()
   const auth = useAuth()
   const navigate = useNavigate()
@@ -49,14 +65,19 @@ export function OrganizationMembersPage() {
   const current = useOrganization()
   const { refetch: refetchOrganizations } = useOrganizations()
   const roleLabel = useRoleLabel()
-  const [team, { refetch, mutate }] = createResource(
-    () => current.organization.id,
-    async (organizationId): Promise<Team> => {
-      const [members, roles] = await Promise.all([listMembers(auth, organizationId), listRoles(auth, organizationId)])
-      return { members, roles }
-    }
-  )
-  const panels = createPanels()
+  const id = current.organization.id
+  const members = membersQuery(auth)
+  const roles = rolesQuery(auth)
+  const memberList = createRead(() => members(id), members.keyFor(id))
+  const roleList = createRead(() => roles(id), roles.keyFor(id))
+  const team = (): Team | undefined => {
+    const people = memberList()
+    const all = roleList()
+    return people && all ? { members: people, roles: all } : undefined
+  }
+  /** A change to the people, drawn on every screen that reads them. */
+  const change = (edit: (people: Member[]) => Member[]) => updateRead(members.keyFor(id), edit)
+  const panels = props.panels
   const [rowStatus, setRowStatus] = createSignal<{ member: string; text: string }>()
   const [sectionStatus, setSectionStatus] = createSignal<string>()
 
@@ -86,7 +107,7 @@ export function OrganizationMembersPage() {
           : undefined
     const gone = () => {
       left(t('organizationMembers.errors.gone'))
-      void refetch()
+      readAgain(members.keyFor(id))
     }
 
     return (
@@ -135,12 +156,11 @@ export function OrganizationMembersPage() {
                   roles={data().roles}
                   held={held()}
                   onChanged={(role) => {
-                    mutate({
-                      ...data(),
-                      members: data().members.map((candidate) =>
+                    change((people) =>
+                      people.map((candidate) =>
                         candidate.id === member.id ? { ...candidate, roles: [role] } : candidate
                       )
-                    })
+                    )
                     setRowStatus({
                       member: member.id,
                       text: t('organizationMembers.changeRole.saved', { role: roleLabel(role) })
@@ -159,7 +179,7 @@ export function OrganizationMembersPage() {
                   organizationName={current.organization.name}
                   member={member}
                   onRemoved={() => {
-                    mutate({ ...data(), members: data().members.filter((candidate) => candidate.id !== member.id) })
+                    change((people) => people.filter((candidate) => candidate.id !== member.id))
                     left(t('organizationMembers.remove.removed', { name: member.name }))
                   }}
                   onGone={gone}
@@ -187,33 +207,21 @@ export function OrganizationMembersPage() {
   }
 
   return (
-    <AppShell title={t('organizationMembers.title')}>
-      <Switch fallback={<SettingsSkeleton label={t('appShell.loading')} />}>
-        <Match when={team.error}>
-          <Alert variant="error" action={<Button onClick={() => void refetch()}>{t('actions.retry')}</Button>}>
-            {t('organizationMembers.unavailable')}
-          </Alert>
-        </Match>
-        <Match when={team.latest}>
-          {(loaded) => (
-            <>
-              <SettingsSection
-                title={t('organizationMembers.section.title')}
-                description={t(
-                  canChange() || canRemove()
-                    ? 'organizationMembers.section.description'
-                    : 'organizationMembers.section.readOnly',
-                  { name: current.organization.name }
-                )}
-                status={sectionStatus()}
-              >
-                <For each={loaded().members}>{(member) => rowOf(member, loaded)}</For>
-              </SettingsSection>
-              <InvitationsSection members={loaded().members} roles={loaded().roles} panels={panels} />
-            </>
+    <Show when={team()}>
+      {(loaded) => (
+        <SettingsSection
+          title={t('organizationMembers.section.title')}
+          description={t(
+            canChange() || canRemove()
+              ? 'organizationMembers.section.description'
+              : 'organizationMembers.section.readOnly',
+            { name: current.organization.name }
           )}
-        </Match>
-      </Switch>
-    </AppShell>
+          status={sectionStatus()}
+        >
+          <For each={loaded().members}>{(member) => rowOf(member, loaded)}</For>
+        </SettingsSection>
+      )}
+    </Show>
   )
 }

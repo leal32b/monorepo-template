@@ -1,6 +1,6 @@
 # 0036. Keep the screen until the next one is ready
 
-- Status: accepted
+- Status: superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)
 - Date: 2026-11-05
 
 ## Context and problem statement
@@ -50,6 +50,10 @@ does not suspend: a list read again after a change keeps its rows and shows the 
 the whole tree falling back to the skeleton. A guard that reads a resource directly does suspend when it
 loads outside a navigation (the membership asked again after an error), which is acceptable there, as
 the whole screen is the error.
+
+> Correction (2026-11-05, [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)): `latest` suspends too until the resource has its first
+> value; only after that does it keep the last value without suspending. Screens that read `latest` held
+> the previous screen on their first visit, and their own skeletons were never shown.
 
 Option 2 was set aside for now: each screen draws its own `AppShell`, so moving the shell up is a
 larger change of layout; it would also stop the side menu and the service status being made again on

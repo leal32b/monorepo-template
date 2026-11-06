@@ -1,6 +1,6 @@
 import { reservedSlugs } from '@repo/contracts'
 import type { RouteDefinition } from '@solidjs/router'
-import { routes, tenantPath } from './routes'
+import { opensOnEntryScreen, routes, tenantPath } from './routes'
 
 /** The first segment of every path the app answers outside a tenant, nested routes included. */
 function firstSegments(definitions: RouteDefinition[], prefix = ''): string[] {
@@ -18,5 +18,16 @@ describe('routes (ADR 0034)', () => {
 
     expect(words.length).toBeGreaterThan(5)
     for (const word of new Set(words)) expect(reservedSlugs).toContain(word)
+  })
+})
+
+describe('opensOnEntryScreen (ADR 0038)', () => {
+  it('names the entry screens, the only ones that wait for the sign-in options to paint', () => {
+    for (const path of ['/signup', '/login', '/login/', '/login/two-factor', '/forgot-password', '/reset-password']) {
+      expect(opensOnEntryScreen(path)).toBe(true)
+    }
+    for (const path of ['/', '/acme', '/acme/settings/members', '/settings/profile', '/onboarding', '/nowhere']) {
+      expect(opensOnEntryScreen(path)).toBe(false)
+    }
   })
 })

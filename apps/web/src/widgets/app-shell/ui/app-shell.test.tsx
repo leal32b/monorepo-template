@@ -1,5 +1,6 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
+import { createResource, Suspense } from 'solid-js'
 import { CurrentOrganizationProvider, type Organization, OrganizationsProvider } from '#entities/organizations'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
@@ -18,6 +19,18 @@ type Options = {
   path?: string
   /** The organization of a tenant screen; none for a screen outside any, such as the account settings. */
   organization?: Organization
+  /** What the members screen reads before it can be drawn: a navigation to it waits on this. */
+  members?: () => Promise<string>
+}
+
+/** A screen that reads what it shows, so a navigation to it waits, as the app's screens do. */
+function Members(props: { read: () => Promise<string> }) {
+  const [text] = createResource(props.read)
+  return (
+    <AppShell title="Members">
+      <p>{text()}</p>
+    </AppShell>
+  )
 }
 
 /** An app page at `/projects` in the shell, Better Auth and the API answering through `fetch`. */
@@ -26,7 +39,8 @@ function renderShell({
   api = async () => Response.json(health),
   locale = 'en',
   path = '/projects',
-  organization
+  organization,
+  members = async () => 'The members'
 }: Options = {}) {
   const membership = { roles: ['owner'], permissions: {} }
   const authFetch: Fetch =
@@ -46,17 +60,20 @@ function renderShell({
               <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
                 <MemoryRouter
                   history={history}
-                  root={(root) =>
-                    organization === undefined ? (
-                      <AppFrame>{root.children}</AppFrame>
-                    ) : (
-                      <OrganizationsProvider>
-                        <CurrentOrganizationProvider organization={organization} membership={membership}>
-                          <AppFrame>{root.children}</AppFrame>
-                        </CurrentOrganizationProvider>
-                      </OrganizationsProvider>
-                    )
-                  }
+                  // As in the app: the screens sit in the session's `Suspense`, which has already shown its content.
+                  root={(root) => (
+                    <Suspense>
+                      {organization === undefined ? (
+                        <AppFrame>{root.children}</AppFrame>
+                      ) : (
+                        <OrganizationsProvider>
+                          <CurrentOrganizationProvider organization={organization} membership={membership}>
+                            <AppFrame>{root.children}</AppFrame>
+                          </CurrentOrganizationProvider>
+                        </OrganizationsProvider>
+                      )}
+                    </Suspense>
+                  )}
                 >
                   <Route
                     path="/projects"
@@ -79,6 +96,15 @@ function renderShell({
                     component={() => (
                       <AppShell title="General">
                         <p>The general</p>
+                      </AppShell>
+                    )}
+                  />
+                  <Route path="/acme/settings/members" component={() => <Members read={members} />} />
+                  <Route
+                    path="/invitation"
+                    component={() => (
+                      <AppShell title="Invitation to Globex" description="Grace Hopper invited you to Globex.">
+                        <p>The answer</p>
                       </AppShell>
                     )}
                   />
@@ -207,6 +233,16 @@ describe('AppShell', () => {
     renderShell()
 
     expect(phoneTitle()).toHaveTextContent('Monorepo Template')
+  })
+
+  it('says what the screen is for in one line under its title, when it has one (ADR 0039)', () => {
+    renderShell({ path: '/invitation' })
+
+    const main = within(screen.getByRole('main'))
+    const title = main.getByRole('heading', { level: 1, name: 'Invitation to Globex' })
+    const line = main.getByText('Grace Hopper invited you to Globex.')
+    expect(title.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(line.compareDocumentPosition(main.getByText('The answer')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('keeps one heading level 1 per screen', () => {
@@ -446,6 +482,30 @@ describe('AppShell', () => {
         expect(menu.queryByRole('button', { name: /Acme/ })).not.toBeInTheDocument()
         const trail = within(screen.getByRole('navigation', { name: 'You are here' }))
         expect(trail.getAllByRole('listitem').map((crumb) => crumb.textContent)).toEqual(['Settings', 'General'])
+      })
+
+      it('opens the screen chosen at once, its title over its skeleton until its data is in (ADR 0038)', async () => {
+        let arrive: (text: string) => void = () => undefined
+        const members = vi.fn(
+          () =>
+            new Promise<string>((resolve) => {
+              arrive = resolve
+            })
+        )
+        const history = renderShell({ path: '/acme/settings/general', organization: acme, members })
+        const list = within(screen.getByRole('list', { name: 'Organization' }))
+
+        fireEvent.click(list.getByRole('link', { name: 'Members' }))
+
+        expect(list.getByRole('link', { name: 'Members' })).toHaveAttribute('aria-current', 'page')
+        expect(list.getByRole('link', { name: 'General' })).not.toHaveAttribute('aria-current')
+        expect(await screen.findByRole('heading', { level: 1, name: 'Members' })).toBeInTheDocument()
+        await waitFor(() => expect(history.get()).toBe('/acme/settings/members'))
+        expect(screen.queryByText('The general')).not.toBeInTheDocument()
+        expect(await screen.findByRole('status')).toHaveTextContent('Loading…')
+        arrive('The members')
+        expect(await screen.findByText('The members')).toBeInTheDocument()
+        expect(screen.queryByRole('status')).not.toBeInTheDocument()
       })
 
       it('is not offered in the settings of a screen that has no organization to speak of', () => {

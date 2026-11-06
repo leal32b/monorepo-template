@@ -5,6 +5,7 @@ import { createApiClient, createAuthClient, createRequests } from '#shared/api'
 import { detectLocale, loadMessages, readDeviceLocale, readWebEnv } from '#shared/config'
 import { reloadOnStaleBuild } from '#shared/lib'
 import { App } from './app/app'
+import { opensOnEntryScreen } from './app/routes'
 
 reloadOnStaleBuild(window, () => window.location.reload())
 
@@ -23,8 +24,10 @@ const auth = createAuthClient({ fetch })
 // the one chosen on this device or else the browser's (ADR 0028).
 // Not a top-level await: it makes the bundler cut the entry in two, for no gain.
 const locale = readDeviceLocale() ?? detectLocale(navigator.languages)
-// The first paint also waits, a moment at most, for what the API offers for signing in, so the entry
-// screens know at once whether to show Google and nothing moves when the answer comes.
-Promise.all([loadMessages(locale), loadIdentityOptions(client, 1500)]).then(([, identity]) =>
-  render(() => <App client={client} auth={auth} requests={requests} locale={locale} identity={identity} />, root)
+// An entry screen's first paint also waits, a moment at most, for what the API offers for signing in, so it
+// knows at once whether to show Google and nothing moves when the answer comes. The app's screens never
+// wait for it (ADR 0038); one that leads to an entry screen later asks there.
+const identity = opensOnEntryScreen(window.location.pathname) ? loadIdentityOptions(client, 1500) : undefined
+Promise.all([loadMessages(locale), identity]).then(([, options]) =>
+  render(() => <App client={client} auth={auth} requests={requests} locale={locale} identity={options} />, root)
 )

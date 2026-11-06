@@ -1,7 +1,7 @@
 import { Button } from '@repo/ui'
-import { Navigate, useLocation, useNavigate } from '@solidjs/router'
-import { createResource, Match, type ParentProps, Suspense, Switch } from 'solid-js'
-import { getSessionUser, SessionProvider } from '#entities/sessions'
+import { Navigate, query, useLocation, useNavigate } from '@solidjs/router'
+import { createResource, Match, onCleanup, type ParentProps, Suspense, Switch } from 'solid-js'
+import { SessionProvider, sessionQuery } from '#entities/sessions'
 import { ApiError, ApiProvider, useApi, useAuth, whenUnauthorized } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { ShellSkeleton } from '#widgets/app-shell'
@@ -17,9 +17,11 @@ import { PaletteShortcut } from './palette-shortcut'
  * call the API answers with 401, because the session ended meanwhile, sends the user to sign in too.
  *
  * The screens below sit in one `Suspense`. The first time, it draws the shell's frame while what they
- * need comes (a screen's code, the organizations, a membership). After that, a navigation keeps the
- * screen on view until the next one is ready, instead of going blank: the router moves in a transition,
- * and a transition waits on what is read under a `Suspense` that has already shown its content.
+ * need comes (a screen's code, the organizations). After that, only a screen's code not loaded yet holds
+ * the screen on view: what screens read waits under boundaries of their own (ADR 0038).
+ *
+ * The session's route asks for it at boot, beside the organizations, and this reads the same answer.
+ * Every read cached for the session goes when the user leaves it (signing out, or the session ending).
  */
 export function RequireSession(props: ParentProps) {
   const api = useApi()
@@ -27,7 +29,9 @@ export function RequireSession(props: ParentProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { t } = useI18n()
-  const [me, { refetch }] = createResource(() => getSessionUser(auth))
+  const read = sessionQuery(auth)
+  const [me, { refetch }] = createResource(() => read())
+  onCleanup(() => query.clear())
 
   /**
    * The sign-in, coming back here. An `error` in the address, from a confirmation link that failed,

@@ -1,4 +1,4 @@
-import { ApiError, type AuthClient } from '#shared/api'
+import { ApiError, type AuthClient, createQuery } from '#shared/api'
 
 /** An invitation the signed-in user can still answer. */
 export type Invitation = { id: string; organizationName: string; expiresAt: Date }
@@ -24,3 +24,7 @@ export async function listInvitations(auth: AuthClient, now: Date): Promise<Invi
     .map(({ id, organizationName, expiresAt }) => ({ id, organizationName, expiresAt: new Date(expiresAt) }))
     .filter((invitation) => invitation.expiresAt > now)
 }
+
+/** The invitations sent to the signed-in user, as a router query (ADR 0038): onboarding's route starts it. */
+export const userInvitationsQuery = (auth: AuthClient) =>
+  createQuery(() => listInvitations(auth, new Date()), 'user-invitations')

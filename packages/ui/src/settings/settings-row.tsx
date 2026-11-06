@@ -47,8 +47,9 @@ const drawn = (resolved: unknown[]) => resolved.some((item) => item !== undefine
 /**
  * One setting: icon, title with its state, a line of description, and the action on the right. Where
  * the row is narrow (a phone, or a narrow column such as onboarding's) the action drops below and takes
- * the full width: the row follows its own width, not the screen's. What the action opens appears under the
- * row in the `panel`, never on another page. Put it inside a `SettingsSection`.
+ * the full width: the row follows its own width, not the screen's, and a word too long for it breaks.
+ * What the action opens appears under the row in the `panel`, never on another page. Put it inside a
+ * `SettingsSection`.
  */
 /** The id of the row's note, while it has one: a button that cannot act points to it for its reason. */
 const NoteContext = createContext<() => string | undefined>(() => undefined)
@@ -100,7 +101,8 @@ function Row(props: SettingsRowProps & { noteId: string }) {
               </Show>
             </span>
           </Show>
-          <div class="min-w-0 flex-1">
+          {/* A word too long for the row, such as an email, breaks: `anywhere` counts in a flex item's width too. */}
+          <div class="min-w-0 flex-1 break-anywhere">
             <div class="flex flex-wrap items-center gap-2 font-medium">
               {local.title}
               {local.badge}

@@ -1,5 +1,5 @@
-import { motion } from '@repo/ui'
-import { createSignal, onCleanup, onMount, Show } from 'solid-js'
+import { createLate } from '@repo/ui'
+import { Show } from 'solid-js'
 import { useI18n } from '#shared/config'
 
 /**
@@ -9,12 +9,7 @@ import { useI18n } from '#shared/config'
  */
 export function EntrySkeleton() {
   const { t } = useI18n()
-  const [late, setLate] = createSignal(false)
-
-  onMount(() => {
-    const timer = setTimeout(() => setLate(true), motion.waitDelay)
-    onCleanup(() => clearTimeout(timer))
-  })
+  const late = createLate()
 
   return (
     <Show when={late()}>

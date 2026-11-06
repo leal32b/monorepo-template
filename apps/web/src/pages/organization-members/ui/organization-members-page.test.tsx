@@ -143,6 +143,26 @@ describe('OrganizationMembersPage', () => {
     vi.useRealTimers()
   })
 
+  it('asks for the people, the roles and the invitations together (ADR 0038)', async () => {
+    const asked: string[] = []
+    renderPage({
+      auth: (input) => {
+        asked.push(new URL(String(input), 'http://localhost').pathname)
+        return new Promise<Response>(() => {})
+      }
+    })
+
+    await waitFor(() =>
+      expect(asked).toEqual(
+        expect.arrayContaining([
+          '/api/auth/organization/list-members',
+          '/api/auth/organization/list-roles',
+          '/api/auth/organization/list-invitations'
+        ])
+      )
+    )
+  })
+
   it('lists everyone with their email and roles, naming the built-in ones in the user’s language and the caller', async () => {
     renderPage()
 
@@ -263,7 +283,7 @@ describe('OrganizationMembersPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Leave organization' }))
 
     expect(await screen.findByText('The root')).toBeInTheDocument()
-    expect(history.get()).toBe('/')
+    await waitFor(() => expect(history.get()).toBe('/'))
   })
 
   it('reads the list again and says so when the person was already gone', async () => {

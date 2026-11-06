@@ -1,6 +1,6 @@
 # 0035. Show the server working with one progress bar
 
-- Status: accepted
+- Status: accepted; what drives the bar is superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)
 - Date: 2026-11-04
 
 ## Context and problem statement

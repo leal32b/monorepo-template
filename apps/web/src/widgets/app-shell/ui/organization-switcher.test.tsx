@@ -1,6 +1,7 @@
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import { OrganizationsProvider } from '#entities/organizations'
+import { Show } from 'solid-js'
+import { OrganizationsProvider, useOrganizations } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale } from '#shared/config'
 import { OrganizationSwitcher } from './organization-switcher'
@@ -9,6 +10,18 @@ type AuthFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Respo
 
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
 const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+
+/** Reads the organizations again, as deleting, leaving or joining one does, once they were read. */
+function ReadAgain() {
+  const { list, refetch } = useOrganizations()
+  return (
+    <Show when={list.state === 'ready'}>
+      <button type="button" onClick={refetch}>
+        Read again
+      </button>
+    </Show>
+  )
+}
 
 function renderSwitcher({
   auth = async () => Response.json([acme, globex]),
@@ -29,7 +42,12 @@ function renderSwitcher({
             <Route path="/" component={OrganizationsProvider}>
               <Route
                 path="/:orgSlug"
-                component={() => <OrganizationSwitcher organization={acme} onNavigate={onNavigate} />}
+                component={() => (
+                  <>
+                    <OrganizationSwitcher organization={acme} onNavigate={onNavigate} />
+                    <ReadAgain />
+                  </>
+                )}
               />
               <Route path="/onboarding" component={() => <p>The onboarding</p>} />
             </Route>
@@ -119,6 +137,23 @@ describe('OrganizationSwitcher', () => {
         .map((item) => item.textContent)
     ).toEqual(['Acme'])
     expect(within(menu).getByRole('menuitem', { name: 'Create organization' })).toBeInTheDocument()
+  })
+
+  it('keeps every organization in the menu while the list is read again (W10)', async () => {
+    let calls = 0
+    renderSwitcher({
+      auth: () => (++calls === 1 ? Promise.resolve(Response.json([acme, globex])) : new Promise<Response>(() => {}))
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Read again' }))
+    await waitFor(() => expect(calls).toBe(2))
+    open()
+
+    const menu = await screen.findByRole('menu')
+    expect(
+      within(menu)
+        .getAllByRole('menuitemradio')
+        .map((item) => item.textContent)
+    ).toEqual(['Acme', 'Globex'])
   })
 
   it('speaks the language of the provider', async () => {

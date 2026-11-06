@@ -56,7 +56,10 @@ are the phone; breakpoints only add.
   screens share the app shell: one `AppFrame` route (side menu, top bar, palette) drawn once and kept
   between screens, and each screen an `AppShell` (its title and `main`), which tells the frame its title
   and organization ([ADR 0037](../../../docs/adr/0037-keep-one-app-frame-across-screens.md)). Chrome
-  belongs in the frame, never copied into a screen.
+  belongs in the frame, never copied into a screen. Every screen behind the session sits in that one
+  frame: onboarding and an invitation are app screens for someone who has an organization, with the
+  `AppShell`'s one-line `description` for a screen that is one message and its actions, and entry
+  screens, the frame aside, for a first one ([ADR 0039](../../../docs/adr/0039-draw-every-signed-in-screen-in-the-one-frame.md)).
 - **One column on phones.** Side by side only from `sm:` or wider, and only when the content needs it.
 - **Widths:** entry screens `max-w-sm`; content screens `max-w-2xl`; always `w-full mx-auto` with
   `px-4` on phones and `sm:px-6` above.
@@ -89,7 +92,8 @@ The same idea looks and behaves the same everywhere. Before building, find it he
 | A group of controls with one label and one error | `Fieldset`; a resource's checkboxes in a `CheckboxGroup` | a `fieldset` whose `legend` sits on the border, a `p role=alert` by hand |
 | A person, an organization, an invited address | `Avatar` (circle, square, `mail` icon) | `icon="profile"`, `letter="@"` |
 | Who or what a menu is about (organization, account) | `menuTriggerClass` + `MenuTriggerContent` | trigger classes copied |
-| Waiting for the server ([ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md)) | nothing drawn yet: the family's skeleton (`SettingsSkeleton`, `EntrySkeleton`, `ShellSkeleton`); an action: its button's `pending`; the screen already drawn: the app's `ProgressBar`, which follows every request by itself; moving to another screen: the current one stays until the next is ready ([ADR 0036](../../../docs/adr/0036-keep-the-screen-until-the-next-one-is-ready.md)) | a spinner, an overlay, a "Loading…" text, a bar of one's own, a delay of one's own instead of `motion.waitDelay` |
+| Waiting for the server ([ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md), [ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | nothing drawn yet: the family's skeleton (`SettingsSkeleton`, `EntrySkeleton`, `ShellSkeleton`, and `PageSkeleton` for a screen in the frame that cannot be drawn yet), timed once from boot by `createLate`, which a new skeleton uses too; moving to another screen: the next one at once, its title and its family's skeleton until its data is in, the chosen menu item marked at once; a screen read before: its last value at once, read again behind it; an action: its button's `pending`; the screen already drawn: the app's `ProgressBar`, which follows every request and every navigation that waits by itself | a spinner, an overlay, a "Loading…" text, a bar of one's own, a delay of one's own instead of `createLate`, the old screen held while the next one's data comes |
+| Reading data from the server ([ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | a `createQuery` in the entity's `api` segment, keyed by its arguments, started by the route's `preload` as it opens, never for a link only hovered ([ADR 0040](../../../docs/adr/0040-start-a-screens-reads-when-it-opens-not-on-hover.md)), reading its `params` at once, and read in the screen with `createRead`, which draws a key read before at once; after a change, `updateRead` or `readAgain` by its key; a read that fails, `ReadFailure`: the one alert with its retry, or the screen's own words for a case such as "not found" | `createResource` in a page, a `state === 'ready'` gate, a fallback of one's own, an `ErrorBoundary` of one's own, a page's private copy of data another screen reads |
 | Nothing here yet | `EmptyState` | a blank page |
 | A row that left a list (removed, deleted, revoked) | the section's `status`, which takes focus | a `p role=status` with negative margins |
 | A date | `formatDate` from `#shared/lib` | `Intl.DateTimeFormat` with options of one's own |
