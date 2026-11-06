@@ -494,6 +494,35 @@ describe('App', () => {
       expect(screen.getByRole('navigation', { name: 'Settings' }).closest('aside')).toBe(frame)
       expect(health.mock.calls.filter(([path]) => path === '/api/health')).toHaveLength(1)
     })
+
+    it('asks nothing for a screen whose link is only hovered: its reads start with the click (ADR 0040)', async () => {
+      window.history.replaceState(null, '', '/acme/settings/general')
+      const { client } = inAcme()
+      const asked: string[] = []
+      const auth = createAuthClient({
+        fetch: async (input) => {
+          const url = String(input)
+          asked.push(new URL(url, 'http://localhost').pathname)
+          if (url.includes('/organization/list-members')) return Response.json({ members: [], total: 0 })
+          if (url.includes('/organization/list-')) return Response.json([])
+          if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+          return Response.json({ session: { id: 's1' }, user })
+        }
+      })
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'General' })
+      const members = within(screen.getByRole('navigation', { name: 'Settings' })).getByRole('link', {
+        name: 'Members'
+      })
+
+      // The router takes a link the pointer rests on for 20 ms as a sign the user may follow it.
+      fireEvent.mouseMove(members)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      expect(asked).not.toContain('/api/auth/organization/list-members')
+      fireEvent.click(members)
+      await waitFor(() => expect(asked).toContain('/api/auth/organization/list-members'))
+    })
   })
 
   describe('switching organizations', () => {

@@ -1,6 +1,6 @@
 # 0038. Load screen data through the router's queries, and swap screens at once
 
-- Status: accepted
+- Status: accepted; a hovered link's reads superseded by [0040](0040-start-a-screens-reads-when-it-opens-not-on-hover.md)
 - Date: 2026-11-05
 
 ## Context and problem statement

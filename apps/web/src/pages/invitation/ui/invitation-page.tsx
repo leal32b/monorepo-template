@@ -33,7 +33,7 @@ const statusOf = (error: unknown) => (error as Partial<ApiError>).status
  * For someone who has an organization each case is an app screen, in the frame, whose side menu holds the
  * account and the way back; for someone who has none, as after signing up from the email, an entry screen
  * that says who is signed in (ADR 0039). Until the organizations are known, the session's skeleton holds
- * the place. The invitation is read through its query, which its link starts when hovered (ADR 0038); each
+ * the place. The invitation is read through its query, which its route starts as it opens (ADR 0038); each
  * link draws its screen anew.
  */
 export function InvitationPage() {

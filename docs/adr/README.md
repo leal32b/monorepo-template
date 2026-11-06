@@ -42,5 +42,6 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0035](0035-show-the-server-working-with-one-progress-bar.md) | Show the server working with one progress bar | accepted; what drives the bar superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) |
 | [0036](0036-keep-the-screen-until-the-next-one-is-ready.md) | Keep the screen until the next one is ready | superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) |
 | [0037](0037-keep-one-app-frame-across-screens.md) | Keep one app frame across screens | accepted; the guard's placeholder superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md); its screens extended by [0039](0039-draw-every-signed-in-screen-in-the-one-frame.md) |
-| [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) | Load screen data through the router's queries, and swap screens at once | accepted |
+| [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) | Load screen data through the router's queries, and swap screens at once | accepted; a hovered link's reads superseded by [0040](0040-start-a-screens-reads-when-it-opens-not-on-hover.md) |
 | [0039](0039-draw-every-signed-in-screen-in-the-one-frame.md) | Draw every signed-in screen in the one frame | accepted |
+| [0040](0040-start-a-screens-reads-when-it-opens-not-on-hover.md) | Start a screen's reads when it opens, not when its link is hovered | accepted |

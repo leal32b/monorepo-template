@@ -76,7 +76,7 @@ const heading = (name: string) => screen.findByRole('heading', { level: 1, name 
 describe('InvitationPage', () => {
   beforeEach(() => localStorage.clear())
 
-  it('draws at once an invitation read a moment ago, as when its link was hovered (ADR 0038)', async () => {
+  it('draws at once an invitation read a moment ago, as when its screen was open before (ADR 0038)', async () => {
     await invitationQuery(createApiClient({ fetch: async () => Response.json(invitation()) }))('inv-1')
 
     renderPage(vi.fn<ApiFetch>(() => new Promise<Response>(() => {})))

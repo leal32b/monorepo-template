@@ -45,10 +45,10 @@ const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ d
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
 
 /**
- * A screen's reads start in its route, as soon as the router matches it, and again when a link to it is
- * hovered, focused or touched (ADR 0038): the session and the organizations together at boot, a screen's
- * own reads beside them. The entities' code loads on demand, as the screens' does, so a read starts once
- * its code is in; a read that fails is said by the screen that reads it.
+ * A screen's reads start in its route, as soon as the router opens it (ADR 0038): the session and the
+ * organizations together at boot, a screen's own reads beside them. The entities' code loads on demand, as
+ * the screens' does, so a read starts once its code is in; a read that fails is said by the screen that
+ * reads it.
  */
 const preload = <Entity,>(
   entity: () => Promise<Entity>,
@@ -59,31 +59,45 @@ const preload = <Entity,>(
     .then((loaded) => start(loaded, clients))
     .catch(() => undefined)
 }
+/**
+ * A route's reads, started when the router opens it: the first load, a click, a move back or forward. A
+ * link only hovered, focused or touched loads its screen's code and none of its data, so the API is asked
+ * only for the screens the user opens (ADR 0040).
+ */
+const onOpen =
+  (start: (args: RoutePreloadFuncArgs) => void) =>
+  (args: RoutePreloadFuncArgs): void => {
+    if (args.intent !== 'preload') start(args)
+  }
 const sessions = () => import('#entities/sessions')
 const organizations = () => import('#entities/organizations')
 const accounts = () => import('#entities/accounts')
-const preloadSession = () => preload(sessions, (entity, { auth }) => entity.sessionQuery(auth)())
-const preloadOrganizations = () => preload(organizations, (entity, { auth }) => entity.organizationsQuery(auth)())
+const preloadSession = onOpen(() => preload(sessions, (entity, { auth }) => entity.sessionQuery(auth)()))
+const preloadOrganizations = onOpen(() =>
+  preload(organizations, (entity, { auth }) => entity.organizationsQuery(auth)())
+)
 /**
  * The members and roles screens' lists start as soon as the organization is known, beside its membership.
  * The slug is read now: the router's parameters change only once its transition commits.
  */
-const preloadTeam = ({ params }: RoutePreloadFuncArgs) => {
+const preloadTeam = onOpen(({ params }) => {
   const slug = params.orgSlug as string
   preload(organizations, (entity, { auth }) => entity.preloadTeam(auth, slug))
-}
+})
 const identityOptions = () => import('#entities/identity-options')
 /** The security screen reads the ways to sign in, and whether the API has Google for the Google row. */
-const preloadSecurity = () => {
+const preloadSecurity = onOpen(() => {
   preload(accounts, (entity, { auth }) => entity.signInMethodsQuery(auth)())
   preload(identityOptions, (entity, { api }) => entity.identityOptionsQuery(api)())
-}
-const preloadUserInvitations = () => preload(organizations, (entity, { auth }) => entity.userInvitationsQuery(auth)())
-/** The invitation of a link, read now and again when the link is hovered, as `preloadTeam` reads its slug. */
-const preloadInvitation = ({ params }: RoutePreloadFuncArgs) => {
+})
+const preloadUserInvitations = onOpen(() =>
+  preload(organizations, (entity, { auth }) => entity.userInvitationsQuery(auth)())
+)
+/** The invitation of a link, read as it opens, its id taken now as `preloadTeam` takes its slug. */
+const preloadInvitation = onOpen(({ params }) => {
   const id = params.id as string
   preload(organizations, (entity, { api }) => entity.invitationQuery(api)(id))
-}
+})
 
 /** `/:orgSlug/settings` opens on General, as `/settings` opens on the profile. */
 function SettingsOfOrganization() {
