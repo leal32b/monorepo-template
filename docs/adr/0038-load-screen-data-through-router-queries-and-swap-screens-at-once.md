@@ -93,6 +93,15 @@ reuses an entry for 5 s, while a screen reads it, or for a move back or forward,
 read for 3 minutes, so drawing a revisit at once seeds `createAsync` with the key's last value and reads
 `latest`.
 
+How it was built, noted on 2026-11-06 before the branch was merged; the decision is unchanged. The small
+helper is `createRead` (`#shared/api`): the router's `createAsync` seeded with the key's last answer, so a
+revisit draws at once, with `updateRead`, which puts an action's change into a key on every screen that
+reads it with no request, and `readAgain`, which asks again for a key. `createQuery` is the router's
+`query` with a failed read left out of the cache, so a retry asks again. A read that fails is said by
+`ReadFailure` (`#shared/ui`), which sends a read that found the session ended to sign in and back. A
+route's `preload` reads its `params` at once, since the router changes them only when its transition
+commits.
+
 `@tanstack/solid-query` was set aside: a new dependency (about 12 KB gzip) and a second concept, its
 Solid 2 support unknown, for what a small helper over the router's cache does. Pages with a cache of their
 own were rejected: they keep the reads in the components, so the waterfalls stay. `GET /api/me` was left
