@@ -1,5 +1,5 @@
 import { organizationNameLength } from '@repo/contracts'
-import { Button, Field } from '@repo/ui'
+import { Button, Field, FormActions } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import { slugFromName, withSuffix } from '#entities/organizations'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
@@ -75,9 +75,11 @@ export function CreateOrganizationForm(props: CreateOrganizationFormProps) {
         onChange={setName}
         error={error()}
       />
-      <Button type="submit" variant="primary" class="mt-2 w-full" disabled={pending()}>
-        {t('organizations.create.submit')}
-      </Button>
+      <FormActions>
+        <Button type="submit" variant="primary" disabled={pending()}>
+          {t('organizations.create.submit')}
+        </Button>
+      </FormActions>
       <Show when={failure()}>
         {(current) => (
           <AuthFailureAlert

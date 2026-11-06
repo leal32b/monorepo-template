@@ -56,7 +56,10 @@ are the phone; breakpoints only add.
   screens share the app shell: one `AppFrame` route (side menu, top bar, palette) drawn once and kept
   between screens, and each screen an `AppShell` (its title and `main`), which tells the frame its title
   and organization ([ADR 0037](../../../docs/adr/0037-keep-one-app-frame-across-screens.md)). Chrome
-  belongs in the frame, never copied into a screen.
+  belongs in the frame, never copied into a screen. Every screen behind the session sits in that one
+  frame: onboarding and an invitation are app screens for someone who has an organization, with the
+  `AppShell`'s one-line `description` for a screen that is one message and its actions, and entry
+  screens, the frame aside, for a first one ([ADR 0039](../../../docs/adr/0039-draw-every-signed-in-screen-in-the-one-frame.md)).
 - **One column on phones.** Side by side only from `sm:` or wider, and only when the content needs it.
 - **Widths:** entry screens `max-w-sm`; content screens `max-w-2xl`; always `w-full mx-auto` with
   `px-4` on phones and `sm:px-6` above.

@@ -101,6 +101,14 @@ function renderShell({
                   />
                   <Route path="/acme/settings/members" component={() => <Members read={members} />} />
                   <Route
+                    path="/invitation"
+                    component={() => (
+                      <AppShell title="Invitation to Globex" description="Grace Hopper invited you to Globex.">
+                        <p>The answer</p>
+                      </AppShell>
+                    )}
+                  />
+                  <Route
                     path="/settings/security"
                     component={() => (
                       <AppShell title="Security">
@@ -225,6 +233,16 @@ describe('AppShell', () => {
     renderShell()
 
     expect(phoneTitle()).toHaveTextContent('Monorepo Template')
+  })
+
+  it('says what the screen is for in one line under its title, when it has one (ADR 0039)', () => {
+    renderShell({ path: '/invitation' })
+
+    const main = within(screen.getByRole('main'))
+    const title = main.getByRole('heading', { level: 1, name: 'Invitation to Globex' })
+    const line = main.getByText('Grace Hopper invited you to Globex.')
+    expect(title.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(line.compareDocumentPosition(main.getByText('The answer')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('keeps one heading level 1 per screen', () => {

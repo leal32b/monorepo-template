@@ -160,6 +160,121 @@ describe('RequireOrganization', () => {
     })
   })
 
+  describe('while the organizations are read again (W10)', () => {
+    const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+
+    /** Better Auth's list: the first answer at once, each one after it when the test lets it. */
+    function lists(first: unknown) {
+      const later: Array<(response: Response) => void> = []
+      let calls = 0
+      const fetch = vi.fn(() =>
+        ++calls === 1
+          ? Promise.resolve(Response.json(first))
+          : new Promise<Response>((resolve) => {
+              later.push(resolve)
+            })
+      )
+      return { fetch, answer: (organizations: unknown) => later.shift()?.(Response.json(organizations)) }
+    }
+
+    function renderReading(path: string, auth: () => Promise<Response>, Screen: Component) {
+      const history = createMemoryHistory()
+      history.set({ value: path })
+      render(() => (
+        <I18nProvider locale="en">
+          <PaletteProvider>
+            <ApiProvider client={createApiClient({ fetch: async () => Response.json(admin) })}>
+              <AuthProvider client={createAuthClient({ fetch: auth })}>
+                <MemoryRouter history={history}>
+                  <Route path="/" component={OrganizationsProvider}>
+                    <Route path="/elsewhere" component={Screen} />
+                    <Route path="/:orgSlug" component={RequireOrganization}>
+                      <Route path="/" component={Screen} />
+                    </Route>
+                  </Route>
+                </MemoryRouter>
+              </AuthProvider>
+            </ApiProvider>
+          </PaletteProvider>
+        </I18nProvider>
+      ))
+      return history
+    }
+
+    it('keeps the screen on view, without drawing it anew', async () => {
+      const { fetch, answer } = lists([acme])
+      let drawn = 0
+      function Counted() {
+        drawn += 1
+        const { refetch } = useOrganizations()
+        return (
+          <>
+            <Rights />
+            <button type="button" onClick={refetch}>
+              Read again
+            </button>
+          </>
+        )
+      }
+      renderReading('/acme', fetch, Counted)
+      fireEvent.click(await screen.findByRole('button', { name: 'Read again' }))
+
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+      expect(screen.getByText('Acme: add members true')).toBeInTheDocument()
+      answer([acme, globex])
+      await waitFor(() => expect(screen.getByText('Acme: add members true')).toBeInTheDocument())
+      expect(drawn).toBe(1)
+    })
+
+    it('opens an organization only the list read again has, waiting for it instead of saying "not found"', async () => {
+      const { fetch, answer } = lists([acme])
+      /** Joins Globex once the organizations were read, as accepting its invitation does. */
+      function Joining() {
+        const { list, refetch } = useOrganizations()
+        const navigate = useNavigate()
+        return (
+          <Show when={list.state === 'ready'}>
+            <button
+              type="button"
+              onClick={() => {
+                refetch()
+                navigate('/globex')
+              }}
+            >
+              Join Globex
+            </button>
+          </Show>
+        )
+      }
+      const history = renderReading('/elsewhere', fetch, Joining)
+      fireEvent.click(await screen.findByRole('button', { name: 'Join Globex' }))
+
+      await waitFor(() => expect(history.get()).toBe('/globex'))
+      expect(screen.queryByRole('heading', { name: 'Page not found' })).not.toBeInTheDocument()
+      answer([acme, globex])
+      expect(await screen.findByRole('button', { name: 'Join Globex' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Page not found' })).not.toBeInTheDocument()
+    })
+
+    it('says "not found" once the list read again does not have it', async () => {
+      const { fetch, answer } = lists([acme])
+      let leave = () => {}
+      function Leaving() {
+        const { refetch } = useOrganizations()
+        leave = refetch
+        return <Rights />
+      }
+      renderReading('/acme', fetch, Leaving)
+      await screen.findByText('Acme: add members true')
+
+      leave()
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+      answer([globex])
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument()
+    })
+  })
+
   describe('coming from another screen', () => {
     const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
     const member = { roles: ['member'], permissions: {} }

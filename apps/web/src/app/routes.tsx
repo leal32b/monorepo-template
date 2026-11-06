@@ -13,9 +13,9 @@ import { AccountRedirect } from './account-redirect'
  * What a visitor needs (the entry screens) is in the first download; what only someone signed in
  * needs (the session guard with the side menu, the menus, the palette and the screens behind it) loads
  * when they get there, so opening the sign-in does not pay for Kobalte's dialogs and menus. Behind the
- * session, the router keeps the page on screen until the next one is ready, its code and its data,
- * under the session guard's `Suspense` (ADR 0036): no blank flash. The security screen is the
- * heaviest of those (QR code, backup codes, every security form), so it loads on its own.
+ * session, a screen whose code is not loaded yet keeps the page on view a moment, under the session
+ * guard's `Suspense`; its data never does (ADR 0038). The security screen is the heaviest of those (QR
+ * code, backup codes, every security form), so it loads on its own.
  */
 const RequireSession = lazy(() => import('./require-session').then((m) => ({ default: m.RequireSession })))
 const OrganizationsProvider = lazy(() =>
@@ -129,15 +129,17 @@ export const routes: RouteDefinition[] = [
         component: OrganizationsProvider,
         preload: preloadOrganizations,
         children: [
-          { path: '/', component: OrganizationRedirect },
-          { path: '/onboarding', component: OnboardingPage, preload: preloadUserInvitations },
-          // The invitation email's link (ADR 0033, D5); a visitor signs in or signs up and comes back.
-          { path: '/invitations/:id', component: InvitationPage, preload: preloadInvitation },
           {
-            // The account settings and the organization's screens share one frame, drawn once (ADR 0037).
+            // Every screen behind the session shares one frame, drawn once (ADR 0037, ADR 0039): the start,
+            // onboarding and an invitation as well, which are drawn in it for someone who has an
+            // organization and as entry screens, with the frame aside, for someone who has none.
             path: '/',
             component: AppFrame,
             children: [
+              { path: '/', component: OrganizationRedirect },
+              { path: '/onboarding', component: OnboardingPage, preload: preloadUserInvitations },
+              // The invitation email's link (ADR 0033, D5); a visitor signs in or signs up and comes back.
+              { path: '/invitations/:id', component: InvitationPage, preload: preloadInvitation },
               {
                 path: '/settings',
                 children: [

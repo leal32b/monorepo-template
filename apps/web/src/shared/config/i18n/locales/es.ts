@@ -531,7 +531,8 @@ export const es: Messages = {
     description: 'Tu equipo trabaja junto en una organización.',
     another: {
       title: 'Crear organización',
-      description: 'Otra organización, con sus propias personas y roles.'
+      description: 'Otra organización, con sus propias personas y roles.',
+      unavailable: 'No pudimos revisar tus invitaciones. Revisa tu conexión e inténtalo de nuevo.'
     },
     invited: {
       title: 'Tienes invitaciones',

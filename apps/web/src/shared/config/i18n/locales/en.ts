@@ -524,7 +524,8 @@ export const en = {
     description: 'Your team works together in an organization.',
     another: {
       title: 'Create an organization',
-      description: 'Another organization, with its own people and roles.'
+      description: 'Another organization, with its own people and roles.',
+      unavailable: 'We could not check your invitations. Check your connection, then try again.'
     },
     invited: {
       title: 'You have invitations',

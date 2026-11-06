@@ -33,14 +33,17 @@ import { OrganizationsUnavailable } from './organizations-unavailable'
  * The screens are drawn anew for each organization (`OrganizationScreens`), so a screen leaving for
  * another one never reads it (W13), and moving to one never waits on what the caller may do there: its
  * skeleton holds the place in the frame until the API says (ADR 0038).
+ *
+ * While the organizations are read again (one deleted, left or joined), the list as last read stands
+ * (W10): the screen on view stays, and an organization only the new list has waits for it in the frame,
+ * where "not found" waits for the new list too.
  */
 export function RequireOrganization(props: ParentProps) {
   const params = useParams<{ orgSlug: string }>()
-  const { list, refetch } = useOrganizations()
-  // A resource in error throws when read, so the list is read only once it is ready.
+  const { list, known, refetch } = useOrganizations()
   const organization = createMemo<Organization | undefined>((previous) => {
-    if (list.state !== 'ready') return undefined
-    const organizations = list()
+    const organizations = known()
+    if (organizations === undefined) return undefined
     const named = organizations.find((candidate) => candidate.slug === params.orgSlug)
     if (named || previous === undefined) return named
     // The address was just changed on this screen: the list has the new one while the URL still has
@@ -63,6 +66,9 @@ export function RequireOrganization(props: ParentProps) {
             {props.children}
           </OrganizationScreens>
         )}
+      </Match>
+      <Match when={list.state === 'refreshing'}>
+        <PageSkeleton />
       </Match>
     </Switch>
   )

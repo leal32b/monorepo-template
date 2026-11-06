@@ -108,4 +108,71 @@ describe('OrganizationsProvider', () => {
     ))
     expect(await screen.findByText('some')).toBeInTheDocument()
   })
+
+  describe('the list as last read', () => {
+    const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+
+    function Known() {
+      const { known, hasOrganization, refetch } = useOrganizations()
+      return (
+        <>
+          <p data-testid="known">
+            {known()
+              ?.map((organization) => organization.name)
+              .join(', ') ?? 'unknown'}
+          </p>
+          <p data-testid="has">{String(hasOrganization())}</p>
+          <button type="button" onClick={refetch}>
+            Again
+          </button>
+        </>
+      )
+    }
+
+    function renderKnown(fetch: () => Promise<Response>) {
+      render(() => (
+        <AuthProvider client={createAuthClient({ fetch })}>
+          {routed(() => (
+            <OrganizationsProvider>
+              <Known />
+            </OrganizationsProvider>
+          ))}
+        </AuthProvider>
+      ))
+    }
+
+    it('is unknown until the first answer, then kept while the list is read again (W10)', async () => {
+      let answer: (response: Response) => void = () => {}
+      const fetch = vi
+        .fn<() => Promise<Response>>()
+        .mockResolvedValueOnce(Response.json([acme]))
+        .mockImplementationOnce(
+          () =>
+            new Promise<Response>((resolve) => {
+              answer = resolve
+            })
+        )
+      renderKnown(fetch)
+
+      expect(screen.getByTestId('known')).toHaveTextContent('unknown')
+      expect(screen.getByTestId('has')).toHaveTextContent('undefined')
+      await vi.waitFor(() => expect(screen.getByTestId('known')).toHaveTextContent('Acme'))
+      expect(screen.getByTestId('has')).toHaveTextContent('true')
+      screen.getByRole('button', { name: 'Again' }).click()
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+      expect(screen.getByTestId('known')).toHaveTextContent('Acme')
+
+      answer(Response.json([]))
+
+      await vi.waitFor(() => expect(screen.getByTestId('has')).toHaveTextContent('false'))
+      expect(screen.getByTestId('known')).toHaveTextContent('')
+    })
+
+    it('has no organization to speak of when the list could not be read', async () => {
+      renderKnown(async () => Response.json({ code: 'INTERNAL_SERVER_ERROR' }, { status: 500 }))
+
+      await vi.waitFor(() => expect(screen.getByTestId('has')).toHaveTextContent('false'))
+      expect(screen.getByTestId('known')).toHaveTextContent('unknown')
+    })
+  })
 })

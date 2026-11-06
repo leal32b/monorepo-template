@@ -24,9 +24,9 @@ function stateOfFailure(error: unknown): ServiceState {
 }
 
 /**
- * Asks the API whether it is up, once when the shell opens and again on `check()`. A problem is a
- * state to say in words, never a thrown error: `reference` holds the code and request id of an
- * error the API answered, for the user to quote.
+ * Asks the API whether it is up, once when made and again on `check()`; the app makes one for every
+ * screen that shows it (`useServiceStatus`). A problem is a state to say in words, never a thrown error:
+ * `reference` holds the code and request id of an error the API answered, for the user to quote.
  */
 export function createServiceStatus() {
   const api = useApi()

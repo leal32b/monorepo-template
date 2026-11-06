@@ -124,7 +124,7 @@ describe('App', () => {
     await waitFor(() => expect(asked).toEqual(expect.arrayContaining(['/api/auth/get-session', read])))
   })
 
-  it('sends a signed-in user without an organization to name one', async () => {
+  it('sends a signed-in user without an organization to name one, on an entry screen without the frame', async () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
     const client = createApiClient({ fetch: async () => Response.json(null) })
     const auth = createAuthClient({
@@ -138,6 +138,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Name your organization' })).toBeInTheDocument()
     await waitFor(() => expect(window.location.pathname).toBe('/onboarding'))
+    expect(document.querySelector('aside')).toBeNull()
   })
 
   it('opens the invitation of an email’s link, for the signed-in user', async () => {
@@ -539,6 +540,177 @@ describe('App', () => {
       expect(await screen.findByRole('heading', { level: 1, name: 'Roles' }, { timeout: 2000 })).toBeInTheDocument()
       expect(document.querySelector('aside')).toBe(frame)
     })
+  })
+
+  describe('the frame of someone who has an organization (W08, ADR 0039)', () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+    const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+    const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+    const invitation = {
+      id: 'inv-1',
+      organizationName: 'Globex',
+      organizationSlug: 'globex',
+      inviterName: 'Grace Hopper',
+      status: 'pending',
+      expiresAt: '2026-11-11T12:00:00.000Z',
+      member: false
+    }
+
+    /** Ada, owner of `organizations`, invited to Globex, which she joins by accepting; `deleted` names the ones gone since. */
+    const signedIn = (organizations = [acme], deleted = new Set<string>()) => {
+      let joined = false
+      const client = createApiClient({
+        fetch: async (path) => {
+          if (path.endsWith('/me')) return Response.json({ roles: ['owner'], permissions: builtInRoles.owner })
+          if (path === '/api/invitations/inv-1') return Response.json(invitation)
+          return Response.json(health)
+        }
+      })
+      const auth = createAuthClient({
+        fetch: async (input, init) => {
+          const url = String(input)
+          if (url.includes('/organization/delete')) {
+            deleted.add(JSON.parse(String(init?.body)).organizationId)
+            return Response.json({ id: 'org-1' })
+          }
+          if (url.includes('/organization/accept-invitation')) {
+            joined = true
+            return Response.json({ member: { id: 'm2' } })
+          }
+          if (url.includes('/organization/list-members')) return Response.json({ members: [], total: 0 })
+          if (url.includes('/organization/list-')) return Response.json([])
+          if (url.includes('/organization/list')) {
+            const mine = joined ? [...organizations, globex] : organizations
+            return Response.json(mine.filter((organization) => !deleted.has(organization.id)))
+          }
+          return Response.json({ session: { id: 's1' }, user })
+        }
+      })
+      return { client, auth, get: vi.spyOn(client, 'get') }
+    }
+    const healthChecks = (get: ReturnType<typeof signedIn>['get']) =>
+      get.mock.calls.filter(([path]) => path === '/api/health').length
+
+    it('keeps it from an organization to creating another, and back through its side menu', async () => {
+      window.history.replaceState(null, '', '/acme')
+      const { client, auth, get } = signedIn()
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Home' })
+      const frame = document.querySelector('aside') as HTMLElement
+
+      follow('/onboarding')
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Create an organization' })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+      fireEvent.click(within(frame).getByRole('link', { name: 'Home' }))
+      expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+      await waitFor(() => expect(window.location.pathname).toBe('/acme'))
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(healthChecks(get)).toBe(1)
+    })
+
+    it('keeps it on an invitation', async () => {
+      window.history.replaceState(null, '', '/acme')
+      const { client, auth, get } = signedIn()
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Home' })
+      const frame = document.querySelector('aside') as HTMLElement
+
+      follow('/invitations/inv-1')
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Invitation to Globex' })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(healthChecks(get)).toBe(1)
+    })
+
+    it('keeps it from an invitation accepted to its organization, while the list is read again', async () => {
+      window.history.replaceState(null, '', '/acme')
+      const { client, auth } = signedIn()
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Home' })
+      const frame = document.querySelector('aside') as HTMLElement
+      follow('/invitations/inv-1')
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Accept invitation' }))
+
+      await waitFor(() => expect(window.location.pathname).toBe('/globex'))
+      expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(within(frame).getByRole('button', { name: /Globex/ })).toBeInTheDocument()
+    })
+
+    it('keeps it from the account settings back to the app', async () => {
+      window.history.replaceState(null, '', '/settings/profile')
+      const { client, auth, get } = signedIn()
+      render(() => <App client={client} auth={auth} locale="en" />)
+      await screen.findByRole('heading', { level: 1, name: 'Profile' })
+      const frame = document.querySelector('aside') as HTMLElement
+      // Once the organizations are in, as the menu shows by offering the organization's settings.
+      await within(frame).findByRole('link', { name: 'General' })
+
+      fireEvent.click(within(frame).getByRole('link', { name: 'Back to app' }))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+      await waitFor(() => expect(window.location.pathname).toBe('/acme'))
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(healthChecks(get)).toBe(1)
+    })
+
+    it('keeps it from an organization just deleted to the next one, while the list is read again (W10)', async () => {
+      window.history.replaceState(null, '', '/acme/settings/general')
+      const { client, auth } = signedIn([acme, globex])
+      render(() => <App client={client} auth={auth} locale="en" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Delete organization' }))
+      fireEvent.input(await screen.findByRole('textbox', { name: 'Type the organization name to confirm' }), {
+        target: { value: 'Acme' }
+      })
+      const frame = document.querySelector('aside') as HTMLElement
+
+      fireEvent.click(
+        within(screen.getByRole('group', { name: 'Delete organization' })).getByRole('button', {
+          name: 'Delete organization'
+        })
+      )
+
+      await waitFor(() => expect(window.location.pathname).toBe('/globex'))
+      expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+      expect(document.querySelector('aside')).toBe(frame)
+      expect(within(frame).getByRole('button', { name: /Globex/ })).toBeInTheDocument()
+    })
+  })
+
+  it('asks for the service status once, from the sign-in to the app (W09)', async () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+    let signedIn = false
+    const client = createApiClient({
+      fetch: async (path) =>
+        Response.json(path.endsWith('/me') ? { roles: ['owner'], permissions: builtInRoles.owner } : health)
+    })
+    const get = vi.spyOn(client, 'get')
+    const auth = createAuthClient({
+      fetch: async (input) => {
+        const url = String(input)
+        if (url.includes('/sign-in/email')) {
+          signedIn = true
+          return Response.json({ redirect: false, token: 'session', user: { id: 'u1' } })
+        }
+        if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+        return Response.json(signedIn ? { session: { id: 's1' }, user } : null)
+      }
+    })
+    window.history.replaceState(null, '', '/login')
+    render(() => <App client={client} auth={auth} locale="en" identity={{ google: false }} />)
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/api/health', expect.anything(), expect.anything()))
+
+    fireEvent.input(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'ada@example.com' } })
+    fireEvent.input(screen.getByLabelText('Password'), { target: { value: 'correct horse battery staple' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
+    expect(get.mock.calls.filter(([path]) => path === '/api/health')).toHaveLength(1)
   })
 
   it('answers an address that does not exist with a page that says so', () => {

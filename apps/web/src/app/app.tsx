@@ -1,5 +1,6 @@
 import type { IdentityOptions } from '@repo/contracts'
 import { Router } from '@solidjs/router'
+import { ServiceStatusProvider } from '#entities/health'
 import { IdentityOptionsProvider } from '#entities/identity-options'
 import { type ApiClient, ApiProvider, type AuthClient, AuthProvider, createRequests, type Requests } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
@@ -21,20 +22,22 @@ export function App(props: {
       <I18nProvider locale={props.locale}>
         <PaletteProvider>
           <ApiProvider client={props.client}>
-            <AuthProvider client={props.auth}>
-              <IdentityOptionsProvider options={props.identity}>
-                <Router
-                  root={(root) => (
-                    <>
-                      <NavigationProgress requests={requests} />
-                      {root.children}
-                    </>
-                  )}
-                >
-                  {routes}
-                </Router>
-              </IdentityOptionsProvider>
-            </AuthProvider>
+            <ServiceStatusProvider>
+              <AuthProvider client={props.auth}>
+                <IdentityOptionsProvider options={props.identity}>
+                  <Router
+                    root={(root) => (
+                      <>
+                        <NavigationProgress requests={requests} />
+                        {root.children}
+                      </>
+                    )}
+                  >
+                    {routes}
+                  </Router>
+                </IdentityOptionsProvider>
+              </AuthProvider>
+            </ServiceStatusProvider>
           </ApiProvider>
         </PaletteProvider>
       </I18nProvider>

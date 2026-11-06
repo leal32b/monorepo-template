@@ -527,7 +527,8 @@ export const ptBR: Messages = {
     description: 'Sua equipe trabalha junta em uma organização.',
     another: {
       title: 'Criar organização',
-      description: 'Outra organização, com suas próprias pessoas e papéis.'
+      description: 'Outra organização, com suas próprias pessoas e papéis.',
+      unavailable: 'Não conseguimos verificar seus convites. Confira sua conexão e tente de novo.'
     },
     invited: {
       title: 'Há convites para você',

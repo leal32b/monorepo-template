@@ -1,6 +1,6 @@
 import { Alert } from '@repo/ui'
 import { Show } from 'solid-js'
-import { createServiceStatus, isProblem } from '#entities/health'
+import { isProblem, useServiceStatus } from '#entities/health'
 import { useI18n } from '#shared/config'
 
 /**
@@ -10,7 +10,7 @@ import { useI18n } from '#shared/config'
  */
 export function ServiceNotice() {
   const { t } = useI18n()
-  const status = createServiceStatus()
+  const status = useServiceStatus()
 
   return (
     <Show when={isProblem(status.state())}>
