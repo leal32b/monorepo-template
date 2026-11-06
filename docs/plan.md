@@ -18,7 +18,7 @@ Legend: 🟦 Sonnet is enough · 🟥 use Opus (a decision that is expensive to 
 | 6.5 | Organizations and authorization | Better Auth's organization plugin: organizations, members, roles and custom permissions, invitations by email; a tenant guard on the path (`/api/organizations/:id/...`: 404 for non-members, 403 without the permission); organization screens (create, switch, members, roles, invite, accept); [implementation plan](organizations-plan.md) | 🟥 |
 | 6.6 | Web loading and fluidity | The progress bar sees every wait; screen data through the router's `query`, `preload` and `createAsync`, shared by key, a revisit drawn at once; the session and the organizations read together at boot; a navigation swaps at once and waits with the screen's skeleton ([ADR 0038](adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)); onboarding and invitations inside the frame | 🟥 |
 | 7 | Reference vertical module | A small tenant-scoped CRUD end to end (contract → domain → API → web → e2e), with the first repository port and its in-memory fake; the mould for future modules | 🟦 |
-| 8 | E2E and quality | Playwright flow + axe, knip, coverage ratchet, bundle budget (checks the choice of `zod/mini`, [ADR 0024](adr/0024-write-schemas-with-zod-mini.md)) | 🟦 |
+| 8 | E2E and quality | Playwright flow + axe, knip, coverage ratchet, bundle budget (checks the choice of `zod/mini`, [ADR 0024](adr/0024-write-schemas-with-zod-mini.md); measured on 2026-11-05: a cold load fetches 112 KB gzip of JS before the first signed-in screen, 73 KB before the sign-in) | 🟦 |
 | 9 | Hardening and template use | SECURITY.md, observability basics, "how to start a SaaS from this template" | 🟦 |
 
 ## Out of scope (specific to team-app)

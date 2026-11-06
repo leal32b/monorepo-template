@@ -162,6 +162,18 @@ describe('SettingsRow', () => {
     expect(button.parentElement?.parentElement).toHaveClass('flex-col', '@md:flex-row')
   })
 
+  it('breaks a word too long for the row, such as an email, so nothing runs past a phone screen (W11)', () => {
+    const email = 'maximilianaalexandrinamontgomerywolfenstein@example.com'
+    render(() => <SettingsRow title={email} description={email} note={`Held by ${email}`} />)
+    const [title, description] = screen.getAllByText(email)
+
+    // `overflow-wrap: anywhere`, which a flex item's narrowest width counts too, on the column of the texts.
+    const column = title?.closest('.break-anywhere')
+    expect(column).not.toBeNull()
+    expect(column).toContainElement(description as HTMLElement)
+    expect(column).toContainElement(screen.getByText(`Held by ${email}`))
+  })
+
   it('draws no action area and no panel when what it was given draws nothing, such as a Show that is off', () => {
     const { container } = render(() => (
       <SettingsRow

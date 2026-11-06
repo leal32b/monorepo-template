@@ -1,5 +1,5 @@
+import { createAuthClient as createBetterAuthClient } from 'better-auth/client'
 import { inferAdditionalFields, organizationClient, twoFactorClient } from 'better-auth/client/plugins'
-import { createAuthClient as createBetterAuthClient } from 'better-auth/solid'
 
 export type AuthClientOptions = {
   /** How requests go out: `window.fetch` in the app, a fake in tests. */
@@ -8,7 +8,9 @@ export type AuthClientOptions = {
 
 /**
  * Better Auth's client (ADR 0020), with the two-factor and organization plugins. It calls `/api/auth` on the page's own
- * origin, which the Worker forwards to the API, so the session cookie stays first-party.
+ * origin, which the Worker forwards to the API, so the session cookie stays first-party. The plain client, not the
+ * Solid one: the app reads through its own queries (ADR 0038), never Better Auth's stores, so their bindings stay out
+ * of the first download (W12).
  */
 export function createAuthClient({ fetch }: AuthClientOptions) {
   return createBetterAuthClient({
