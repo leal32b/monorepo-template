@@ -26,6 +26,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint:deps
       - run: pnpm lint:fsd
+      - name: Dead files, exports and dependencies (knip)
+        run: pnpm knip
 
   test:
     name: Tests with coverage

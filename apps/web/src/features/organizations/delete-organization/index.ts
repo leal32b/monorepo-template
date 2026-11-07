@@ -1,1 +1,1 @@
-export { DeleteOrganizationForm, type DeleteOrganizationFormProps } from './ui/delete-organization-form'
+export { DeleteOrganizationForm } from './ui/delete-organization-form'

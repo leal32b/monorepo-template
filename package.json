@@ -11,6 +11,7 @@
     "lint:ci": "biome ci .",
     "lint:deps": "depcruise apps packages",
     "lint:fsd": "pnpm --filter @repo/web lint:fsd",
+    "knip": "knip",
     "format": "biome check --write .",
     "typecheck": "pnpm -r typecheck && tsc -p tsconfig.json",
     "db": "pnpm --filter @repo/api db",
@@ -35,6 +36,7 @@
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "dependency-cruiser": "catalog:",
+    "knip": "catalog:",
     "lefthook": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

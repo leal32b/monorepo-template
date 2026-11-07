@@ -1,1 +1,1 @@
-export { DisableTwoFactor, type DisableTwoFactorProps } from './ui/disable-two-factor'
+export { DisableTwoFactor } from './ui/disable-two-factor'

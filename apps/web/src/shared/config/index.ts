@@ -1,5 +1,5 @@
 export { readStored, store } from './device/device-storage'
-export { readWebEnv, type WebEnv } from './env/read-web-env'
+export { readWebEnv } from './env/read-web-env'
 export { I18nProvider, useI18n } from './i18n/context'
 export { detectLocale } from './i18n/detect-locale'
 export { readDeviceLocale } from './i18n/device-locale'

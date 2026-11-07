@@ -1,2 +1,2 @@
 export { cleanEmail } from './email'
-export { type MailProvider, mailProviderOf } from './mail-provider'
+export { mailProviderOf } from './mail-provider'

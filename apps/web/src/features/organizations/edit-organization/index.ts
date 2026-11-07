@@ -1,2 +1,2 @@
-export { ChangeAddressForm, type ChangeAddressFormProps } from './ui/change-address-form'
-export { RenameOrganizationForm, type RenameOrganizationFormProps } from './ui/rename-organization-form'
+export { ChangeAddressForm } from './ui/change-address-form'
+export { RenameOrganizationForm } from './ui/rename-organization-form'

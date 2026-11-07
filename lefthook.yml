@@ -28,3 +28,5 @@ pre-push:
       run: pnpm lint:deps
     fsd:
       run: pnpm lint:fsd
+    knip:
+      run: pnpm knip

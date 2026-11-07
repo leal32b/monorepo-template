@@ -1,1 +1,1 @@
-export { ChangePasswordForm, type ChangePasswordFormProps } from './ui/change-password-form'
+export { ChangePasswordForm } from './ui/change-password-form'

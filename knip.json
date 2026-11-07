@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreExportsUsedInFile": true,
+  "workspaces": {
+    ".": {
+      "ignoreDependencies": ["@swc/core"]
+    },
+    "apps/e2e": {
+      "entry": ["tests/*.setup.ts"]
+    },
+    "apps/web": {
+      "entry": ["steiger.config.ts"],
+      "ignoreDependencies": ["wrangler"]
+    },
+    "packages/ui": {
+      "ignoreDependencies": ["@phosphor-icons/core"]
+    }
+  }
+}

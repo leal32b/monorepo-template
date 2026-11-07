@@ -1,1 +1,1 @@
-export { CreateOrganizationForm, type CreateOrganizationFormProps } from './ui/create-organization-form'
+export { CreateOrganizationForm } from './ui/create-organization-form'
