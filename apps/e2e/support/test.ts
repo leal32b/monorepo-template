@@ -1,24 +1,39 @@
 import { readFile } from 'node:fs/promises'
 import { AxeBuilder } from '@axe-core/playwright'
-import { test as base, expect, type Page } from '@playwright/test'
+import { type Browser, test as base, expect, type Page } from '@playwright/test'
 
 export { expect }
 
 let clients = 0
 
 /**
- * Every test is its own client: a client address of its own, as separate people have, so the rate
- * limit (3 sign-ins per 10 s per address) counts each test apart (ADR 0045).
+ * A client address of its own, as separate people have, so the rate limit (3 sign-ins per 10 s per
+ * address) counts each browser apart (ADR 0045).
  */
+function clientAddress(): { 'X-Client-IP': string } {
+  clients += 1
+  return { 'X-Client-IP': `10.${base.info().workerIndex % 256}.${clients >> 8}.${clients % 256}` }
+}
+
+/** Every test's page is its own client. */
 export const test = base.extend({
-  page: async ({ page }, use, testInfo) => {
-    clients += 1
-    await page.setExtraHTTPHeaders({
-      'X-Client-IP': `10.${testInfo.workerIndex % 256}.${clients >> 8}.${clients % 256}`
-    })
+  page: async ({ page }, use) => {
+    await page.setExtraHTTPHeaders(clientAddress())
     await use(page)
   }
 })
+
+/**
+ * A second person in the same test: a browser with no session (a new context would otherwise take
+ * the test's `storageState`) and a client address of its own.
+ */
+export async function newPerson(browser: Browser): Promise<Page> {
+  const context = await browser.newContext({
+    storageState: { cookies: [], origins: [] },
+    extraHTTPHeaders: clientAddress()
+  })
+  return context.newPage()
+}
 
 /** A fresh address for one test, so tests never share an account. */
 export function uniqueEmail(label: string): string {
