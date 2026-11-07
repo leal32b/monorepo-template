@@ -16,6 +16,7 @@ engineStrict: true
 
 # One version per dependency for the whole workspace: package.json files say `catalog:`.
 catalog:
+  '@axe-core/playwright': ^4.14.0
   '@biomejs/biome': ^2.6.2
   '@commitlint/cli': ^21.2.4
   '@commitlint/config-conventional': ^21.2.4
@@ -24,6 +25,7 @@ catalog:
   '@feature-sliced/steiger-plugin': ^0.8.1
   '@kobalte/core': ^0.13.14
   '@phosphor-icons/core': ^2.1.1
+  '@playwright/test': ^1.65.0
   '@solid-primitives/i18n': ^2.2.1
   '@solidjs/router': ^1.0.0
   '@solidjs/testing-library': ^0.8.10
@@ -40,6 +42,7 @@ catalog:
   dependency-cruiser: ^18.7.0
   esbuild: ^0.28.2
   happy-dom: ^21.0.4
+  knip: ^6.44.2
   kysely: ^0.29.7
   lean-qr: ^2.7.4
   lefthook: ^2.2.2
@@ -56,3 +59,5 @@ catalog:
   vitest: ^5.0.5
   wrangler: ^4.153.0
   zod: ^4.6.7
+minimumReleaseAgeExclude:
+  - knip@6.44.2

@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    projects: ['apps/*', 'packages/*', 'apps/api/vitest.db.config.ts', 'apps/web/vitest.worker.config.ts'],
+    projects: ['apps/*', '!apps/e2e', 'packages/*', 'apps/api/vitest.db.config.ts', 'apps/web/vitest.worker.config.ts'],
     passWithNoTests: true,
     coverage: {
       include: ['apps/*/src/**/*.{ts,tsx}', 'apps/web/worker/**/*.ts', 'packages/*/src/**/*.{ts,tsx}'],
@@ -12,6 +12,7 @@ export default defineConfig({
         '**/index.ts',
         '**/test-setup.ts',
         '**/main.{ts,tsx}',
+        'apps/api/src/main.e2e.ts',
         'apps/api/src/migrate.ts'
       ],
       thresholds: { 100: true }

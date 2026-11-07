@@ -9,3 +9,7 @@ coverage
 .data
 .wrangler
 .dev.vars
+
+# Playwright: traces, reports and the saved sessions of the setup project
+test-results
+playwright-report

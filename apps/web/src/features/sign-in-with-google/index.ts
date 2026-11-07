@@ -1,1 +1,1 @@
-export { SignInWithGoogle, type SignInWithGoogleProps } from './ui/sign-in-with-google'
+export { SignInWithGoogle } from './ui/sign-in-with-google'

@@ -1,4 +1,4 @@
-export { AuthFailureAlert, type AuthFailureAlertProps } from './auth-failure-alert'
-export { ConfirmPasswordForm, type ConfirmPasswordFormProps } from './confirm-password-form'
-export { OpenMail, type OpenMailProps } from './open-mail'
-export { ReadFailure, type ReadFailureProps } from './read-failure'
+export { AuthFailureAlert } from './auth-failure-alert'
+export { ConfirmPasswordForm } from './confirm-password-form'
+export { OpenMail } from './open-mail'
+export { ReadFailure } from './read-failure'

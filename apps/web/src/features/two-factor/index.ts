@@ -1,1 +1,1 @@
-export { TwoFactorForm, type TwoFactorFormProps } from './ui/two-factor-form'
+export { TwoFactorForm } from './ui/two-factor-form'

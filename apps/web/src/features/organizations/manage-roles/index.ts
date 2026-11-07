@@ -1,3 +1,3 @@
-export { DeleteRoleForm, type DeleteRoleFormProps } from './ui/delete-role-form'
-export { RoleForm, type RoleFormProps } from './ui/role-form'
-export { RoleView, type RoleViewProps } from './ui/role-view'
+export { DeleteRoleForm } from './ui/delete-role-form'
+export { RoleForm } from './ui/role-form'
+export { RoleView } from './ui/role-view'

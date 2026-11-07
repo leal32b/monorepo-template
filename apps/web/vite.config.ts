@@ -1,6 +1,35 @@
+import { readFileSync } from 'node:fs'
 import UnoCSS from 'unocss/vite'
-import { defineConfig } from 'vite'
+import { defineConfig, type ProxyOptions } from 'vite'
 import solid from 'vite-plugin-solid'
+
+/**
+ * In dev and preview the browser calls /api on the web origin; Vite forwards it to the API. In
+ * production the Worker sets X-Client-IP from Cloudflare (ADR 0022); here the client's own header is
+ * kept (the end-to-end suite gives each test its own, ADR 0045), else a fixed one gives the rate
+ * limit a key.
+ */
+const api: ProxyOptions = {
+  target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:3001',
+  configure: (proxy) => {
+    proxy.on('proxyReq', (request, incoming) => {
+      if (!incoming.headers['x-client-ip']) request.setHeader('X-Client-IP', '127.0.0.1')
+    })
+  }
+}
+
+/** The headers `public/_headers` gives every path (`/*`), so `vite preview` serves the production CSP. */
+function headersForEveryPath(): Record<string, string> {
+  const file = readFileSync(new URL('public/_headers', import.meta.url), 'utf8')
+  const block = /(?:^|\n)\/\*\n([\s\S]*?)(?:\n\n|\n?$)/.exec(file)?.[1] ?? ''
+  return Object.fromEntries(
+    block
+      .split('\n')
+      .map((line) => line.trim().split(/:\s(.*)/s))
+      .filter(([name, value]) => name && value)
+      .map(([name, value]) => [name as string, value as string])
+  )
+}
 
 export default defineConfig({
   plugins: [UnoCSS(), solid()],
@@ -9,13 +38,10 @@ export default defineConfig({
     // (origin_not_allowed). With the port taken, Vite stops with an error instead of moving to 5174.
     port: 5173,
     strictPort: true,
-    // In dev the browser calls /api on the web origin; Vite forwards it to the API. In production the
-    // Worker sets X-Client-IP from Cloudflare (ADR 0022); here a fixed one gives the rate limit a key.
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:3001',
-        headers: { 'X-Client-IP': '127.0.0.1' }
-      }
-    }
+    proxy: { '/api': api }
+  },
+  preview: {
+    proxy: { '/api': api },
+    headers: headersForEveryPath()
   }
 })

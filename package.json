@@ -11,13 +11,15 @@
     "lint:ci": "biome ci .",
     "lint:deps": "depcruise apps packages",
     "lint:fsd": "pnpm --filter @repo/web lint:fsd",
+    "knip": "knip",
     "format": "biome check --write .",
     "typecheck": "pnpm -r typecheck && tsc -p tsconfig.json",
     "db": "pnpm --filter @repo/api db",
     "dev": "pnpm --parallel --filter @repo/api --filter @repo/web dev",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "pnpm --filter @repo/e2e test"
   },
   "devEngines": {
     "runtime": {
@@ -34,6 +36,7 @@
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "dependency-cruiser": "catalog:",
+    "knip": "catalog:",
     "lefthook": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
