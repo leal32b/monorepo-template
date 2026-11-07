@@ -1,5 +1,5 @@
 import { Dialog } from '@kobalte/core/dialog'
-import type { JSX } from 'solid-js'
+import { createComputed, type JSX } from 'solid-js'
 import { Icon } from '#icon'
 
 export type SheetProps = {
@@ -19,11 +19,26 @@ export type SheetProps = {
  * top right corner, on the line of a 56px top row, so what the sheet holds leaves that corner free.
  */
 export function Sheet(props: SheetProps) {
+  // Kobalte gives the focus back to its own trigger; the app opens the sheet from a button outside
+  // it, so the sheet remembers what had the focus as it opened, before its content takes it, and
+  // focuses it again once the content has left.
+  let opener: HTMLElement | undefined
+  createComputed(() => {
+    if (props.open) opener = document.activeElement as HTMLElement
+  })
+  const giveFocusBack = (event: Event) => {
+    event.preventDefault()
+    opener?.focus()
+  }
+
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay class="ds-scrim fixed inset-0 z-40 bg-scrim/60" />
-        <Dialog.Content class="ds-sheet fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border-subtle bg-surface outline-none">
+        <Dialog.Content
+          onCloseAutoFocus={giveFocusBack}
+          class="ds-sheet fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border-subtle bg-surface outline-none"
+        >
           <Dialog.Title class="sr-only">{props.title}</Dialog.Title>
           <Dialog.CloseButton
             aria-label={props.closeLabel}

@@ -56,4 +56,26 @@ describe('Sheet', () => {
 
     await waitFor(() => expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-closed'))
   })
+
+  it('gives the focus back to what had it as the sheet opened, once the content has left', async () => {
+    // The app's opener sits outside the sheet (no Kobalte trigger). In a real browser Kobalte then
+    // returned the focus to the body; the end-to-end accessibility suite shows it on the phone menu.
+    const opener = document.createElement('button')
+    document.body.append(opener)
+    opener.focus()
+    const [open, setOpen] = createSignal(false)
+    const { unmount } = render(() => (
+      <Sheet open={open()} onOpenChange={setOpen} title="Menu" closeLabel="Close menu">
+        <a href="#home">Home</a>
+      </Sheet>
+    ))
+    setOpen(true)
+    const dialog = await screen.findByRole('dialog')
+    await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement))
+
+    unmount() // the content leaves, as it does once its closing motion ends
+
+    await waitFor(() => expect(opener).toHaveFocus())
+    opener.remove()
+  })
 })
