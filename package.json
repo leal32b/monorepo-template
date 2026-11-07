@@ -17,7 +17,8 @@
     "dev": "pnpm --parallel --filter @repo/api --filter @repo/web dev",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "pnpm --filter @repo/e2e test"
   },
   "devEngines": {
     "runtime": {
