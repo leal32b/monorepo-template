@@ -15,7 +15,8 @@ export type SheetProps = {
 /**
  * A panel that slides in from the left over the page: the side menu on phones. A modal dialog, so
  * focus stays inside while it is open, Escape or a tap on the shade closes it, and focus returns to
- * what opened it. The app decides when to show it (below the `md` breakpoint).
+ * what opened it. The app decides when to show it (below the `md` breakpoint). The close button sits in the
+ * top right corner, on the line of a 56px top row, so what the sheet holds leaves that corner free.
  */
 export function Sheet(props: SheetProps) {
   return (
@@ -26,7 +27,7 @@ export function Sheet(props: SheetProps) {
           <Dialog.Title class="sr-only">{props.title}</Dialog.Title>
           <Dialog.CloseButton
             aria-label={props.closeLabel}
-            class="absolute top-2 right-2 flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            class="absolute top-1.5 right-2 flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Icon name="close" />
           </Dialog.CloseButton>

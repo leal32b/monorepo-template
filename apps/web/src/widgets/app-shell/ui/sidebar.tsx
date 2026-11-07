@@ -17,6 +17,8 @@ export type SidebarProps = {
   onNavigate?: (() => void) | undefined
   /** Called as the account menu goes to the settings, so the phone drawer can stay open. */
   onSettings?: (() => void) | undefined
+  /** Whether the menu is in the phone drawer, whose close button takes the top right corner of its first row. */
+  inDrawer?: boolean | undefined
   class?: string | undefined
 }
 
@@ -75,9 +77,8 @@ function NavLink(props: {
 
 /**
  * The side menu: at the top the organization you are in, with the way to change it (the brand on a screen
- * outside any), the product's screens, and at the foot the account with the
- * service status. In the settings, the screens give way to the way back and the settings' own list.
- * A problem with the service is said in a line above the account; when all is well only the icon stays.
+ * outside any), the product's screens, and at the foot the account. In the settings, the screens give way to
+ * the way back and the settings' own list. In the phone drawer the top row leaves room for the close button.
  */
 export function Sidebar(props: SidebarProps) {
   const { t } = useI18n()
@@ -98,7 +99,12 @@ export function Sidebar(props: SidebarProps) {
   return (
     <div class={cn('flex h-full flex-col gap-4 bg-surface p-3', props.class)}>
       {/* As tall as the top bar, so the two titles share one baseline; no line under it, to keep the menu clean. */}
-      <div class="-mx-3 -mt-3 flex h-14 shrink-0 items-center px-3 font-semibold tracking-tight">
+      <div
+        class={cn(
+          '-mx-3 -mt-3 flex h-14 shrink-0 items-center font-semibold tracking-tight',
+          props.inDrawer ? 'pr-14 pl-3' : 'px-3'
+        )}
+      >
         <Show
           when={inSettings()}
           fallback={

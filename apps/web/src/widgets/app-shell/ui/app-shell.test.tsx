@@ -192,6 +192,20 @@ describe('AppShell', () => {
     expect(menu.queryByRole('link', { name: 'Monorepo Template' })).not.toBeInTheDocument()
   })
 
+  it('leaves the close button of the phone drawer its own place, beside the title and not over the switcher', async () => {
+    renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    const drawer = await screen.findByRole('dialog', { name: 'Menu' })
+
+    const top = within(drawer).getByRole('button', { name: /Acme/ }).parentElement
+    expect(top).toHaveClass('pr-14')
+    expect(within(drawer).getByRole('button', { name: 'Close menu' })).toHaveClass('top-1.5', 'right-2', 'size-11')
+    // The menu beside the page has no close button, so it keeps the whole row.
+    expect(
+      within(screen.getByRole('complementary', { hidden: true })).getByRole('button', { name: /Acme/ }).parentElement
+    ).not.toHaveClass('pr-14')
+  })
+
   it('switches organization from the phone drawer, which closes after the move', async () => {
     const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
     fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))

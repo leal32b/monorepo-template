@@ -46,7 +46,13 @@ export function AppFrame(props: ParentProps) {
     inSettings() ? [{ href: '/settings/profile', label: t('appShell.account.settings') }] : []
 
   const sidebar = (onNavigate?: () => void, onSettings?: () => void) => (
-    <Sidebar path={marked} signOut={signOut.signOut} onNavigate={onNavigate} onSettings={onSettings} />
+    <Sidebar
+      path={marked}
+      signOut={signOut.signOut}
+      onNavigate={onNavigate}
+      onSettings={onSettings}
+      inDrawer={onNavigate !== undefined}
+    />
   )
 
   return (
