@@ -49,3 +49,8 @@ code that uses it, and the API gains nothing from the larger API.
 
 The bundle budget of Phase 8 shows the difference is not worth the verbosity, or the method API
 becomes the only one with a feature we need.
+
+Checked on 2026-11-07, when the budget became a test (`apps/e2e/tests/bundle-budget.spec.ts`): a
+cold load fetches 73 KB gzip of JavaScript before the sign-in screen and 112 KB before the first
+signed-in screen, as on 2026-11-05, within budgets of 78 and 117 KB. The decision stands; a budget
+that fails is the signal to measure what Zod costs.
