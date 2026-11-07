@@ -449,7 +449,6 @@ export const ptBR: Messages = {
     },
     search: {
       label: 'Buscar clientes',
-      hint: 'Nome, e-mail ou empresa.',
       submit: 'Procurar'
     },
     filter: {

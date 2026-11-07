@@ -211,16 +211,7 @@ function Customers() {
   return (
     <Show when={list()}>
       {(loaded) => (
-        <SettingsSection
-          title={t('customers.section.title')}
-          description={t(
-            canAdd() || canEdit() || canDelete() ? 'customers.section.description' : 'customers.section.readOnly',
-            {
-              name: current.organization.name
-            }
-          )}
-          status={sectionStatus()}
-        >
+        <div class="flex flex-col gap-6">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <form noValidate onSubmit={searchFor} class="flex items-end gap-2 sm:flex-1">
               <Field
@@ -229,7 +220,6 @@ function Customers() {
                 name="search"
                 type="search"
                 autocomplete="off"
-                description={t('customers.search.hint')}
                 value={typed()}
                 onChange={setTyped}
               />
@@ -247,40 +237,53 @@ function Customers() {
               ]}
             />
           </div>
-          <Show when={canAdd() && status() === 'active'}>
-            <SettingsRow
-              icon="plus"
-              title={t('customers.add.title')}
-              description={t('customers.add.description')}
-              action={
-                <PanelButton panels={panels} panel="add" onOpen={forget}>
-                  {t('customers.add.go')}
-                </PanelButton>
+          <SettingsSection
+            title={t('customers.section.title')}
+            description={t(
+              canAdd() || canEdit() || canDelete() ? 'customers.section.description' : 'customers.section.readOnly',
+              {
+                name: current.organization.name
               }
-              panel={
-                <Show when={panels.isOpen('add')}>
-                  <SettingsPanel label={t('customers.add.title')}>
-                    <CustomerForm
-                      organizationId={id}
-                      onSaved={(saved) => {
-                        panels.close()
-                        setSectionStatus(t('customers.saved', { name: saved.name }))
-                        readAgain(key())
-                      }}
-                      onGone={changed('customers.errors.gone')}
-                      onCancel={panels.close}
-                    />
-                  </SettingsPanel>
-                </Show>
-              }
-            />
-          </Show>
-          <Show
-            when={loaded().items.length > 0}
-            fallback={<EmptyState icon={emptyOf().icon} title={emptyOf().title} description={emptyOf().description} />}
+            )}
+            status={sectionStatus()}
           >
-            <For each={loaded().items}>{rowOf}</For>
-          </Show>
+            <Show when={canAdd() && status() === 'active'}>
+              <SettingsRow
+                icon="plus"
+                title={t('customers.add.title')}
+                description={t('customers.add.description')}
+                action={
+                  <PanelButton panels={panels} panel="add" onOpen={forget}>
+                    {t('customers.add.go')}
+                  </PanelButton>
+                }
+                panel={
+                  <Show when={panels.isOpen('add')}>
+                    <SettingsPanel label={t('customers.add.title')}>
+                      <CustomerForm
+                        organizationId={id}
+                        onSaved={(saved) => {
+                          panels.close()
+                          setSectionStatus(t('customers.saved', { name: saved.name }))
+                          readAgain(key())
+                        }}
+                        onGone={changed('customers.errors.gone')}
+                        onCancel={panels.close}
+                      />
+                    </SettingsPanel>
+                  </Show>
+                }
+              />
+            </Show>
+            <Show
+              when={loaded().items.length > 0}
+              fallback={
+                <EmptyState icon={emptyOf().icon} title={emptyOf().title} description={emptyOf().description} />
+              }
+            >
+              <For each={loaded().items}>{rowOf}</For>
+            </Show>
+          </SettingsSection>
           <Show when={pages(loaded()) > 1}>
             <nav class="flex items-center justify-between gap-3" aria-label={t('customers.section.title')}>
               <Button variant="secondary" disabled={page() <= 1} onClick={() => setPage(page() - 1)}>
@@ -294,7 +297,7 @@ function Customers() {
               </Button>
             </nav>
           </Show>
-        </SettingsSection>
+        </div>
       )}
     </Show>
   )

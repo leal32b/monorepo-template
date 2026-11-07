@@ -452,7 +452,6 @@ export const es: Messages = {
     },
     search: {
       label: 'Buscar clientes',
-      hint: 'Nombre, correo o empresa.',
       submit: 'Filtrar'
     },
     filter: {

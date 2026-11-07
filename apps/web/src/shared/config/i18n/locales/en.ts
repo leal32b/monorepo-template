@@ -445,7 +445,6 @@ export const en = {
     },
     search: {
       label: 'Search customers',
-      hint: 'Name, email or company.',
       submit: 'Find'
     },
     filter: {
