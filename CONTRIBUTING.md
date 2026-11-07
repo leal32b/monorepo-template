@@ -18,6 +18,8 @@ pnpm test
 pnpm test:coverage  # 100% thresholds
 pnpm lint:deps      # import graph rules (dependency-cruiser)
 pnpm lint:fsd       # Feature-Sliced Design (Steiger)
+pnpm knip           # dead files, exports and dependencies
+pnpm test:e2e       # browser journeys, axe, JS budget (docs/testing.md)
 pnpm db             # local Postgres (PGlite) on :5433, in its own terminal
 pnpm dev            # migrations, then API :3001 + web :5173
 ```

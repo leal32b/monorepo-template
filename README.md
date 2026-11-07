@@ -8,6 +8,7 @@ a tracer bullet and deployed for real on free tiers (Neon, Render, Cloudflare).
 | --- | --- |
 | `apps/api` | Hexagonal modules on `node:http`, Kysely and plain SQL migrations |
 | `apps/web` | SolidJS and Vite, Feature-Sliced Design |
+| `apps/e2e` | Playwright: browser journeys, axe and the JavaScript budget |
 | `packages/contracts` | Zod schemas shared by the API and the web |
 | `packages/ui` | Design system on Kobalte and UnoCSS |
 | `docs` | Build plan and architecture decisions |
@@ -15,5 +16,6 @@ a tracer bullet and deployed for real on free tiers (Neon, Render, Cloudflare).
 - Setup and everyday commands: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Conventions and definition of done: [AGENTS.md](AGENTS.md)
 - Build order: [docs/plan.md](docs/plan.md)
+- What each test layer proves: [docs/testing.md](docs/testing.md)
 - Decisions: [docs/adr](docs/adr/README.md); the first deploy is in
   [ADR 0014](docs/adr/0014-hosting-and-deploy-from-github-actions.md)

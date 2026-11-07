@@ -92,13 +92,14 @@ Folders appear only when their phase of the plan reaches them.
 Each phase ends green and committed. Today:
 
 ```bash
-pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm lint:deps && pnpm lint:fsd
+pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm lint:deps && pnpm lint:fsd && pnpm knip && pnpm test:e2e
 ```
 
 Coverage thresholds are 100% from the start.
 
-As gates are introduced (knip, e2e) they join this list. Architecture rules are in
+What each test layer proves, and how to write an end-to-end test: [docs/testing.md](docs/testing.md).
+Architecture rules are in
 [ADR 0006](docs/adr/0006-api-architecture.md), [ADR 0008](docs/adr/0008-architecture-boundaries-with-dependency-cruiser.md),
 [ADR 0010](docs/adr/0010-web-architecture-feature-sliced-design.md) and
 [ADR 0017](docs/adr/0017-build-the-web-ui-from-the-design-system-first.md). `pre-push` runs typecheck,
-tests, `lint:deps` and `lint:fsd` in parallel.
+tests, `lint:deps`, `lint:fsd` and `knip` in parallel; the end-to-end suite runs in CI.
