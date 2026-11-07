@@ -10,7 +10,7 @@ roles, invitations and a tenant guard by configuration. Phase 7 then builds the 
 a tenant on that guard.
 
 [ADR 0020](0020-authenticate-with-better-auth.md) chose Better Auth and left organizations to this
-record. Step 1 tried the organization plugin ([spike notes](../organizations-spike.md)). It does most
+record. Step 1 tried the organization plugin (spike notes: `git show e4743cc:docs/organizations-spike.md`). It does most
 of the work, but it leaves gaps that this record closes:
 
 - a role can be given to someone, or to oneself, even when it grants more than the giver holds;
@@ -25,7 +25,7 @@ The questions are these:
 - Who may give which role?
 - How do invitations, limits and deletion work?
 
-The owner settled D1 and D3 to D7 of the [plan](../organizations-plan.md) on 2026-11-04. D2 is
+The owner settled D1 and D3 to D7 of the plan (`git show e4743cc:docs/organizations-plan.md`) on 2026-11-04. D2 is
 [ADR 0034](0034-keep-the-organization-slug-in-the-web-url.md).
 
 ## Decision drivers

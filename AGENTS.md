@@ -4,15 +4,14 @@ Guide for AI agents (and people) working in this repository.
 
 ## What this is
 
-A template for any new SaaS: a small, fast, elegant architecture that is ready to scale. It is
-built step by step around a **tracer bullet** (one thin slice that crosses every layer, deployed
-for real) and is modelled on the architecture of the `team-app` repository, without any of its
-product-specific features.
+A template for any new SaaS: a small, fast, elegant architecture that is ready to scale, with
+authentication, organizations and one reference module (customers) crossing every layer, deployed
+for real.
 
-The build order lives in [`docs/plan.md`](docs/plan.md). Decisions live in
-[`docs/adr/`](docs/adr/README.md).
+How a product starts from it: [`docs/using-the-template.md`](docs/using-the-template.md). Decisions
+live in [`docs/adr/`](docs/adr/README.md).
 
-## Layout (target)
+## Layout
 
 ```
 apps/api/            # Hexagonal modules, plain node:http, Postgres
@@ -20,15 +19,13 @@ apps/web/            # SolidJS + Vite, Feature-Sliced Design
 apps/e2e/            # Playwright
 packages/contracts/  # Zod schemas + inferred types shared by API and web
 packages/ui/         # Design system (Solid + Kobalte + UnoCSS)
-docs/                # plan, adr
+docs/                # using the template, operations, testing, security, adr
 ```
-
-Folders appear only when their phase of the plan reaches them.
 
 ## Working agreement (how we build)
 
 - **Teaching mode.** The owner creates each file; the agent explains the concept, links the
-  official documentation, reviews, and runs the checks. Do not dump a whole phase at once.
+  official documentation, reviews, and runs the checks. Do not dump a whole feature at once.
 - **TDD.** A rule or a bug starts with a failing test (red), then the smallest change (green),
   then cleanup. Use the [`tdd-slice`](.claude/skills/tdd-slice/SKILL.md) skill.
 - **One decision, one ADR.** Use the [`write-adr`](.claude/skills/write-adr/SKILL.md) skill.
@@ -40,11 +37,10 @@ Folders appear only when their phase of the plan reaches them.
   One idea has one presentation: its table "One idea, one presentation" says which component each
   idea uses (panels, confirmations, avatars, loading, empty states, dates); a second way to show the
   same idea is a defect, and markup copied between screens is a component missing from `packages/ui`.
-- **Visual review.** Before a phase ends, walk every screen it touched in the browser at 375×812 and
+- **Visual review.** Before a change ends, walk every screen it touched in the browser at 375×812 and
   desktop, light and dark, with seeded data (several roles, a long name, an empty list), and run
   `minimize-support` again on what changed.
-- **Minimal scope.** Only what the current phase asks for; no collateral refactors; no
-  feature of the reference repository that the plan does not list. Removing a feature leaves nothing
+- **Minimal scope.** Only what the current change asks for; no collateral refactors. Removing a feature leaves nothing
   behind: its entity and provider, its texts in every language, its test fixtures, and the components and
   icons of `packages/ui` that only it used, with an ADR that says why.
 - **Commit only when asked.** Conventional Commits.
@@ -89,7 +85,7 @@ Folders appear only when their phase of the plan reaches them.
 
 ## Definition of done
 
-Each phase ends green and committed. Today:
+Each change ends green and committed. Today:
 
 ```bash
 pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm lint:deps && pnpm lint:fsd && pnpm knip && pnpm test:e2e

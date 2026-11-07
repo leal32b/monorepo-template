@@ -5,7 +5,7 @@
 
 ## Context and problem statement
 
-The app shell ([plan](../design/app-shell-plan.md)) needs icons: the side menu, settings rows, the
+The app shell (its plan, now in Git history: `git show e4743cc:docs/design/app-shell-plan.md`) needs icons: the side menu, settings rows, the
 top bar, the status of the service. The prototype draws each one as inline SVG, which cannot be kept
 coherent as screens multiply (stroke, size and corner differ per hand) and which a screen would have
 to repeat. [ADR 0017](0017-build-the-web-ui-from-the-design-system-first.md) says screens compose

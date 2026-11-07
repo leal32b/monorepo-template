@@ -5,7 +5,7 @@ import { expect, test } from '../support/test'
 
 /**
  * The JavaScript a cold load fetches before a screen shows, gzipped, against a budget: the baseline
- * measured on 2026-11-05 plus 5 KB (docs/plan.md, Phase 8). Lower a budget when the number drops;
+ * measured on 2026-11-05 plus 5 KB (ADR 0045, docs/testing.md). Lower a budget when the number drops;
  * raising one is a decision to write down (it checks the choice of `zod/mini`, ADR 0024).
  */
 const BUDGET_KB = { signIn: 78, signedIn: 117 }
