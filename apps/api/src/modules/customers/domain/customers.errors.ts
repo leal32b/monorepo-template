@@ -1,4 +1,13 @@
-import { ConflictException } from '#libs/exceptions/exception.base'
+import { ConflictException, NotFoundException } from '#libs/exceptions/exception.base'
+
+/** No customer of this organization has the id (also when it belongs to another one). */
+export class CustomerNotFoundException extends NotFoundException {
+  readonly code = 'customer_not_found'
+
+  constructor() {
+    super('No customer of this organization has this id.')
+  }
+}
 
 /** Another customer of the organization already has this email, archived or not. */
 export class CustomerEmailTakenException extends ConflictException {

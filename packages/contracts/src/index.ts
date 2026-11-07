@@ -3,6 +3,7 @@ export {
   type CustomerInput,
   type CustomerList,
   type CustomerStatus,
+  type CustomerValues,
   customerInputSchema,
   customerLength,
   customerListSchema,

@@ -678,4 +678,43 @@ describe('organizations through Better Auth (ADR 0033)', () => {
       })
     })
   })
+
+  describe('customers behind the tenant guard (ADR 0044)', () => {
+    const customers = (organizationId: string) => `/api/organizations/${organizationId}/customers`
+    const send = (method: string, path: string, cookie: string, body?: unknown) =>
+      fetch(`${url}${path}`, {
+        method,
+        headers: { Origin: webOrigin, 'X-Client-IP': nextIp(), 'Content-Type': 'application/json', Cookie: cookie },
+        body: body === undefined ? null : JSON.stringify(body)
+      })
+
+    it('lets a member create and read, but not delete, and keeps one organization out of another', async () => {
+      const { id, people } = await organization({ member: 'member' })
+      const member = person(people, 'member').cookie
+      const owner = person(people, 'owner').cookie
+
+      const created = await send('POST', customers(id), member, { name: 'Ada', email: 'ada@example.com' })
+      const { id: customerId } = (await created.json()) as { id: string }
+      expect(created.status).toBe(201)
+      expect(((await (await send('GET', customers(id), member)).json()) as { total: number }).total).toBe(1)
+
+      await send('POST', `${customers(id)}/${customerId}/archive`, member)
+      expect((await send('DELETE', `${customers(id)}/${customerId}`, member)).status).toBe(403)
+      expect((await send('DELETE', `${customers(id)}/${customerId}`, owner)).status).toBe(204)
+
+      const other = await organization({})
+      expect((await send('GET', customers(other.id), member)).status).toBe(404)
+    })
+
+    it('goes with the organization when the owner deletes it', async () => {
+      const { id, people } = await organization({})
+      const owner = person(people, 'owner').cookie
+      await send('POST', customers(id), owner, { name: 'Ada' })
+
+      await post('/organization/delete', { organizationId: id }, owner)
+
+      const rows = await sql<{ count: string }>`select count(*) from customer where organization_id = ${id}`.execute(db)
+      expect(rows.rows[0]?.count).toBe('0')
+    })
+  })
 })

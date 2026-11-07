@@ -35,6 +35,9 @@ export const customerInputSchema = z.strictObject({
 
 export type CustomerInput = z.input<typeof customerInputSchema>
 
+/** The body once parsed: a blank optional field is `null`, a missing one `undefined`. */
+export type CustomerValues = z.output<typeof customerInputSchema>
+
 /** A customer as the API returns it. Dates are ISO 8601; `archivedAt` is null while it is active. */
 export const customerSchema = z.object({
   id: z.string(),

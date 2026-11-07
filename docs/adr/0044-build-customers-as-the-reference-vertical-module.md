@@ -42,6 +42,10 @@ land in one layer:
 - **Tenant**: every route sits under `/api/organizations/:organizationId/customers` behind `requireMember`.
   The table references `auth.organization` with `on delete cascade`, which is the cleanup a deleted
   organization needs (Phase 6.5's `beforeDeleteOrganization` hook has nothing to add).
+- **Routes belong to the module**: `registerCustomerRoutes` (exported by the module's `index.ts`) builds the
+  use cases from the ports it is given, so the composition root passes ports and a module is one unit to
+  copy; `app/http-routes.ts` keeps only the platform's and identity's routes. Updates are `PUT` with the
+  whole customer; archive and restore are `POST .../archive` and `.../restore`.
 - **Delete is two steps**: archive, then delete. A mistaken click costs a restore, not the record.
 - **Reads** are paged by page number, 25 a page, with the total, a search and an active or archived filter.
   Offset paging is enough for a register; a feed that grows without end would use a keyset.
