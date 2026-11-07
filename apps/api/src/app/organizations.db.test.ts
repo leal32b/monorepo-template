@@ -9,6 +9,7 @@ import { FixedClock } from '#libs/adapters/fixed-clock'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
+import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
 
 const webOrigin = 'http://localhost:5173'
@@ -27,7 +28,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
   let lastAccount = 0
 
   beforeAll(async () => {
-    await sql.raw('drop schema if exists auth cascade; drop table if exists schema_migration').execute(db)
+    await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
       clock: new FixedClock(new Date('2026-11-04T12:00:00.000Z')),

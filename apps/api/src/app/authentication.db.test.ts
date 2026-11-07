@@ -12,6 +12,7 @@ import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { emailTexts } from '#modules/identity/emails/email-texts'
 import { createAuth } from '#modules/identity/infrastructure/auth'
+import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
 
 const webOrigin = 'http://localhost:5173'
@@ -72,7 +73,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
 
   beforeAll(async () => {
     // Better Auth checks its tables when the app is built, so the app comes after the migrations.
-    await sql.raw('drop schema if exists auth cascade; drop table if exists schema_migration').execute(db)
+    await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
       clock: new FixedClock(new Date('2026-10-29T12:00:00.000Z')),

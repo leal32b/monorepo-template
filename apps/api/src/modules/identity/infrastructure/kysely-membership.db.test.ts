@@ -4,6 +4,7 @@ import pino from 'pino'
 import { inject } from 'vitest'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
+import { resetDatabase } from '../../../../test/reset-database'
 import { KyselyMembership } from './kysely-membership'
 
 const migrations = fileURLToPath(new URL('../../../../migrations/', import.meta.url))
@@ -13,7 +14,7 @@ describe('KyselyMembership (ADR 0033)', () => {
   const membership = new KyselyMembership(db)
 
   beforeAll(async () => {
-    await sql.raw('drop schema if exists auth cascade; drop table if exists schema_migration').execute(db)
+    await resetDatabase(db)
     await runMigrations(db, migrations)
     await sql`insert into auth."user" (id, name, email, "emailVerified", "createdAt", "updatedAt", locale)
       values ('user-ada', 'Ada', 'ada@example.com', true, now(), now(), 'en'),
