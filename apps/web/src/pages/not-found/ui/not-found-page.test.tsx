@@ -4,13 +4,11 @@ import { ApiProvider, createApiClient } from '#shared/api'
 import { I18nProvider } from '#shared/config'
 import { NotFoundPage } from './not-found-page'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 describe('NotFoundPage', () => {
   it('says the page is not there, with the way back to the start', () => {
     render(() => (
       <I18nProvider locale="en">
-        <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+        <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
           <MemoryRouter>
             <Route path="*" component={NotFoundPage} />
           </MemoryRouter>

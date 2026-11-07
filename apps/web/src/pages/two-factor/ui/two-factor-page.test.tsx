@@ -4,8 +4,6 @@ import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#s
 import { I18nProvider } from '#shared/config'
 import { TwoFactorPage } from './two-factor-page'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 /** The challenge at `path`, in a router that has somewhere else to go. */
@@ -14,7 +12,7 @@ function renderPage(path: string, fetch: Fetch = async () => Response.json({ tok
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+      <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
         <AuthProvider client={createAuthClient({ fetch })}>
           <MemoryRouter history={history}>
             <Route path="/login/two-factor" component={TwoFactorPage} />

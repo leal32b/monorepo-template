@@ -226,22 +226,6 @@ export const en = {
     organizations: {
       label: 'Your organizations',
       create: 'Create organization'
-    },
-    status: {
-      title: 'Service status',
-      button: 'Service status: {{state}}',
-      close: 'Close',
-      checkAgain: 'Check again',
-      checkedAt: 'Checked at {{time}}',
-      reference: 'If it keeps happening, tell support: {{reference}}',
-      state: {
-        checking: 'Checking the service…',
-        ok: 'All systems normal',
-        degraded: 'Some features are not working',
-        unreachable: 'Cannot reach the service',
-        unexpected: 'The service is not working as it should',
-        error: 'The service ran into a problem'
-      }
     }
   },
   organizations: {
@@ -659,10 +643,6 @@ export const en = {
       expired: 'This sign-in has expired. Sign in again to get a new code.',
       locked: 'Too many wrong codes. For your safety, wait 15 minutes, then sign in again.'
     }
-  },
-  serviceNotice: {
-    title: 'The service is having trouble',
-    hint: 'Signing in or creating an account may not work. Try again in a few minutes.'
   },
   entryLayout: {
     language: 'Language'

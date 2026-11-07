@@ -1,18 +1,15 @@
 import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
 import { A } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
-import type { ServiceStatus } from '#entities/health'
 import { homeOf, startingOrganization, useOptionalOrganizations } from '#entities/organizations'
 import { useI18n } from '#shared/config'
 import { useInSettings } from '../model/in-settings'
 import { samePath } from '../model/marked-path'
 import { useShellOrganization } from '../model/shell'
 import { OrganizationSwitcher } from './organization-switcher'
-import { ServiceProblem, ServiceStatusButton } from './service-status'
 import { UserMenu } from './user-menu'
 
 export type SidebarProps = {
-  status: ServiceStatus
   /** The path the menu marks as current: the screen chosen while it is on its way (`createMarkedPath`). */
   path: () => string
   signOut: () => void
@@ -181,12 +178,8 @@ export function Sidebar(props: SidebarProps) {
           </Show>
         </nav>
       </Show>
-      <div class="flex flex-col gap-2 border-t border-border-subtle pt-3">
-        <ServiceProblem status={props.status} />
-        <div class="flex items-center gap-1">
-          <UserMenu signOut={props.signOut} onSettings={props.onSettings} class="flex-1" />
-          <ServiceStatusButton status={props.status} />
-        </div>
+      <div class="border-t border-border-subtle pt-3">
+        <UserMenu signOut={props.signOut} onSettings={props.onSettings} />
       </div>
     </div>
   )

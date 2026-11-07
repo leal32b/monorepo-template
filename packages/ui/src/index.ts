@@ -34,7 +34,6 @@ export {
 } from '#menu'
 export { createLate, motion } from '#motion'
 export { PasswordField, type PasswordFieldProps } from '#password-field'
-export { Popover, type PopoverProps } from '#popover'
 export { ProgressBar, type ProgressBarProps } from '#progress-bar'
 export { QrCode, type QrCodeProps } from '#qr-code'
 export {

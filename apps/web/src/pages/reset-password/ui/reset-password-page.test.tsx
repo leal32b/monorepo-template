@@ -4,15 +4,13 @@ import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#s
 import { I18nProvider } from '#shared/config'
 import { ResetPasswordPage } from './reset-password-page'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 /** The page at `path`, as the link in the email lands on it. */
 function renderPage(path: string, answer: () => Response = () => Response.json({ status: true })) {
   const history = createMemoryHistory()
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
-      <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+      <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
         <AuthProvider client={createAuthClient({ fetch: async () => answer() })}>
           <MemoryRouter history={history}>
             <Route path="/reset-password" component={ResetPasswordPage} />

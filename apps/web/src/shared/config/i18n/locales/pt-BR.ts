@@ -228,22 +228,6 @@ export const ptBR: Messages = {
     organizations: {
       label: 'Suas organizações',
       create: 'Criar organização'
-    },
-    status: {
-      title: 'Status do serviço',
-      button: 'Status do serviço: {{state}}',
-      close: 'Fechar',
-      checkAgain: 'Verificar de novo',
-      checkedAt: 'Verificado às {{time}}',
-      reference: 'Se continuar acontecendo, avise o suporte: {{reference}}',
-      state: {
-        checking: 'Verificando o serviço…',
-        ok: 'Tudo funcionando normalmente',
-        degraded: 'Alguns recursos não estão funcionando',
-        unreachable: 'Não foi possível falar com o serviço',
-        unexpected: 'O serviço não está funcionando como deveria',
-        error: 'O serviço teve um problema'
-      }
     }
   },
   organizations: {
@@ -660,10 +644,6 @@ export const ptBR: Messages = {
       expired: 'Este login expirou. Entre de novo para receber um novo código.',
       locked: 'Muitos códigos errados. Por segurança, espere 15 minutos e entre de novo.'
     }
-  },
-  serviceNotice: {
-    title: 'O serviço está com problemas',
-    hint: 'Entrar ou criar uma conta pode não funcionar. Tente de novo em alguns minutos.'
   },
   entryLayout: {
     language: 'Idioma'

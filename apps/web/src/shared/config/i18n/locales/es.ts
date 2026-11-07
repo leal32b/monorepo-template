@@ -229,22 +229,6 @@ export const es: Messages = {
     organizations: {
       label: 'Tus organizaciones',
       create: 'Crear organización'
-    },
-    status: {
-      title: 'Estado del servicio',
-      button: 'Estado del servicio: {{state}}',
-      close: 'Cerrar',
-      checkAgain: 'Comprobar de nuevo',
-      checkedAt: 'Comprobado a las {{time}}',
-      reference: 'Si sigue pasando, díselo a soporte: {{reference}}',
-      state: {
-        checking: 'Comprobando el servicio…',
-        ok: 'Todo funciona con normalidad',
-        degraded: 'Algunas funciones no funcionan',
-        unreachable: 'No se puede conectar con el servicio',
-        unexpected: 'El servicio no funciona como debería',
-        error: 'El servicio tuvo un problema'
-      }
     }
   },
   organizations: {
@@ -665,10 +649,6 @@ export const es: Messages = {
       expired: 'Este inicio de sesión venció. Vuelve a iniciar sesión para obtener un código nuevo.',
       locked: 'Demasiados códigos incorrectos. Por tu seguridad, espera 15 minutos y vuelve a iniciar sesión.'
     }
-  },
-  serviceNotice: {
-    title: 'El servicio tiene problemas',
-    hint: 'Iniciar sesión o crear una cuenta puede no funcionar. Vuelve a intentarlo en unos minutos.'
   },
   entryLayout: {
     language: 'Idioma'

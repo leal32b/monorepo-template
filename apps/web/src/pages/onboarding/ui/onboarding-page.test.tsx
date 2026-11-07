@@ -7,9 +7,7 @@ import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
 import { OnboardingPage } from './onboarding-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-const api = createApiClient({ fetch: async () => Response.json(health) })
+const api = createApiClient({ fetch: async () => Response.json(null) })
 
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
 const day = 24 * 60 * 60 * 1000

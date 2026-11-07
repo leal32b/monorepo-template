@@ -15,8 +15,6 @@ import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shar
 import { OrganizationRolesPage } from './organization-roles-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
 
 const member = (id: string, name: string, role: string) => ({
@@ -79,7 +77,7 @@ function renderPage({ held = builtInRoles.owner as Permissions, locale = 'en', a
     <I18nProvider locale={locale}>
       <ThemeProvider>
         <PaletteProvider>
-          <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+          <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
             <AuthProvider client={createAuthClient({ fetch: authFetch })}>
               <SessionProvider user={{ id: 'u-m1', email: 'ada@example.com', name: 'Ada' }}>
                 <MemoryRouter history={history}>

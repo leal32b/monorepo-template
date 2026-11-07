@@ -5,8 +5,6 @@ import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#s
 import { I18nProvider } from '#shared/config'
 import { ForgotPasswordPage } from './forgot-password-page'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 /** The page, navigated to with what the sign-in carried over in the history's state, if anything. */
 function renderPage(state?: unknown, path = '/forgot-password') {
   const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => Response.json({ status: true }))
@@ -17,7 +15,7 @@ function renderPage(state?: unknown, path = '/forgot-password') {
   }
   render(() => (
     <I18nProvider locale="en">
-      <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+      <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
         <AuthProvider client={createAuthClient({ fetch })}>
           <MemoryRouter>
             <Route path="/" component={From} />

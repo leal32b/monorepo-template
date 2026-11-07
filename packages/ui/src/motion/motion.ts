@@ -10,7 +10,7 @@ export const motion = {
   /** A dialog that appears over the page. */
   dialogEnter: 150,
   dialogExit: 100,
-  /** A menu or popover that opens from its button. */
+  /** A menu that opens from its button. */
   popEnter: 120,
   popExit: 80,
   /** One sweep of the progress bar while the server works. */
@@ -49,7 +49,7 @@ const shown = 'opacity:1'
 /**
  * The classes that animate a layer, and their keyframes, for the preset's base styles. `ds-scrim` fades
  * the veil; `ds-sheet` slides a panel in from the left; `ds-dialog` lifts a dialog a little as it
- * fades; `ds-pop` grows a menu or popover from its button (Kobalte's transform origin); `ds-progress`
+ * fades; `ds-pop` grows a menu from its button (Kobalte's transform origin); `ds-progress`
  * sweeps the progress bar's stripe across, the one motion that is not a layer (ADR 0035). With `prefers-reduced-motion` every one of them
  * only fades, and the fade is as long.
  */
@@ -66,10 +66,10 @@ export const motionCss = [
   keyframes('ds-dialog', `${hidden};transform:translateY(-4px) scale(0.98)`, `${shown};transform:none`),
   keyframes('ds-dialog-out', `${shown};transform:none`, `${hidden};transform:translateY(-4px) scale(0.98)`),
   layer('ds-dialog', 'ds-dialog', motion.dialogExit, motion.dialogEnter),
-  // A menu or popover from its button.
+  // A menu from its button.
   keyframes('ds-pop', `${hidden};transform:scale(0.96)`, `${shown};transform:none`),
   keyframes('ds-pop-out', `${shown};transform:none`, `${hidden};transform:scale(0.96)`),
-  `.ds-pop{transform-origin:var(--kb-menu-content-transform-origin,var(--kb-popover-content-transform-origin,center))}`,
+  `.ds-pop{transform-origin:var(--kb-menu-content-transform-origin,center)}`,
   layer('ds-pop', 'ds-pop', motion.popExit, motion.popEnter),
   // The progress bar: a stripe that sweeps across while the server works.
   keyframes('ds-progress', 'transform:translateX(-100%)', 'transform:translateX(100%)'),

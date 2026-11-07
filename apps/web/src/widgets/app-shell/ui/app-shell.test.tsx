@@ -3,18 +3,15 @@ import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-lib
 import { createResource, Suspense } from 'solid-js'
 import { CurrentOrganizationProvider, type Organization, OrganizationsProvider } from '#entities/organizations'
 import { hasSession, rememberSession, SessionProvider } from '#entities/sessions'
-import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
+import { AuthProvider, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
 import { AppFrame } from './app-frame'
 import { AppShell } from './app-shell'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 type Options = {
   auth?: Fetch
-  api?: () => Promise<Response>
   locale?: Locale
   path?: string
   /** The organization of a tenant screen; none for a screen outside any, such as the account settings. */
@@ -33,10 +30,9 @@ function Members(props: { read: () => Promise<string> }) {
   )
 }
 
-/** An app page at `/projects` in the shell, Better Auth and the API answering through `fetch`. */
+/** An app page at `/projects` in the shell, Better Auth answering through `fetch`. */
 function renderShell({
   auth,
-  api = async () => Response.json(health),
   locale = 'en',
   path = '/projects',
   organization,
@@ -55,80 +51,78 @@ function renderShell({
     <I18nProvider locale={locale}>
       <ThemeProvider>
         <PaletteProvider>
-          <ApiProvider client={createApiClient({ fetch: api })}>
-            <AuthProvider client={createAuthClient({ fetch: authFetch })}>
-              <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-                <MemoryRouter
-                  history={history}
-                  // As in the app: the screens sit in the session's `Suspense`, which has already shown its content.
-                  root={(root) => (
-                    <Suspense>
-                      {organization === undefined ? (
-                        <AppFrame>{root.children}</AppFrame>
-                      ) : (
-                        <OrganizationsProvider>
-                          <CurrentOrganizationProvider organization={organization} membership={membership}>
-                            <AppFrame>{root.children}</AppFrame>
-                          </CurrentOrganizationProvider>
-                        </OrganizationsProvider>
-                      )}
-                    </Suspense>
+          <AuthProvider client={createAuthClient({ fetch: authFetch })}>
+            <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
+              <MemoryRouter
+                history={history}
+                // As in the app: the screens sit in the session's `Suspense`, which has already shown its content.
+                root={(root) => (
+                  <Suspense>
+                    {organization === undefined ? (
+                      <AppFrame>{root.children}</AppFrame>
+                    ) : (
+                      <OrganizationsProvider>
+                        <CurrentOrganizationProvider organization={organization} membership={membership}>
+                          <AppFrame>{root.children}</AppFrame>
+                        </CurrentOrganizationProvider>
+                      </OrganizationsProvider>
+                    )}
+                  </Suspense>
+                )}
+              >
+                <Route
+                  path="/projects"
+                  component={() => (
+                    <AppShell title="Projects">
+                      <p>The projects</p>
+                    </AppShell>
                   )}
-                >
-                  <Route
-                    path="/projects"
-                    component={() => (
-                      <AppShell title="Projects">
-                        <p>The projects</p>
-                      </AppShell>
-                    )}
-                  />
-                  <Route
-                    path="/"
-                    component={() => (
-                      <AppShell title="Start">
-                        <p>The start</p>
-                      </AppShell>
-                    )}
-                  />
-                  <Route
-                    path="/acme/settings/general"
-                    component={() => (
-                      <AppShell title="General">
-                        <p>The general</p>
-                      </AppShell>
-                    )}
-                  />
-                  <Route path="/acme/settings/members" component={() => <Members read={members} />} />
-                  <Route
-                    path="/invitation"
-                    component={() => (
-                      <AppShell title="Invitation to Globex" description="Grace Hopper invited you to Globex.">
-                        <p>The answer</p>
-                      </AppShell>
-                    )}
-                  />
-                  <Route
-                    path="/settings/security"
-                    component={() => (
-                      <AppShell title="Security">
-                        <p>The security</p>
-                      </AppShell>
-                    )}
-                  />
-                  <Route
-                    path="/settings/profile"
-                    component={() => (
-                      <AppShell title="Profile">
-                        <p>The profile</p>
-                      </AppShell>
-                    )}
-                  />
-                  <Route path="/login" component={() => <p>The sign-in</p>} />
-                </MemoryRouter>
-              </SessionProvider>
-            </AuthProvider>
-          </ApiProvider>
+                />
+                <Route
+                  path="/"
+                  component={() => (
+                    <AppShell title="Start">
+                      <p>The start</p>
+                    </AppShell>
+                  )}
+                />
+                <Route
+                  path="/acme/settings/general"
+                  component={() => (
+                    <AppShell title="General">
+                      <p>The general</p>
+                    </AppShell>
+                  )}
+                />
+                <Route path="/acme/settings/members" component={() => <Members read={members} />} />
+                <Route
+                  path="/invitation"
+                  component={() => (
+                    <AppShell title="Invitation to Globex" description="Grace Hopper invited you to Globex.">
+                      <p>The answer</p>
+                    </AppShell>
+                  )}
+                />
+                <Route
+                  path="/settings/security"
+                  component={() => (
+                    <AppShell title="Security">
+                      <p>The security</p>
+                    </AppShell>
+                  )}
+                />
+                <Route
+                  path="/settings/profile"
+                  component={() => (
+                    <AppShell title="Profile">
+                      <p>The profile</p>
+                    </AppShell>
+                  )}
+                />
+                <Route path="/login" component={() => <p>The sign-in</p>} />
+              </MemoryRouter>
+            </SessionProvider>
+          </AuthProvider>
         </PaletteProvider>
       </ThemeProvider>
     </I18nProvider>
@@ -356,20 +350,16 @@ describe('AppShell', () => {
   })
 
   describe('kept across screens (ADR 0037)', () => {
-    it('keeps the side menu and the top bar, and reads the service status once', async () => {
-      const api = vi.fn(async () => Response.json(health))
-      const history = renderShell({ api })
+    it('keeps the side menu and the top bar', async () => {
+      const history = renderShell()
       const menu = screen.getByRole('navigation', { name: 'Main' }).closest('aside')
-      await waitFor(() => expect(api).toHaveBeenCalledTimes(1))
 
       history.set({ value: '/' })
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Start' })).toBeInTheDocument()
       expect(screen.getByRole('navigation', { name: 'Main' }).closest('aside')).toBe(menu)
       expect(within(screen.getByRole('navigation', { name: 'You are here' })).getByText('Start')).toBeInTheDocument()
-      expect(api).toHaveBeenCalledTimes(1)
     })
-
     it('stands aside for a page of its own kind, and comes back with the next screen', async () => {
       const history = renderShell({
         auth: async () => Response.json({ code: 'INTERNAL_SERVER_ERROR' }, { status: 500 })
@@ -391,22 +381,20 @@ describe('AppShell', () => {
         <I18nProvider locale="en">
           <ThemeProvider>
             <PaletteProvider>
-              <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
-                <AuthProvider client={createAuthClient({ fetch: async () => Response.json({}) })}>
-                  <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-                    <MemoryRouter history={history}>
-                      <Route
-                        path="/"
-                        component={() => (
-                          <AppShell title="Alone">
-                            <p>Alone</p>
-                          </AppShell>
-                        )}
-                      />
-                    </MemoryRouter>
-                  </SessionProvider>
-                </AuthProvider>
-              </ApiProvider>
+              <AuthProvider client={createAuthClient({ fetch: async () => Response.json({}) })}>
+                <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
+                  <MemoryRouter history={history}>
+                    <Route
+                      path="/"
+                      component={() => (
+                        <AppShell title="Alone">
+                          <p>Alone</p>
+                        </AppShell>
+                      )}
+                    />
+                  </MemoryRouter>
+                </SessionProvider>
+              </AuthProvider>
             </PaletteProvider>
           </ThemeProvider>
         </I18nProvider>
@@ -678,81 +666,6 @@ describe('AppShell', () => {
       expect(screen.getByRole('complementary', { hidden: true })).toHaveClass('hidden', 'md:block')
       expect(screen.getByRole('navigation', { name: 'You are here', hidden: true })).toHaveClass('hidden', 'md:block')
       expect(screen.getByRole('button', { name: 'Open menu' })).toHaveClass('md:hidden')
-    })
-  })
-
-  describe('the service status', () => {
-    const statusButton = (state: string) => screen.findByRole('button', { name: `Service status: ${state}` })
-
-    it('is only an icon when all is well, with its state in the name', async () => {
-      renderShell()
-
-      expect(await statusButton('All systems normal')).toBeInTheDocument()
-      expect(screen.queryByText('All systems normal')).not.toBeInTheDocument()
-    })
-
-    it('says a problem in a line above the account, before the user tries', async () => {
-      renderShell({
-        api: async () => Response.json({ ...health, status: 'degraded', database: 'down' }, { status: 503 })
-      })
-
-      expect(await screen.findByRole('status')).toHaveTextContent('Some features are not working')
-      expect(screen.getByRole('status')).toHaveClass('text-warning')
-      expect(screen.getByRole('status').querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
-    })
-
-    it('says an unreachable service as an error', async () => {
-      renderShell({
-        api: async () => {
-          throw new TypeError('Failed to fetch')
-        }
-      })
-
-      const line = await screen.findByRole('status')
-      expect(line).toHaveTextContent('Cannot reach the service')
-      expect(line).toHaveClass('text-destructive')
-    })
-
-    it('opens the details: when it was checked, and a way to check again', async () => {
-      const api = vi.fn<() => Promise<Response>>(async () => Response.json(health))
-      renderShell({ api })
-      const time = new Intl.DateTimeFormat('en', { timeStyle: 'medium' }).format(new Date(health.timestamp))
-
-      fireEvent.click(await statusButton('All systems normal'))
-
-      const details = await screen.findByRole('dialog', { name: 'Service status' })
-      const state = within(details).getByRole('status')
-      expect(state).toHaveTextContent('All systems normal')
-      expect(state.querySelector('span[aria-hidden="true"]')).toHaveClass('bg-success')
-      expect(state).toHaveClass('flex', 'items-start')
-      expect(details).toHaveTextContent(`Checked at ${time}`)
-      fireEvent.click(within(details).getByRole('button', { name: 'Check again' }))
-      await waitFor(() => expect(api).toHaveBeenCalledTimes(2))
-    })
-
-    it('gives the reference to quote to support when the API answered an error', async () => {
-      const problem = {
-        type: 'urn:problem:boom',
-        title: 'Boom',
-        status: 500,
-        code: 'internal_error',
-        requestId: '6f1c2a'
-      }
-      renderShell({ api: async () => Response.json(problem, { status: 500 }) })
-
-      fireEvent.click(await statusButton('The service ran into a problem'))
-
-      expect(await screen.findByRole('dialog', { name: 'Service status' })).toHaveTextContent(
-        'If it keeps happening, tell support: internal_error · 6f1c2a'
-      )
-    })
-
-    it('does not offer to check again while a check is running', () => {
-      renderShell({ api: () => new Promise<Response>(() => {}) })
-
-      fireEvent.click(screen.getByRole('button', { name: 'Service status: Checking the service…' }))
-
-      expect(screen.getByRole('button', { name: 'Check again' })).toBeDisabled()
     })
   })
 })

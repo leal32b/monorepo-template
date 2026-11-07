@@ -2,7 +2,6 @@ import { A } from '@solidjs/router'
 import { type JSX, onMount, type ParentProps, Show } from 'solid-js'
 import { useI18n } from '#shared/config'
 import { LanguagePicker } from './language-picker'
-import { ServiceNotice } from './service-notice'
 
 export type EntryLayoutProps = ParentProps<{
   /** The screen's only heading. */
@@ -45,7 +44,6 @@ export function EntryLayout(props: EntryLayoutProps) {
           </Show>
         </div>
         {props.children}
-        <ServiceNotice />
         <Show when={props.footer}>
           <div class="text-sm text-muted-foreground">{props.footer}</div>
         </Show>

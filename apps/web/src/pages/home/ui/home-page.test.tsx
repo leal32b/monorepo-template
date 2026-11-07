@@ -9,8 +9,7 @@ import { HomePage } from './home-page'
 
 describe('HomePage', () => {
   it('shows, in the app frame, the translated heading', async () => {
-    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-    const client = createApiClient({ fetch: async () => Response.json(health) })
+    const client = createApiClient({ fetch: async () => Response.json(null) })
 
     render(() => (
       <I18nProvider locale="pt-BR">
@@ -32,18 +31,15 @@ describe('HomePage', () => {
 
     expect(screen.getByRole('button', { name: /Ada Lovelace/ })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Início')
-    expect(await screen.findByRole('button', { name: /Status do serviço: Tudo funcionando/ })).toBeInTheDocument()
   })
 
   describe('Getting started', () => {
-    const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
     function renderHome(permissions: Permissions) {
       render(() => (
         <I18nProvider locale="en">
           <ThemeProvider>
             <PaletteProvider>
-              <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+              <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
                 <AuthProvider client={createAuthClient({ fetch: async () => Response.json([]) })}>
                   <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
                     <MemoryRouter

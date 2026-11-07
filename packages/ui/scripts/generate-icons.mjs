@@ -9,7 +9,6 @@ import { fileURLToPath } from 'node:url'
 
 /** The template's name for an icon (what it means) and Phosphor's. */
 const icons = {
-  activity: 'pulse',
   back: 'arrow-left',
   check: 'check',
   close: 'x',

@@ -196,7 +196,7 @@ Elements must not "tremble" between states or screens.
 - Errors are `role="alert"`; progress and success are `role="status"`.
 - Landmarks: `header`, `main`; one `h1` per screen.
 - Motion ([ADR 0031](../../../docs/adr/0031-animate-layers-with-short-transform-and-opacity-motion.md)):
-  a layer that comes and goes (drawer, dialog, menu, popover) is animated; nothing else moves (a form that opens inside
+  a layer that comes and goes (drawer, dialog, menu) is animated; nothing else moves (a form that opens inside
   a page appears at once). Use the classes of the preset, never a duration of your own:
   `ds-scrim` (the veil), `ds-sheet` (a panel from the left), `ds-dialog`, and `ds-pop` (from its button),
   with the Kobalte layer's `data-expanded` and `data-closed`. Only `transform` and
