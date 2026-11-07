@@ -25,6 +25,17 @@ export function ShellPalette(props: { signOut: () => void }) {
 
   const items = (organization = current()): CommandItem[] => [
     { id: `go:${homeOf(organization)}`, label: t('appShell.nav.home'), group: go, icon: 'home' },
+    ...(organization
+      ? [
+          {
+            id: `go:${homeOf(organization)}/customers`,
+            label: t('appShell.nav.customers'),
+            group: go,
+            icon: 'customers' as const,
+            keywords: t('appShell.palette.keywords.customers')
+          }
+        ]
+      : []),
     {
       id: 'go:/settings/profile',
       label: t('appShell.nav.profile'),

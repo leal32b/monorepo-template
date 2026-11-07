@@ -1,6 +1,6 @@
 import { MemoryRouter, Route } from '@solidjs/router'
 import { render, screen, waitFor } from '@solidjs/testing-library'
-import { Suspense } from 'solid-js'
+import { createSignal, Suspense } from 'solid-js'
 import { createQuery } from './create-query'
 import { createRead, readAgain, updateRead } from './create-read'
 
@@ -119,5 +119,50 @@ describe('createRead (ADR 0038)', () => {
     await people()
 
     expect(asked).toHaveBeenCalledTimes(2)
+  })
+
+  it('follows a key that changes, keeping the last page drawn until the next one comes, and takes changes for the current key', async () => {
+    const answers = new Map<number, (value: string) => void>()
+    const pages = createQuery(
+      (page: number) =>
+        new Promise<string>((resolve) => {
+          answers.set(page, resolve)
+        }),
+      'pages'
+    )
+    const [page, setPage] = createSignal(1)
+    function Screen() {
+      const value = createRead(
+        () => pages(page()),
+        () => pages.keyFor(page())
+      )
+      return <p>{value()}</p>
+    }
+    render(() => (
+      <MemoryRouter>
+        <Route
+          path="/"
+          component={() => (
+            <Suspense fallback={<p>Waiting</p>}>
+              <Screen />
+            </Suspense>
+          )}
+        />
+      </MemoryRouter>
+    ))
+    answers.get(1)?.('Ada, page 1')
+    expect(await screen.findByText('Ada, page 1')).toBeInTheDocument()
+
+    setPage(2)
+
+    await waitFor(() => expect(answers.has(2)).toBe(true))
+    expect(screen.getByText('Ada, page 1')).toBeInTheDocument()
+    answers.get(2)?.('Grace, page 2')
+    expect(await screen.findByText('Grace, page 2')).toBeInTheDocument()
+
+    updateRead<string>(pages.keyFor(1), () => 'not drawn')
+    expect(screen.getByText('Grace, page 2')).toBeInTheDocument()
+    updateRead<string>(pages.keyFor(2), (value) => `${value}, changed`)
+    expect(await screen.findByText('Grace, page 2, changed')).toBeInTheDocument()
   })
 })

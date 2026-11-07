@@ -28,6 +28,7 @@ const AppFrame = lazy(() => import('#widgets/app-shell').then((m) => ({ default:
 const RequireOrganization = lazy(() =>
   import('./require-organization').then((m) => ({ default: m.RequireOrganization }))
 )
+const CustomersPage = lazy(() => import('#pages/customers').then((m) => ({ default: m.CustomersPage })))
 const HomePage = lazy(() => import('#pages/home').then((m) => ({ default: m.HomePage })))
 const OrganizationGeneralPage = lazy(() =>
   import('#pages/organization-general').then((m) => ({ default: m.OrganizationGeneralPage }))
@@ -93,6 +94,19 @@ const preloadOrganizations = onOpen(() =>
 const preloadTeam = onOpen(({ params }) => {
   const slug = params.orgSlug as string
   preload(organizations, (entity, { auth }) => entity.preloadTeam(auth, slug))
+})
+/**
+ * The first page of the customers starts as soon as the organization the address names is known (ADR 0038).
+ * The slug is read now, as `preloadTeam` reads it. An address naming none of the user's organizations asks for nothing.
+ */
+const preloadCustomers = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  preload(organizations, async (entity, { auth, api }) => {
+    const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
+    if (organization === undefined) return
+    const { customersQuery } = await import('#entities/customers')
+    await customersQuery(api)(organization.id, 'active', '', 1)
+  })
 })
 const identityOptions = () => import('#entities/identity-options')
 /** The security screen reads the ways to sign in, and whether the API has Google for the Google row. */
@@ -178,6 +192,7 @@ export const routes: RouteDefinition[] = [
                 component: RequireOrganization,
                 children: [
                   { path: '/', component: HomePage },
+                  { path: '/customers', component: CustomersPage, preload: preloadCustomers },
                   {
                     path: '/settings',
                     children: [

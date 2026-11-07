@@ -196,6 +196,7 @@ export const es: Messages = {
         general: 'organización nombre dirección eliminar',
         members: 'personas equipo invitar quitar rol',
         roles: 'permisos acceso',
+        customers: 'clientes contactos personas empresas',
         create: 'organización nueva equipo',
         profile: 'cuenta nombre correo',
         security: 'contraseña dos pasos verificación autenticador códigos respaldo google',
@@ -450,9 +451,9 @@ export const es: Messages = {
       readOnly: 'Las personas y empresas con las que trabaja {{name}}. Puedes verlas, no cambiarlas.'
     },
     search: {
-      label: 'Buscar',
+      label: 'Buscar clientes',
       hint: 'Nombre, correo o empresa.',
-      submit: 'Buscar'
+      submit: 'Filtrar'
     },
     filter: {
       label: 'Mostrar',

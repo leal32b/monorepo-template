@@ -431,6 +431,63 @@ describe('App', () => {
       expect(await screen.findByText('ada@example.com')).toBeInTheDocument()
     })
 
+    it('serves the customers of the organization, its first page read as the address opens (ADR 0044)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/customers')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') {
+            return Response.json({ roles: ['owner'], permissions: { customer: ['read', 'create'] } })
+          }
+          return Response.json({
+            items: [
+              {
+                id: 'c1',
+                name: 'Grace Hopper',
+                email: null,
+                phone: null,
+                company: null,
+                notes: null,
+                createdAt: '2026-11-07T10:00:00.000Z',
+                archivedAt: null
+              }
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 25
+          })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Customers' })).toBeInTheDocument()
+      expect(await screen.findByText('Grace Hopper')).toBeInTheDocument()
+      expect(asked.filter((path) => path.includes('/customers'))).toEqual([
+        '/api/organizations/org-1/customers?status=active&page=1'
+      ])
+    })
+
+    it('asks for no customers at an address that names none of the user’s organizations', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/globex/customers')
+      const asked: string[] = []
+      const { auth } = inAcme()
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          return Response.json(null)
+        }
+      })
+
+      render(() => <App client={client} auth={auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.includes('/customers'))).toEqual([])
+    })
+
     it('serves the roles of the organization under its settings', async () => {
       window.history.replaceState(null, '', '/acme/settings/roles')
 

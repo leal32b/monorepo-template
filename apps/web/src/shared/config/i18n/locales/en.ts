@@ -193,6 +193,7 @@ export const en = {
         general: 'organization name address delete',
         members: 'people team invite remove role',
         roles: 'permissions access',
+        customers: 'clients contacts people companies',
         create: 'organization new team',
         profile: 'account name email',
         security: 'password two-step verification authenticator backup codes google',
@@ -443,9 +444,9 @@ export const en = {
       readOnly: 'The people and companies {{name}} works with. You can see them, not change them.'
     },
     search: {
-      label: 'Search',
+      label: 'Search customers',
       hint: 'Name, email or company.',
-      submit: 'Search'
+      submit: 'Find'
     },
     filter: {
       label: 'Show',

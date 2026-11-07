@@ -28,7 +28,10 @@ type Item<Label extends string> = { href: string; label: Label; icon: IconName }
  * The product's own screens, under the organization's slug (ADR 0034). Settings has its own menu,
  * reached from the account.
  */
-const itemsOf = (home: string): Item<'home'>[] => [{ href: home, label: 'home', icon: 'home' }]
+const itemsOf = (home: string, inOrganization: boolean): Item<'home' | 'customers'>[] => [
+  { href: home, label: 'home', icon: 'home' },
+  ...(inOrganization ? [{ href: `${home}/customers`, label: 'customers' as const, icon: 'customers' as const }] : [])
+]
 
 /** The settings of the user's own account. */
 const accountItems: Item<'profile' | 'security' | 'preferences'>[] = [
@@ -129,7 +132,7 @@ export function Sidebar(props: SidebarProps) {
         fallback={
           <nav aria-label={t('appShell.nav.main')} class="flex-1">
             <ul class="m-0 flex list-none flex-col gap-1 p-0">
-              <For each={itemsOf(home())}>
+              <For each={itemsOf(home(), current() !== undefined)}>
                 {(item) => (
                   <li>
                     <NavLink href={item.href} icon={item.icon} path={props.path} onNavigate={props.onNavigate}>

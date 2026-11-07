@@ -172,6 +172,19 @@ describe('AppShell', () => {
     await waitFor(() => expect(history.get()).toBe('/acme'))
   })
 
+  it('offers the organization’s customers in the side menu and the palette, and none outside an organization', async () => {
+    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+
+    expect(
+      within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Customers' })
+    ).toHaveAttribute('href', '/acme/customers')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
+    fireEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Command palette' })).getByRole('option', { name: 'Customers' })
+    )
+    await waitFor(() => expect(history.get()).toBe('/acme/customers'))
+  })
+
   it('offers the organization’s screens in the palette, as the side menu does', async () => {
     const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
     fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)

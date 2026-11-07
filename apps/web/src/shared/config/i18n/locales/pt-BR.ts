@@ -195,6 +195,7 @@ export const ptBR: Messages = {
         general: 'organização nome endereço excluir',
         members: 'pessoas equipe convidar remover papel',
         roles: 'permissões acesso',
+        customers: 'clientes contatos pessoas empresas',
         create: 'organização nova equipe',
         profile: 'conta nome e-mail',
         security: 'senha duas etapas verificação autenticador códigos backup google',
@@ -447,9 +448,9 @@ export const ptBR: Messages = {
       readOnly: 'As pessoas e empresas com quem {{name}} trabalha. Você pode ver, mas não alterar.'
     },
     search: {
-      label: 'Buscar',
+      label: 'Buscar clientes',
       hint: 'Nome, e-mail ou empresa.',
-      submit: 'Buscar'
+      submit: 'Procurar'
     },
     filter: {
       label: 'Mostrar',
