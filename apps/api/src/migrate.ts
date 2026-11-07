@@ -1,8 +1,8 @@
 import { fileURLToPath } from 'node:url'
-import pino from 'pino'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
+import { createLogger } from '#libs/logging/create-logger'
 
 let env: ApiEnv
 try {
@@ -13,7 +13,7 @@ try {
   process.exit(1)
 }
 
-const logger = pino({ level: env.logLevel })
+const logger = createLogger({ level: env.logLevel, service: 'migrate', release: env.release })
 // `src/migrate.ts` and the bundled `dist/migrate.js` both sit one level below `apps/api/`.
 const dir = fileURLToPath(new URL('../migrations/', import.meta.url))
 const db = createDatabase(createPool(env.databaseUrl, logger))

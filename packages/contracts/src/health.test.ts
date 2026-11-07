@@ -4,6 +4,7 @@ describe('healthResponseSchema', () => {
   const valid = {
     status: 'ok',
     service: 'api',
+    release: '3e75fa2',
     timestamp: '2026-10-16T12:00:00.000Z',
     database: 'up'
   }
@@ -21,6 +22,12 @@ describe('healthResponseSchema', () => {
     { status: 'degraded', database: 'up' }
   ])('rejects the inconsistent pair %o', (pair) => {
     expect(healthResponseSchema.safeParse({ ...valid, ...pair }).success).toBe(false)
+  })
+
+  it('requires the release that answers', () => {
+    const { release: _release, ...withoutRelease } = valid
+
+    expect(healthResponseSchema.safeParse(withoutRelease).success).toBe(false)
   })
 
   it('rejects an unknown status', () => {

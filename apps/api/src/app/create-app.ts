@@ -30,6 +30,8 @@ export type AppDeps = {
   clock: Clock
   logger: Logger
   serviceName: string
+  /** The version running (ADR 0046), answered by `/api/health`. */
+  release: string
   /** The web app's origin (ADR 0019): the only one allowed to send writes. */
   webOrigin: string
   /** Web origins allowed to read responses (ADR 0015); `[]` means same origin only. */
@@ -54,6 +56,7 @@ export function createApp({
   clock,
   logger,
   serviceName,
+  release,
   webOrigin,
   corsOrigins,
   proxySecret,
@@ -68,7 +71,7 @@ export function createApp({
   const session = new BetterAuthCurrentSession(auth)
   const membership = new KyselyMembership(db)
   registerRoutes(router, {
-    getHealth: new GetHealthController(new GetHealthService(clock, serviceName, databaseProbe)),
+    getHealth: new GetHealthController(new GetHealthService(clock, { name: serviceName, release }, databaseProbe)),
     getLiveness: new GetLivenessController(),
     auth: fromFetchHandler(auth.handler, webOrigin),
     getMe: new GetMeController(session),

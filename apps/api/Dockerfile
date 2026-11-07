@@ -21,6 +21,9 @@ WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0
 COPY --from=build /repo/apps/api/dist dist
 COPY --from=build /repo/apps/api/migrations migrations
+# The commit the deploy built (ADR 0046): on every log line and in /api/health.
+ARG RELEASE=unknown
+ENV RELEASE=$RELEASE
 USER node
 EXPOSE 3001
 # Migrate, then `exec` so node is PID 1 and receives SIGTERM for the graceful shutdown.

@@ -384,7 +384,7 @@ describe('App', () => {
           Response.json(
             path === '/api/organizations/org-1/me'
               ? owner
-              : { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+              : { status: 'ok', service: 'api', release: 'dev', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
           )
       })
       const auth = createAuthClient({

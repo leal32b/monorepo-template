@@ -1,9 +1,9 @@
-import pino from 'pino'
 import { createApp } from '#app/create-app'
 import { loadEnv } from '#config/env'
 import { FileEmailSender } from '#libs/adapters/file-email-sender'
 import { SystemClock } from '#libs/adapters/system-clock'
 import { createDatabase, createPool } from '#libs/database/database'
+import { createLogger } from '#libs/logging/create-logger'
 
 /**
  * The API as the end-to-end suite runs it (ADR 0045): the production wiring, except that emails go
@@ -21,12 +21,13 @@ globalThis.fetch = (input, init) =>
     : realFetch(input, init)
 
 const env = loadEnv(process.env)
-const logger = pino({ level: env.logLevel })
+const logger = createLogger({ level: env.logLevel, service: 'api', release: env.release })
 const db = createDatabase(createPool(env.databaseUrl, logger))
 const server = createApp({
   clock: new SystemClock(),
   logger,
   serviceName: 'api',
+  release: env.release,
   webOrigin: env.webOrigin,
   corsOrigins: env.corsOrigins,
   proxySecret: env.proxySecret,

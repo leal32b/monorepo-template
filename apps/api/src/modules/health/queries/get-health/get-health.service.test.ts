@@ -6,7 +6,7 @@ import { GetHealthService } from './get-health.service'
 describe('GetHealthService', () => {
   const clock = new FixedClock(new Date('2026-10-17T12:00:00.000Z'))
   const database = new FakeDatabaseProbe()
-  const service = new GetHealthService(clock, 'api', database)
+  const service = new GetHealthService(clock, { name: 'api', release: '3e75fa2' }, database)
 
   beforeEach(() => {
     database.reachable = true
@@ -16,6 +16,7 @@ describe('GetHealthService', () => {
     expect(await service.execute()).toEqual({
       status: 'ok',
       service: 'api',
+      release: '3e75fa2',
       timestamp: '2026-10-17T12:00:00.000Z',
       database: 'up'
     })
@@ -27,6 +28,7 @@ describe('GetHealthService', () => {
     expect(await service.execute()).toEqual({
       status: 'degraded',
       service: 'api',
+      release: '3e75fa2',
       timestamp: '2026-10-17T12:00:00.000Z',
       database: 'down'
     })

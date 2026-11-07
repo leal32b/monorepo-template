@@ -16,6 +16,7 @@ describe('loadEnv', () => {
       host: '127.0.0.1',
       port: 3001,
       logLevel: 'info',
+      release: 'dev',
       webOrigin: 'http://localhost:5173',
       corsOrigins: [],
       proxySecret: undefined,
@@ -32,6 +33,20 @@ describe('loadEnv', () => {
       port: 8080,
       logLevel: 'debug'
     })
+  })
+
+  it('reads RELEASE, the version the deploy built', () => {
+    expect(loadEnv({ ...required, RELEASE: '3e75fa2c0ffee' }).release).toBe('3e75fa2c0ffee')
+  })
+
+  it('treats an empty RELEASE as unset', () => {
+    expect(loadEnv({ ...required, RELEASE: '' }).release).toBe('dev')
+  })
+
+  it.each(['a b', 'x'.repeat(65), 'v1;rm'])('rejects the release %j', (release) => {
+    expect(() => loadEnv({ ...required, RELEASE: release })).toThrow(
+      expect.objectContaining({ variables: ['RELEASE'] })
+    )
   })
 
   it.each(['0', '65536', '3.5', 'abc', ''])('rejects the port %j', (port) => {

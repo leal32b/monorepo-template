@@ -2,6 +2,8 @@ import * as z from 'zod/mini'
 
 const healthFields = {
   service: z.string(),
+  /** The version that answers: the commit the deploy built, or `dev` (ADR 0046). */
+  release: z.string(),
   /** ISO 8601 time of the answer. */
   timestamp: z.iso.datetime()
 }
