@@ -1,5 +1,5 @@
 import { healthResponseSchema } from '@repo/contracts'
-import { ApiError, createApiClient } from './client'
+import { ApiError, createApiClient, noContent } from './client'
 
 const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
@@ -110,5 +110,55 @@ describe('createApiClient', () => {
 
     expect(error.kind).toBe('contract')
     expect(error.status).toBe(503)
+  })
+
+  describe('send', () => {
+    it('sends a JSON body with the method, and returns the answer once it satisfies the schema', async () => {
+      const fetchMock = vi.fn(async () => json(health, 201))
+      const client = createApiClient({ fetch: fetchMock })
+
+      expect(await client.send('POST', '/api/things', { name: 'Ada' }, healthResponseSchema)).toEqual(health)
+      expect(fetchMock).toHaveBeenCalledWith('/api/things', {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: '{"name":"Ada"}'
+      })
+    })
+
+    it('sends no body and no content type when there is none', async () => {
+      const fetchMock = vi.fn(async () => json(health))
+      const client = createApiClient({ fetch: fetchMock })
+
+      await client.send('POST', '/api/things/1/archive', undefined, healthResponseSchema)
+
+      expect(fetchMock).toHaveBeenCalledWith('/api/things/1/archive', {
+        method: 'POST',
+        headers: { Accept: 'application/json' }
+      })
+    })
+
+    it('takes an answer with no content as nothing', async () => {
+      const client = createApiClient({ fetch: async () => new Response(null, { status: 204 }) })
+
+      expect(await client.send('DELETE', '/api/things/1', undefined, noContent)).toBeUndefined()
+    })
+
+    it('fails like get does: network, http with the problem, contract', async () => {
+      const problem = { type: 'urn:problem:conflict', title: 'Conflict', status: 409, code: 'customer_email_taken' }
+
+      const network = createApiClient({
+        fetch: async () => {
+          throw new TypeError('Failed to fetch')
+        }
+      })
+      const http = createApiClient({ fetch: async () => json(problem, 409) })
+      const contract = createApiClient({ fetch: async () => json({ nope: true }) })
+
+      expect((await failureOf(network.send('PUT', '/x', {}, healthResponseSchema))).kind).toBe('network')
+      const refused = await failureOf(http.send('PUT', '/x', {}, healthResponseSchema))
+      expect(refused).toMatchObject({ kind: 'http', status: 409 })
+      expect(refused.problem?.code).toBe('customer_email_taken')
+      expect((await failureOf(contract.send('PUT', '/x', {}, healthResponseSchema))).kind).toBe('contract')
+    })
   })
 })

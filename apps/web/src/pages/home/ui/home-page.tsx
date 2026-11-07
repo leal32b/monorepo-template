@@ -8,7 +8,7 @@ import { AppShell } from '#widgets/app-shell'
 /**
  * `/:orgSlug`: the first screen behind the sign-in, in the app frame. Getting started holds what the
  * organization still needs to be useful; for now, inviting the team, offered to whoever may invite.
- * Anyone else sees that there is nothing here yet, rather than a blank page: Phase 7's screens fill it.
+ * Anyone else sees that there is nothing here yet, rather than a blank page: a product's own screens fill it, as Customers (ADR 0044) shows.
  */
 export function HomePage() {
   const { t } = useI18n()

@@ -1,3 +1,18 @@
+export {
+  type Customer,
+  type CustomerInput,
+  type CustomerList,
+  type CustomerStatus,
+  type CustomerValues,
+  customerInputSchema,
+  customerLength,
+  customerListSchema,
+  customerPageSize,
+  customerSchema,
+  customerStatuses,
+  type ListCustomersQuery,
+  listCustomersQuerySchema
+} from './customers'
 export { type HealthResponse, healthResponseSchema, type LivenessResponse, livenessResponseSchema } from './health'
 export {
   type IdentityOptions,

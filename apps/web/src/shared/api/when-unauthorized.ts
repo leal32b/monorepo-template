@@ -6,11 +6,12 @@ import type { ApiClient } from './context'
  * still fails, so the screen that made it stops where it is while `handle` takes the user away.
  */
 export function whenUnauthorized(client: ApiClient, handle: () => void): ApiClient {
+  const watch = (failure: unknown): never => {
+    if (failure instanceof ApiError && failure.status === 401) handle()
+    throw failure
+  }
   return {
-    get: (path, schema, options) =>
-      client.get(path, schema, options).catch((error: unknown) => {
-        if (error instanceof ApiError && error.status === 401) handle()
-        throw error
-      })
+    get: (path, schema, options) => client.get(path, schema, options).catch(watch),
+    send: (method, path, body, schema) => client.send(method, path, body, schema).catch(watch)
   }
 }

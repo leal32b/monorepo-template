@@ -1,5 +1,5 @@
 import { query } from '@solidjs/router'
-import { type Accessor, createResource, createSignal, onCleanup } from 'solid-js'
+import { type Accessor, createComputed, createResource, createSignal, onCleanup } from 'solid-js'
 
 /** What a query answered last for `key`, if it answered: what a screen read before draws at once. */
 function lastAnswer<T>(key: string): T | undefined {
@@ -28,9 +28,13 @@ const readers = new Map<string, Set<Reader>>()
  *
  * It is the router's `createAsync`, a resource whose source is the query, with what `updateRead` and
  * `readAgain` need kept for them.
+ *
+ * A key that is a function follows what `read` depends on, such as a page or a filter: the last answer stays
+ * drawn while the next one comes, and a change is taken for the key it holds now.
  */
-export function createRead<T>(read: () => Promise<T>, key: string): Accessor<T | undefined> {
-  const last = lastAnswer<T>(key)
+export function createRead<T>(read: () => Promise<T>, key: string | (() => string)): Accessor<T | undefined> {
+  const keyOf = typeof key === 'function' ? key : () => key
+  const last = lastAnswer<T>(keyOf())
   const [asked, ask] = createSignal(0)
   const [value, { mutate }] = createResource(
     () => {
@@ -45,9 +49,14 @@ export function createRead<T>(read: () => Promise<T>, key: string): Accessor<T |
     draw: (change) => mutate((current) => change(current) as T),
     again: () => ask((times) => times + 1)
   }
-  const here = readers.get(key) ?? new Set()
-  readers.set(key, here.add(reader))
-  onCleanup(() => here.delete(reader))
+  let registered: Set<Reader> | undefined
+  createComputed(() => {
+    registered?.delete(reader)
+    const here = readers.get(keyOf()) ?? new Set()
+    readers.set(keyOf(), here.add(reader))
+    registered = here
+  })
+  onCleanup(() => registered?.delete(reader))
   return () => value.latest
 }
 

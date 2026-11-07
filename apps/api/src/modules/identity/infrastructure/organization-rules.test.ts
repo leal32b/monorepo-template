@@ -14,7 +14,11 @@ describe('permissionsOfRoles', () => {
   const custom = new Map([['editor', { invitation: ['create' as const] }]])
 
   it('joins built-in and custom roles of a comma list, spaces allowed', () => {
-    expect(permissionsOfRoles('member, editor', custom)).toEqual({ ac: ['read'], invitation: ['create'] })
+    expect(permissionsOfRoles('member, editor', custom)).toEqual({
+      ac: ['read'],
+      customer: ['read', 'create', 'update'],
+      invitation: ['create']
+    })
   })
 
   it('grants nothing for a role name with no definition', () => {

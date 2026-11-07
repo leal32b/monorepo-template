@@ -1,11 +1,14 @@
 import type { Server } from 'node:http'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { fromFetchHandler } from '#libs/http/fetch-handler'
 import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
 import type { Clock } from '#libs/ports/clock.port'
 import type { EmailSender } from '#libs/ports/email-sender.port'
+import { KyselyCustomerRepository } from '#modules/customers/database/kysely-customer-repository'
+import { registerCustomerRoutes } from '#modules/customers/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
 import { GetHealthController } from '#modules/health/queries/get-health/get-health.http-controller'
 import { GetHealthService } from '#modules/health/queries/get-health/get-health.service'
@@ -72,6 +75,13 @@ export function createApp({
     getMembership: new GetMembershipController(session, membership),
     getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
     getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined })
+  })
+  registerCustomerRoutes(router, {
+    session,
+    membership,
+    repository: new KyselyCustomerRepository(db),
+    clock,
+    ids: new UuidGenerator()
   })
   return createHttpServer({
     router,

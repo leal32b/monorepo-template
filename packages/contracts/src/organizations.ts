@@ -9,7 +9,9 @@ export const statements = {
   organization: ['update', 'delete'],
   member: ['create', 'update', 'delete'],
   invitation: ['create', 'cancel'],
-  ac: ['create', 'read', 'update', 'delete']
+  ac: ['create', 'read', 'update', 'delete'],
+  /** The reference module of Phase 7; a product renames it or adds its own beside it. */
+  customer: ['read', 'create', 'update', 'delete']
 } as const
 
 export type Resource = keyof typeof statements
@@ -27,7 +29,8 @@ export const permissionsSchema = z.strictObject({
   organization: actionsOf(statements.organization),
   member: actionsOf(statements.member),
   invitation: actionsOf(statements.invitation),
-  ac: actionsOf(statements.ac)
+  ac: actionsOf(statements.ac),
+  customer: actionsOf(statements.customer)
 })
 
 /**
@@ -77,9 +80,10 @@ export const builtInRoles = {
     organization: ['update'],
     member: ['create', 'update', 'delete'],
     invitation: ['create', 'cancel'],
-    ac: ['create', 'read', 'update', 'delete']
+    ac: ['create', 'read', 'update', 'delete'],
+    customer: ['read', 'create', 'update', 'delete']
   },
-  member: { ac: ['read'] }
+  member: { ac: ['read'], customer: ['read', 'create', 'update'] }
 } as const satisfies Record<string, Permissions>
 
 export type BuiltInRole = keyof typeof builtInRoles

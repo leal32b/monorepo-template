@@ -1,6 +1,6 @@
 import { TextField, type TextFieldRootOptions } from '@kobalte/core/text-field'
 import { type ComponentProps, Show, splitProps } from 'solid-js'
-import { inputClass } from '#input'
+import { inputClass, textAreaClass } from '#input'
 import { cn } from '#libs'
 
 /** What Kobalte manages through the field's root: the value and the state the input and its parts share. */
@@ -8,6 +8,9 @@ type RootProps = Pick<TextFieldRootOptions, 'value' | 'onChange' | 'name' | 'req
 
 export type FieldProps = Omit<ComponentProps<'input'>, 'onInput' | keyof TextFieldRootOptions> &
   RootProps & {
+    /** Several lines instead of one, for free text such as notes; `rows` sets how many show. */
+    multiline?: boolean | undefined
+    rows?: number | undefined
     /** What the field asks for; it names the input. */
     label: string
     /** A hint under the input, read out with it. */
@@ -23,7 +26,7 @@ export type FieldProps = Omit<ComponentProps<'input'>, 'onInput' | keyof TextFie
 export function Field(props: FieldProps) {
   const [local, root, input] = splitProps(
     props,
-    ['class', 'label', 'description', 'error'],
+    ['class', 'label', 'description', 'error', 'multiline', 'rows'],
     ['value', 'onChange', 'name', 'required', 'disabled', 'readOnly']
   )
 
@@ -34,7 +37,13 @@ export function Field(props: FieldProps) {
       class={cn('flex flex-col gap-1.5', local.class)}
     >
       <TextField.Label class="text-sm font-medium">{local.label}</TextField.Label>
-      <TextField.Input class={inputClass} {...input} />
+      <Show when={local.multiline} fallback={<TextField.Input class={inputClass} {...input} />}>
+        <TextField.TextArea
+          class={textAreaClass}
+          {...(local.rows === undefined ? {} : { rows: local.rows })}
+          {...(input as Record<string, unknown>)}
+        />
+      </Show>
       {/* An error takes the hint's place: the two would often say the same thing. */}
       <Show when={local.description && !local.error}>
         <TextField.Description class="text-sm text-muted-foreground">{local.description}</TextField.Description>
