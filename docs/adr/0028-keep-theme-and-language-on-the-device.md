@@ -7,7 +7,7 @@
 
 [ADR 0016](0016-design-system-on-kobalte-and-unocss.md) made dark mode follow the system only, and
 the language comes from the browser's list ([ADR 0011](0011-typed-i18n-dictionaries.md)). The
-Preferences screen of the [app shell plan](../design/app-shell-plan.md) lets the user pick a theme
+Preferences screen of the app shell plan (`git show e4743cc:docs/design/app-shell-plan.md`) lets the user pick a theme
 (System, Light, Dark) and one of the three languages. Where is the choice kept, and how is it in
 place before the first paint, so a dark choice never flashes light?
 

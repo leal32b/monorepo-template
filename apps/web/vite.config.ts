@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import UnoCSS from 'unocss/vite'
 import { defineConfig, type ProxyOptions } from 'vite'
 import solid from 'vite-plugin-solid'
@@ -32,7 +33,9 @@ function headersForEveryPath(): Record<string, string> {
 }
 
 export default defineConfig({
-  plugins: [UnoCSS(), solid()],
+  // The config by its path: UnoCSS looks in the working directory, which is the repository root when
+  // a tool such as knip loads this file from there.
+  plugins: [UnoCSS(fileURLToPath(new URL('uno.config.ts', import.meta.url))), solid()],
   server: {
     // Exactly this port: the API's WEB_ORIGIN names it, and a write from any other origin is refused
     // (origin_not_allowed). With the port taken, Vite stops with an error instead of moving to 5174.

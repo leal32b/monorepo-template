@@ -34,6 +34,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
       clock: new FixedClock(new Date('2026-11-04T12:00:00.000Z')),
       logger,
       serviceName: 'api',
+      release: 'test',
       webOrigin,
       corsOrigins: [],
       proxySecret: undefined,

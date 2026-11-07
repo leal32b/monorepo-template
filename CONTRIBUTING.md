@@ -31,4 +31,4 @@ pnpm dev            # migrations, then API :3001 + web :5173
   `docs:`, `chore:`, `refactor:`, `test:`), checked by commitlint.
 - A rule or a bug fix starts with a failing test.
 - A technology or boundary decision gets an ADR in [`docs/adr/`](docs/adr/README.md).
-- The build order is in [`docs/plan.md`](docs/plan.md).
+- Starting a product from the template: [`docs/using-the-template.md`](docs/using-the-template.md).

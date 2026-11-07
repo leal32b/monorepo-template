@@ -27,7 +27,7 @@ already done, and put the report in the step's summary.
    first that works. Prefer the primitives the template already has. Put heavy defenses where
    severity is high (money, data, access) and keep the rest light.
 3. **Report.** In a few lines, say what was handled (failure → response) and what was left out and
-   why: low severity, a primitive that comes in a later phase, or more friction than it saves.
+   why: low severity, a primitive the template does not have yet, or more friction than it saves.
 
 ## The 8 failure categories
 
@@ -66,7 +66,7 @@ feedback, visible state and a clear mapping between action and result.
 
 Use these first; a missing one is added where it belongs, with tests, not improvised in a screen.
 
-| Need | Already here | Not yet (comes with its phase) |
+| Need | Already here | Not yet (added when a product needs it) |
 | --- | --- | --- |
 | Validation | Zod contracts shared by API and web (`@repo/contracts`); `validation_failed` lists each field; `Field` shows an error read by screen readers | |
 | Errors | RFC 9457 problems with a stable `code` and the `requestId` (also `X-Request-Id`); web `ApiError` by kind; texts per code in the i18n dictionaries; `/login?error=<code>` for OAuth flows; a disabled action carries its reason in the row's `note`; a read that fails shows `ReadFailure`'s one alert with its retry, and one that found the session ended goes to sign in and back | A standard error component with code, explanation and action |
@@ -78,7 +78,7 @@ Use these first; a missing one is added where it belongs, with tests, not improv
 | Invitations | `GET /api/invitations/:id` tells the invitee whether it is pending, expired, accepted, declined or withdrawn, each with what to do; resend renews the week; another account is told and offered to switch; sign-up and sign-in keep the way back (`next`) | |
 | Empty and loading | `EmptyState`; `SettingsSkeleton`, `EntrySkeleton`, `ShellSkeleton` and `PageSkeleton` (a screen in the frame that cannot be drawn yet) after 300 ms, timed once from boot (`createLate`), so a quick load shows nothing and a slow one does not jump; a screen read before draws its last value at once | |
 | Import | | Preview and a report of rejected rows |
-| Operation | Health routes | Status page; admin impersonation |
+| Operation | Health routes with the release; every log line tagged with the release and the request id ([operations](../../../docs/operations.md)) | Status page; admin impersonation; error tracking |
 
 ## Guardrails
 

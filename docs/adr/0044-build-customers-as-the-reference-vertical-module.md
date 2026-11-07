@@ -17,7 +17,7 @@ Which entity is the reference, and what does it show?
 - Useful as it stands in most SaaS built from the template, so a product renames it instead of deleting it.
 - Shows what the layers are for: a rule in the domain, a uniqueness the database holds, a state change,
   a filtered and paged read, a permission in the roles ([ADR 0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md)).
-- No rule of `team-app` and no feature the plan does not list.
+- No product rule of the reference repository and no feature the plan did not list.
 - Deleting an organization leaves nothing behind.
 
 ## Considered options

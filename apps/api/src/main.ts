@@ -1,10 +1,10 @@
-import pino from 'pino'
 import { createApp } from '#app/create-app'
 import { createEmailSender } from '#app/create-email-sender'
 import { createShutdown } from '#app/shutdown'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
 import { createDatabase, createPool } from '#libs/database/database'
+import { createLogger } from '#libs/logging/create-logger'
 
 let env: ApiEnv
 try {
@@ -15,12 +15,13 @@ try {
   process.exit(1)
 }
 
-const logger = pino({ level: env.logLevel })
+const logger = createLogger({ level: env.logLevel, service: 'api', release: env.release })
 const db = createDatabase(createPool(env.databaseUrl, logger))
 const server = createApp({
   clock: new SystemClock(),
   logger,
   serviceName: 'api',
+  release: env.release,
   webOrigin: env.webOrigin,
   corsOrigins: env.corsOrigins,
   proxySecret: env.proxySecret,

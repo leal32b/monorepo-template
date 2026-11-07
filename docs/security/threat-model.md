@@ -2,7 +2,8 @@
 
 - Scope: authentication (Phase 6), and organizations and authorization (Phase 6.5).
 - Date: 2026-10-28; statuses updated on 2026-10-31, at the end of Phase 6; tenancy added on
-  2026-11-04, from the [organization plugin spike](../organizations-spike.md).
+  2026-11-04, from the organization plugin spike (`git show e4743cc:docs/organizations-spike.md`);
+  statuses and logging updated on 2026-11-07, in Phase 9.
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -63,9 +64,8 @@ Worker), [ADR 0033](../adr/0033-organizations-with-roles-in-the-database-behind-
 
 ## Threats and mitigations
 
-Status: **in place** (in the code today), **planned** (decided, lands in the named step of the
-[organizations plan](../organizations-plan.md)) or **accepted** (a residual risk, with what would
-reopen it).
+Status: **in place** (in the code today) or **accepted** (a residual risk, with what would reopen
+it).
 
 | ID | Threat | STRIDE | Mitigation | Status |
 | --- | --- | --- | --- | --- |
@@ -89,19 +89,19 @@ reopen it).
 | T18 | A known vulnerability in a dependency | T, E | Weekly `pnpm audit --audit-level high` in CI (`.github/workflows/audit.yml`); a Better Auth advisory is fixed the same week | in place |
 | T19 | Phishing with look-alike email | S | Mail is sent from a domain the product verifies with its provider (SPF, DKIM, DMARC) | accepted until a product sets its domain |
 | T20 | Someone at a signed-in browser left open changes how the account signs in | E | Changing the password needs the current one; turning MFA on or off and getting new backup codes need the password; unlinking Google needs a session signed in within the last day; the only way left to sign in cannot be removed | in place |
-| T21 | Reaching another tenant's data by changing an id in the path or the body (IDOR) | I, T, E | Every tenant route is `/api/organizations/:organizationId/...` and calls `requireMember`, which reads membership from the database; tenant queries filter on the id the guard returned, never on one from the body; the plugin's own endpoints check membership of the id they are given (tested through HTTP) | planned (steps 4 to 6) |
-| T22 | A tab left on one organization writes to another | T | The API reads the tenant only from the path, never from the session's active organization; the web keeps the slug in the URL, per tab | planned (steps 5 and 7) |
-| T23 | Finding out which organizations exist through the API | I | `requireMember` answers 404 both for a missing organization and for one the caller is not in; ids are random 32-character strings; the web shows the same not-found for an unknown and a foreign slug | planned (steps 5 and 7) |
-| T24 | A member defines a role with more than they hold | E | The plugin refuses a permission the creator lacks on `create-role` and `update-role` (seen in the spike); `organization:delete` is the owner's only and no custom role can hold it; at most 20 custom roles | planned (step 4) |
-| T25 | A member gives a stronger role to themselves or to an accomplice, through a role change or an invitation | E | A role can be given only by someone who holds all its permissions (our hooks on `invite-member` and `update-member-role`; the plugin guards only `owner`, and the spike showed the gap); a member cannot change or remove someone whose roles grant more; only an owner gives or removes `owner` | planned (step 4) |
-| T26 | A renamed or deleted role leaves members without permissions, or a later role with the old name hands them new ones | E, D | Renaming or deleting a role that a member or a pending invitation holds is refused; a role name with no definition grants nothing | planned (step 4) |
-| T27 | Locking an organization out by removing or demoting its last owner | D, E | The plugin refuses to let the last owner leave, be removed or be demoted (seen in the spike); only an owner gives or removes `owner` | planned (step 4) |
-| T28 | Someone other than the invited person joins through an invitation | S, E | Only the invited address can read, accept or reject it, with a confirmed email (`requireEmailVerificationOnInvitation`); it expires in 7 days; a re-invite cancels the old one; a wrong account is told only that the invitation is not theirs | planned (steps 4 and 14) |
-| T29 | Using invitations to send spam from the product's domain | D, S | `invitation:create` is needed; 10 invitations per 60 s per user and per IP; 100 pending per organization; 5 organizations per user; the email names the inviter and the organization, with no free text | planned (step 4) |
-| T30 | Deleting an organization without the right, or by mistake | T, D | Only an owner deletes (checked in `beforeDeleteOrganization`, not only by permission); the web asks for the name to be typed | planned (steps 4 and 10) |
-| T31 | Concurrent requests creating a duplicate membership or role | T | Unique indexes on `member (organizationId, userId)` and `organizationRole (organizationId, role)`, which the plugin checks only with a read | planned (step 4) |
-| T32 | A crafted slug that shadows a route or breaks out of a path | T | Slugs are lowercase letters, digits and hyphens, checked by the API on create and update; words used by top-level routes are reserved, and a test keeps that list in step with the router | planned (steps 3, 4 and 7) |
-| T33 | An open redirect through the return path after an invitee signs in | S | The return path must be a relative path on the web origin, checked before use | planned (step 14) |
+| T21 | Reaching another tenant's data by changing an id in the path or the body (IDOR) | I, T, E | Every tenant route is `/api/organizations/:organizationId/...` and calls `requireMember`, which reads membership from the database; tenant queries filter on the id the guard returned, never on one from the body; the plugin's own endpoints check membership of the id they are given (tested through HTTP) | in place |
+| T22 | A tab left on one organization writes to another | T | The API reads the tenant only from the path, never from the session's active organization; the web keeps the slug in the URL, per tab | in place |
+| T23 | Finding out which organizations exist through the API | I | `requireMember` answers 404 both for a missing organization and for one the caller is not in; ids are random 32-character strings; the web shows the same not-found for an unknown and a foreign slug | in place |
+| T24 | A member defines a role with more than they hold | E | The plugin refuses a permission the creator lacks on `create-role` and `update-role` (seen in the spike); `organization:delete` is the owner's only and no custom role can hold it; at most 20 custom roles | in place |
+| T25 | A member gives a stronger role to themselves or to an accomplice, through a role change or an invitation | E | A role can be given only by someone who holds all its permissions (our hooks on `invite-member` and `update-member-role`; the plugin guards only `owner`, and the spike showed the gap); a member cannot change or remove someone whose roles grant more; only an owner gives or removes `owner` | in place |
+| T26 | A renamed or deleted role leaves members without permissions, or a later role with the old name hands them new ones | E, D | Renaming or deleting a role that a member or a pending invitation holds is refused; a role name with no definition grants nothing | in place |
+| T27 | Locking an organization out by removing or demoting its last owner | D, E | The plugin refuses to let the last owner leave, be removed or be demoted (seen in the spike); only an owner gives or removes `owner` | in place |
+| T28 | Someone other than the invited person joins through an invitation | S, E | Only the invited address can read, accept or reject it, with a confirmed email (`requireEmailVerificationOnInvitation`); it expires in 7 days; a re-invite cancels the old one; a wrong account is told only that the invitation is not theirs | in place |
+| T29 | Using invitations to send spam from the product's domain | D, S | `invitation:create` is needed; 10 invitations per 60 s per user and per IP; 100 pending per organization; 5 organizations per user; the email names the inviter and the organization, with no free text | in place |
+| T30 | Deleting an organization without the right, or by mistake | T, D | Only an owner deletes (checked in `beforeDeleteOrganization`, not only by permission); the web asks for the name to be typed | in place |
+| T31 | Concurrent requests creating a duplicate membership or role | T | Unique indexes on `member (organizationId, userId)` and `organizationRole (organizationId, role)`, which the plugin checks only with a read | in place |
+| T32 | A crafted slug that shadows a route or breaks out of a path | T | Slugs are lowercase letters, digits and hyphens, checked by the API on create and update; words used by top-level routes are reserved, and a test keeps that list in step with the router | in place |
+| T33 | An open redirect through the return path after an invitee signs in | S | The return path must be a relative path on the web origin, checked before use | in place |
 
 ## Accepted risks
 
@@ -111,9 +111,9 @@ reopen it).
 | MFA applies only to email-and-password sign-in; Google sign-in relies on the Google account | That is how Better Auth's `twoFactor` plugin works | A product requires MFA for everyone, or per organization (left out of Phase 6.5) |
 | An unconfirmed account squatting an address blocks that person's Google sign-in until they reset the password | The reset proves ownership and ends the block | Support requests about it; then purge unconfirmed accounts after a few days |
 | Other Workers of the same Cloudflare account (`*.leal32b.workers.dev`) are the same site, so they could set cookies for the web origin and send same-site requests | Only the owner deploys there; `Origin` and `Sec-Fetch-Site` checks still apply | A custom domain is bought |
-| The health routes stay reachable directly at `*.onrender.com` | Render and the deploy smoke test need them, and they reveal only up or down | Health starts returning more than status |
-| No audit log of security events (sign-in, MFA changes, password resets) | Observability comes in Phase 9 | Phase 9 |
-| No email tells the owner of an account that its password changed, MFA was turned off or Google was linked | Better Auth sends none; each of these changes already needs the password or a recent sign-in (T20) | A product holds sensitive data, or the audit log arrives in Phase 9 |
+| The health routes stay reachable directly at `*.onrender.com` | Render and the deploy smoke test need them, and they reveal only up or down and the commit running (ADR 0046) | Health starts returning more than status and release |
+| No audit log of security events (sign-in, MFA changes, password resets) | The request log (ADR 0046) keeps each call's route, status and time, but not who made it | A product holds sensitive data, or must answer who changed what |
+| No email tells the owner of an account that its password changed, MFA was turned off or Google was linked | Better Auth sends none; each of these changes already needs the password or a recent sign-in (T20) | A product holds sensitive data, or an audit log is added |
 | The breached-password check fails closed: while it cannot be reached, sign-up and password changes answer 500 | Rare and visible; failing open would accept known passwords | The check fails often |
 | Slugs can be probed: the plugin's `check-slug` and `get-full-organization` tell an existing slug from a missing one | Slugs are names chosen to be read and shared; ids, the API's key, are random; `check-slug` is what lets a user pick a free slug | A product treats the organization's name as confidential |
 | Every member can list the organization's members and their emails | That is how the plugin's `list-members` works, and teams expect to see each other | A product needs members hidden from one another |

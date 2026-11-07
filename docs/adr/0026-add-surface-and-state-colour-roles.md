@@ -5,7 +5,7 @@
 
 ## Context and problem statement
 
-The app shell ([plan](../design/app-shell-plan.md)) has a side menu set apart from the page, settings
+The app shell (its plan, now in Git history: `git show e4743cc:docs/design/app-shell-plan.md`) has a side menu set apart from the page, settings
 pages made of bordered groups of rows, and state shown as text: a badge that says a feature is on, a
 line that says the service is slow. The roles of [ADR 0016](0016-design-system-on-kobalte-and-unocss.md)
 have one background, one `border` (slate-500, held at 3:1 because it outlines inputs) and

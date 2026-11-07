@@ -20,6 +20,7 @@ describe('API', () => {
     clock,
     logger,
     serviceName: 'api',
+    release: 'test',
     webOrigin,
     corsOrigins: [webOrigin],
     proxySecret,
@@ -47,6 +48,7 @@ describe('API', () => {
     expect(healthResponseSchema.parse(await response.json())).toEqual({
       status: 'ok',
       service: 'api',
+      release: 'test',
       timestamp: '2026-10-17T12:00:00.000Z',
       database: 'up'
     })
@@ -102,6 +104,7 @@ describe('API without its database', () => {
     clock,
     logger,
     serviceName: 'api',
+    release: 'test',
     webOrigin,
     corsOrigins: [],
     proxySecret: undefined,
@@ -129,6 +132,7 @@ describe('API without its database', () => {
     expect(healthResponseSchema.parse(await response.json())).toEqual({
       status: 'degraded',
       service: 'api',
+      release: 'test',
       timestamp: '2026-10-17T12:00:00.000Z',
       database: 'down'
     })

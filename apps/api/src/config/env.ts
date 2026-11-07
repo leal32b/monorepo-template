@@ -5,6 +5,9 @@ const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'
 /** `noreply@acme.com` or `Acme <noreply@acme.com>`, the two forms email providers accept. */
 const SENDER = /^(?:[^<>@]+ <[^\s<>@]+@[^\s<>@]+>|[^\s<>@]+@[^\s<>@]+)$/
 
+/** A commit SHA, a tag or `dev`: letters, digits, `.`, `_` and `-` only, as it is logged on every line. */
+const RELEASE = /^[\w.-]{1,64}$/
+
 /** True when `value` is exactly an http(s) origin: scheme, host and port, no path, no trailing slash. */
 function isOrigin(value: string): boolean {
   try {
@@ -31,6 +34,7 @@ const envSchema = z
     HOST: z._default(z.string().check(z.minLength(1)), '127.0.0.1'),
     PORT: z._default(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(65535))), 3001),
     LOG_LEVEL: z._default(z.enum(LOG_LEVELS), 'info'),
+    RELEASE: optional(z.string().check(z.regex(RELEASE))),
     CORS_ORIGINS: z.pipe(
       z.pipe(
         z._default(z.string(), ''),
@@ -79,6 +83,8 @@ export type ApiEnv = {
   host: string
   port: number
   logLevel: (typeof LOG_LEVELS)[number]
+  /** The version running (ADR 0046): set by the image build, `dev` when unset. */
+  release: string
   /** The web app's origin (ADR 0019): the only origin allowed to send writes. */
   webOrigin: string
   /** Web origins allowed to read API responses (ADR 0015). Empty: same origin only. */
@@ -111,6 +117,7 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
     host: env.HOST,
     port: env.PORT,
     logLevel: env.LOG_LEVEL,
+    release: env.RELEASE ?? 'dev',
     webOrigin: env.WEB_ORIGIN,
     corsOrigins: env.CORS_ORIGINS,
     proxySecret: env.PROXY_SECRET,

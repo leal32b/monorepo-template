@@ -60,6 +60,8 @@ jobs:
           file: apps/api/Dockerfile
           push: true
           tags: ${{ steps.ref.outputs.image }}
+          # Logged on every line and answered by /api/health (ADR 0046).
+          build-args: RELEASE=${{ steps.ref.outputs.sha }}
           # Links the package to this repository on GHCR.
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha
@@ -166,10 +168,15 @@ jobs:
       - name: Smoke test /api/health and the Worker check
         env:
           API_ORIGIN: ${{ vars.API_ORIGIN }}
+          SHA: ${{ needs.image.outputs.sha }}
         run: |
           # Retries cover Neon waking from suspension.
-          curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 \
-            "$API_ORIGIN/api/health"
+          health=$(curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 5 \
+            "$API_ORIGIN/api/health")
+          echo "$health"
+          # The new image answers, not the one it replaced (ADR 0046).
+          jq -e --arg sha "$SHA" '.release == $sha' <<< "$health" > /dev/null \
+            || { echo "::error::/api/health answers another release than $SHA"; exit 1; }
           # Any other path answers only through the web Worker (ADR 0022).
           status=$(curl --silent --output /dev/null --write-out '%{http_code}' "$API_ORIGIN/api/smoke-test")
           [ "$status" = 403 ] || { echo "::error::a direct call to the API answered $status, not 403"; exit 1; }

@@ -79,6 +79,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
       clock: new FixedClock(new Date('2026-10-29T12:00:00.000Z')),
       logger,
       serviceName: 'api',
+      release: 'test',
       webOrigin,
       corsOrigins: [],
       proxySecret: undefined,

@@ -1,7 +1,7 @@
 import { healthResponseSchema } from '@repo/contracts'
 import { ApiError, createApiClient, noContent } from './client'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
+const health = { status: 'ok', service: 'api', release: 'dev', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })

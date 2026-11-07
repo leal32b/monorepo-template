@@ -6,6 +6,9 @@
   "name": "monorepo-template-web",
   "compatibility_date": "2026-10-28",
   "main": "./worker/worker.ts",
+  // Workers Logs (ADR 0046): each request, its status and any exception, such as the API out of
+  // reach, kept by Cloudflare and read in its dashboard.
+  "observability": { "enabled": true },
   "assets": {
     "directory": "./dist/",
     "binding": "ASSETS",
