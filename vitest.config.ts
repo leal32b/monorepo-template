@@ -12,6 +12,7 @@ export default defineConfig({
         '**/index.ts',
         '**/test-setup.ts',
         '**/main.{ts,tsx}',
+        'apps/api/src/main.e2e.ts',
         'apps/api/src/migrate.ts'
       ],
       thresholds: { 100: true }

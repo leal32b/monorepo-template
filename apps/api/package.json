@@ -13,7 +13,8 @@
     "auth:schema": "tsx auth-schema.ts",
     "dev": "pnpm migrate && tsx watch --env-file-if-exists=.env src/main.ts | pino-pretty",
     "build": "node build.ts",
-    "start": "node --enable-source-maps dist/migrate.js && node --enable-source-maps dist/main.js"
+    "start": "node --enable-source-maps dist/migrate.js && node --enable-source-maps dist/main.js",
+    "e2e": "tsx src/migrate.ts && tsx src/main.e2e.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "catalog:",
