@@ -179,6 +179,7 @@ export const es: Messages = {
   },
   appShell: {
     loading: 'Cargando…',
+    slow: 'Está tardando más de lo normal. Si la app estaba inactiva, el servidor puede tardar hasta un minuto en despertar.',
     search: 'Buscar',
     palette: {
       title: 'Paleta de comandos',

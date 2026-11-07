@@ -178,6 +178,7 @@ export const ptBR: Messages = {
   },
   appShell: {
     loading: 'Carregando…',
+    slow: 'Está demorando mais que o normal. Se o app estava parado, o servidor pode levar até um minuto para acordar.',
     search: 'Buscar',
     palette: {
       title: 'Paleta de comandos',

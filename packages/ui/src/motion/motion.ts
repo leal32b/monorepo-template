@@ -20,6 +20,11 @@ export const motion = {
    * answer shows nothing, and when the wait is long they come together.
    */
   waitDelay: 300,
+  /**
+   * How long a wait runs before it says why it is long: a server asleep takes up to a minute to wake, and
+   * a skeleton alone looks stuck by then. Counted from the same start as `waitDelay`.
+   */
+  slowWaitDelay: 5000,
   /** Once shown, the progress bar stays this long at least, so it never flashes. */
   progressMinimum: 400,
   easeIn: 'cubic-bezier(0.4, 0, 1, 1)',

@@ -74,8 +74,8 @@ describe('RequireSession', () => {
     expect(api.mock.calls.map(([path]) => path)).not.toContain('/api/me')
   })
 
-  it('draws the empty frame of the shell while a slow session check goes on, not a blank page', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  it('draws the frame of the shell while a slow session check goes on, not a blank page', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
     renderAt('/projects', () => new Promise<Response>(() => {}))
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
 

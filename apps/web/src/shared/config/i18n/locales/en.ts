@@ -176,6 +176,7 @@ export const en = {
   },
   appShell: {
     loading: 'Loading…',
+    slow: 'This is taking longer than usual. If the app was idle, the server may need up to a minute to wake up.',
     search: 'Search',
     palette: {
       title: 'Command palette',

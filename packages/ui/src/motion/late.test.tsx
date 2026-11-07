@@ -55,6 +55,25 @@ describe('createLate', () => {
     expect(screen.getByText('Waiting for the organization')).toBeInTheDocument()
   })
 
+  it('counts a longer delay from the same start, for what only a long wait says (the server is slow)', () => {
+    function Slow() {
+      const slow = createLate(motion.slowWaitDelay)
+      return <Show when={slow()}>It is taking long</Show>
+    }
+    render(() => (
+      <>
+        <Placeholder stage="session" />
+        <Slow />
+      </>
+    ))
+
+    vi.advanceTimersByTime(motion.waitDelay)
+    expect(screen.getByText('Waiting for the session')).toBeInTheDocument()
+    expect(screen.queryByText('It is taking long')).not.toBeInTheDocument()
+    vi.advanceTimersByTime(motion.slowWaitDelay - motion.waitDelay)
+    expect(screen.getByText('It is taking long')).toBeInTheDocument()
+  })
+
   it('starts a new wait over, once nothing was waiting', async () => {
     const [waiting, setWaiting] = createSignal(true)
     render(() => (

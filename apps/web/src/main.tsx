@@ -1,7 +1,7 @@
 import 'virtual:uno.css'
 import { render } from 'solid-js/web'
 import { loadIdentityOptions } from '#entities/identity-options'
-import { createApiClient, createAuthClient, createRequests } from '#shared/api'
+import { createApiClient, createAuthClient, createRequests, limitReads } from '#shared/api'
 import { detectLocale, loadMessages, readDeviceLocale, readWebEnv } from '#shared/config'
 import { reloadOnStaleBuild } from '#shared/lib'
 import { App } from './app/app'
@@ -16,7 +16,7 @@ if (!root) throw new Error('Element #root not found')
 
 // Every request goes through one counted `fetch`, which the progress bar follows (ADR 0035).
 const requests = createRequests()
-const fetch = requests.track(window.fetch.bind(window))
+const fetch = requests.track(limitReads(window.fetch.bind(window)))
 const client = createApiClient({ fetch, baseUrl: env.apiBaseUrl })
 const auth = createAuthClient({ fetch })
 

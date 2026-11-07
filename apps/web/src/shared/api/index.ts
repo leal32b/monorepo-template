@@ -5,5 +5,6 @@ export { ApiError, type ApiErrorKind, createApiClient, type GetOptions } from '.
 export { type ApiClient, ApiProvider, useApi } from './context'
 export { createQuery } from './create-query'
 export { createRead, readAgain, updateRead } from './create-read'
+export { limitReads, readTimeout } from './read-timeout'
 export { createRequests, type Requests } from './requests'
 export { whenUnauthorized } from './when-unauthorized'
