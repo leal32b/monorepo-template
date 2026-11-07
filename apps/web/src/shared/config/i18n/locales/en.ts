@@ -369,7 +369,8 @@ export const en = {
       organization: 'Organization',
       member: 'Members',
       invitation: 'Invitations',
-      ac: 'Roles'
+      ac: 'Roles',
+      customer: 'Customers'
     },
     permissions: {
       organization: {
@@ -390,6 +391,12 @@ export const en = {
         read: 'See roles',
         update: 'Edit roles',
         delete: 'Delete roles'
+      },
+      customer: {
+        read: 'See customers',
+        create: 'Add customers',
+        update: 'Edit customers',
+        delete: 'Delete customers'
       }
     },
     form: {

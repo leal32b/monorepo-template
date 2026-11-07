@@ -372,7 +372,8 @@ export const ptBR: Messages = {
       organization: 'Organização',
       member: 'Membros',
       invitation: 'Convites',
-      ac: 'Papéis'
+      ac: 'Papéis',
+      customer: 'Clientes'
     },
     permissions: {
       organization: {
@@ -393,6 +394,12 @@ export const ptBR: Messages = {
         read: 'Ver papéis',
         update: 'Editar papéis',
         delete: 'Excluir papéis'
+      },
+      customer: {
+        read: 'Ver clientes',
+        create: 'Adicionar clientes',
+        update: 'Editar clientes',
+        delete: 'Excluir clientes'
       }
     },
     form: {

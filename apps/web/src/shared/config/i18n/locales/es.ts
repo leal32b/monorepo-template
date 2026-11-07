@@ -375,7 +375,8 @@ export const es: Messages = {
       organization: 'Organización',
       member: 'Miembros',
       invitation: 'Invitaciones',
-      ac: 'Roles'
+      ac: 'Roles',
+      customer: 'Clientes'
     },
     permissions: {
       organization: {
@@ -396,6 +397,12 @@ export const es: Messages = {
         read: 'Ver roles',
         update: 'Editar roles',
         delete: 'Eliminar roles'
+      },
+      customer: {
+        read: 'Ver clientes',
+        create: 'Añadir clientes',
+        update: 'Editar clientes',
+        delete: 'Eliminar clientes'
       }
     },
     form: {

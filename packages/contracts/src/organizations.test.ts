@@ -18,7 +18,8 @@ describe('statements', () => {
       organization: ['update', 'delete'],
       member: ['create', 'update', 'delete'],
       invitation: ['create', 'cancel'],
-      ac: ['create', 'read', 'update', 'delete']
+      ac: ['create', 'read', 'update', 'delete'],
+      customer: ['read', 'create', 'update', 'delete']
     })
   })
 })
@@ -41,7 +42,18 @@ describe('builtInRoles', () => {
     expect(can(builtInRoles.admin, 'ac', 'create')).toBe(true)
   })
 
-  it('lets the member only read the roles', () => {
+  it('lets the admin do everything with customers', () => {
+    expect(covers(builtInRoles.admin, { customer: ['read', 'create', 'update', 'delete'] })).toBe(true)
+  })
+
+  it('lets the member read, create and edit customers but not delete them', () => {
+    expect(can(builtInRoles.member, 'customer', 'read')).toBe(true)
+    expect(can(builtInRoles.member, 'customer', 'create')).toBe(true)
+    expect(can(builtInRoles.member, 'customer', 'update')).toBe(true)
+    expect(can(builtInRoles.member, 'customer', 'delete')).toBe(false)
+  })
+
+  it('lets the member read the roles but not change them', () => {
     expect(can(builtInRoles.member, 'ac', 'read')).toBe(true)
     expect(can(builtInRoles.member, 'ac', 'create')).toBe(false)
     expect(can(builtInRoles.member, 'member', 'create')).toBe(false)

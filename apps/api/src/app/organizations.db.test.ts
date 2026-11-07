@@ -172,7 +172,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
       expect(response.status).toBe(200)
       expect(organizationMembershipSchema.parse(await response.json())).toEqual({
         roles: ['member'],
-        permissions: { ac: ['read'] }
+        permissions: { ac: ['read'], customer: ['read', 'create', 'update'] }
       })
     })
 

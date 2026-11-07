@@ -48,3 +48,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0041](0041-say-why-a-cold-start-takes-long-and-end-the-wait.md) | Say why a cold start takes long, and end the wait | accepted |
 | [0042](0042-ask-only-for-the-session-where-none-was-seen.md) | Ask only for the session where none was seen | accepted |
 | [0043](0043-remove-the-service-status-from-the-web.md) | Remove the service status from the web | accepted |
+| [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted |

@@ -37,7 +37,7 @@ describe('KyselyMembership (ADR 0033)', () => {
       userId: 'user-ada',
       organizationId: 'org-acme',
       roles: ['member', 'editor'],
-      permissions: { ac: ['read', 'update'], invitation: ['create'] }
+      permissions: { ac: ['read', 'update'], customer: ['read', 'create', 'update'], invitation: ['create'] }
     })
   })
 

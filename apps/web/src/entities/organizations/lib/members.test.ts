@@ -27,13 +27,13 @@ const member = (id: string, roles: string[]): Member => ({
 
 describe('permissionsOfRoles', () => {
   it('is what one role holds', () => {
-    expect(permissionsOfRoles(['member'], builtIn)).toEqual({ ac: ['read'] })
+    expect(permissionsOfRoles(['member'], builtIn)).toEqual({ ac: ['read'], customer: ['read', 'create', 'update'] })
   })
 
   it('joins what several roles hold, without repeating an action', () => {
     const held = permissionsOfRoles(['member', 'editor'], [...builtIn, editor])
 
-    expect(held).toEqual({ ac: ['read'], invitation: ['create'] })
+    expect(held).toEqual({ ac: ['read'], customer: ['read', 'create', 'update'], invitation: ['create'] })
     expect(permissionsOfRoles(['admin', 'member'], builtIn).ac).toEqual(['create', 'read', 'update', 'delete'])
   })
 
