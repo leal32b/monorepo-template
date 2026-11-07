@@ -44,4 +44,27 @@ describe('Field', () => {
 
     expect(onChange).toHaveBeenCalledWith('ana@example.com')
   })
+
+  it('is a text area for several lines when it is multiline, named and described like any field', () => {
+    render(() => <Field multiline label="Notes" description="Up to 2000 characters." rows={4} />)
+    const notes = screen.getByRole('textbox', { name: 'Notes' })
+
+    expect(notes.tagName).toBe('TEXTAREA')
+    expect(notes).toHaveAccessibleDescription('Up to 2000 characters.')
+    expect(notes).toHaveAttribute('rows', '4')
+    expect(notes).toHaveClass('min-h-24')
+    expect(notes).not.toHaveClass('h-11')
+  })
+
+  it('leaves the number of rows to the browser when it is not given', () => {
+    render(() => <Field multiline label="Notes" />)
+
+    expect(screen.getByRole('textbox', { name: 'Notes' })).not.toHaveAttribute('rows', '4')
+  })
+
+  it('keeps the one line input as it was when it is not multiline', () => {
+    render(() => <Field label="Name" />)
+
+    expect(screen.getByRole('textbox', { name: 'Name' }).tagName).toBe('INPUT')
+  })
 })
