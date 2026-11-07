@@ -44,20 +44,15 @@ function betterAuth(
   })
 }
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 /** The page at `path`, behind a session, with Better Auth answering through `fetch` and the API well. */
 function renderPage(fetch: Fetch, path = '/settings/security') {
-  /** The shell asks the API how it is; the page's own calls go to `fetch`. */
-  const answer: Fetch = async (input, init) =>
-    String(input).endsWith('/api/health') ? Response.json(health) : fetch(input, init)
   const history = createMemoryHistory()
   history.set({ value: path })
   render(() => (
     <I18nProvider locale="en">
       <ThemeProvider>
         <PaletteProvider>
-          <ApiProvider client={createApiClient({ fetch: answer })}>
+          <ApiProvider client={createApiClient({ fetch })}>
             <AuthProvider client={createAuthClient({ fetch })}>
               <SessionProvider user={ada}>
                 <MemoryRouter history={history}>

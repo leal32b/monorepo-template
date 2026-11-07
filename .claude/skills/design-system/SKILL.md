@@ -67,6 +67,9 @@ are the phone; breakpoints only add.
   `py-8` on phones to `sm:py-12` above. Use these, not new values.
 - **Type:** one `h1` per screen (`text-2xl font-semibold tracking-tight`), body `text-base` on
   phones, labels `text-sm font-medium`, hints and secondary text `text-sm text-muted-foreground`.
+- **A floating control covers nothing.** A panel with a control in its corner (the close button of a
+  `Sheet`) has the content's first row leave that corner free (`pr-14` for a 44px button), and the control
+  shares that row's centre line. Look for it at 375px, where the panel is as wide as the content.
 - **Alignment:** text and forms are left-aligned; centred text only for a short standalone message
   (`EmptyState`).
 - **Where buttons go.** Two kinds, two places:
@@ -92,7 +95,8 @@ The same idea looks and behaves the same everywhere. Before building, find it he
 | A group of controls with one label and one error | `Fieldset`; a resource's checkboxes in a `CheckboxGroup` | a `fieldset` whose `legend` sits on the border, a `p role=alert` by hand |
 | A person, an organization, an invited address | `Avatar` (circle, square, `mail` icon) | `icon="profile"`, `letter="@"` |
 | Who or what a menu is about (organization, account) | `menuTriggerClass` + `MenuTriggerContent` | trigger classes copied |
-| Waiting for the server ([ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md), [ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | nothing drawn yet: the family's skeleton (`SettingsSkeleton`, `EntrySkeleton`, `ShellSkeleton`, and `PageSkeleton` for a screen in the frame that cannot be drawn yet), timed once from boot by `createLate`, which a new skeleton uses too; moving to another screen: the next one at once, its title and its family's skeleton until its data is in, the chosen menu item marked at once; a screen read before: its last value at once, read again behind it; an action: its button's `pending`; the screen already drawn: the app's `ProgressBar`, which follows every request and every navigation that waits by itself | a spinner, an overlay, a "Loading…" text, a bar of one's own, a delay of one's own instead of `createLate`, the old screen held while the next one's data comes |
+| Waiting for the server ([ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md), [ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | nothing drawn yet: the family's skeleton (`SettingsSkeleton`, `EntrySkeleton`, `ShellSkeleton`, and `PageSkeleton` for a screen in the frame that cannot be drawn yet), timed once from boot by `createLate`, which a new skeleton uses too; moving to another screen: the next one at once, its title and its family's skeleton until its data is in, the chosen menu item marked at once; a screen read before: its last value at once, read again behind it; an action: its button's `pending`; the screen already drawn: the app's `ProgressBar`, which follows every request and every navigation that waits by itself; a wait past `motion.slowWaitDelay` (5 s) says why in an `Alert` of kind `info`, timed with `createLate(motion.slowWaitDelay)`, and a frame's skeleton holds the places of its menu and page, never an empty frame ([ADR 0041](../../../docs/adr/0041-say-why-a-cold-start-takes-long-and-end-the-wait.md)) | a spinner, an overlay, a "Loading…" text, a bar of one's own, a delay of one's own instead of `createLate`, the old screen held while the next one's data comes |
+
 | Reading data from the server ([ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | a `createQuery` in the entity's `api` segment, keyed by its arguments, started by the route's `preload` as it opens, never for a link only hovered ([ADR 0040](../../../docs/adr/0040-start-a-screens-reads-when-it-opens-not-on-hover.md)), reading its `params` at once, and read in the screen with `createRead`, which draws a key read before at once; after a change, `updateRead` or `readAgain` by its key; a read that fails, `ReadFailure`: the one alert with its retry, or the screen's own words for a case such as "not found" | `createResource` in a page, a `state === 'ready'` gate, a fallback of one's own, an `ErrorBoundary` of one's own, a page's private copy of data another screen reads |
 | Nothing here yet | `EmptyState` | a blank page |
 | A row that left a list (removed, deleted, revoked) | the section's `status`, which takes focus | a `p role=status` with negative margins |
@@ -196,7 +200,7 @@ Elements must not "tremble" between states or screens.
 - Errors are `role="alert"`; progress and success are `role="status"`.
 - Landmarks: `header`, `main`; one `h1` per screen.
 - Motion ([ADR 0031](../../../docs/adr/0031-animate-layers-with-short-transform-and-opacity-motion.md)):
-  a layer that comes and goes (drawer, dialog, menu, popover) is animated; nothing else moves (a form that opens inside
+  a layer that comes and goes (drawer, dialog, menu) is animated; nothing else moves (a form that opens inside
   a page appears at once). Use the classes of the preset, never a duration of your own:
   `ds-scrim` (the veil), `ds-sheet` (a panel from the left), `ds-dialog`, and `ds-pop` (from its button),
   with the Kobalte layer's `data-expanded` and `data-closed`. Only `transform` and
@@ -242,3 +246,5 @@ Elements must not "tremble" between states or screens.
 - Query by role and accessible name (Testing Library), the way a screen reader finds things.
 - Cover each state the component has, and the keyboard path for anything interactive.
 - A new role pair joins `tokens.test.ts`; a colour written by hand fails `colours.test.ts`.
+- A skeleton or a notice timed by `createLate` fakes `Date` too (`vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })`):
+  it counts from the clock, so a nested placeholder would wait again.

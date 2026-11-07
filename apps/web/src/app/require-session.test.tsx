@@ -22,8 +22,6 @@ function ReportsPage() {
   )
 }
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 /** Better Auth's answer to `get-session` for the signed-in user: the session and the user. */
 const signedIn = () => Response.json({ session: { id: 's1' }, user: { ...ada, twoFactorEnabled: false, locale: 'en' } })
 
@@ -34,7 +32,7 @@ const visitor = () => Response.json(null)
  * A page behind the guard at `path`: Better Auth answers who is signed in through `auth`, and the
  * API answers the pages' own calls (and how the service is) through `api`.
  */
-function renderAt(path: string, auth: AuthFetch, api: ApiFetch = async () => Response.json(health)) {
+function renderAt(path: string, auth: AuthFetch, api: ApiFetch = async () => Response.json(null)) {
   const history = createMemoryHistory()
   history.set({ value: path })
   render(() => (
@@ -66,7 +64,7 @@ describe('RequireSession', () => {
 
   it('asks Better Auth, not the API, who is signed in, and does not refresh the session', async () => {
     const auth = vi.fn<AuthFetch>(async () => signedIn())
-    const api = vi.fn<ApiFetch>(async () => Response.json(health))
+    const api = vi.fn<ApiFetch>(async () => Response.json(null))
     renderAt('/projects', auth, api)
     await screen.findByText('Hello, Ada Lovelace')
 
@@ -74,8 +72,8 @@ describe('RequireSession', () => {
     expect(api.mock.calls.map(([path]) => path)).not.toContain('/api/me')
   })
 
-  it('draws the empty frame of the shell while a slow session check goes on, not a blank page', async () => {
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  it('draws the frame of the shell while a slow session check goes on, not a blank page', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
     renderAt('/projects', () => new Promise<Response>(() => {}))
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
 
@@ -108,8 +106,7 @@ describe('RequireSession', () => {
     const history = renderAt(
       '/reports?year=2026',
       async () => signedIn(),
-      async (path) =>
-        path === '/api/health' ? Response.json(health) : Response.json({ code: 'unauthenticated' }, { status: 401 })
+      async () => Response.json({ code: 'unauthenticated' }, { status: 401 })
     )
 
     fireEvent.click(await screen.findByRole('button', { name: 'Load' }))

@@ -9,8 +9,6 @@ import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shar
 import { OrganizationMembersPage } from './organization-members-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
 
 const row = (id: string, name: string, role: string) => ({
@@ -95,7 +93,7 @@ function renderPage({
     <I18nProvider locale={locale}>
       <ThemeProvider>
         <PaletteProvider>
-          <ApiProvider client={createApiClient({ fetch: async () => Response.json(health) })}>
+          <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
             <AuthProvider client={createAuthClient({ fetch: authFetch })}>
               <SessionProvider user={{ id: `u-${as}`, email: 'ada@example.com', name: 'Ada' }}>
                 <MemoryRouter history={history}>

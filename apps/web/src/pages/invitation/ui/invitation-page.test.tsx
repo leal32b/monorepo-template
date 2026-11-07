@@ -10,7 +10,6 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 type ApiFetch = (input: string, init?: RequestInit) => Promise<Response>
 
 const ada = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
 
 const invitation = (changes: Record<string, unknown> = {}) => ({
   id: 'inv-1',
@@ -28,8 +27,7 @@ const problem = (status: number, code: string) => () => Response.json({ code }, 
 /** The API answers the invitation as `answers` says, one call after another; the last answer repeats. */
 function apiFor(...answers: (() => Response)[]) {
   let call = 0
-  return vi.fn<ApiFetch>(async (path) => {
-    if (path === '/api/health') return Response.json(health)
+  return vi.fn<ApiFetch>(async () => {
     const answer = answers[Math.min(call++, answers.length - 1)] as () => Response
     return answer()
   })

@@ -4,8 +4,6 @@ import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#s
 import { I18nProvider } from '#shared/config'
 import { SignUpPage } from './sign-up-page'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 /** The sign-up at `path`, with Google on; Better Auth answers every call with a new account. */
 function renderPage(path = '/signup') {
   const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
@@ -14,7 +12,7 @@ function renderPage(path = '/signup') {
   const history = createMemoryHistory()
   history.set({ value: path })
   const api = createApiClient({
-    fetch: async (path) => Response.json(path === '/api/health' ? health : { google: true })
+    fetch: async () => Response.json({ google: true })
   })
   render(() => (
     <I18nProvider locale="en">

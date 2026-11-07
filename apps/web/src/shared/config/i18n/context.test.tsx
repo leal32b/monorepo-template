@@ -3,7 +3,7 @@ import { I18nProvider, useI18n } from './context'
 
 const Probe = () => {
   const { t } = useI18n()
-  return <p>{t('appShell.status.checkedAt', { time: 'now' })}</p>
+  return <p>{t('mail.open', { provider: 'Gmail' })}</p>
 }
 
 describe('I18nProvider', () => {
@@ -14,7 +14,7 @@ describe('I18nProvider', () => {
       </I18nProvider>
     ))
 
-    expect(screen.getByText('Checked at now')).toBeInTheDocument()
+    expect(screen.getByText('Open Gmail')).toBeInTheDocument()
   })
 
   it('translates to Brazilian Portuguese', () => {
@@ -24,7 +24,7 @@ describe('I18nProvider', () => {
       </I18nProvider>
     ))
 
-    expect(screen.getByText('Verificado às now')).toBeInTheDocument()
+    expect(screen.getByText('Abrir o Gmail')).toBeInTheDocument()
   })
 
   it('switches the text when the locale changes', async () => {
@@ -45,7 +45,7 @@ describe('I18nProvider', () => {
 
     screen.getByRole('button').click()
 
-    expect(await screen.findByText('Verificado às now')).toBeInTheDocument()
+    expect(await screen.findByText('Abrir o Gmail')).toBeInTheDocument()
   })
 
   it('keeps a changed language on the device', async () => {

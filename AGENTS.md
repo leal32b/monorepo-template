@@ -44,7 +44,9 @@ Folders appear only when their phase of the plan reaches them.
   desktop, light and dark, with seeded data (several roles, a long name, an empty list), and run
   `minimize-support` again on what changed.
 - **Minimal scope.** Only what the current phase asks for; no collateral refactors; no
-  feature of the reference repository that the plan does not list.
+  feature of the reference repository that the plan does not list. Removing a feature leaves nothing
+  behind: its entity and provider, its texts in every language, its test fixtures, and the components and
+  icons of `packages/ui` that only it used, with an ADR that says why.
 - **Commit only when asked.** Conventional Commits.
 - **Model hint.** Say so when a step deserves Opus (auth and tenancy, deploy and database
   decisions); everything else is fine on Sonnet.
@@ -67,6 +69,11 @@ Folders appear only when their phase of the plan reaches them.
   `params` at once: the router changes them only when its transition commits. A navigation swaps at once
   and waits with the screen's skeleton; a read that fails goes through `ReadFailure`
   ([ADR 0038](docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)).
+  A read always ends: `GET`s time out after 90 s as an unreachable server, writes have no limit, since one
+  may have happened though its answer is late; a wait past 5 s says why ([ADR 0041](docs/adr/0041-say-why-a-cold-start-takes-long-and-end-the-wait.md)).
+  A route's `preload` for a signed-in screen goes through the `preload` helper of `routes.tsx`, which asks
+  only where a session was seen on the device, so a visitor's console shows no refused call
+  ([ADR 0042](docs/adr/0042-ask-only-for-the-session-where-none-was-seen.md)).
 - **UI:** screens compose `@repo/ui` ([ADR 0017](docs/adr/0017-build-the-web-ui-from-the-design-system-first.md));
   a missing component is added there, with tests. Colours are roles only (`bg-primary`,
   `text-muted-foreground`), held to WCAG contrast ([ADR 0016](docs/adr/0016-design-system-on-kobalte-and-unocss.md));

@@ -4,8 +4,6 @@ import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#s
 import { I18nProvider } from '#shared/config'
 import { SignInPage } from './sign-in-page'
 
-const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
-
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 /** The sign-in page at `path`, in a router that has somewhere else to go, with Google on. */
@@ -16,7 +14,7 @@ function renderPage(
   const history = createMemoryHistory()
   history.set({ value: path })
   const api = createApiClient({
-    fetch: async (path) => Response.json(path === '/api/health' ? health : { google: true })
+    fetch: async () => Response.json({ google: true })
   })
   render(() => (
     <I18nProvider locale="en">
