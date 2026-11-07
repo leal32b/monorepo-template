@@ -28,4 +28,13 @@ describe('whenUnauthorized', () => {
     await expect(answering.client.get('/api/projects', z.object({}))).resolves.toBeDefined()
     expect([failing.handle, answering.handle].map((handle) => handle.mock.calls.length)).toEqual([0, 0])
   })
+
+  it('watches writes too: a form sent after the session ended takes the user away', async () => {
+    const { client, handle } = clientAnswering(401)
+
+    await expect(client.send('POST', '/api/projects', { name: 'x' }, z.object({}))).rejects.toMatchObject({
+      status: 401
+    })
+    expect(handle).toHaveBeenCalledOnce()
+  })
 })
