@@ -1,4 +1,5 @@
 import { createSignal } from 'solid-js'
+import { forgetSession } from '#entities/sessions'
 import { type AuthFailure, callAuth, useAuth } from '#shared/api'
 
 /**
@@ -15,8 +16,10 @@ export function createSignOut(onSignedOut: () => void) {
     setPending(true)
     const failed = await callAuth((options) => auth.signOut({ fetchOptions: options }))
     setPending(false)
-    if (failed === undefined) onSignedOut()
-    else setFailure(failed)
+    if (failed === undefined) {
+      forgetSession()
+      onSignedOut()
+    } else setFailure(failed)
   }
 
   return { pending, failure, signOut }

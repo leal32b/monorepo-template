@@ -2,7 +2,7 @@ import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { createResource, Suspense } from 'solid-js'
 import { CurrentOrganizationProvider, type Organization, OrganizationsProvider } from '#entities/organizations'
-import { SessionProvider } from '#entities/sessions'
+import { hasSession, rememberSession, SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
 import { AppFrame } from './app-frame'
@@ -332,6 +332,17 @@ describe('AppShell', () => {
 
     await waitFor(() => expect(history.get()).toBe('/login'))
     expect(String(auth.mock.calls[0]?.[0])).toBe(`${window.location.origin}/api/auth/sign-out`)
+  })
+
+  it('forgets on this device that a session was seen, once signed out, so the next visit asks for no organizations', async () => {
+    rememberSession()
+    const history = renderShell()
+    openAccountMenu()
+
+    choose(await screen.findByRole('menuitem', { name: 'Sign out' }))
+
+    await waitFor(() => expect(history.get()).toBe('/login'))
+    expect(hasSession()).toBe(false)
   })
 
   it('says when signing out failed, and stays', async () => {

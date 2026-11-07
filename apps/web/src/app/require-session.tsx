@@ -20,7 +20,8 @@ import { PaletteShortcut } from './palette-shortcut'
  * need comes (a screen's code, the organizations). After that, only a screen's code not loaded yet holds
  * the screen on view: what screens read waits under boundaries of their own (ADR 0038).
  *
- * The session's route asks for it at boot, beside the organizations, and this reads the same answer.
+ * The session's route asks for it at boot, beside the organizations where a session was seen on this device
+ * (ADR 0042), and this reads the same answer.
  * Every read cached for the session goes when the user leaves it (signing out, or the session ending).
  */
 export function RequireSession(props: ParentProps) {

@@ -46,17 +46,25 @@ const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default
 
 /**
  * A screen's reads start in its route, as soon as the router opens it (ADR 0038): the session and the
- * organizations together at boot, a screen's own reads beside them. The entities' code loads on demand, as
+ * organizations together at boot, a screen's own reads beside them, all but the session only where a session
+ * was seen on this device, so a visitor's console shows no refused call (ADR 0042). The entities' code loads on demand, as
  * the screens' does, so a read starts once its code is in; a read that fails is said by the screen that
  * reads it.
  */
 const preload = <Entity,>(
   entity: () => Promise<Entity>,
-  start: (loaded: Entity, clients: { auth: AuthClient; api: ApiClient }) => unknown
+  start: (loaded: Entity, clients: { auth: AuthClient; api: ApiClient }) => unknown,
+  { needsSession = true }: { needsSession?: boolean } = {}
 ) => {
   const clients = { auth: useAuth(), api: useApi() }
-  entity()
-    .then((loaded) => start(loaded, clients))
+  Promise.all([entity(), sessions()])
+    .then(([loaded, { hasSession }]) => {
+      // Where no session was seen on this device, only the session is asked: the rest would be refused for
+      // a visitor, and the browser's console would show it. The guard asks for them once the session
+      // answers (ADR 0042).
+      // Returned, so a read that fails is caught below and nothing is left unhandled.
+      return !needsSession || hasSession() ? start(loaded, clients) : undefined
+    })
     .catch(() => undefined)
 }
 /**
@@ -72,7 +80,9 @@ const onOpen =
 const sessions = () => import('#entities/sessions')
 const organizations = () => import('#entities/organizations')
 const accounts = () => import('#entities/accounts')
-const preloadSession = onOpen(() => preload(sessions, (entity, { auth }) => entity.sessionQuery(auth)()))
+const preloadSession = onOpen(() =>
+  preload(sessions, (entity, { auth }) => entity.sessionQuery(auth)(), { needsSession: false })
+)
 const preloadOrganizations = onOpen(() =>
   preload(organizations, (entity, { auth }) => entity.organizationsQuery(auth)())
 )

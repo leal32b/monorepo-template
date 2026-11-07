@@ -1,5 +1,6 @@
 import { builtInRoles } from '@repo/contracts'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
+import { rememberSession } from '#entities/sessions'
 import { createApiClient, createAuthClient, createRequests } from '#shared/api'
 import { App } from './app'
 
@@ -12,7 +13,10 @@ const follow = (href: string) => {
 }
 
 describe('App', () => {
-  afterEach(() => window.history.replaceState(null, '', '/'))
+  afterEach(() => {
+    window.history.replaceState(null, '', '/')
+    window.localStorage.clear()
+  })
 
   it('opens the signed-in user’s organization at the root, with its home in the app frame', async () => {
     const health = { status: 'ok', service: 'api', timestamp: '2026-10-17T12:00:00.000Z', database: 'up' }
@@ -36,7 +40,8 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: 'Service status: All systems normal' })).toBeInTheDocument()
   })
 
-  it('asks for the session and the organizations together, before either answers (ADR 0038)', async () => {
+  it('asks for the session and the organizations together, before either answers, where a session was seen (ADR 0038, ADR 0042)', async () => {
+    rememberSession()
     const asked: string[] = []
     const auth = createAuthClient({
       fetch: (input) => {
@@ -53,7 +58,51 @@ describe('App', () => {
     await waitFor(() => expect(asked).toContain('/api/auth/organization/list'))
   })
 
+  it('asks a visitor for nothing but the session, so the console shows no failed call (ADR 0042)', async () => {
+    const asked: string[] = []
+    const client = createApiClient({
+      fetch: async (path) => {
+        asked.push(path)
+        return Response.json(null)
+      }
+    })
+    const auth = createAuthClient({
+      fetch: async (input) => {
+        asked.push(new URL(String(input), 'http://localhost').pathname)
+        return Response.json(null)
+      }
+    })
+    window.history.replaceState(null, '', '/acme/settings/members')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    await waitFor(() => expect(window.location.pathname).toBe('/login'))
+    expect(asked).toContain('/api/auth/get-session')
+    expect(asked.filter((path) => path.includes('/organization') || path.includes('/organizations/'))).toEqual([])
+  })
+
+  it('asks for the organizations once the session answers, on a device that has not seen one (ADR 0042)', async () => {
+    const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
+    const asked: string[] = []
+    const auth = createAuthClient({
+      fetch: async (input) => {
+        const path = new URL(String(input), 'http://localhost').pathname
+        asked.push(path)
+        return path.endsWith('/organization/list')
+          ? new Promise<Response>(() => {})
+          : Response.json({ session: { id: 's1' }, user })
+      }
+    })
+    const client = createApiClient({ fetch: () => new Promise<Response>(() => {}) })
+    window.history.replaceState(null, '', '/acme')
+
+    render(() => <App client={client} auth={auth} locale="en" />)
+
+    await waitFor(() => expect(asked).toEqual(['/api/auth/get-session', '/api/auth/organization/list']))
+  })
+
   it('asks for the members screen’s lists beside the membership, on a cold load (ADR 0038)', async () => {
+    rememberSession()
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
     const asked: string[] = []
     const client = createApiClient({
@@ -88,6 +137,7 @@ describe('App', () => {
   })
 
   it('asks for the ways to sign in and Google beside the session, on a cold load of the security screen (ADR 0038)', async () => {
+    rememberSession()
     const asked: string[] = []
     const never = (input: RequestInfo | URL) => {
       asked.push(new URL(String(input), 'http://localhost').pathname)
@@ -110,6 +160,7 @@ describe('App', () => {
     ['/onboarding', '/api/auth/organization/list-user-invitations'],
     ['/invitations/inv-1', '/api/invitations/inv-1']
   ])('asks for what %s shows beside the session, on a cold load (ADR 0038)', async (path, read) => {
+    rememberSession()
     const asked: string[] = []
     const never = (input: RequestInfo | URL) => {
       asked.push(new URL(String(input), 'http://localhost').pathname)
