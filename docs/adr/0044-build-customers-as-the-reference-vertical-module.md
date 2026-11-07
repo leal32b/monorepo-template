@@ -53,6 +53,24 @@ land in one layer:
 End to end for this phase means the API through the real pipeline and a Postgres (PGlite) in an
 integration test, and the web by component tests; the browser flow belongs to Phase 8's Playwright.
 
+### How to copy the module
+
+A product renames `customer` and drops what it does not need. The pieces, top to bottom:
+
+- `packages/contracts/src/customers.ts`: the schemas, and the resource in `statements`
+  (`organizations.ts`) with the built-in roles' share of it, and its texts in the role editor.
+- `apps/api/src/modules/customers/`: `domain/` (pure rules and errors), `customer-repository.port.ts`,
+  `testing/` (the in-memory fake and the contract suite both repositories pass), `database/` (the
+  Kysely adapter), `commands/` and `queries/` (a service and a controller per use case),
+  `customers.routes.ts` and `index.ts`; the migration `apps/api/migrations/0004_customers.sql`; one line
+  in `app/create-app.ts`.
+- `apps/web`: `entities/customers` (reads as router queries, writes), `features/customers/manage-customers`
+  (forms), `pages/customers`, the route and its `preload` in `app/routes.tsx`, one item in the side menu
+  and the palette, the `customers` texts in every language.
+
+Checked on 2026-11-07: Kobalte 2 is still alpha (2.0.0-alpha.4) and Solid 2 a release candidate, so the module
+is built on Solid 1 and moves with the rest when they do.
+
 ### Consequences
 
 - Good: a product copies the module and renames it; every layer has a worked, tested example.
