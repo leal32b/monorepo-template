@@ -1,0 +1,51 @@
+name: Purge
+
+# Deletes the database rows past their use (ADR 0050): expired sessions, verification tokens and
+# rate-limit counters, long-expired invitations and accounts never confirmed. Every day, and by hand.
+# GitHub runs a schedule only on the default branch, pauses it after 60 days without activity in the
+# repository, and emails a failure to whoever last changed the cron line. A host with its own cron can
+# run `node dist/purge.js` from the API image instead.
+on:
+  schedule:
+    - cron: '30 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Runs never overlap; the purge is idempotent, so a skipped day costs nothing.
+concurrency:
+  group: purge-production
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    name: Delete expired rows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Check the configuration
+        id: config
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          # A product not deployed yet has nothing to purge: say so instead of failing every day.
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::notice::DATABASE_URL is not set in the production environment: nothing to purge."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.config.outputs.configured == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: steps.config.outputs.configured == 'true'
+        uses: ./.github/actions/setup
+      - if: steps.config.outputs.configured == 'true'
+        name: Purge
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RELEASE: ${{ github.sha }}
+        run: pnpm --filter @repo/api purge

@@ -9,6 +9,24 @@ export const meResponseSchema = z.object({
 
 export type MeResponse = z.infer<typeof meResponseSchema>
 
+/**
+ * What deleting the account does to each organization the user is in (ADR 0049): one where they are
+ * the only member is `deleted` with them, one they share is `left`, and one where they are the only
+ * owner beside other members is `blocked` until they make someone else an owner or delete it.
+ */
+const accountDeletionOutcomes = ['deleted', 'left', 'blocked'] as const
+
+export type AccountDeletionOutcome = (typeof accountDeletionOutcomes)[number]
+
+/** `GET /api/me/account-deletion`: the organizations of the signed-in user, by name, and what happens to each. */
+export const accountDeletionSchema = z.object({
+  organizations: z.array(
+    z.object({ id: z.string(), name: z.string(), slug: z.string(), outcome: z.enum(accountDeletionOutcomes) })
+  )
+})
+
+export type AccountDeletion = z.infer<typeof accountDeletionSchema>
+
 /** `GET /api/identity/options`: the sign-in methods this deploy offers, so the web shows only what works. */
 export const identityOptionsSchema = z.object({
   /** Google sign-in: on when the API has its credentials (ADR 0020). */

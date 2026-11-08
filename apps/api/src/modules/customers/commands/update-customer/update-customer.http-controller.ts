@@ -1,4 +1,4 @@
-import { customerInputSchema } from '@repo/contracts'
+import { customerUpdateSchema } from '@repo/contracts'
 import { readValidJson } from '#libs/http/body'
 import { sendJson } from '#libs/http/json'
 import type { HttpHandler } from '#libs/http/router'
@@ -6,7 +6,7 @@ import type { CurrentSession, Membership } from '#modules/identity/index'
 import { requireMember } from '#modules/identity/index'
 import type { UpdateCustomerService } from './update-customer.service'
 
-/** `PUT /api/organizations/:organizationId/customers/:customerId`: the whole customer, again. */
+/** `PUT /api/organizations/:organizationId/customers/:customerId`: the whole customer, again, and the version read. */
 export class UpdateCustomerController {
   constructor(
     private readonly session: CurrentSession,
@@ -19,7 +19,7 @@ export class UpdateCustomerController {
     await requireMember({ session: this.session, membership: this.membership }, req, organizationId, {
       customer: ['update']
     })
-    const values = await readValidJson(req, customerInputSchema)
+    const values = await readValidJson(req, customerUpdateSchema)
     sendJson(res, 200, await this.service.execute(organizationId, params.customerId as string, values))
   }
 }

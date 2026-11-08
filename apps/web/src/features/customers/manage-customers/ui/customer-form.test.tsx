@@ -14,13 +14,15 @@ const ada: Customer = {
   company: 'Engines',
   notes: 'First programmer.',
   createdAt: '2026-11-07T10:00:00.000Z',
-  archivedAt: null
+  updatedAt: '2026-11-07T10:00:00.000Z',
+  archivedAt: null,
+  version: 1
 }
 const refused = (code: string, status = 409) =>
   Response.json({ type: `urn:problem:${code}`, title: code, status, code }, { status })
 
 function renderForm(fetch: Fetch, props: Partial<CustomerFormProps> = {}) {
-  const handlers = { onSaved: vi.fn(), onGone: vi.fn(), onCancel: vi.fn() }
+  const handlers = { onSaved: vi.fn(), onStale: vi.fn(), onCancel: vi.fn() }
   render(() => (
     <I18nProvider locale="en">
       <ApiProvider client={createApiClient({ fetch })}>
@@ -187,16 +189,31 @@ describe('CustomerForm', () => {
       expect(sent(fetch)).toEqual({
         path: '/api/organizations/org-1/customers/c1',
         method: 'PUT',
-        body: { name: 'Ada Lovelace', email: 'ada@example.com', company: 'Engines', notes: 'First programmer.' }
+        body: {
+          name: 'Ada Lovelace',
+          email: 'ada@example.com',
+          company: 'Engines',
+          notes: 'First programmer.',
+          version: 1
+        }
       })
     })
 
     it('tells the screen when the customer is gone, so it can read the list again', async () => {
-      const { onGone } = renderForm(async () => refused('customer_not_found', 404), { customer: ada })
+      const { onStale } = renderForm(async () => refused('customer_not_found', 404), { customer: ada })
 
       press('Save changes')
 
-      await waitFor(() => expect(onGone).toHaveBeenCalledOnce())
+      await waitFor(() => expect(onStale).toHaveBeenCalledWith('gone'))
+    })
+
+    it('tells the screen when someone saved the customer first, so it can read the list again', async () => {
+      const { onStale, onSaved } = renderForm(async () => refused('customer_changed'), { customer: ada })
+
+      press('Save changes')
+
+      await waitFor(() => expect(onStale).toHaveBeenCalledWith('changed'))
+      expect(onSaved).not.toHaveBeenCalled()
     })
   })
 })

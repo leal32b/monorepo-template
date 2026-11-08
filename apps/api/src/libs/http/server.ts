@@ -18,6 +18,8 @@ export type HttpServerOptions = {
   proxySecret?: string | undefined
   /** Paths served without the Worker's secret: the read-only health routes. */
   publicPaths?: readonly string[]
+  /** Errors that mean a dependency is out of reach or too slow, answered as 503 (ADR 0047). None by default. */
+  isUnavailable?: (error: unknown) => boolean
 }
 
 /**
@@ -30,6 +32,17 @@ const SECURITY_HEADERS = {
   'Cross-Origin-Resource-Policy': 'same-origin',
   'X-Content-Type-Options': 'nosniff'
 }
+
+/**
+ * A proxy in front (the host's load balancer) keeps idle connections to the API open and reuses them.
+ * Node closes one after 5 s by default; a proxy that keeps it longer may send a request down a
+ * connection Node just closed and answer 502. Render documents no number, only that a Node service
+ * with intermittent 502s should raise both settings (render.com/docs/troubleshooting-deploys), so the
+ * API keeps them past the 60 s most load balancers use. Headers may take a little longer, as Node
+ * advises. Shutdown still drops idle connections at once (`createShutdown`).
+ */
+const KEEP_ALIVE_TIMEOUT_MS = 120_000
+const HEADERS_TIMEOUT_MS = KEEP_ALIVE_TIMEOUT_MS + 1_000
 
 type RequestInfo = { id: string; route: string | null; path: string; corsAllowed: boolean }
 
@@ -51,7 +64,8 @@ function pathOf(req: IncomingMessage): string {
 /**
  * The HTTP pipeline, in order: request id, security headers, CORS, the Worker's secret, the origin
  * of writes, routing (404, 405, OPTIONS), body headers, handler, error boundary. Every failure ends
- * as an RFC 9457 problem response; nothing escapes as an unhandled rejection. One access-log line
+ * as an RFC 9457 problem response; nothing escapes as an unhandled rejection. A dependency out of
+ * reach is a 503 with its reason in one warning, not a stack. One access-log line
  * is written per request; headers and bodies are never logged.
  */
 export function createHttpServer({
@@ -60,7 +74,8 @@ export function createHttpServer({
   corsOrigins = [],
   trustedOrigins = [],
   proxySecret,
-  publicPaths = []
+  publicPaths = [],
+  isUnavailable = () => false
 }: HttpServerOptions): Server {
   const allowlist = new Set(corsOrigins)
   const trusted = new Set(trustedOrigins)
@@ -84,7 +99,7 @@ export function createHttpServer({
     await match.handler(req, res, { params: match.params, requestId: request.id })
   }
 
-  return createServer((req, res) => {
+  const server = createServer((req, res) => {
     const startedAt = performance.now()
     const request: RequestInfo = {
       id: incomingRequestId(req) ?? randomUUID(),
@@ -111,8 +126,10 @@ export function createHttpServer({
     })
 
     dispatch(req, res, request).catch((err: unknown) => {
-      const { problem, expected } = toProblem(err)
+      const { problem, expected } = toProblem(err, isUnavailable)
       if (!expected) logger.error({ reqId: request.id, err }, 'unhandled error in request handler')
+      else if (isUnavailable(err))
+        logger.warn({ reqId: request.id, reason: (err as Error).message }, 'dependency unavailable')
       if (res.headersSent) {
         res.destroy() // too late for a clean error: cut the connection
         return
@@ -120,4 +137,7 @@ export function createHttpServer({
       sendProblem(res, problem, request.id)
     })
   })
+  server.keepAliveTimeout = KEEP_ALIVE_TIMEOUT_MS
+  server.headersTimeout = HEADERS_TIMEOUT_MS
+  return server
 }

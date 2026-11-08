@@ -1,7 +1,11 @@
 import { type Insertable, type Kysely, sql } from 'kysely'
 import type { CustomerFilter, CustomerRepository } from '../customer-repository.port'
 import type { Customer } from '../domain/customer'
-import { CustomerEmailTakenException } from '../domain/customers.errors'
+import {
+  CustomerChangedException,
+  CustomerEmailTakenException,
+  CustomerNotFoundException
+} from '../domain/customers.errors'
 
 type CustomerRow = {
   id: string
@@ -12,14 +16,19 @@ type CustomerRow = {
   company: string | null
   notes: string | null
   created_at: Date
+  updated_at: Date
   archived_at: Date | null
+  version: number
 }
 
 type CustomersDatabase = { customer: CustomerRow }
 
 const EMAIL_KEY = 'customer_organization_email_key'
 
-/** Postgres through Kysely (ADR 0013). The unique index is the judge of an email; the code only names the failure. */
+/**
+ * Postgres through Kysely (ADR 0013). The unique index is the judge of an email, and the `where` on the
+ * version the judge of a concurrent save (ADR 0048); the code only names the failure.
+ */
 export class KyselyCustomerRepository implements CustomerRepository {
   readonly #db: Kysely<CustomersDatabase>
 
@@ -31,15 +40,19 @@ export class KyselyCustomerRepository implements CustomerRepository {
     await this.#db.insertInto('customer').values(toRow(customer)).execute().catch(rethrowEmailTaken)
   }
 
-  async save(customer: Customer): Promise<void> {
-    const { id, organization_id, created_at, ...columns } = toRow(customer)
-    await this.#db
+  async save(customer: Customer): Promise<Customer> {
+    const { id, organization_id, created_at, version, ...columns } = toRow(customer)
+    const row = await this.#db
       .updateTable('customer')
-      .set(columns)
+      .set({ ...columns, version: version + 1 })
       .where('organization_id', '=', organization_id)
       .where('id', '=', id)
-      .execute()
+      .where('version', '=', version)
+      .returningAll()
+      .executeTakeFirst()
       .catch(rethrowEmailTaken)
+    if (row === undefined) return this.#refuse(customer)
+    return toCustomer(row)
   }
 
   async findById(organizationId: string, id: string): Promise<Customer | null> {
@@ -81,8 +94,21 @@ export class KyselyCustomerRepository implements CustomerRepository {
     return { items: rows.map(toCustomer), total: Number(count.total) }
   }
 
-  async remove(organizationId: string, id: string): Promise<void> {
-    await this.#db.deleteFrom('customer').where('organization_id', '=', organizationId).where('id', '=', id).execute()
+  async remove(customer: Customer): Promise<void> {
+    const row = await this.#db
+      .deleteFrom('customer')
+      .where('organization_id', '=', customer.organizationId)
+      .where('id', '=', customer.id)
+      .where('version', '=', customer.version)
+      .returning('id')
+      .executeTakeFirst()
+    if (row === undefined) await this.#refuse(customer)
+  }
+
+  /** Why a write that matched no row was refused: the customer is gone, or at another version. */
+  async #refuse(customer: Customer): Promise<never> {
+    const found = await this.findById(customer.organizationId, customer.id)
+    throw found === null ? new CustomerNotFoundException() : new CustomerChangedException()
   }
 }
 
@@ -105,7 +131,9 @@ function toRow(customer: Customer): Insertable<CustomerRow> {
     company: customer.company,
     notes: customer.notes,
     created_at: customer.createdAt,
-    archived_at: customer.archivedAt
+    updated_at: customer.updatedAt,
+    archived_at: customer.archivedAt,
+    version: customer.version
   }
 }
 
@@ -119,6 +147,8 @@ function toCustomer(row: CustomerRow): Customer {
     company: row.company,
     notes: row.notes,
     createdAt: row.created_at,
-    archivedAt: row.archived_at
+    updatedAt: row.updated_at,
+    archivedAt: row.archived_at,
+    version: row.version
   }
 }

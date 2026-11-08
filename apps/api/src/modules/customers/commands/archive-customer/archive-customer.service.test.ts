@@ -10,10 +10,14 @@ describe('ArchiveCustomerService', () => {
     return { repository, service: new ArchiveCustomerService(repository, clock) }
   }
 
-  it('archives the customer today and keeps it', async () => {
+  it('archives the customer today, at the next version, and keeps it', async () => {
     const { repository, service } = await setup()
 
-    expect((await service.execute('org-1', 'id-1')).archivedAt).toBe('2026-11-07T10:00:00.000Z')
+    expect(await service.execute('org-1', 'id-1')).toMatchObject({
+      archivedAt: '2026-11-07T10:00:00.000Z',
+      updatedAt: '2026-11-07T10:00:00.000Z',
+      version: 2
+    })
     expect((await repository.findById('org-1', 'id-1'))?.archivedAt).toEqual(new Date('2026-11-07T10:00:00.000Z'))
   })
 

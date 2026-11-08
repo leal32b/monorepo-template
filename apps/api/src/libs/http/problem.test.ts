@@ -85,6 +85,16 @@ describe('toProblem', () => {
     expect(problem.detail).not.toContain('internal detail')
   })
 
+  it('answers an error the caller calls unavailable as a 503 to retry, without its message', () => {
+    const { problem, expected } = toProblem(new Error('connect ECONNREFUSED 10.0.0.1'), () => true)
+
+    expect(expected).toBe(true)
+    expect(problem.status).toBe(503)
+    expect(problem.code).toBe('service_unavailable')
+    expect(problem.headers).toEqual({ 'Retry-After': '5' })
+    expect(JSON.stringify(problem.toJSON())).not.toContain('10.0.0.1')
+  })
+
   it('answers any other error as an opaque 500', () => {
     const { problem, expected } = toProblem(new Error('secret'))
 

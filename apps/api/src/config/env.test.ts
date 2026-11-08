@@ -1,4 +1,4 @@
-import { EnvError, loadEnv } from './env'
+import { EnvError, loadDatabaseEnv, loadEnv } from './env'
 
 describe('loadEnv', () => {
   const authSecret = 'fedcba9876543210'.repeat(2)
@@ -208,5 +208,35 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...required, DATABASE_URL: 'mysql://app:hunter2@db/app' })).toThrow(
       expect.objectContaining({ message: 'Invalid environment: DATABASE_URL' })
     )
+  })
+})
+
+describe('loadDatabaseEnv', () => {
+  const url = 'postgres://app:secret@db.example.com:5432/app?sslmode=require'
+
+  it('needs only DATABASE_URL, with the defaults of the API for the rest', () => {
+    expect(loadDatabaseEnv({ DATABASE_URL: url })).toEqual({ databaseUrl: url, logLevel: 'info', release: 'dev' })
+  })
+
+  it('reads LOG_LEVEL and RELEASE', () => {
+    expect(loadDatabaseEnv({ DATABASE_URL: url, LOG_LEVEL: 'warn', RELEASE: 'abc123' })).toEqual({
+      databaseUrl: url,
+      logLevel: 'warn',
+      release: 'abc123'
+    })
+  })
+
+  it('names an invalid variable, never its value', () => {
+    const error = (() => {
+      try {
+        loadDatabaseEnv({ DATABASE_URL: 'mysql://app:secret@db/app' })
+      } catch (caught) {
+        return caught as EnvError
+      }
+    })()
+
+    expect(error).toBeInstanceOf(EnvError)
+    expect(error?.variables).toEqual(['DATABASE_URL'])
+    expect(error?.message).not.toContain('secret')
   })
 })

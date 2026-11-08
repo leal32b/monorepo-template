@@ -22,6 +22,13 @@ export const en = {
     body: '{inviter} invited you to join {organization}. Open the invitation to accept or decline it; you can sign in or create an account with this email address.',
     action: 'Open the invitation',
     footer: 'The invitation expires in 7 days. If you did not expect it, ignore this email.'
+  },
+  deleteAccount: {
+    subject: 'Confirm deleting your account',
+    body: 'We got a request to delete your account. Nothing is deleted until you open the link below and confirm it there.',
+    action: 'Review and delete my account',
+    footer:
+      'The link expires in 1 hour and works where you are signed in. If you did not ask for it, ignore this email and change your password.'
   }
 }
 

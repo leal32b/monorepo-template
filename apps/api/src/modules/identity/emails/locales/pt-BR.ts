@@ -24,5 +24,12 @@ export const ptBR: EmailTexts = {
     body: '{inviter} convidou você para participar de {organization}. Abra o convite para aceitar ou recusar; você pode entrar ou criar uma conta com este endereço de e-mail.',
     action: 'Abrir o convite',
     footer: 'O convite expira em 7 dias. Se você não esperava por ele, ignore este e-mail.'
+  },
+  deleteAccount: {
+    subject: 'Confirme a exclusão da sua conta',
+    body: 'Recebemos um pedido para excluir sua conta. Nada é excluído até você abrir o link abaixo e confirmar lá.',
+    action: 'Revisar e excluir minha conta',
+    footer:
+      'O link expira em 1 hora e funciona onde você estiver conectado. Se não foi você que pediu, ignore este e-mail e troque sua senha.'
   }
 }

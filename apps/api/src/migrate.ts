@@ -16,7 +16,8 @@ try {
 const logger = createLogger({ level: env.logLevel, service: 'migrate', release: env.release })
 // `src/migrate.ts` and the bundled `dist/migrate.js` both sit one level below `apps/api/`.
 const dir = fileURLToPath(new URL('../migrations/', import.meta.url))
-const db = createDatabase(createPool(env.databaseUrl, logger))
+// A migration may rewrite a large table: no deadline per statement here (ADR 0047).
+const db = createDatabase(createPool(env.databaseUrl, logger, { queryTimeoutMs: 0 }))
 
 try {
   const applied = await runMigrations(db, dir)

@@ -13,7 +13,6 @@ export class ArchiveCustomerService {
 
   async execute(organizationId: string, id: string): Promise<Customer> {
     const archived = archiveCustomer(await findCustomer(this.repository, organizationId, id), this.clock.now())
-    await this.repository.save(archived)
-    return toCustomerResponse(archived)
+    return toCustomerResponse(await this.repository.save(archived))
   }
 }

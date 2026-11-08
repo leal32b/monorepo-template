@@ -1,4 +1,4 @@
-import { identityOptionsSchema, meResponseSchema } from './identity'
+import { accountDeletionSchema, identityOptionsSchema, meResponseSchema } from './identity'
 
 describe('meResponseSchema', () => {
   const valid = { id: 'user-1', email: 'ada@example.com', name: 'Ada' }
@@ -19,5 +19,21 @@ describe('identityOptionsSchema', () => {
   it('says whether Google sign-in is on', () => {
     expect(identityOptionsSchema.safeParse({ google: true }).success).toBe(true)
     expect(identityOptionsSchema.safeParse({ google: 'yes' }).success).toBe(false)
+  })
+})
+
+describe('accountDeletionSchema', () => {
+  const organization = { id: 'org-1', name: 'Acme', slug: 'acme' }
+
+  it('says what happens to each organization', () => {
+    const organizations = (['deleted', 'left', 'blocked'] as const).map((outcome) => ({ ...organization, outcome }))
+
+    expect(accountDeletionSchema.safeParse({ organizations }).success).toBe(true)
+  })
+
+  it('rejects an outcome it does not know', () => {
+    expect(accountDeletionSchema.safeParse({ organizations: [{ ...organization, outcome: 'kept' }] }).success).toBe(
+      false
+    )
   })
 })

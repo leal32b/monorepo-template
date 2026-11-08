@@ -8,14 +8,17 @@ describe('RestoreCustomerService', () => {
   const setup = async () => {
     const { repository, clock, ids } = testCustomers()
     await new CreateCustomerService(repository, clock, ids).execute('org-1', { name: 'Ada' })
-    return { archive: new ArchiveCustomerService(repository, clock), service: new RestoreCustomerService(repository) }
+    return {
+      archive: new ArchiveCustomerService(repository, clock),
+      service: new RestoreCustomerService(repository, clock)
+    }
   }
 
-  it('makes an archived customer active again', async () => {
+  it('makes an archived customer active again, at the next version', async () => {
     const { archive, service } = await setup()
     await archive.execute('org-1', 'id-1')
 
-    expect((await service.execute('org-1', 'id-1')).archivedAt).toBeNull()
+    expect(await service.execute('org-1', 'id-1')).toMatchObject({ archivedAt: null, version: 3 })
   })
 
   it('refuses to restore an active customer', async () => {

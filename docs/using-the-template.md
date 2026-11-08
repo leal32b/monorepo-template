@@ -31,6 +31,10 @@ The template calls itself "Monorepo Template". Replace it in:
 | `apps/api/src/modules/identity/infrastructure/auth.ts` | The authenticator app's `issuer` |
 | `apps/web/wrangler.jsonc` | The Worker's `name` (its `*.workers.dev` hostname) |
 | `package.json`, `README.md`, `AGENTS.md` | The repository's name and what it is |
+| `LICENSE` | The copyright holder (or another license) |
+| `SECURITY.md` | Where reports go: private vulnerability reporting, or your contact |
+| `.github/CODEOWNERS` | Who reviews each area: uncomment the rules and name your people or teams |
+| `docs/security/threat-model.md` | Its scope and date, the hosts in the diagram, and the accepted risk on `*.<account>.workers.dev` once you have your own domain |
 
 Tests that name the product follow (`pnpm test` lists them). The `@repo/*` package names are
 internal and can stay.
@@ -60,11 +64,23 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
 ## 4. Set up once
 
-- Protect `main`: pull requests only, with the `CI` checks required.
+- Protect `main`: pull requests only, with the `CI` checks required, and code owner review once
+  `.github/CODEOWNERS` names someone. Every pull request opens with the checklist of
+  `.github/pull_request_template.md`.
+- Dependency updates: install the [Renovate GitHub App](https://github.com/apps/renovate) on the
+  repository; it reads `.github/renovate.json` and opens a dependency dashboard issue.
 - Security reports: turn on private vulnerability reporting, or put your contact in
   [SECURITY.md](../SECURITY.md).
 - An uptime monitor on `<web origin>/api/health`, and where to look when it fires:
   [operations.md](operations.md).
+- Your own domain: the web already sends `Strict-Transport-Security` on every page
+  (`apps/web/public/_headers`), so HTTPS holds there as it does on `workers.dev`. Its
+  `includeSubDomains` reaches every name under the web's host: serve the web from a host whose
+  subdomains all answer HTTPS. Add `preload` (and submit the domain at
+  [hstspreload.org](https://hstspreload.org)) only when the web is on the apex domain and every
+  subdomain has served HTTPS for a while: leaving the list takes months.
+- A browser feature the app starts to use (camera, passkeys, fullscreen…) is allowed in the
+  `Permissions-Policy` of `_headers` first; everything else stays off.
 
 ## 5. Build your first feature
 
@@ -84,9 +100,27 @@ the module"). Copy and rename it, in this order, each step test first (the `tdd-
    and `minimize-support` skills.
 6. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
 
-A product that does not need customers removes the module whole: its contract, API module and
-migration (with a new migration that drops the table), web slices, texts, fixtures and the
-`customer` statements, with an ADR that says why.
+A product that does not need customers removes the module whole, with an ADR that says why. The
+code goes the same way in both cases below:
+
+1. `packages/contracts/src/customers.ts` and its export; the `customer` statement and each role's
+   share of it in `packages/contracts/src/organizations.ts`.
+2. `apps/api/src/modules/customers/` and its line in `app/create-app.ts`.
+3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
+   `app/routes.tsx`, the menu and palette items in `widgets/app-shell/`, and the `customers` texts
+   and role descriptions in every locale.
+4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
+   organization), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
+   used.
+
+The database differs:
+
+- **Never deployed** (no production database has run the migrations yet): delete
+  `apps/api/migrations/0004_customers.sql` and `0006_customer_version.sql`. Migrations are forward
+  only once applied somewhere ([ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)); before
+  that, the files are just code. Reset the local database: stop `pnpm db`, delete `apps/api/.data`, start it again.
+- **Already in production**: keep both files, which databases have already applied, and add a new
+  migration that drops the table (`drop table if exists customer;`). Back up the rows first if anyone might want them.
 
 ## 6. Keep it healthy
 
@@ -94,12 +128,15 @@ migration (with a new migration that drops the table), web slices, texts, fixtur
   pnpm lint:fsd && pnpm knip && pnpm test:e2e` (100% coverage, [AGENTS.md](../AGENTS.md)).
 - One decision, one ADR (`write-adr`); a change to a flow, a provider or a trust boundary updates
   the [threat model](security/threat-model.md) in the same pull request.
-- Dependencies: versions live in the pnpm catalog (`pnpm-workspace.yaml`); check them with
-  `pnpm outdated -r`. A weekly `pnpm audit` runs in CI.
+- Dependencies: versions live in the pnpm catalog (`pnpm-workspace.yaml`). Renovate proposes the
+  updates ([ADR 0051](adr/0051-propose-dependency-updates-with-renovate.md)); review them in this
+  order: Better Auth first (read its release notes and the threat model rows it touches), then a
+  runtime minor or major (its changelog, then the screens or routes it drives), then runtime
+  patches, then dev tooling, Action SHAs and the image digest (green CI is enough). A new runtime
+  dependency joins the runtime list in `.github/renovate.json`. A weekly `pnpm audit` runs in CI.
 - Releases: an annotated tag (`v1.2.0`) on `main` when it means something; no release tooling.
 
 Waiting for a trigger:
 
 - Solid 2 and Kobalte 2: migrate when Kobalte 2 leaves alpha (2.0.0-alpha.4 on 2026-11-07).
-- Renovate: when the manual dependency checks slip.
 - Error tracking, metrics and tracing: the signals in [ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md).

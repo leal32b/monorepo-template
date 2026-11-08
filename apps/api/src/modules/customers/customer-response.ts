@@ -11,7 +11,9 @@ export function toCustomerResponse(customer: Customer): CustomerResponse {
     company: customer.company,
     notes: customer.notes,
     createdAt: customer.createdAt.toISOString(),
-    archivedAt: customer.archivedAt?.toISOString() ?? null
+    updatedAt: customer.updatedAt.toISOString(),
+    archivedAt: customer.archivedAt?.toISOString() ?? null,
+    version: customer.version
   }
 }
 

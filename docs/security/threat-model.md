@@ -3,7 +3,10 @@
 - Scope: authentication (Phase 6), and organizations and authorization (Phase 6.5).
 - Date: 2026-10-28; statuses updated on 2026-10-31, at the end of Phase 6; tenancy added on
   2026-11-04, from the organization plugin spike (`git show e4743cc:docs/organizations-spike.md`);
-  statuses and logging updated on 2026-11-07, in Phase 9.
+  statuses and logging updated on 2026-11-07, in Phase 9; account deletion (T34, T35) added on
+  2026-11-08 ([ADR 0049](../adr/0049-delete-an-account-from-an-emailed-link.md)); T04 made
+  independent of the domain the same day, with HSTS sent by the web origin; two accepted risks
+  bounded by the daily purge of expired rows ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)).
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -11,7 +14,7 @@
 
 ```
 Browser ──TLS──▶ Cloudflare Worker (web origin)
-                  ├─ static assets, _headers (CSP, frame-ancestors)
+                  ├─ static assets, _headers (CSP, frame-ancestors, HSTS, COOP)
                   └─ /api/* ──TLS + X-Proxy-Secret + X-Client-IP──▶ API on Render (node:http)
                                                                      ├─ /api/auth/*  Better Auth
                                                                      ├─ /api/*       our routes
@@ -72,7 +75,7 @@ it).
 | T01 | Password guessing and credential stuffing on sign-in | S | Better Auth rate limit, 3 requests per 10 s per IP on `/sign-in` and `/sign-up`, counters in Postgres so a restart does not reset them; minimum length 15; passwords found in breaches refused (`haveIBeenPwned`); TOTP for users who enable it | in place |
 | T02 | Dodging the rate limit with a forged client IP | S | The API refuses requests without the Worker secret; the Worker overwrites `X-Client-IP` with `CF-Connecting-IP`; Better Auth reads only that header | in place |
 | T03 | Session theft through XSS | I, E | Cookie `HttpOnly`; full CSP without inline script; Solid escapes text; no `innerHTML` in the web app | in place |
-| T04 | Session theft in transit | I | HTTPS only: `.dev` (so `workers.dev`) is on the HSTS preload list, Render serves HTTPS; cookie `Secure` | in place |
+| T04 | Session theft in transit | I | HTTPS only: the web origin sends `Strict-Transport-Security` on every page (`apps/web/public/_headers`), on any domain; Render serves HTTPS; cookie `Secure`; the deploy smoke test checks the header | in place |
 | T05 | Session fixation | S | A new random token at every sign-in; the cookie is signed with an HMAC of `BETTER_AUTH_SECRET` | in place |
 | T06 | CSRF on a state-changing request | T | Cookie `SameSite=Lax`; Better Auth checks `Origin` against the web origin; the API pipeline checks `Sec-Fetch-Site` (or `Origin`) on every `POST`, `PUT`, `PATCH` and `DELETE` and accepts only `application/json` bodies | in place |
 | T07 | Clickjacking of the sign-in or MFA screens | T | `frame-ancestors 'none'` | in place |
@@ -102,6 +105,8 @@ it).
 | T31 | Concurrent requests creating a duplicate membership or role | T | Unique indexes on `member (organizationId, userId)` and `organizationRole (organizationId, role)`, which the plugin checks only with a read | in place |
 | T32 | A crafted slug that shadows a route or breaks out of a path | T | Slugs are lowercase letters, digits and hyphens, checked by the API on create and update; words used by top-level routes are reserved, and a test keeps that list in step with the router | in place |
 | T33 | An open redirect through the return path after an invitee signs in | S | The return path must be a relative path on the web origin, checked before use | in place |
+| T34 | Deleting someone's account from a session taken over, or from a browser left open | T, D | Asking only emails a link to the account's confirmed address; the link opens a page that deletes nothing until its button is pressed; the token is single use, expires in 1 hour and works only with a session of the same user (`deleteUser` with `sendDeleteAccountVerification`); an email scanner that opens the link changes nothing | in place |
+| T35 | Deleting an account leaves an organization with members but no owner, or leaves data behind | D, E | The API refuses while the user is the only owner of an organization that has other members, before emailing and again before deleting; an organization only they are in is deleted with its records (`on delete cascade`); sessions, sign-in methods, two-step verification, memberships and the invitations they sent go with the user row | in place |
 
 ## Accepted risks
 
@@ -109,8 +114,8 @@ it).
 | --- | --- | --- |
 | Rate limits count per IP, not per account: stuffing spread over many IPs is not slowed | Per-account lockout lets anyone lock a victim out; breached passwords are already refused | Sign-in failures show up in the logs or a product holds sensitive data |
 | MFA applies only to email-and-password sign-in; Google sign-in relies on the Google account | That is how Better Auth's `twoFactor` plugin works | A product requires MFA for everyone, or per organization (left out of Phase 6.5) |
-| An unconfirmed account squatting an address blocks that person's Google sign-in until they reset the password | The reset proves ownership and ends the block | Support requests about it; then purge unconfirmed accounts after a few days |
-| Other Workers of the same Cloudflare account (`*.leal32b.workers.dev`) are the same site, so they could set cookies for the web origin and send same-site requests | Only the owner deploys there; `Origin` and `Sec-Fetch-Site` checks still apply | A custom domain is bought |
+| An unconfirmed account squatting an address blocks that person's Google sign-in until they reset the password, for at most 7 days | The reset proves ownership and ends the block; the daily purge deletes accounts never confirmed after 7 days ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)) | Support requests about it within those days; then shorten `identityRetention.unconfirmedAccountDays` |
+| Other Workers of the same Cloudflare account (`*.<account>.workers.dev`) are the same site, so they could set cookies for the web origin and send same-site requests | Only the owner deploys there; `Origin` and `Sec-Fetch-Site` checks still apply | A custom domain is bought |
 | The health routes stay reachable directly at `*.onrender.com` | Render and the deploy smoke test need them, and they reveal only up or down and the commit running (ADR 0046) | Health starts returning more than status and release |
 | No audit log of security events (sign-in, MFA changes, password resets) | The request log (ADR 0046) keeps each call's route, status and time, but not who made it | A product holds sensitive data, or must answer who changed what |
 | No email tells the owner of an account that its password changed, MFA was turned off or Google was linked | Better Auth sends none; each of these changes already needs the password or a recent sign-in (T20) | A product holds sensitive data, or an audit log is added |
@@ -118,4 +123,5 @@ it).
 | Slugs can be probed: the plugin's `check-slug` and `get-full-organization` tell an existing slug from a missing one | Slugs are names chosen to be read and shared; ids, the API's key, are random; `check-slug` is what lets a user pick a free slug | A product treats the organization's name as confidential |
 | Every member can list the organization's members and their emails | That is how the plugin's `list-members` works, and teams expect to see each other | A product needs members hidden from one another |
 | An organization deleted is gone at once, with no grace period | The owner types the name first; Phase 7 decides what its records need | A product holds data that a mistaken deletion would make costly |
-| Expired invitations stay in the table as `pending` | They cannot be accepted, and the web hides them | The table grows enough to matter; then purge them on a schedule |
+| An account deleted is gone at once, with no grace period; expired verification rows of its address stay until they expire | The emailed link and the last screen's button are two deliberate acts; the rows hold no secret that works without the account | A product holds data that a mistaken deletion would make costly, or must keep records after an account goes |
+| Expired invitations stay in the table as `pending` for 30 days | They cannot be accepted, and the web hides them; the daily purge deletes them after 30 days, so support can still see why one failed ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)) | A product must keep them longer for an audit |

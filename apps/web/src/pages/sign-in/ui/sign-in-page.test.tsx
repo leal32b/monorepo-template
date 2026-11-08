@@ -194,4 +194,10 @@ describe('SignInPage', () => {
     await screen.findByRole('button', { name: 'Continue with Google' })
     expect(screen.getAllByRole('alert')).toHaveLength(1)
   })
+
+  it('says an account was deleted when it came from deleting it', async () => {
+    renderPage('/login?deleted=1')
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Your account was deleted.')
+  })
 })

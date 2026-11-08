@@ -13,7 +13,8 @@ export default defineConfig({
         '**/test-setup.ts',
         '**/main.{ts,tsx}',
         'apps/api/src/main.e2e.ts',
-        'apps/api/src/migrate.ts'
+        'apps/api/src/migrate.ts',
+        'apps/api/src/purge.ts'
       ],
       thresholds: { 100: true }
     }

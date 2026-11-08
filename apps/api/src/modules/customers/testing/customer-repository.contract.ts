@@ -1,6 +1,10 @@
 import type { CustomerRepository } from '../customer-repository.port'
 import { type Customer, createCustomer } from '../domain/customer'
-import { CustomerEmailTakenException } from '../domain/customers.errors'
+import {
+  CustomerChangedException,
+  CustomerEmailTakenException,
+  CustomerNotFoundException
+} from '../domain/customers.errors'
 
 /** The organizations a repository under test must know (a database adapter creates them first). */
 export const contractOrganizations = ['org-1', 'org-2'] as const
@@ -86,18 +90,22 @@ export function describeCustomerRepository(label: string, make: () => Promise<Cu
     })
 
     describe('save', () => {
-      it('replaces the stored customer', async () => {
+      it('replaces the stored customer and returns it at the next version', async () => {
         await repo.insert(aCustomer('c1'))
+        const changed = aCustomer('c1', { name: 'Renamed', archivedAt: day, updatedAt: day })
 
-        await repo.save(aCustomer('c1', { name: 'Renamed', archivedAt: day }))
+        const saved = await repo.save(changed)
 
-        expect(await repo.findById('org-1', 'c1')).toEqual(aCustomer('c1', { name: 'Renamed', archivedAt: day }))
+        expect(saved).toEqual({ ...changed, version: 2 })
+        expect(await repo.findById('org-1', 'c1')).toEqual(saved)
       })
 
       it('lets a customer keep its own email', async () => {
         await repo.insert(aCustomer('c1', { email: 'ada@example.com' }))
 
-        await expect(repo.save(aCustomer('c1', { email: 'ada@example.com', name: 'New' }))).resolves.toBeUndefined()
+        await expect(repo.save(aCustomer('c1', { email: 'ada@example.com', name: 'New' }))).resolves.toMatchObject({
+          version: 2
+        })
       })
 
       it('refuses an email another customer has', async () => {
@@ -107,6 +115,29 @@ export function describeCustomerRepository(label: string, make: () => Promise<Cu
         await expect(repo.save(aCustomer('c2', { email: 'Ada@example.com' }))).rejects.toThrow(
           CustomerEmailTakenException
         )
+      })
+
+      it('refuses a customer read before another save, and keeps that save', async () => {
+        await repo.insert(aCustomer('c1'))
+        await repo.save(aCustomer('c1', { name: 'First' }))
+
+        await expect(repo.save(aCustomer('c1', { name: 'Second' }))).rejects.toThrow(CustomerChangedException)
+        expect(await repo.findById('org-1', 'c1')).toMatchObject({ name: 'First', version: 2 })
+      })
+
+      it('refuses a stale customer before its email, since the email may be the other save’s', async () => {
+        await repo.insert(aCustomer('c1', { email: 'ada@example.com' }))
+        await repo.insert(aCustomer('c2'))
+        await repo.save(aCustomer('c2', { name: 'Bob' }))
+
+        await expect(repo.save(aCustomer('c2', { email: 'ada@example.com' }))).rejects.toThrow(CustomerChangedException)
+      })
+
+      it('says a customer deleted meanwhile, or of another organization, is not there', async () => {
+        await repo.insert(aCustomer('c1'))
+
+        await expect(repo.save(aCustomer('c2'))).rejects.toThrow(CustomerNotFoundException)
+        await expect(repo.save(aCustomer('c1', { organizationId: 'org-2' }))).rejects.toThrow(CustomerNotFoundException)
       })
     })
 
@@ -165,7 +196,7 @@ export function describeCustomerRepository(label: string, make: () => Promise<Cu
       it('deletes the customer', async () => {
         await repo.insert(aCustomer('c1'))
 
-        await repo.remove('org-1', 'c1')
+        await repo.remove(aCustomer('c1'))
 
         expect(await repo.findById('org-1', 'c1')).toBeNull()
       })
@@ -173,9 +204,22 @@ export function describeCustomerRepository(label: string, make: () => Promise<Cu
       it('leaves another organization’s customer alone', async () => {
         await repo.insert(aCustomer('c1'))
 
-        await repo.remove('org-2', 'c1')
-
+        await expect(repo.remove(aCustomer('c1', { organizationId: 'org-2' }))).rejects.toThrow(
+          CustomerNotFoundException
+        )
         expect(await repo.findById('org-1', 'c1')).not.toBeNull()
+      })
+
+      it('refuses a customer read before another save, and keeps it', async () => {
+        await repo.insert(aCustomer('c1'))
+        await repo.save(aCustomer('c1'))
+
+        await expect(repo.remove(aCustomer('c1'))).rejects.toThrow(CustomerChangedException)
+        expect(await repo.findById('org-1', 'c1')).not.toBeNull()
+      })
+
+      it('says a customer deleted meanwhile is not there', async () => {
+        await expect(repo.remove(aCustomer('c1'))).rejects.toThrow(CustomerNotFoundException)
       })
     })
   })

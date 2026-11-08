@@ -3,6 +3,8 @@ export {
   type CustomerInput,
   type CustomerList,
   type CustomerStatus,
+  type CustomerUpdate,
+  type CustomerUpdateInput,
   type CustomerValues,
   customerInputSchema,
   customerLength,
@@ -10,11 +12,15 @@ export {
   customerPageSize,
   customerSchema,
   customerStatuses,
+  customerUpdateSchema,
   type ListCustomersQuery,
   listCustomersQuerySchema
 } from './customers'
 export { type HealthResponse, healthResponseSchema, type LivenessResponse, livenessResponseSchema } from './health'
 export {
+  type AccountDeletion,
+  type AccountDeletionOutcome,
+  accountDeletionSchema,
   type IdentityOptions,
   identityOptionsSchema,
   type MeResponse,

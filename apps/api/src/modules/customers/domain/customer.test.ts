@@ -6,7 +6,11 @@ import {
   restoreCustomer,
   updateCustomer
 } from './customer'
-import { CustomerAlreadyArchivedException, CustomerNotArchivedException } from './customers.errors'
+import {
+  CustomerAlreadyArchivedException,
+  CustomerChangedException,
+  CustomerNotArchivedException
+} from './customers.errors'
 
 const details = { name: 'Ada Lovelace', email: 'ada@example.com', phone: null, company: null, notes: null }
 const created = new Date('2026-11-07T10:00:00.000Z')
@@ -15,28 +19,40 @@ const later = new Date('2026-11-08T10:00:00.000Z')
 const customer = (): Customer => createCustomer({ id: 'c1', organizationId: 'org-1', now: created, details })
 
 describe('createCustomer', () => {
-  it('starts active, in the organization, on the day it was made', () => {
+  it('starts active, in the organization, on the day it was made, at version 1', () => {
     expect(customer()).toEqual({
       id: 'c1',
       organizationId: 'org-1',
       ...details,
       createdAt: created,
-      archivedAt: null
+      updatedAt: created,
+      archivedAt: null,
+      version: 1
     })
   })
 })
 
 describe('updateCustomer', () => {
-  it('replaces the details and keeps who, where and when', () => {
-    const next = { name: 'Ada King', email: null, phone: '123', company: 'Engines', notes: 'Note' }
+  const next = { name: 'Ada King', email: null, phone: '123', company: 'Engines', notes: 'Note' }
 
-    expect(updateCustomer(customer(), next)).toEqual({ ...customer(), ...next })
+  it('replaces the details, keeps who, where and the version, and stamps the save', () => {
+    expect(updateCustomer(customer(), next, { version: 1, now: later })).toEqual({
+      ...customer(),
+      ...next,
+      updatedAt: later
+    })
+  })
+
+  it('refuses details from someone who read an older version', () => {
+    const saved = { ...customer(), version: 2 }
+
+    expect(() => updateCustomer(saved, next, { version: 1, now: later })).toThrow(CustomerChangedException)
   })
 })
 
 describe('archiveCustomer', () => {
-  it('stamps the day it was archived', () => {
-    expect(archiveCustomer(customer(), later).archivedAt).toEqual(later)
+  it('stamps the day it was archived, which is also its last save', () => {
+    expect(archiveCustomer(customer(), later)).toMatchObject({ archivedAt: later, updatedAt: later })
   })
 
   it('refuses to archive a customer already archived', () => {
@@ -47,12 +63,17 @@ describe('archiveCustomer', () => {
 })
 
 describe('restoreCustomer', () => {
-  it('makes an archived customer active again', () => {
-    expect(restoreCustomer(archiveCustomer(customer(), later)).archivedAt).toBeNull()
+  it('makes an archived customer active again, and stamps the save', () => {
+    const evenLater = new Date('2026-11-09T10:00:00.000Z')
+
+    expect(restoreCustomer(archiveCustomer(customer(), later), evenLater)).toMatchObject({
+      archivedAt: null,
+      updatedAt: evenLater
+    })
   })
 
   it('refuses to restore a customer that is active', () => {
-    expect(() => restoreCustomer(customer())).toThrow(CustomerNotArchivedException)
+    expect(() => restoreCustomer(customer(), later)).toThrow(CustomerNotArchivedException)
   })
 })
 

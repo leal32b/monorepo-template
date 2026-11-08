@@ -29,6 +29,42 @@ export const es: Messages = {
       email: 'Correo electrónico'
     }
   },
+  accountDeletion: {
+    title: 'Eliminar cuenta',
+    description: 'Eliminar tu cuenta no se puede deshacer.',
+    row: 'Eliminar tu cuenta',
+    rowDescription: 'Tu cuenta, tus formas de iniciar sesión y tus membresías desaparecen para siempre.',
+    open: 'Eliminar cuenta',
+    loading: 'Revisando qué haría eliminar tu cuenta',
+    unavailable: 'No pudimos revisar qué haría eliminar tu cuenta. Revisa tu conexión y vuelve a intentarlo.',
+    blocked: {
+      title: 'Solo tú eres propietario de {{name}}',
+      description:
+        'Tiene otros miembros. Haz propietario a uno de ellos, o elimina la organización, antes de eliminar tu cuenta.',
+      go: 'Abrir miembros'
+    },
+    message: {
+      account: 'Se eliminan tu cuenta, tus formas de iniciar sesión y tu verificación en dos pasos.',
+      deleted: 'Las organizaciones en las que solo estás tú también se eliminan, con todo lo que tienen: {{names}}.',
+      left: 'Sales de estas organizaciones: {{names}}.',
+      final: 'No se puede deshacer.'
+    },
+    request: {
+      intro: 'Enviaremos a {{email}} un enlace para confirmar.',
+      submit: 'Enviarme el enlace',
+      sent: 'Enviamos un enlace a {{email}}. Ábrelo en menos de 1 hora, donde hayas iniciado sesión, para eliminar tu cuenta.'
+    },
+    confirm: {
+      title: 'Eliminar tu cuenta',
+      description: 'El último paso: al pulsar el botón, tu cuenta deja de existir.',
+      submit: 'Eliminar mi cuenta',
+      expired: 'Este enlace venció o ya se usó. Pide uno nuevo en tu perfil.',
+      profile: 'Ir a tu perfil'
+    },
+    errors: {
+      blocked: 'Ahora solo tú eres propietario de una organización que compartes. Tu perfil muestra cómo seguir.'
+    }
+  },
   preferences: {
     title: 'Preferencias',
     appearance: {
@@ -672,6 +708,7 @@ export const es: Messages = {
       unconfirmed: 'Primero confirma tu correo: abre el enlace que enviamos al crear tu cuenta, o envíalo de nuevo.',
       linkExpired: 'Este enlace de confirmación venció. Inicia sesión y podrás pedir uno nuevo.'
     },
+    accountDeleted: 'Tu cuenta fue eliminada.',
     google: {
       or: 'o',
       continue: 'Continuar con Google',

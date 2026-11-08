@@ -4,6 +4,7 @@ import {
   customerListSchema,
   customerPageSize,
   customerSchema,
+  customerUpdateSchema,
   listCustomersQuerySchema
 } from './customers'
 
@@ -48,6 +49,16 @@ describe('customerInputSchema', () => {
   })
 })
 
+describe('customerUpdateSchema', () => {
+  it('is the whole customer and the version it was read at', () => {
+    expect(customerUpdateSchema.parse({ name: ' Ada ', version: 3 })).toEqual({ name: 'Ada', version: 3 })
+  })
+
+  it.each([undefined, 0, 1.5, '2'])('refuses the version %j', (version) => {
+    expect(customerUpdateSchema.safeParse({ name: 'Ada', version }).success).toBe(false)
+  })
+})
+
 describe('customerSchema', () => {
   const customer = {
     id: 'c1',
@@ -57,7 +68,9 @@ describe('customerSchema', () => {
     company: null,
     notes: null,
     createdAt: '2026-11-07T10:00:00.000Z',
-    archivedAt: null
+    updatedAt: '2026-11-07T10:00:00.000Z',
+    archivedAt: null,
+    version: 1
   }
 
   it('accepts a customer with every optional field empty, or filled', () => {

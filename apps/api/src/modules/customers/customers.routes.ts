@@ -47,7 +47,7 @@ export function registerCustomerRoutes(
   )
   router.put(
     `${base}/:customerId`,
-    new UpdateCustomerController(session, membership, new UpdateCustomerService(repository)).handle
+    new UpdateCustomerController(session, membership, new UpdateCustomerService(repository, clock)).handle
   )
   router.post(
     `${base}/:customerId/archive`,
@@ -55,7 +55,7 @@ export function registerCustomerRoutes(
   )
   router.post(
     `${base}/:customerId/restore`,
-    new RestoreCustomerController(session, membership, new RestoreCustomerService(repository)).handle
+    new RestoreCustomerController(session, membership, new RestoreCustomerService(repository, clock)).handle
   )
   router.delete(
     `${base}/:customerId`,

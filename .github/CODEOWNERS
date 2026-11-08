@@ -1,0 +1,14 @@
+# Who reviews each area (https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners).
+# A placeholder: every rule is commented out until a product built from the template names its people
+# or teams (docs/using-the-template.md, "Name the product"): uncomment, replace <owner>, then require
+# code owner review on main. The last matching line wins.
+
+# *                                         @<owner>
+
+# Authentication, tenancy, the database and the deploy deserve a second look.
+# /apps/api/src/modules/identity/           @<owner>
+# /apps/api/migrations/                     @<owner>
+# /apps/web/public/_headers                 @<owner>
+# /apps/web/worker/                         @<owner>
+# /.github/workflows/                       @<owner>
+# /docs/security/                           @<owner>

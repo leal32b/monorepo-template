@@ -156,7 +156,8 @@ describe('App', () => {
 
   it.each([
     ['/onboarding', '/api/auth/organization/list-user-invitations'],
-    ['/invitations/inv-1', '/api/invitations/inv-1']
+    ['/invitations/inv-1', '/api/invitations/inv-1'],
+    ['/settings/profile', '/api/me/account-deletion']
   ])('asks for what %s shows beside the session, on a cold load (ADR 0038)', async (path, read) => {
     rememberSession()
     const asked: string[] = []
@@ -333,7 +334,8 @@ describe('App', () => {
   it.each([
     ['/settings/profile', 'Profile'],
     ['/settings/security', 'Security'],
-    ['/settings/preferences', 'Preferences']
+    ['/settings/preferences', 'Preferences'],
+    ['/settings/delete-account?token=t', 'Delete account']
   ])('serves %s, behind the sign-in', async (path, title) => {
     window.history.replaceState(null, '', path)
 
@@ -451,7 +453,9 @@ describe('App', () => {
                 company: null,
                 notes: null,
                 createdAt: '2026-11-07T10:00:00.000Z',
-                archivedAt: null
+                updatedAt: '2026-11-07T10:00:00.000Z',
+                archivedAt: null,
+                version: 1
               }
             ],
             total: 1,

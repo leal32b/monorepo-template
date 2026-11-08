@@ -24,7 +24,15 @@ async function start(
   register(router)
   const server = createHttpServer({ router, logger, ...options })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
-  closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())))
+  // A 413 leaves its connection busy with the unread body until a server timeout: cut it rather
+  // than wait for one.
+  closers.push(
+    () =>
+      new Promise<void>((resolve) => {
+        server.close(() => resolve())
+        server.closeAllConnections()
+      })
+  )
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`
 }
 
@@ -35,6 +43,13 @@ afterEach(async () => {
 const ok: HttpHandler = (_req, res) => sendJson(res, 200, { hello: 'world' })
 
 describe('HTTP server', () => {
+  it('keeps an idle connection open longer than the host proxy may reuse it, and waits for headers past that', () => {
+    const server = createHttpServer({ router: new HttpRouter(), logger: pino({ level: 'silent' }) })
+
+    expect(server.keepAliveTimeout).toBe(120_000)
+    expect(server.headersTimeout).toBeGreaterThan(server.keepAliveTimeout)
+  })
+
   it('serves a registered route as JSON', async () => {
     const url = await start((router) => router.get('/hello', ok))
 
@@ -163,6 +178,28 @@ describe('HTTP server', () => {
     expect(text).not.toContain('hunter2')
     expect(apiProblemSchema.parse(JSON.parse(text)).code).toBe('internal_error')
     expect(error).toHaveBeenCalled()
+  })
+
+  it('answers a dependency out of reach as a 503 to retry, with its reason in one warning', async () => {
+    const logger = pino({ level: 'silent' })
+    const error = vi.spyOn(logger, 'error')
+    const warn = vi.spyOn(logger, 'warn')
+    const url = await start(
+      (router) =>
+        router.get('/hello', async () => {
+          throw new Error('Query read timeout')
+        }),
+      { logger, isUnavailable: (err) => err instanceof Error && err.message === 'Query read timeout' }
+    )
+
+    const response = await fetch(`${url}/hello`)
+    const body = apiProblemSchema.parse(await response.json())
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('retry-after')).toBe('5')
+    expect(body.code).toBe('service_unavailable')
+    expect(warn).toHaveBeenCalledWith({ reqId: body.requestId, reason: 'Query read timeout' }, 'dependency unavailable')
+    expect(error).not.toHaveBeenCalledWith(expect.anything(), 'unhandled error in request handler')
   })
 
   it('writes one access-log line per request, without headers or bodies', async () => {

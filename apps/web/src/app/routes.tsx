@@ -42,6 +42,7 @@ const OrganizationRolesPage = lazy(() =>
 const InvitationPage = lazy(() => import('#pages/invitation').then((m) => ({ default: m.InvitationPage })))
 const OnboardingPage = lazy(() => import('#pages/onboarding').then((m) => ({ default: m.OnboardingPage })))
 const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: m.ProfilePage })))
+const DeleteAccountPage = lazy(() => import('#pages/delete-account').then((m) => ({ default: m.DeleteAccountPage })))
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
 
@@ -114,6 +115,8 @@ const preloadSecurity = onOpen(() => {
   preload(accounts, (entity, { auth }) => entity.signInMethodsQuery(auth)())
   preload(identityOptions, (entity, { api }) => entity.identityOptionsQuery(api)())
 })
+/** The profile and the deletion's confirmation say what deleting the account would do (ADR 0049). */
+const preloadAccountDeletion = onOpen(() => preload(accounts, (entity, { api }) => entity.accountDeletionQuery(api)()))
 const preloadUserInvitations = onOpen(() =>
   preload(organizations, (entity, { auth }) => entity.userInvitationsQuery(auth)())
 )
@@ -182,7 +185,9 @@ export const routes: RouteDefinition[] = [
                 path: '/settings',
                 children: [
                   { path: '/', component: () => <Navigate href="/settings/profile" /> },
-                  { path: '/profile', component: ProfilePage },
+                  { path: '/profile', component: ProfilePage, preload: preloadAccountDeletion },
+                  // The link of the deletion email (ADR 0049); a visitor signs in and comes back.
+                  { path: '/delete-account', component: DeleteAccountPage, preload: preloadAccountDeletion },
                   { path: '/security', component: SecurityPage, preload: preloadSecurity },
                   { path: '/preferences', component: PreferencesPage }
                 ]

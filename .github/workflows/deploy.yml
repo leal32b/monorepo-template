@@ -228,6 +228,9 @@ jobs:
           # The headers come from apps/web/public/_headers: a deploy that drops them fails here.
           grep -qi '^x-content-type-options: nosniff' headers.txt || { echo "::error::/ lacks X-Content-Type-Options"; exit 1; }
           grep -qi "^content-security-policy: default-src 'none'" headers.txt || { echo "::error::/ lacks the CSP"; exit 1; }
+          grep -qi '^strict-transport-security: max-age=' headers.txt || { echo "::error::/ lacks HSTS"; exit 1; }
+          grep -qi '^permissions-policy: .*camera=()' headers.txt || { echo "::error::/ lacks the Permissions-Policy"; exit 1; }
+          grep -qi '^cross-origin-opener-policy: same-origin' headers.txt || { echo "::error::/ lacks COOP"; exit 1; }
           asset=$(grep -o '/assets/[^"]*\.js' index.html | head -1)
           curl --fail --silent --show-error --head "$WEB_URL$asset" | grep -qi '^cache-control:.*immutable' \
             || { echo "::error::$asset is not cached as immutable"; exit 1; }

@@ -29,6 +29,42 @@ export const ptBR: Messages = {
       email: 'E-mail'
     }
   },
+  accountDeletion: {
+    title: 'Excluir conta',
+    description: 'Excluir sua conta não pode ser desfeito.',
+    row: 'Excluir sua conta',
+    rowDescription: 'Sua conta, suas formas de entrar e suas participações somem de vez.',
+    open: 'Excluir conta',
+    loading: 'Verificando o que excluir sua conta faria',
+    unavailable: 'Não conseguimos verificar o que excluir sua conta faria. Verifique sua conexão e tente de novo.',
+    blocked: {
+      title: 'Só você é proprietário de {{name}}',
+      description:
+        'Ela tem outros membros. Torne um deles proprietário, ou exclua a organização, antes de excluir sua conta.',
+      go: 'Abrir membros'
+    },
+    message: {
+      account: 'Sua conta, suas formas de entrar e sua verificação em duas etapas são excluídas.',
+      deleted: 'As organizações em que só você participa são excluídas também, com tudo o que há nelas: {{names}}.',
+      left: 'Você sai destas organizações: {{names}}.',
+      final: 'Isso não pode ser desfeito.'
+    },
+    request: {
+      intro: 'Vamos enviar para {{email}} um link para confirmar.',
+      submit: 'Enviar o link por e-mail',
+      sent: 'Enviamos um link para {{email}}. Abra em até 1 hora, onde você estiver conectado, para excluir sua conta.'
+    },
+    confirm: {
+      title: 'Excluir sua conta',
+      description: 'O último passo: ao apertar o botão, sua conta deixa de existir.',
+      submit: 'Excluir minha conta',
+      expired: 'Este link expirou ou já foi usado. Peça um novo no seu perfil.',
+      profile: 'Ir para o seu perfil'
+    },
+    errors: {
+      blocked: 'Agora só você é proprietário de uma organização que compartilha. Seu perfil mostra o que fazer.'
+    }
+  },
   preferences: {
     title: 'Preferências',
     appearance: {
@@ -668,6 +704,7 @@ export const ptBR: Messages = {
       unconfirmed: 'Confirme seu e-mail primeiro: abra o link que enviamos no cadastro ou envie de novo.',
       linkExpired: 'Este link de confirmação expirou. Entre, e você poderá pedir um novo.'
     },
+    accountDeleted: 'Sua conta foi excluída.',
     google: {
       or: 'ou',
       continue: 'Continuar com o Google',
