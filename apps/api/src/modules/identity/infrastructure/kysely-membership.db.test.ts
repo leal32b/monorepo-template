@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url'
-import { sql } from 'kysely'
+import { type KyselyPlugin, sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
 import { createDatabase, createPool } from '#libs/database/database'
@@ -45,5 +45,22 @@ describe('KyselyMembership (ADR 0033)', () => {
   it('finds nobody in an organization the user is not in, nor in one that does not exist', async () => {
     expect(await membership.memberOf('org-other', 'user-ada')).toBeNull()
     expect(await membership.memberOf('org-missing', 'user-ada')).toBeNull()
+  })
+
+  it('reads a member and the custom roles in one round trip, as it reads a non-member', async () => {
+    let queries = 0
+    const counter: KyselyPlugin = {
+      transformQuery: ({ node }) => {
+        queries += 1
+        return node
+      },
+      transformResult: async ({ result }) => result
+    }
+    const counted = new KyselyMembership(db.withPlugin(counter))
+
+    await counted.memberOf('org-acme', 'user-ada')
+    expect(queries).toBe(1)
+    await counted.memberOf('org-other', 'user-ada')
+    expect(queries).toBe(2)
   })
 })

@@ -53,6 +53,9 @@ No reference on the screen means the browser could not reach the API: look at th
 - Notifications for a failed `Deploy`, `Audit` or `Purge` workflow in GitHub (on by default for the person who
   triggered the run).
 - If the host's log retention is too short, a log drain to a log service; the lines are already JSON.
+- The API and the database in the same region. A signed-in request makes at least two sequential
+  database round trips (the session, then the membership with its roles), so each millisecond
+  between them counts at least twice on every tenant route.
 
 ## When something breaks
 

@@ -28,7 +28,7 @@ every item below improves behaviour in production or coherence; none fixes a bro
 | M2 | Purge expired rows on a schedule | Opus | A1 | Done |
 | M3 | Automated dependency updates | Sonnet | — | Done |
 | M4 | Pin the Docker base image by digest | Sonnet | M3 | Done |
-| M5 | One round trip less in `requireMember` | Sonnet | — | Pending |
+| M5 | One round trip less in `requireMember` | Sonnet | — | Done |
 | B1 | Template guide: owner-specific text | Sonnet | — | Pending |
 | B2 | Template guide: removing customers in a new product | Sonnet | — | Pending |
 | B3 | `redact` in the logger | Sonnet | — | Pending |

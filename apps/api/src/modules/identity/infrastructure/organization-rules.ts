@@ -10,6 +10,7 @@ import {
 } from '@repo/contracts'
 import { APIError } from 'better-auth/api'
 import { type Kysely, sql } from 'kysely'
+import { jsonArrayFrom } from 'kysely/helpers/postgres'
 
 /** The plugin's tables, as far as these rules read them (`migrations/0003_organizations.sql`). */
 type OrganizationTables = {
@@ -88,6 +89,33 @@ export class OrganizationReader {
       .where('organizationId', '=', organizationId)
       .execute()
     return permissionsOfRoles(roles, new Map(rows.map((row) => [row.role, parseRolePermission(row.permission)])))
+  }
+
+  /**
+   * A member's roles and what they hold, in one round trip: the organization's custom roles come with
+   * the member row, so a non-member costs the same single query and no permission work.
+   */
+  async memberOf(
+    organizationId: string,
+    userId: string
+  ): Promise<{ roles: string; permissions: Permissions } | undefined> {
+    const row = await this.#db
+      .selectFrom('member')
+      .select((eb) => [
+        'member.role',
+        jsonArrayFrom(
+          eb
+            .selectFrom('organizationRole')
+            .select(['organizationRole.role', 'organizationRole.permission'])
+            .whereRef('organizationRole.organizationId', '=', 'member.organizationId')
+        ).as('customRoles')
+      ])
+      .where('member.organizationId', '=', organizationId)
+      .where('member.userId', '=', userId)
+      .executeTakeFirst()
+    if (row === undefined) return undefined
+    const custom = new Map(row.customRoles.map((custom) => [custom.role, parseRolePermission(custom.permission)]))
+    return { roles: row.role, permissions: permissionsOfRoles(row.role, custom) }
   }
 
   /** The roles of a member of `organizationId`, found by user id, member id or email; undefined if none. */
