@@ -46,9 +46,14 @@ export function SignInPage() {
         onSignedIn={signedIn}
         onSecondStep={secondStep}
         notice={
-          <Show when={linkExpired()}>
-            <Alert variant="error">{t('signIn.errors.linkExpired')}</Alert>
-          </Show>
+          <>
+            <Show when={linkExpired()}>
+              <Alert variant="error">{t('signIn.errors.linkExpired')}</Alert>
+            </Show>
+            <Show when={params.deleted === '1'}>
+              <Alert variant="success">{t('signIn.accountDeleted')}</Alert>
+            </Show>
+          </>
         }
         resend={(email) => <ResendConfirmation email={email} next={next()} />}
         forgotPassword={(email) => (

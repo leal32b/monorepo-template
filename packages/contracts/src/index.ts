@@ -18,6 +18,9 @@ export {
 } from './customers'
 export { type HealthResponse, healthResponseSchema, type LivenessResponse, livenessResponseSchema } from './health'
 export {
+  type AccountDeletion,
+  type AccountDeletionOutcome,
+  accountDeletionSchema,
   type IdentityOptions,
   identityOptionsSchema,
   type MeResponse,

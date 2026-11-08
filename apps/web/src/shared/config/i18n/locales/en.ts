@@ -27,6 +27,42 @@ export const en = {
       email: 'Email'
     }
   },
+  accountDeletion: {
+    title: 'Delete account',
+    description: 'Deleting your account cannot be undone.',
+    row: 'Delete your account',
+    rowDescription: 'Your account, how you sign in and your memberships go for good.',
+    open: 'Delete account',
+    loading: 'Checking what deleting your account would do',
+    unavailable: 'We could not check what deleting your account would do. Check your connection, then try again.',
+    blocked: {
+      title: 'You are the only owner of {{name}}',
+      description:
+        'It has other members. Make one of them an owner, or delete the organization, before you delete your account.',
+      go: 'Open members'
+    },
+    message: {
+      account: 'Your account, how you sign in and your two-step verification are deleted.',
+      deleted: 'Organizations where you are the only member go too, with everything in them: {{names}}.',
+      left: 'You leave these organizations: {{names}}.',
+      final: 'It cannot be undone.'
+    },
+    request: {
+      intro: 'We will email {{email}} a link to confirm.',
+      submit: 'Email me the link',
+      sent: 'We sent a link to {{email}}. Open it within 1 hour, where you are signed in, to delete your account.'
+    },
+    confirm: {
+      title: 'Delete your account',
+      description: 'The last step: once you press the button, your account is gone.',
+      submit: 'Delete my account',
+      expired: 'This link has expired or was already used. Ask for a new one in your profile.',
+      profile: 'Go to your profile'
+    },
+    errors: {
+      blocked: 'You are now the only owner of an organization you share. Your profile shows the way out.'
+    }
+  },
   preferences: {
     title: 'Preferences',
     appearance: {
@@ -667,6 +703,7 @@ export const en = {
       unconfirmed: 'Confirm your email first: open the link we sent when you signed up, or send it again.',
       linkExpired: 'This confirmation link has expired. Sign in, and you can ask for a new one.'
     },
+    accountDeleted: 'Your account was deleted.',
     google: {
       or: 'or',
       continue: 'Continue with Google',

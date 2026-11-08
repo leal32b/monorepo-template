@@ -16,8 +16,10 @@ import { GetHealthService } from '#modules/health/queries/get-health/get-health.
 import { GetLivenessController } from '#modules/health/queries/get-liveness/get-liveness.http-controller'
 import { createAuth } from '#modules/identity/infrastructure/auth'
 import { BetterAuthCurrentSession } from '#modules/identity/infrastructure/better-auth-current-session'
+import { KyselyAccountDeletion } from '#modules/identity/infrastructure/kysely-account-deletion'
 import { KyselyInvitations } from '#modules/identity/infrastructure/kysely-invitations'
 import { KyselyMembership } from '#modules/identity/infrastructure/kysely-membership'
+import { GetAccountDeletionController } from '#modules/identity/queries/get-account-deletion/get-account-deletion.http-controller'
 import { GetIdentityOptionsController } from '#modules/identity/queries/get-identity-options/get-identity-options.http-controller'
 import { GetInvitationController } from '#modules/identity/queries/get-invitation/get-invitation.http-controller'
 import { GetMeController } from '#modules/identity/queries/get-me/get-me.http-controller'
@@ -76,6 +78,7 @@ export function createApp({
     getLiveness: new GetLivenessController(),
     auth: fromFetchHandler(auth.handler, webOrigin),
     getMe: new GetMeController(session),
+    getAccountDeletion: new GetAccountDeletionController(session, new KyselyAccountDeletion(db)),
     getMembership: new GetMembershipController(session, membership),
     getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
     getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined })

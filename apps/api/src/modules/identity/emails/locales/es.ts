@@ -24,5 +24,12 @@ export const es: EmailTexts = {
     body: '{inviter} te invitó a unirte a {organization}. Abre la invitación para aceptarla o rechazarla; puedes iniciar sesión o crear una cuenta con esta dirección de correo.',
     action: 'Abrir la invitación',
     footer: 'La invitación vence en 7 días. Si no la esperabas, ignora este correo.'
+  },
+  deleteAccount: {
+    subject: 'Confirma que quieres eliminar tu cuenta',
+    body: 'Recibimos una solicitud para eliminar tu cuenta. No se elimina nada hasta que abras el enlace de abajo y lo confirmes allí.',
+    action: 'Revisar y eliminar mi cuenta',
+    footer:
+      'El enlace vence en 1 hora y funciona donde hayas iniciado sesión. Si no lo pediste, ignora este correo y cambia tu contraseña.'
   }
 }

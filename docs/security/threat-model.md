@@ -3,7 +3,8 @@
 - Scope: authentication (Phase 6), and organizations and authorization (Phase 6.5).
 - Date: 2026-10-28; statuses updated on 2026-10-31, at the end of Phase 6; tenancy added on
   2026-11-04, from the organization plugin spike (`git show e4743cc:docs/organizations-spike.md`);
-  statuses and logging updated on 2026-11-07, in Phase 9.
+  statuses and logging updated on 2026-11-07, in Phase 9; account deletion (T34, T35) added on
+  2026-11-08 ([ADR 0049](../adr/0049-delete-an-account-from-an-emailed-link.md)).
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -102,6 +103,8 @@ it).
 | T31 | Concurrent requests creating a duplicate membership or role | T | Unique indexes on `member (organizationId, userId)` and `organizationRole (organizationId, role)`, which the plugin checks only with a read | in place |
 | T32 | A crafted slug that shadows a route or breaks out of a path | T | Slugs are lowercase letters, digits and hyphens, checked by the API on create and update; words used by top-level routes are reserved, and a test keeps that list in step with the router | in place |
 | T33 | An open redirect through the return path after an invitee signs in | S | The return path must be a relative path on the web origin, checked before use | in place |
+| T34 | Deleting someone's account from a session taken over, or from a browser left open | T, D | Asking only emails a link to the account's confirmed address; the link opens a page that deletes nothing until its button is pressed; the token is single use, expires in 1 hour and works only with a session of the same user (`deleteUser` with `sendDeleteAccountVerification`); an email scanner that opens the link changes nothing | in place |
+| T35 | Deleting an account leaves an organization with members but no owner, or leaves data behind | D, E | The API refuses while the user is the only owner of an organization that has other members, before emailing and again before deleting; an organization only they are in is deleted with its records (`on delete cascade`); sessions, sign-in methods, two-step verification, memberships and the invitations they sent go with the user row | in place |
 
 ## Accepted risks
 
@@ -118,4 +121,5 @@ it).
 | Slugs can be probed: the plugin's `check-slug` and `get-full-organization` tell an existing slug from a missing one | Slugs are names chosen to be read and shared; ids, the API's key, are random; `check-slug` is what lets a user pick a free slug | A product treats the organization's name as confidential |
 | Every member can list the organization's members and their emails | That is how the plugin's `list-members` works, and teams expect to see each other | A product needs members hidden from one another |
 | An organization deleted is gone at once, with no grace period | The owner types the name first; Phase 7 decides what its records need | A product holds data that a mistaken deletion would make costly |
+| An account deleted is gone at once, with no grace period; expired verification rows of its address stay until they expire | The emailed link and the last screen's button are two deliberate acts; the rows hold no secret that works without the account | A product holds data that a mistaken deletion would make costly, or must keep records after an account goes |
 | Expired invitations stay in the table as `pending` | They cannot be accepted, and the web hides them | The table grows enough to matter; then purge them on a schedule |

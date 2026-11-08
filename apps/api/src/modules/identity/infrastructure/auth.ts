@@ -9,6 +9,7 @@ import * as z from 'zod/mini'
 import type { EmailSender } from '#libs/ports/email-sender.port'
 import { type EmailKind, emailTexts, type Locale } from '../emails/email-texts'
 import { writeEmail } from '../emails/write-email'
+import { KyselyAccountDeletion } from './kysely-account-deletion'
 import { checkOrganization, OrganizationReader, OrganizationRules, organizationLimits } from './organization-rules'
 import { hashPassword, verifyPassword } from './password-hashing'
 
@@ -23,6 +24,9 @@ export type AuthDeps = {
   /** Google sign-in, on only when it is configured (ADR 0020). */
   google: { clientId: string; clientSecret: string } | undefined
 }
+
+/** How long the link that confirms an account deletion works (ADR 0049), as its email says. */
+const ACCOUNT_DELETION_LINK_SECONDS = 60 * 60
 
 /** The languages emails are written in: a sign-up in any other is refused. */
 const localeSchema = z.enum(Object.keys(emailTexts) as [Locale, ...Locale[]])
@@ -45,6 +49,7 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret, google 
     })
   }
   const rules = new OrganizationRules(new OrganizationReader(db))
+  const accountDeletion = new KyselyAccountDeletion(db)
 
   return betterAuth({
     baseURL: webOrigin,
@@ -60,7 +65,17 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret, google 
       },
       // T09: an account from a provider counts only with an email the provider has confirmed.
       validateUserInfo: ({ user, source }) =>
-        source.method === 'oauth' && user.emailVerified !== true ? { error: 'email_not_verified' } : undefined
+        source.method === 'oauth' && user.emailVerified !== true ? { error: 'email_not_verified' } : undefined,
+      // ADR 0049: asking emails a link to a web page, whose button sends the token back; only a session of
+      // the same user can use it. Sessions, sign-in methods, two-step verification, memberships and the
+      // invitations they sent go with the user row (`on delete cascade`).
+      deleteUser: {
+        enabled: true,
+        deleteTokenExpiresIn: ACCOUNT_DELETION_LINK_SECONDS,
+        sendDeleteAccountVerification: async ({ user, token }) =>
+          send('deleteAccount', user, `${webOrigin}/settings/delete-account?token=${token}`),
+        beforeDelete: async (user) => accountDeletion.beforeDelete(user.id)
+      }
     },
     emailAndPassword: {
       enabled: true,
@@ -98,6 +113,13 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret, google 
     hooks: {
       // The organization plugin's own hooks do not all see the caller; these checks need it (ADR 0033).
       before: createAuthMiddleware(async (ctx) => {
+        // Asking to delete the account is refused at once while it would orphan an organization, so no
+        // link is emailed that could not work (ADR 0049). With the token, `beforeDelete` checks again.
+        if (ctx.path === '/delete-user' && ctx.body?.token === undefined) {
+          const session = await getSessionFromCtx(ctx)
+          if (session !== null) await accountDeletion.assertCanDelete(session.user.id)
+          return
+        }
         if (!OrganizationRules.guardedPaths.has(ctx.path)) return
         const session = await getSessionFromCtx(ctx)
         await rules.before(ctx.path, ctx.body, session?.user.id) // every guarded path is a POST with a body
