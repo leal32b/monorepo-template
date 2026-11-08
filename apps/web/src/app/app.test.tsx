@@ -451,7 +451,9 @@ describe('App', () => {
                 company: null,
                 notes: null,
                 createdAt: '2026-11-07T10:00:00.000Z',
-                archivedAt: null
+                updatedAt: '2026-11-07T10:00:00.000Z',
+                archivedAt: null,
+                version: 1
               }
             ],
             total: 1,

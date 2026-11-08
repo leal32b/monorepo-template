@@ -16,7 +16,9 @@ const customer = {
   company: null,
   notes: null,
   createdAt: '2026-11-07T10:00:00.000Z',
-  archivedAt: null
+  updatedAt: '2026-11-07T10:00:00.000Z',
+  archivedAt: null,
+  version: 1
 }
 
 /** A client whose fetch records what it was asked and answers `response`. */
@@ -70,12 +72,12 @@ describe('the writes', () => {
   it('updates with a PUT to the customer', async () => {
     const { api, fetch } = clientAnswering(() => Response.json(customer))
 
-    await updateCustomer(api, 'org-1', 'c/1', { name: 'Ada King' })
+    await updateCustomer(api, 'org-1', 'c/1', { name: 'Ada King', version: 3 })
 
     expect(sentOf(fetch)).toEqual({
       path: '/api/organizations/org-1/customers/c%2F1',
       method: 'PUT',
-      body: '{"name":"Ada King"}'
+      body: '{"name":"Ada King","version":3}'
     })
   })
 

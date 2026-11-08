@@ -105,6 +105,7 @@ function Customers() {
     readAgain(key())
   }
   const changed = (text: string) => () => left(t(text as 'customers.errors.gone'))
+  const stale = (kind: 'gone' | 'changed') => left(t(`customers.errors.${kind}`))
 
   const description = (customer: Customer) =>
     [customer.company, customer.email, customer.phone].filter(Boolean).join(' · ') || undefined
@@ -168,7 +169,7 @@ function Customers() {
                   setRowStatus({ customer: saved.id, text: t('customers.saved', { name: saved.name }) })
                   panels.close()
                 }}
-                onGone={changed('customers.errors.gone')}
+                onStale={stale}
                 onCancel={panels.close}
               />
             </SettingsPanel>
@@ -267,7 +268,7 @@ function Customers() {
                           setSectionStatus(t('customers.saved', { name: saved.name }))
                           readAgain(key())
                         }}
-                        onGone={changed('customers.errors.gone')}
+                        onStale={stale}
                         onCancel={panels.close}
                       />
                     </SettingsPanel>

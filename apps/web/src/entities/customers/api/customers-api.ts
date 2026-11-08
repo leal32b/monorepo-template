@@ -2,6 +2,7 @@ import {
   type Customer,
   type CustomerInput,
   type CustomerList,
+  type CustomerUpdateInput,
   customerListSchema,
   customerSchema
 } from '@repo/contracts'
@@ -33,7 +34,7 @@ export function updateCustomer(
   api: ApiClient,
   organizationId: string,
   id: string,
-  input: CustomerInput
+  input: CustomerUpdateInput
 ): Promise<Customer> {
   return api.send('PUT', one(organizationId, id), input, customerSchema)
 }

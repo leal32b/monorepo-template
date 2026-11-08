@@ -23,7 +23,7 @@ every item below improves behaviour in production or coherence; none fixes a bro
 | --- | --- | --- | --- | --- |
 | A1 | Timeouts on the Postgres pool | Opus | — | Done |
 | A2 | Account deletion | Opus | — | Pending |
-| A3 | Concurrency control in the reference module | Opus (decide), Sonnet (web) | — | Pending |
+| A3 | Concurrency control in the reference module | Opus (decide), Sonnet (web) | — | Done |
 | M1 | HSTS and the remaining security headers | Sonnet | — | Pending |
 | M2 | Purge expired rows on a schedule | Opus | A1 | Pending |
 | M3 | Automated dependency updates | Sonnet | — | Pending |
@@ -202,7 +202,7 @@ every place a new product must change, including the threat model and the securi
 **Where:** `docs/using-the-template.md` section 5, ADR 0044.
 
 **Problem.** The guide says to remove the module "with a new migration that drops the table". A
-product never deployed should delete `0004_customers.sql` instead; the drop migration is for one
+product never deployed should delete `0004_customers.sql` and `0006_customer_version.sql` instead; the drop migration is for one
 already in production.
 
 **Done when:** both cases are written, each with its steps.

@@ -38,7 +38,20 @@ export type CustomerInput = z.input<typeof customerInputSchema>
 /** The body once parsed: a blank optional field is `null`, a missing one `undefined`. */
 export type CustomerValues = z.output<typeof customerInputSchema>
 
-/** A customer as the API returns it. Dates are ISO 8601; `archivedAt` is null while it is active. */
+/**
+ * `PUT` body: the whole customer and the `version` it was read at (ADR 0048). A customer saved by
+ * someone else since then is refused with 409 `customer_changed`, so no edit is lost in silence.
+ */
+export const customerUpdateSchema = z.extend(customerInputSchema, { version: z.int().check(z.minimum(1)) })
+
+export type CustomerUpdateInput = z.input<typeof customerUpdateSchema>
+
+export type CustomerUpdate = z.output<typeof customerUpdateSchema>
+
+/**
+ * A customer as the API returns it. Dates are ISO 8601; `archivedAt` is null while it is active;
+ * `version` goes back in the next `PUT`.
+ */
 export const customerSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -47,7 +60,9 @@ export const customerSchema = z.object({
   company: z.nullable(z.string()),
   notes: z.nullable(z.string()),
   createdAt: z.iso.datetime(),
-  archivedAt: z.nullable(z.iso.datetime())
+  updatedAt: z.iso.datetime(),
+  archivedAt: z.nullable(z.iso.datetime()),
+  version: z.int().check(z.minimum(1))
 })
 
 export type Customer = z.infer<typeof customerSchema>

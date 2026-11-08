@@ -18,6 +18,15 @@ export class CustomerEmailTakenException extends ConflictException {
   }
 }
 
+/** Someone saved or deleted the customer after the caller read it (ADR 0048): read it again, then decide. */
+export class CustomerChangedException extends ConflictException {
+  readonly code = 'customer_changed'
+
+  constructor() {
+    super('Someone changed this customer after you read it. Read it again, then try once more.')
+  }
+}
+
 export class CustomerAlreadyArchivedException extends ConflictException {
   readonly code = 'customer_already_archived'
 

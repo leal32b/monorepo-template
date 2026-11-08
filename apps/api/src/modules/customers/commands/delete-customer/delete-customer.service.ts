@@ -6,7 +6,8 @@ export class DeleteCustomerService {
   constructor(private readonly repository: CustomerRepository) {}
 
   async execute(organizationId: string, id: string): Promise<void> {
-    assertCanDelete(await findCustomer(this.repository, organizationId, id))
-    await this.repository.remove(organizationId, id)
+    const customer = await findCustomer(this.repository, organizationId, id)
+    assertCanDelete(customer)
+    await this.repository.remove(customer)
   }
 }

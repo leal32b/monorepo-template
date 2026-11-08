@@ -4,13 +4,14 @@ import type { AuthFailure } from '#shared/api'
 export type CustomerFailureKind = 'emailTaken' | 'gone' | 'changed' | 'notAllowed'
 
 /**
- * The API's codes (ADR 0044): another customer has the email, the customer is gone, someone archived,
- * restored or deleted it first (so the state the user saw is not the one it is in), and a role that does
- * not allow it, or an organization the caller is no longer in.
+ * The API's codes (ADR 0044): another customer has the email, the customer is gone, someone saved,
+ * archived, restored or deleted it first (so the customer the user saw is not the one stored, ADR 0048),
+ * and a role that does not allow it, or an organization the caller is no longer in.
  */
 const kinds: Record<string, CustomerFailureKind> = {
   customer_email_taken: 'emailTaken',
   customer_not_found: 'gone',
+  customer_changed: 'changed',
   customer_already_archived: 'changed',
   customer_not_archived: 'changed',
   permission_denied: 'notAllowed',

@@ -6,6 +6,7 @@ describe('customerFailureKind', () => {
   it.each([
     ['customer_email_taken', 'emailTaken'],
     ['customer_not_found', 'gone'],
+    ['customer_changed', 'changed'],
     ['customer_already_archived', 'changed'],
     ['customer_not_archived', 'changed'],
     ['permission_denied', 'notAllowed'],

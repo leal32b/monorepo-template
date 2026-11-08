@@ -1,6 +1,6 @@
 # 0044. Build customers as the reference vertical module
 
-- Status: accepted
+- Status: accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md)
 - Date: 2026-11-07
 
 ## Context and problem statement
@@ -62,8 +62,12 @@ A product renames `customer` and drops what it does not need. The pieces, top to
 - `apps/api/src/modules/customers/`: `domain/` (pure rules and errors), `customer-repository.port.ts`,
   `testing/` (the in-memory fake and the contract suite both repositories pass), `database/` (the
   Kysely adapter), `commands/` and `queries/` (a service and a controller per use case),
-  `customers.routes.ts` and `index.ts`; the migration `apps/api/migrations/0004_customers.sql`; one line
-  in `app/create-app.ts`.
+  `customers.routes.ts` and `index.ts`; the migrations `apps/api/migrations/0004_customers.sql` and
+  `0006_customer_version.sql`; one line in `app/create-app.ts`.
+- Every record keeps a `version` and an `updated_at` ([ADR 0048](0048-refuse-a-stale-save-with-a-version-per-record.md)):
+  the column in the table, `version` in the response and in the `PUT` body, the check in the domain's
+  update, and the repository's `save` and `remove` matching the version in their `where`. The contract
+  suite's `save` and `remove` cases prove it for the fake and the adapter.
 - `apps/web`: `entities/customers` (reads as router queries, writes), `features/customers/manage-customers`
   (forms), `pages/customers`, the route and its `preload` in `app/routes.tsx`, one item in the side menu
   and the palette, the `customers` texts in every language.

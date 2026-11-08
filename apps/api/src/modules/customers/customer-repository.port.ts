@@ -17,10 +17,16 @@ export type CustomerFilter = {
 export interface CustomerRepository {
   /** Throws `CustomerEmailTakenException` when another customer of the organization has the email. */
   insert(customer: Customer): Promise<void>
-  /** Replaces the stored customer with the same id. Same exception as `insert`. */
-  save(customer: Customer): Promise<void>
+  /**
+   * Replaces the stored customer with the same id, only while it is still at `customer.version` (the
+   * version it was read at), and returns it at the next version (ADR 0048). Throws
+   * `CustomerChangedException` when another save came first, `CustomerNotFoundException` when it was
+   * deleted meanwhile, and the same exception as `insert` for an email.
+   */
+  save(customer: Customer): Promise<Customer>
   findById(organizationId: string, id: string): Promise<Customer | null>
   /** Ordered by name (any case), then id, so a page never reshuffles. `total` counts the whole filter. */
   list(organizationId: string, filter: CustomerFilter): Promise<{ items: Customer[]; total: number }>
-  remove(organizationId: string, id: string): Promise<void>
+  /** Deletes the customer, only while it is still at `customer.version`. Same exceptions as `save`. */
+  remove(customer: Customer): Promise<void>
 }

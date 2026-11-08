@@ -1,6 +1,10 @@
 import type { CustomerFilter, CustomerRepository } from '../customer-repository.port'
 import type { Customer } from '../domain/customer'
-import { CustomerEmailTakenException } from '../domain/customers.errors'
+import {
+  CustomerChangedException,
+  CustomerEmailTakenException,
+  CustomerNotFoundException
+} from '../domain/customers.errors'
 
 const lower = (text: string | null) => text?.toLowerCase() ?? null
 
@@ -16,9 +20,12 @@ export class InMemoryCustomerRepository implements CustomerRepository {
     this.#customers.set(customer.id, customer)
   }
 
-  async save(customer: Customer): Promise<void> {
+  async save(customer: Customer): Promise<Customer> {
+    this.#assertUnchanged(customer)
     this.#assertEmailFree(customer)
-    this.#customers.set(customer.id, customer)
+    const saved = { ...customer, version: customer.version + 1 }
+    this.#customers.set(customer.id, saved)
+    return saved
   }
 
   async findById(organizationId: string, id: string): Promise<Customer | null> {
@@ -41,8 +48,16 @@ export class InMemoryCustomerRepository implements CustomerRepository {
     return { items: matching.slice(from, from + filter.pageSize), total: matching.length }
   }
 
-  async remove(organizationId: string, id: string): Promise<void> {
-    if (this.#customers.get(id)?.organizationId === organizationId) this.#customers.delete(id)
+  async remove(customer: Customer): Promise<void> {
+    this.#assertUnchanged(customer)
+    this.#customers.delete(customer.id)
+  }
+
+  /** The stored customer is the one `customer` was read from: there, and at the same version. */
+  #assertUnchanged(customer: Customer): void {
+    const stored = this.#customers.get(customer.id)
+    if (stored?.organizationId !== customer.organizationId) throw new CustomerNotFoundException()
+    if (stored.version !== customer.version) throw new CustomerChangedException()
   }
 
   #assertEmailFree(customer: Customer): void {

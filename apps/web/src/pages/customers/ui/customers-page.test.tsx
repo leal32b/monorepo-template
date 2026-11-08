@@ -26,7 +26,9 @@ const customer = (id: string, name: string, over: Partial<Customer> = {}): Custo
   company: null,
   notes: null,
   createdAt: '2026-11-07T10:00:00.000Z',
+  updatedAt: '2026-11-07T10:00:00.000Z',
   archivedAt: null,
+  version: 1,
   ...over
 })
 const problem = (code: string, status: number) =>
@@ -66,7 +68,8 @@ function fakeApi(initial: Customer[], over: { fail?: (method: string, path: stri
       return Response.json(created, { status: 201 })
     }
     if (method === 'PUT') {
-      db[at] = { ...(db[at] as Customer), ...(body as object) }
+      const read = body as { version: number }
+      db[at] = { ...(db[at] as Customer), ...read, version: read.version + 1 }
       return Response.json(db[at])
     }
     if (method === 'POST' && action === 'archive') {
@@ -375,6 +378,25 @@ describe('CustomersPage', () => {
       press('Save changes')
 
       expect(await screen.findByText('This customer no longer exists. The list is up to date now.')).toBeInTheDocument()
+    })
+
+    it('sends the version it read, and when someone saved first, says so and reads their version', async () => {
+      const api = fakeApi([ada, grace], {
+        fail: (method) => (method === 'PUT' ? problem('customer_changed', 409) : undefined)
+      })
+      renderPage({ api })
+      press('Edit', await rowOf('Ada Lovelace'))
+      const reads = api.calls.filter((call) => call.method === 'GET').length
+
+      type('Name', 'Ada King')
+      press('Save changes')
+
+      expect(
+        await screen.findByText('Someone changed this customer first. The list is up to date now.')
+      ).toBeInTheDocument()
+      expect(api.calls.find((call) => call.method === 'PUT')?.body).toMatchObject({ name: 'Ada King', version: 1 })
+      await waitFor(() => expect(api.calls.filter((call) => call.method === 'GET').length).toBeGreaterThan(reads))
+      expect(screen.queryByRole('textbox', { name: 'Name' })).not.toBeInTheDocument()
     })
   })
 

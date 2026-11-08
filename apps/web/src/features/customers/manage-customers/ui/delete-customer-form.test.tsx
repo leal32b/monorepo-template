@@ -14,7 +14,9 @@ const ada: Customer = {
   company: null,
   notes: null,
   createdAt: '2026-11-07T10:00:00.000Z',
-  archivedAt: '2026-11-08T10:00:00.000Z'
+  updatedAt: '2026-11-07T10:00:00.000Z',
+  archivedAt: '2026-11-08T10:00:00.000Z',
+  version: 1
 }
 const refused = (code: string, status = 409) =>
   Response.json({ type: `urn:problem:${code}`, title: code, status, code }, { status })

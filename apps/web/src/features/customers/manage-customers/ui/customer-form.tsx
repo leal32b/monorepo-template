@@ -15,8 +15,11 @@ export type CustomerFormProps = {
   customer?: Customer | undefined
   /** Called with the customer once it is saved. */
   onSaved: (customer: Customer) => void
-  /** Called when the customer no longer exists, so the list can be read again. */
-  onGone: () => void
+  /**
+   * Called when the customer no longer exists, or someone saved it after it was read (ADR 0048), so the
+   * list can be read again.
+   */
+  onStale: (kind: 'gone' | 'changed') => void
   onCancel: () => void
 }
 
@@ -25,7 +28,8 @@ const maxOf = (field: CustomerField) => (field === 'email' ? undefined : custome
 /**
  * Adds a customer or edits one, in the same fields. Only the name is asked for. The fields are checked on
  * submit, and again when one is left after that; an email another customer has is said under the email,
- * and what the user typed stays.
+ * and what the user typed stays. An edit states the version it started from, so a customer someone else
+ * saved meanwhile is refused instead of overwritten.
  */
 export function CustomerForm(props: CustomerFormProps) {
   const api = useApi()
@@ -67,17 +71,21 @@ export function CustomerForm(props: CustomerFormProps) {
       saved =
         props.customer === undefined
           ? await createCustomer(api, props.organizationId, input)
-          : await updateCustomer(api, props.organizationId, props.customer.id, input)
+          : await updateCustomer(api, props.organizationId, props.customer.id, {
+              ...input,
+              version: props.customer.version
+            })
     })
     setPending(false)
 
+    const kind = failed && customerFailureKind(failed)
     if (saved !== undefined) {
       props.onSaved(saved)
-    } else if (failed !== undefined && customerFailureKind(failed) === 'emailTaken') {
+    } else if (kind === 'emailTaken') {
       setEmailTaken(values().email)
       form.querySelector<HTMLElement>('[name="email"]')?.focus()
-    } else if (failed !== undefined && customerFailureKind(failed) === 'gone') {
-      props.onGone()
+    } else if (kind === 'gone' || kind === 'changed') {
+      props.onStale(kind)
     } else {
       setFailure(failed)
     }

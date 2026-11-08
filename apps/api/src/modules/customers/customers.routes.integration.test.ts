@@ -105,8 +105,8 @@ describe('the customers routes (ADR 0044)', () => {
 
     expect(customerSchema.parse(await (await call('GET', 'org-1/customers/id-1')).json()).name).toBe('Ada')
 
-    const edited = await call('PUT', 'org-1/customers/id-1', { name: 'Ada King' })
-    expect(customerSchema.parse(await edited.json())).toMatchObject({ name: 'Ada King', email: null })
+    const edited = await call('PUT', 'org-1/customers/id-1', { name: 'Ada King', version: 1 })
+    expect(customerSchema.parse(await edited.json())).toMatchObject({ name: 'Ada King', email: null, version: 2 })
 
     const archived = customerSchema.parse(await (await call('POST', 'org-1/customers/id-1/archive')).json())
     expect(archived.archivedAt).toBe('2026-11-07T10:00:00.000Z')
@@ -122,11 +122,28 @@ describe('the customers routes (ADR 0044)', () => {
     expect((await call('GET', 'org-1/customers/id-1')).status).toBe(404)
   })
 
+  it('answers 409 to an edit from someone who read an older version, and keeps the newer one', async () => {
+    const { signInWith, call, code } = await serve()
+    signInWith(['read', 'create', 'update'])
+    await call('POST', 'org-1/customers', { name: 'Ada' })
+    await call('PUT', 'org-1/customers/id-1', { name: 'Ada King', version: 1 })
+
+    expect(await code(await call('PUT', 'org-1/customers/id-1', { name: 'Ada Byron', version: 1 }))).toEqual({
+      status: 409,
+      code: 'customer_changed'
+    })
+    expect(customerSchema.parse(await (await call('GET', 'org-1/customers/id-1')).json()).name).toBe('Ada King')
+  })
+
   it('names what is wrong with a body or a query', async () => {
     const { signInWith, call, code } = await serve()
-    signInWith(['read', 'create'])
+    signInWith(['read', 'create', 'update'])
 
     expect(await code(await call('POST', 'org-1/customers', { name: '' }))).toEqual({
+      status: 400,
+      code: 'validation_failed'
+    })
+    expect(await code(await call('PUT', 'org-1/customers/id-1', { name: 'Ada' }))).toEqual({
       status: 400,
       code: 'validation_failed'
     })

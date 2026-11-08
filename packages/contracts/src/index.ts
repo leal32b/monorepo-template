@@ -3,6 +3,8 @@ export {
   type CustomerInput,
   type CustomerList,
   type CustomerStatus,
+  type CustomerUpdate,
+  type CustomerUpdateInput,
   type CustomerValues,
   customerInputSchema,
   customerLength,
@@ -10,6 +12,7 @@ export {
   customerPageSize,
   customerSchema,
   customerStatuses,
+  customerUpdateSchema,
   type ListCustomersQuery,
   listCustomersQuerySchema
 } from './customers'

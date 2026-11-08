@@ -1,4 +1,8 @@
-import { CustomerEmailTakenException, CustomerNotFoundException } from '../../domain/customers.errors'
+import {
+  CustomerChangedException,
+  CustomerEmailTakenException,
+  CustomerNotFoundException
+} from '../../domain/customers.errors'
 import { testCustomers } from '../../testing/test-customers'
 import { CreateCustomerService } from '../create-customer/create-customer.service'
 import { UpdateCustomerService } from './update-customer.service'
@@ -9,35 +13,47 @@ describe('UpdateCustomerService', () => {
     const create = new CreateCustomerService(repository, clock, ids)
     await create.execute('org-1', { name: 'Ada', email: 'ada@example.com' })
     await create.execute('org-1', { name: 'Bob' })
-    return { service: new UpdateCustomerService(repository) }
+    return { service: new UpdateCustomerService(repository, clock), clock }
   }
 
   it('replaces the details and keeps the rest, so a field left out is cleared', async () => {
-    const { service } = await setup()
+    const { service, clock } = await setup()
+    clock.advance(24 * 60 * 60 * 1000)
 
-    const updated = await service.execute('org-1', 'id-1', { name: 'Ada King', phone: '123' })
+    const updated = await service.execute('org-1', 'id-1', { name: 'Ada King', phone: '123', version: 1 })
 
     expect(updated).toMatchObject({
       id: 'id-1',
       name: 'Ada King',
       email: null,
       phone: '123',
-      createdAt: '2026-11-07T10:00:00.000Z'
+      createdAt: '2026-11-07T10:00:00.000Z',
+      updatedAt: '2026-11-08T10:00:00.000Z',
+      version: 2
     })
+  })
+
+  it('refuses details from someone who read an older version', async () => {
+    const { service } = await setup()
+    await service.execute('org-1', 'id-1', { name: 'Ada King', version: 1 })
+
+    await expect(service.execute('org-1', 'id-1', { name: 'Ada Byron', version: 1 })).rejects.toThrow(
+      CustomerChangedException
+    )
   })
 
   it('does not find a customer of another organization, nor one that is not there', async () => {
     const { service } = await setup()
 
-    await expect(service.execute('org-2', 'id-1', { name: 'X' })).rejects.toThrow(CustomerNotFoundException)
-    await expect(service.execute('org-1', 'nope', { name: 'X' })).rejects.toThrow(CustomerNotFoundException)
+    await expect(service.execute('org-2', 'id-1', { name: 'X', version: 1 })).rejects.toThrow(CustomerNotFoundException)
+    await expect(service.execute('org-1', 'nope', { name: 'X', version: 1 })).rejects.toThrow(CustomerNotFoundException)
   })
 
   it('refuses an email another customer has', async () => {
     const { service } = await setup()
 
-    await expect(service.execute('org-1', 'id-2', { name: 'Bob', email: 'ada@example.com' })).rejects.toThrow(
-      CustomerEmailTakenException
-    )
+    await expect(
+      service.execute('org-1', 'id-2', { name: 'Bob', email: 'ada@example.com', version: 1 })
+    ).rejects.toThrow(CustomerEmailTakenException)
   })
 })

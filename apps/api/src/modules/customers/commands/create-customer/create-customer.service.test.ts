@@ -22,7 +22,9 @@ describe('CreateCustomerService', () => {
       company: null,
       notes: null,
       createdAt: '2026-11-07T10:00:00.000Z',
-      archivedAt: null
+      updatedAt: '2026-11-07T10:00:00.000Z',
+      archivedAt: null,
+      version: 1
     })
     expect(customerSchema.safeParse(created).success).toBe(true)
     expect(await repository.findById('org-1', 'id-1')).not.toBeNull()
