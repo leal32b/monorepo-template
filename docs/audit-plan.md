@@ -34,7 +34,7 @@ every item below improves behaviour in production or coherence; none fixes a bro
 | B3 | `redact` in the logger | Sonnet | — | Done |
 | B4 | Empty reader sets in `createRead` | Sonnet | — | Done |
 | B5 | Pull request template and CODEOWNERS | Sonnet | — | Done |
-| B6 | Keep-alive timeout behind the host's proxy | Sonnet | — | Pending |
+| B6 | Keep-alive timeout behind the host's proxy | Sonnet | — | Done |
 | Z | Delete this plan | Sonnet | all | Pending |
 
 Suggested order: A1, A3, A2, then M1, M5, M3, M4, then M2, then the B items in one pull request.

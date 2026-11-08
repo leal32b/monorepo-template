@@ -5,8 +5,15 @@ import { HttpProblem } from './problem'
 /** Largest request body accepted, Fastify's default: our routes take forms, not files. */
 export const BODY_LIMIT_BYTES = 1_048_576
 
+/**
+ * The rest of a refused body is never read, so the connection closes with the answer instead of
+ * staying busy until the keep-alive limit.
+ */
 const tooLarge = () =>
-  new HttpProblem(413, 'payload_too_large', { detail: `Request bodies are limited to ${BODY_LIMIT_BYTES} bytes.` })
+  new HttpProblem(413, 'payload_too_large', {
+    detail: `Request bodies are limited to ${BODY_LIMIT_BYTES} bytes.`,
+    headers: { Connection: 'close' }
+  })
 
 /** True when the request declares a body: a length above zero, or chunked transfer. */
 function hasBody(req: IncomingMessage): boolean {

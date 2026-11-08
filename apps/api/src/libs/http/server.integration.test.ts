@@ -35,6 +35,13 @@ afterEach(async () => {
 const ok: HttpHandler = (_req, res) => sendJson(res, 200, { hello: 'world' })
 
 describe('HTTP server', () => {
+  it('keeps an idle connection open longer than the host proxy may reuse it, and waits for headers past that', () => {
+    const server = createHttpServer({ router: new HttpRouter(), logger: pino({ level: 'silent' }) })
+
+    expect(server.keepAliveTimeout).toBe(120_000)
+    expect(server.headersTimeout).toBeGreaterThan(server.keepAliveTimeout)
+  })
+
   it('serves a registered route as JSON', async () => {
     const url = await start((router) => router.get('/hello', ok))
 
@@ -492,6 +499,7 @@ describe('JSON request bodies', () => {
     const response = await fetch(`${url}/items`, postJson('x'.repeat(BODY_LIMIT_BYTES + 1)))
 
     expect(response.status).toBe(413)
+    expect(response.headers.get('connection')).toBe('close')
     expect(apiProblemSchema.parse(await response.json()).code).toBe('payload_too_large')
     expect(handler).not.toHaveBeenCalled()
   })

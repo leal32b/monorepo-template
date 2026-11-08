@@ -33,6 +33,17 @@ const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff'
 }
 
+/**
+ * A proxy in front (the host's load balancer) keeps idle connections to the API open and reuses them.
+ * Node closes one after 5 s by default; a proxy that keeps it longer may send a request down a
+ * connection Node just closed and answer 502. Render documents no number, only that a Node service
+ * with intermittent 502s should raise both settings (render.com/docs/troubleshooting-deploys), so the
+ * API keeps them past the 60 s most load balancers use. Headers may take a little longer, as Node
+ * advises. Shutdown still drops idle connections at once (`createShutdown`).
+ */
+const KEEP_ALIVE_TIMEOUT_MS = 120_000
+const HEADERS_TIMEOUT_MS = KEEP_ALIVE_TIMEOUT_MS + 1_000
+
 type RequestInfo = { id: string; route: string | null; path: string; corsAllowed: boolean }
 
 const REQUEST_ID = /^[\w.-]{1,128}$/
@@ -88,7 +99,7 @@ export function createHttpServer({
     await match.handler(req, res, { params: match.params, requestId: request.id })
   }
 
-  return createServer((req, res) => {
+  const server = createServer((req, res) => {
     const startedAt = performance.now()
     const request: RequestInfo = {
       id: incomingRequestId(req) ?? randomUUID(),
@@ -126,4 +137,7 @@ export function createHttpServer({
       sendProblem(res, problem, request.id)
     })
   })
+  server.keepAliveTimeout = KEEP_ALIVE_TIMEOUT_MS
+  server.headersTimeout = HEADERS_TIMEOUT_MS
+  return server
 }
