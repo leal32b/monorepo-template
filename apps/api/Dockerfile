@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 # Build from the repository root: docker build -f apps/api/Dockerfile .  (ADR 0012, ADR 0014)
+# The base image is pinned by digest, its tag kept for reading; Renovate moves the digest (ADR 0051).
 
-FROM node:26-slim AS build
+FROM node:26-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS build
 WORKDIR /repo
 # No .git in the image: skip installing Git hooks.
 ENV LEFTHOOK=0
@@ -16,7 +17,7 @@ COPY packages/contracts/src packages/contracts/src
 COPY apps/api apps/api
 RUN pnpm --filter @repo/api build
 
-FROM node:26-slim
+FROM node:26-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0
 COPY --from=build /repo/apps/api/dist dist
