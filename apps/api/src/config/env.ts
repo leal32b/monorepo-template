@@ -25,16 +25,20 @@ const optional = <T extends z.ZodMiniType>(schema: T) =>
     z.optional(schema)
   )
 
+const databaseUrl = z.url({ protocol: /^postgres(ql)?$/ })
+const logLevel = z._default(z.enum(LOG_LEVELS), 'info')
+const release = optional(z.string().check(z.regex(RELEASE)))
+
 const envSchema = z
   .object({
-    DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+    DATABASE_URL: databaseUrl,
     // abort: an invalid origin skips the rules below, which read it.
     WEB_ORIGIN: z.string().check(z.refine(isOrigin, { abort: true })),
     BETTER_AUTH_SECRET: z.string().check(z.minLength(32)),
     HOST: z._default(z.string().check(z.minLength(1)), '127.0.0.1'),
     PORT: z._default(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(65535))), 3001),
-    LOG_LEVEL: z._default(z.enum(LOG_LEVELS), 'info'),
-    RELEASE: optional(z.string().check(z.regex(RELEASE))),
+    LOG_LEVEL: logLevel,
+    RELEASE: release,
     CORS_ORIGINS: z.pipe(
       z.pipe(
         z._default(z.string(), ''),
@@ -106,12 +110,26 @@ export class EnvError extends Error {
   }
 }
 
-export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
-  const result = envSchema.safeParse(source)
+/** The parsed environment, or an `EnvError` naming what is wrong. */
+function parse<T extends z.ZodMiniType>(schema: T, source: Record<string, string | undefined>): z.output<T> {
+  const result = schema.safeParse(source)
   if (!result.success) {
     throw new EnvError([...new Set(result.error.issues.map((issue) => String(issue.path[0])))])
   }
-  const env = result.data
+  return result.data
+}
+
+/** What a job that only talks to the database needs, such as the purge (ADR 0050). */
+export type DatabaseEnv = Pick<ApiEnv, 'databaseUrl' | 'logLevel' | 'release'>
+
+/** The database's part of the environment: a job run away from the API needs none of its secrets. */
+export function loadDatabaseEnv(source: Record<string, string | undefined>): DatabaseEnv {
+  const env = parse(z.object({ DATABASE_URL: databaseUrl, LOG_LEVEL: logLevel, RELEASE: release }), source)
+  return { databaseUrl: env.DATABASE_URL, logLevel: env.LOG_LEVEL, release: env.RELEASE ?? 'dev' }
+}
+
+export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
+  const env = parse(envSchema, source)
   return {
     databaseUrl: env.DATABASE_URL,
     host: env.HOST,

@@ -54,3 +54,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0047](0047-put-time-limits-on-every-database-wait.md) | Put time limits on every database wait | accepted |
 | [0048](0048-refuse-a-stale-save-with-a-version-per-record.md) | Refuse a stale save with a version per record | accepted |
 | [0049](0049-delete-an-account-from-an-emailed-link.md) | Delete an account from an emailed link | accepted |
+| [0050](0050-purge-expired-rows-daily-from-a-job-of-its-own.md) | Purge expired rows daily, from a job of its own | accepted |

@@ -2,8 +2,9 @@
 
 How to see what production is doing, and what to do when it misbehaves. The decisions behind it:
 [ADR 0014](adr/0014-hosting-and-deploy-from-github-actions.md) (hosting and deploy) and
-[ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md) (observability) and
-[ADR 0047](adr/0047-put-time-limits-on-every-database-wait.md) (time limits on the database).
+[ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md) (observability),
+[ADR 0047](adr/0047-put-time-limits-on-every-database-wait.md) (time limits on the database) and
+[ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md) (the daily purge).
 Neon, Render and Cloudflare are the template's own hosts; on others, the same signals live elsewhere.
 
 ## Signals
@@ -15,6 +16,7 @@ Neon, Render and Cloudflare are the template's own hosts; on others, the same si
 | API log | stdout, read in the host's log viewer | One JSON line per request, plus every unexpected error with its stack |
 | Worker log | Cloudflare dashboard, Workers Logs | Each request through the web origin, its status and any exception |
 | Deploy | GitHub Actions, `Deploy` workflow | Which commit went live, and the smoke tests it passed |
+| Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went |
 
 ## Reading the API log
 
@@ -48,7 +50,7 @@ No reference on the screen means the browser could not reach the API: look at th
 
 - An uptime monitor (any free one) on `<web origin>/api/health` every 5 to 10 minutes, alerting on a
   status other than 200. Each check wakes the database: a shorter interval spends its free compute.
-- Notifications for a failed `Deploy` or `Audit` workflow in GitHub (on by default for the person who
+- Notifications for a failed `Deploy`, `Audit` or `Purge` workflow in GitHub (on by default for the person who
   triggered the run).
 - If the host's log retention is too short, a log drain to a log service; the lines are already JSON.
 
@@ -58,6 +60,7 @@ No reference on the screen means the browser could not reach the API: look at th
 | --- | --- |
 | `/api/health` answers 503 | The database: Neon's status page and the project's compute; the API log's `idle database connection lost` |
 | Calls answer 503 `service_unavailable` after up to about 25 s | API log: `dependency unavailable` and its `reason`. `timeout exceeded when trying to connect` means every connection was busy (a slow query holding them, or more traffic than five connections serve); `Query read timeout`, a code `57014` or a connection error point at the database: `/api/health`, then the provider's status and the project's compute. The API recovers on its own once the database answers; a restart does not help |
+| The `Purge` workflow fails, or stopped running | Its log: `purge failed` with the error, or `Invalid environment: DATABASE_URL`. A runner that cannot connect means the database refuses GitHub's addresses: allow them, or run `node dist/purge.js` from the API image on the host's cron. GitHub pauses a schedule after 60 days without activity: enable it again on the workflow's page. A missed day only lets rows wait |
 | `/api/health` does not answer | Render: the service's events and log; a crash leaves a `fatal` line |
 | Pages load, every call fails | Worker log: an exception there means the Worker cannot reach `API_ORIGIN`; a 403 from the API means `PROXY_SECRET` differs between the Worker and the API |
 | Emails do not arrive | API log: `email not sent` with the provider's error; the sender domain in Resend |

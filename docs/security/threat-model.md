@@ -5,7 +5,8 @@
   2026-11-04, from the organization plugin spike (`git show e4743cc:docs/organizations-spike.md`);
   statuses and logging updated on 2026-11-07, in Phase 9; account deletion (T34, T35) added on
   2026-11-08 ([ADR 0049](../adr/0049-delete-an-account-from-an-emailed-link.md)); T04 made
-  independent of the domain the same day, with HSTS sent by the web origin.
+  independent of the domain the same day, with HSTS sent by the web origin; two accepted risks
+  bounded by the daily purge of expired rows ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)).
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -113,7 +114,7 @@ it).
 | --- | --- | --- |
 | Rate limits count per IP, not per account: stuffing spread over many IPs is not slowed | Per-account lockout lets anyone lock a victim out; breached passwords are already refused | Sign-in failures show up in the logs or a product holds sensitive data |
 | MFA applies only to email-and-password sign-in; Google sign-in relies on the Google account | That is how Better Auth's `twoFactor` plugin works | A product requires MFA for everyone, or per organization (left out of Phase 6.5) |
-| An unconfirmed account squatting an address blocks that person's Google sign-in until they reset the password | The reset proves ownership and ends the block | Support requests about it; then purge unconfirmed accounts after a few days |
+| An unconfirmed account squatting an address blocks that person's Google sign-in until they reset the password, for at most 7 days | The reset proves ownership and ends the block; the daily purge deletes accounts never confirmed after 7 days ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)) | Support requests about it within those days; then shorten `identityRetention.unconfirmedAccountDays` |
 | Other Workers of the same Cloudflare account (`*.leal32b.workers.dev`) are the same site, so they could set cookies for the web origin and send same-site requests | Only the owner deploys there; `Origin` and `Sec-Fetch-Site` checks still apply | A custom domain is bought |
 | The health routes stay reachable directly at `*.onrender.com` | Render and the deploy smoke test need them, and they reveal only up or down and the commit running (ADR 0046) | Health starts returning more than status and release |
 | No audit log of security events (sign-in, MFA changes, password resets) | The request log (ADR 0046) keeps each call's route, status and time, but not who made it | A product holds sensitive data, or must answer who changed what |
@@ -123,4 +124,4 @@ it).
 | Every member can list the organization's members and their emails | That is how the plugin's `list-members` works, and teams expect to see each other | A product needs members hidden from one another |
 | An organization deleted is gone at once, with no grace period | The owner types the name first; Phase 7 decides what its records need | A product holds data that a mistaken deletion would make costly |
 | An account deleted is gone at once, with no grace period; expired verification rows of its address stay until they expire | The emailed link and the last screen's button are two deliberate acts; the rows hold no secret that works without the account | A product holds data that a mistaken deletion would make costly, or must keep records after an account goes |
-| Expired invitations stay in the table as `pending` | They cannot be accepted, and the web hides them | The table grows enough to matter; then purge them on a schedule |
+| Expired invitations stay in the table as `pending` for 30 days | They cannot be accepted, and the web hides them; the daily purge deletes them after 30 days, so support can still see why one failed ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)) | A product must keep them longer for an audit |
