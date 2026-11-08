@@ -44,6 +44,35 @@ describe('createLogger', () => {
     expect(lines.map((line) => line.msg)).toEqual(['written'])
   })
 
+  it('redacts the secrets a library error may carry, though nothing logs them on purpose', () => {
+    const { lines, stream } = memory()
+    const logger = createLogger({ level: 'info', service: 'api', release: 'dev' }, stream)
+    const secret = 'do-not-log'
+    const err = Object.assign(new Error('upstream failed'), {
+      headers: { authorization: `Bearer ${secret}`, cookie: secret, 'x-proxy-secret': secret, accept: 'text/html' },
+      response: { headers: { 'set-cookie': [secret] } },
+      config: { connectionString: `postgres://ada:${secret}@db/app`, password: secret }
+    })
+
+    logger.error({ err }, 'request failed')
+
+    expect(JSON.stringify(lines)).not.toContain(secret)
+    expect(lines[0]).toMatchObject({
+      msg: 'request failed',
+      err: {
+        message: 'upstream failed',
+        headers: {
+          authorization: '[Redacted]',
+          cookie: '[Redacted]',
+          'x-proxy-secret': '[Redacted]',
+          accept: 'text/html'
+        },
+        response: { headers: { 'set-cookie': '[Redacted]' } },
+        config: { connectionString: '[Redacted]', password: '[Redacted]' }
+      }
+    })
+  })
+
   it('writes to stdout when given no destination', () => {
     expect(createLogger({ level: 'silent', service: 'api', release: 'dev' }).level).toBe('silent')
   })
