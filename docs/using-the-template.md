@@ -65,6 +65,14 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
   [SECURITY.md](../SECURITY.md).
 - An uptime monitor on `<web origin>/api/health`, and where to look when it fires:
   [operations.md](operations.md).
+- Your own domain: the web already sends `Strict-Transport-Security` on every page
+  (`apps/web/public/_headers`), so HTTPS holds there as it does on `workers.dev`. Its
+  `includeSubDomains` reaches every name under the web's host: serve the web from a host whose
+  subdomains all answer HTTPS. Add `preload` (and submit the domain at
+  [hstspreload.org](https://hstspreload.org)) only when the web is on the apex domain and every
+  subdomain has served HTTPS for a while: leaving the list takes months.
+- A browser feature the app starts to use (camera, passkeys, fullscreen…) is allowed in the
+  `Permissions-Policy` of `_headers` first; everything else stays off.
 
 ## 5. Build your first feature
 

@@ -24,7 +24,7 @@ every item below improves behaviour in production or coherence; none fixes a bro
 | A1 | Timeouts on the Postgres pool | Opus | — | Done |
 | A2 | Account deletion | Opus | — | Done |
 | A3 | Concurrency control in the reference module | Opus (decide), Sonnet (web) | — | Done |
-| M1 | HSTS and the remaining security headers | Sonnet | — | Pending |
+| M1 | HSTS and the remaining security headers | Sonnet | — | Done |
 | M2 | Purge expired rows on a schedule | Opus | A1 | Pending |
 | M3 | Automated dependency updates | Sonnet | — | Pending |
 | M4 | Pin the Docker base image by digest | Sonnet | M3 | Pending |

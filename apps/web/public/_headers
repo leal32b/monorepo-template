@@ -3,10 +3,17 @@
 
 # The CSP allows only this origin: no inline script or style, no other host. The API is on the
 # same origin (ADR 0019), so connect-src 'self' covers it.
+# HSTS holds on any domain, not only on the preloaded .dev of workers.dev; add `preload` only as
+# docs/using-the-template.md says. Permissions-Policy turns off every feature the app does not use
+# (it copies the backup codes, so clipboard-write stays on for itself): a feature added later is
+# allowed here first. COOP keeps a page opened from elsewhere from holding a handle to this one.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: accelerometer=(), autoplay=(), camera=(), clipboard-read=(), clipboard-write=(self), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=()
+  Cross-Origin-Opener-Policy: same-origin
 
 # Vite puts a content hash in every file name under /assets: a new build is a new URL.
 /assets/*

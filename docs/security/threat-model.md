@@ -4,7 +4,8 @@
 - Date: 2026-10-28; statuses updated on 2026-10-31, at the end of Phase 6; tenancy added on
   2026-11-04, from the organization plugin spike (`git show e4743cc:docs/organizations-spike.md`);
   statuses and logging updated on 2026-11-07, in Phase 9; account deletion (T34, T35) added on
-  2026-11-08 ([ADR 0049](../adr/0049-delete-an-account-from-an-emailed-link.md)).
+  2026-11-08 ([ADR 0049](../adr/0049-delete-an-account-from-an-emailed-link.md)); T04 made
+  independent of the domain the same day, with HSTS sent by the web origin.
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -12,7 +13,7 @@
 
 ```
 Browser ──TLS──▶ Cloudflare Worker (web origin)
-                  ├─ static assets, _headers (CSP, frame-ancestors)
+                  ├─ static assets, _headers (CSP, frame-ancestors, HSTS, COOP)
                   └─ /api/* ──TLS + X-Proxy-Secret + X-Client-IP──▶ API on Render (node:http)
                                                                      ├─ /api/auth/*  Better Auth
                                                                      ├─ /api/*       our routes
@@ -73,7 +74,7 @@ it).
 | T01 | Password guessing and credential stuffing on sign-in | S | Better Auth rate limit, 3 requests per 10 s per IP on `/sign-in` and `/sign-up`, counters in Postgres so a restart does not reset them; minimum length 15; passwords found in breaches refused (`haveIBeenPwned`); TOTP for users who enable it | in place |
 | T02 | Dodging the rate limit with a forged client IP | S | The API refuses requests without the Worker secret; the Worker overwrites `X-Client-IP` with `CF-Connecting-IP`; Better Auth reads only that header | in place |
 | T03 | Session theft through XSS | I, E | Cookie `HttpOnly`; full CSP without inline script; Solid escapes text; no `innerHTML` in the web app | in place |
-| T04 | Session theft in transit | I | HTTPS only: `.dev` (so `workers.dev`) is on the HSTS preload list, Render serves HTTPS; cookie `Secure` | in place |
+| T04 | Session theft in transit | I | HTTPS only: the web origin sends `Strict-Transport-Security` on every page (`apps/web/public/_headers`), on any domain; Render serves HTTPS; cookie `Secure`; the deploy smoke test checks the header | in place |
 | T05 | Session fixation | S | A new random token at every sign-in; the cookie is signed with an HMAC of `BETTER_AUTH_SECRET` | in place |
 | T06 | CSRF on a state-changing request | T | Cookie `SameSite=Lax`; Better Auth checks `Origin` against the web origin; the API pipeline checks `Sec-Fetch-Site` (or `Origin`) on every `POST`, `PUT`, `PATCH` and `DELETE` and accepts only `application/json` bodies | in place |
 | T07 | Clickjacking of the sign-in or MFA screens | T | `frame-ancestors 'none'` | in place |
