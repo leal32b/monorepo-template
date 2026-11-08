@@ -61,6 +61,8 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 ## 4. Set up once
 
 - Protect `main`: pull requests only, with the `CI` checks required.
+- Dependency updates: install the [Renovate GitHub App](https://github.com/apps/renovate) on the
+  repository; it reads `.github/renovate.json` and opens a dependency dashboard issue.
 - Security reports: turn on private vulnerability reporting, or put your contact in
   [SECURITY.md](../SECURITY.md).
 - An uptime monitor on `<web origin>/api/health`, and where to look when it fires:
@@ -102,12 +104,15 @@ migration (with a new migration that drops the table), web slices, texts, fixtur
   pnpm lint:fsd && pnpm knip && pnpm test:e2e` (100% coverage, [AGENTS.md](../AGENTS.md)).
 - One decision, one ADR (`write-adr`); a change to a flow, a provider or a trust boundary updates
   the [threat model](security/threat-model.md) in the same pull request.
-- Dependencies: versions live in the pnpm catalog (`pnpm-workspace.yaml`); check them with
-  `pnpm outdated -r`. A weekly `pnpm audit` runs in CI.
+- Dependencies: versions live in the pnpm catalog (`pnpm-workspace.yaml`). Renovate proposes the
+  updates ([ADR 0051](adr/0051-propose-dependency-updates-with-renovate.md)); review them in this
+  order: Better Auth first (read its release notes and the threat model rows it touches), then a
+  runtime minor or major (its changelog, then the screens or routes it drives), then runtime
+  patches, then dev tooling, Action SHAs and the image digest (green CI is enough). A new runtime
+  dependency joins the runtime list in `.github/renovate.json`. A weekly `pnpm audit` runs in CI.
 - Releases: an annotated tag (`v1.2.0`) on `main` when it means something; no release tooling.
 
 Waiting for a trigger:
 
 - Solid 2 and Kobalte 2: migrate when Kobalte 2 leaves alpha (2.0.0-alpha.4 on 2026-11-07).
-- Renovate: when the manual dependency checks slip.
 - Error tracking, metrics and tracing: the signals in [ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md).

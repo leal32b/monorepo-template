@@ -1,0 +1,85 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Dependency updates proposed as pull requests (ADR 0051). Review them as docs/using-the-template.md says.",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "3 days",
+  "internalChecksFilter": "strict",
+  "rangeStrategy": "bump",
+  "prConcurrentLimit": 10,
+  "dependencyDashboard": true,
+  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on monday"] },
+  "packageRules": [
+    {
+      "description": "Tooling the product does not ship, minor and patch, in one weekly pull request.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "*",
+        "!better-auth",
+        "!kysely",
+        "!pg",
+        "!pino",
+        "!zod",
+        "!solid-js",
+        "!@solidjs/router",
+        "!@solid-primitives/i18n",
+        "!@kobalte/core",
+        "!@unocss/preset-wind4",
+        "!class-variance-authority",
+        "!clsx",
+        "!lean-qr"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev tooling"
+    },
+    {
+      "description": "What reaches users: patches in one pull request; a minor or a major gets its own.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "kysely",
+        "pg",
+        "pino",
+        "zod",
+        "solid-js",
+        "@solidjs/router",
+        "@solid-primitives/i18n",
+        "@kobalte/core",
+        "@unocss/preset-wind4",
+        "class-variance-authority",
+        "clsx",
+        "lean-qr"
+      ],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "runtime patches"
+    },
+    {
+      "description": "Better Auth alone, on any day, read first: it guards every session (threat model T12).",
+      "matchPackageNames": ["better-auth"],
+      "groupName": "better-auth",
+      "schedule": ["at any time"],
+      "prPriority": 10
+    },
+    {
+      "description": "Actions pinned by SHA and the Docker base image by digest, kept current together.",
+      "matchManagers": ["github-actions", "dockerfile"],
+      "groupName": "ci and image pins"
+    },
+    {
+      "description": "A Node major is a decision: .node-version, the Docker image and @types/node move together, by hand.",
+      "matchPackageNames": ["node", "@types/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "engines follows .node-version by hand; Renovate does not bump it.",
+      "matchDepTypes": ["engines"],
+      "enabled": false
+    }
+  ]
+}
