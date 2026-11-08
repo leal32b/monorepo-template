@@ -2,7 +2,8 @@
 
 How to see what production is doing, and what to do when it misbehaves. The decisions behind it:
 [ADR 0014](adr/0014-hosting-and-deploy-from-github-actions.md) (hosting and deploy) and
-[ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md) (observability).
+[ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md) (observability) and
+[ADR 0047](adr/0047-put-time-limits-on-every-database-wait.md) (time limits on the database).
 Neon, Render and Cloudflare are the template's own hosts; on others, the same signals live elsewhere.
 
 ## Signals
@@ -25,6 +26,9 @@ and `hostname`. A request line adds `reqId`, `method`, `route` (the pattern, suc
 - `request rejected` (warn): a 4xx; a burst of 401, 403 or 429 is worth a look.
 - `request failed` (error): a 5xx. The line before it with the same `reqId`,
   `unhandled error in request handler`, holds the error and its stack.
+- `dependency unavailable` (warn): the database was out of reach or did not answer in time; the
+  request answered `503 service_unavailable` and its `reason` says which limit ended the wait. No
+  stack: it is not a bug.
 
 Headers, cookies and bodies are never logged. Keep it that way: a log line may be read by anyone with
 access to the host.
@@ -53,6 +57,7 @@ No reference on the screen means the browser could not reach the API: look at th
 | Symptom | First look |
 | --- | --- |
 | `/api/health` answers 503 | The database: Neon's status page and the project's compute; the API log's `idle database connection lost` |
+| Calls answer 503 `service_unavailable` after up to about 25 s | API log: `dependency unavailable` and its `reason`. `timeout exceeded when trying to connect` means every connection was busy (a slow query holding them, or more traffic than five connections serve); `Query read timeout`, a code `57014` or a connection error point at the database: `/api/health`, then the provider's status and the project's compute. The API recovers on its own once the database answers; a restart does not help |
 | `/api/health` does not answer | Render: the service's events and log; a crash leaves a `fatal` line |
 | Pages load, every call fails | Worker log: an exception there means the Worker cannot reach `API_ORIGIN`; a 403 from the API means `PROXY_SECRET` differs between the Worker and the API |
 | Emails do not arrive | API log: `email not sent` with the provider's error; the sender domain in Resend |

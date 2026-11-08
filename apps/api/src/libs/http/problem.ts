@@ -52,6 +52,13 @@ export class HttpProblem extends Error {
 /** Unexpected failures: the client learns nothing about internals (the log has the details). */
 const internalError = () => new HttpProblem(500, 'internal_error', { detail: 'Unexpected error. See the API log.' })
 
+/** A dependency out of reach or past its time limit (ADR 0047): nothing broke, the client may retry. */
+const unavailable = () =>
+  new HttpProblem(503, 'service_unavailable', {
+    detail: 'The service could not answer in time. Try again in a moment.',
+    headers: { 'Retry-After': '5' }
+  })
+
 function statusOf(error: ExceptionBase): number | null {
   if (error instanceof NotFoundException) return 404
   if (error instanceof ArgumentInvalidException) return 400
@@ -60,12 +67,16 @@ function statusOf(error: ExceptionBase): number | null {
 }
 
 /**
- * The problem an error answers with: HTTP problems as they are, use-case exceptions by family,
- * anything else as an opaque 500. `expected` is false for the last case, which is a bug worth
- * logging.
+ * The problem an error answers with: HTTP problems as they are, use-case exceptions by family, an
+ * error `isUnavailable` recognises as a 503, anything else as an opaque 500. `expected` is false for
+ * the last case, which is a bug worth logging with its stack.
  */
-export function toProblem(error: unknown): { problem: HttpProblem; expected: boolean } {
+export function toProblem(
+  error: unknown,
+  isUnavailable: (error: unknown) => boolean = () => false
+): { problem: HttpProblem; expected: boolean } {
   if (error instanceof HttpProblem) return { problem: error, expected: true }
+  if (isUnavailable(error)) return { problem: unavailable(), expected: true }
   if (!(error instanceof ExceptionBase)) return { problem: internalError(), expected: false }
   const status = statusOf(error)
   if (status === null) return { problem: internalError(), expected: false }

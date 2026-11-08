@@ -33,7 +33,8 @@ export function discoverMigrations(dir: string): string[] {
  * own transaction together with its `schema_migration` row, so a failure leaves it pending. That
  * transaction first takes a transaction-level advisory lock and reads what is applied, so instances
  * booting at once take turns. Nothing runs outside a transaction, so a pooler in transaction mode
- * (PgBouncer) keeps every step on one server connection (ADR 0018).
+ * (PgBouncer) keeps every step on one server connection (ADR 0018). Each transaction lifts the
+ * role's statement limit for itself only (ADR 0047).
  */
 export async function runMigrations<DB>(db: Kysely<DB>, dir: string): Promise<string[]> {
   const migrations = discoverMigrations(dir)
@@ -41,6 +42,8 @@ export async function runMigrations<DB>(db: Kysely<DB>, dir: string): Promise<st
   let next: string | undefined
   do {
     next = await db.transaction().execute(async (trx) => {
+      // The role's statement_timeout (ADR 0047) is for requests; a migration may take longer.
+      await sql`set local statement_timeout = 0`.execute(trx)
       await sql`select pg_advisory_xact_lock(hashtext(${LOCK}))`.execute(trx)
       await sql`
         create table if not exists schema_migration (

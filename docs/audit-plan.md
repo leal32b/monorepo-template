@@ -21,7 +21,7 @@ every item below improves behaviour in production or coherence; none fixes a bro
 
 | ID | Item | Model | Depends on | Status |
 | --- | --- | --- | --- | --- |
-| A1 | Timeouts on the Postgres pool | Opus | — | Pending |
+| A1 | Timeouts on the Postgres pool | Opus | — | Done |
 | A2 | Account deletion | Opus | — | Pending |
 | A3 | Concurrency control in the reference module | Opus (decide), Sonnet (web) | — | Pending |
 | M1 | HSTS and the remaining security headers | Sonnet | — | Pending |

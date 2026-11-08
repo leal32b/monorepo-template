@@ -2,6 +2,7 @@ import type { Server } from 'node:http'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
+import { isDatabaseUnavailable } from '#libs/database/database'
 import { fromFetchHandler } from '#libs/http/fetch-handler'
 import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
@@ -92,6 +93,7 @@ export function createApp({
     corsOrigins,
     trustedOrigins: [webOrigin],
     proxySecret,
-    publicPaths: PUBLIC_PATHS
+    publicPaths: PUBLIC_PATHS,
+    isUnavailable: isDatabaseUnavailable
   })
 }

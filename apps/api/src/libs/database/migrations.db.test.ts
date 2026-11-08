@@ -1,9 +1,11 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
+import { resetDatabase } from '../../../test/reset-database'
 import { createDatabase, createPool } from './database'
 import { runMigrations } from './migrations'
 
@@ -77,6 +79,29 @@ describe('runMigrations', () => {
 
     await expect(runMigrations(db, dir)).rejects.toThrow()
     expect(await advisoryLocks()).toBe(0)
+  })
+
+  it('lifts the statement limit inside a migration only', async () => {
+    write('0001_read_limit.sql', "create table seen as select current_setting('statement_timeout') as value;")
+
+    await runMigrations(db, dir)
+
+    expect((await sql<{ value: string }>`select value from seen`.execute(db)).rows).toEqual([{ value: '0' }])
+  })
+
+  it("sets the session limits on the API's role in this database", async () => {
+    await resetDatabase(db)
+    await runMigrations(db, fileURLToPath(new URL('../../../migrations/', import.meta.url)))
+
+    const { rows } = await sql<{ settings: string[] }>`
+      select setconfig as settings from pg_db_role_setting
+      where setrole = (select oid from pg_roles where rolname = current_user)
+        and setdatabase = (select oid from pg_database where datname = current_database())
+    `.execute(db)
+
+    expect(rows[0]?.settings).toEqual(
+      expect.arrayContaining(['statement_timeout=10s', 'idle_in_transaction_session_timeout=30s'])
+    )
   })
 
   it('runs every statement inside a transaction, as a transaction pooler requires', async () => {

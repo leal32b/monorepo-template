@@ -51,3 +51,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted |
 | [0045](0045-run-the-end-to-end-suite-on-the-built-app-without-outside-services.md) | Run the end-to-end suite on the built app, without outside services | accepted |
 | [0046](0046-observe-through-structured-logs-tagged-with-the-release.md) | Observe through structured logs tagged with the release | accepted |
+| [0047](0047-put-time-limits-on-every-database-wait.md) | Put time limits on every database wait | accepted |

@@ -165,6 +165,28 @@ describe('HTTP server', () => {
     expect(error).toHaveBeenCalled()
   })
 
+  it('answers a dependency out of reach as a 503 to retry, with its reason in one warning', async () => {
+    const logger = pino({ level: 'silent' })
+    const error = vi.spyOn(logger, 'error')
+    const warn = vi.spyOn(logger, 'warn')
+    const url = await start(
+      (router) =>
+        router.get('/hello', async () => {
+          throw new Error('Query read timeout')
+        }),
+      { logger, isUnavailable: (err) => err instanceof Error && err.message === 'Query read timeout' }
+    )
+
+    const response = await fetch(`${url}/hello`)
+    const body = apiProblemSchema.parse(await response.json())
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('retry-after')).toBe('5')
+    expect(body.code).toBe('service_unavailable')
+    expect(warn).toHaveBeenCalledWith({ reqId: body.requestId, reason: 'Query read timeout' }, 'dependency unavailable')
+    expect(error).not.toHaveBeenCalledWith(expect.anything(), 'unhandled error in request handler')
+  })
+
   it('writes one access-log line per request, without headers or bodies', async () => {
     const logger = pino({ level: 'silent' })
     const info = vi.spyOn(logger, 'info')
