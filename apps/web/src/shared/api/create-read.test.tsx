@@ -2,7 +2,7 @@ import { MemoryRouter, Route } from '@solidjs/router'
 import { render, screen, waitFor } from '@solidjs/testing-library'
 import { createSignal, Suspense } from 'solid-js'
 import { createQuery } from './create-query'
-import { createRead, readAgain, updateRead } from './create-read'
+import { createRead, keysRead, readAgain, updateRead } from './create-read'
 
 describe('createRead (ADR 0038)', () => {
   afterEach(() => vi.useRealTimers())
@@ -164,5 +164,38 @@ describe('createRead (ADR 0038)', () => {
     expect(screen.getByText('Grace, page 2')).toBeInTheDocument()
     updateRead<string>(pages.keyFor(2), (value) => `${value}, changed`)
     expect(await screen.findByText('Grace, page 2, changed')).toBeInTheDocument()
+  })
+
+  it('forgets a key once its last screen leaves it, by moving to another key or by closing', async () => {
+    const searches = createQuery(async (term: string) => `found ${term}`, 'searches')
+    const [term, setTerm] = createSignal('ada')
+    function Screen() {
+      const value = createRead(
+        () => searches(term()),
+        () => searches.keyFor(term())
+      )
+      return <p>{value()}</p>
+    }
+    const { unmount } = render(() => (
+      <MemoryRouter>
+        <Route
+          path="/"
+          component={() => (
+            <Suspense fallback={<p>Waiting</p>}>
+              <Screen />
+            </Suspense>
+          )}
+        />
+      </MemoryRouter>
+    ))
+    expect(await screen.findByText('found ada')).toBeInTheDocument()
+
+    setTerm('grace')
+
+    expect(await screen.findByText('found grace')).toBeInTheDocument()
+    expect(keysRead()).not.toContain(searches.keyFor('ada'))
+    expect(keysRead()).toContain(searches.keyFor('grace'))
+    unmount()
+    expect(keysRead()).not.toContain(searches.keyFor('grace'))
   })
 })

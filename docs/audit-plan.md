@@ -32,7 +32,7 @@ every item below improves behaviour in production or coherence; none fixes a bro
 | B1 | Template guide: owner-specific text | Sonnet | — | Done |
 | B2 | Template guide: removing customers in a new product | Sonnet | — | Done |
 | B3 | `redact` in the logger | Sonnet | — | Done |
-| B4 | Empty reader sets in `createRead` | Sonnet | — | Pending |
+| B4 | Empty reader sets in `createRead` | Sonnet | — | Done |
 | B5 | Pull request template and CODEOWNERS | Sonnet | — | Pending |
 | B6 | Keep-alive timeout behind the host's proxy | Sonnet | — | Pending |
 | Z | Delete this plan | Sonnet | all | Pending |

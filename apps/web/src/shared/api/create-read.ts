@@ -17,8 +17,22 @@ type Change = (value: unknown) => unknown
 /** A screen reading a key: how it draws a change at once, and how it asks for the key again. */
 type Reader = { draw: (change: Change) => void; again: () => void }
 
-/** The screens reading each key now. */
+/** The screens reading each key now; a key no screen reads is not kept. */
 const readers = new Map<string, Set<Reader>>()
+
+/** Takes a screen off the readers of `key`, and the key with it when it was the last. */
+function leave(reader: Reader, key: string | undefined): void {
+  if (key === undefined) return
+  // A key a screen registered keeps its set until that screen, the last, leaves it.
+  const here = readers.get(key) as Set<Reader>
+  here.delete(reader)
+  if (here.size === 0) readers.delete(key)
+}
+
+/** The keys some screen reads now. */
+export function keysRead(): string[] {
+  return [...readers.keys()]
+}
 
 /**
  * Reads a query in a screen (ADR 0038). A key never read waits under the screen's boundary, which shows
@@ -49,14 +63,13 @@ export function createRead<T>(read: () => Promise<T>, key: string | (() => strin
     draw: (change) => mutate((current) => change(current) as T),
     again: () => ask((times) => times + 1)
   }
-  let registered: Set<Reader> | undefined
+  let registered: string | undefined
   createComputed(() => {
-    registered?.delete(reader)
-    const here = readers.get(keyOf()) ?? new Set()
-    readers.set(keyOf(), here.add(reader))
-    registered = here
+    leave(reader, registered)
+    registered = keyOf()
+    readers.set(registered, (readers.get(registered) ?? new Set()).add(reader))
   })
-  onCleanup(() => registered?.delete(reader))
+  onCleanup(() => leave(reader, registered))
   return () => value.latest
 }
 
