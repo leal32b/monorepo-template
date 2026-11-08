@@ -31,6 +31,9 @@ The template calls itself "Monorepo Template". Replace it in:
 | `apps/api/src/modules/identity/infrastructure/auth.ts` | The authenticator app's `issuer` |
 | `apps/web/wrangler.jsonc` | The Worker's `name` (its `*.workers.dev` hostname) |
 | `package.json`, `README.md`, `AGENTS.md` | The repository's name and what it is |
+| `LICENSE` | The copyright holder (or another license) |
+| `SECURITY.md` | Where reports go: private vulnerability reporting, or your contact |
+| `docs/security/threat-model.md` | Its scope and date, the hosts in the diagram, and the accepted risk on `*.<account>.workers.dev` once you have your own domain |
 
 Tests that name the product follow (`pnpm test` lists them). The `@repo/*` package names are
 internal and can stay.
