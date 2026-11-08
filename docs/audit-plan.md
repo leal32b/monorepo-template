@@ -30,7 +30,7 @@ every item below improves behaviour in production or coherence; none fixes a bro
 | M4 | Pin the Docker base image by digest | Sonnet | M3 | Done |
 | M5 | One round trip less in `requireMember` | Sonnet | — | Done |
 | B1 | Template guide: owner-specific text | Sonnet | — | Done |
-| B2 | Template guide: removing customers in a new product | Sonnet | — | Pending |
+| B2 | Template guide: removing customers in a new product | Sonnet | — | Done |
 | B3 | `redact` in the logger | Sonnet | — | Pending |
 | B4 | Empty reader sets in `createRead` | Sonnet | — | Pending |
 | B5 | Pull request template and CODEOWNERS | Sonnet | — | Pending |

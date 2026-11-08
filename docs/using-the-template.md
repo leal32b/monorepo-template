@@ -97,9 +97,27 @@ the module"). Copy and rename it, in this order, each step test first (the `tdd-
    and `minimize-support` skills.
 6. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
 
-A product that does not need customers removes the module whole: its contract, API module and
-migration (with a new migration that drops the table), web slices, texts, fixtures and the
-`customer` statements, with an ADR that says why.
+A product that does not need customers removes the module whole, with an ADR that says why. The
+code goes the same way in both cases below:
+
+1. `packages/contracts/src/customers.ts` and its export; the `customer` statement and each role's
+   share of it in `packages/contracts/src/organizations.ts`.
+2. `apps/api/src/modules/customers/` and its line in `app/create-app.ts`.
+3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
+   `app/routes.tsx`, the menu and palette items in `widgets/app-shell/`, and the `customers` texts
+   and role descriptions in every locale.
+4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
+   organization), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
+   used.
+
+The database differs:
+
+- **Never deployed** (no production database has run the migrations yet): delete
+  `apps/api/migrations/0004_customers.sql` and `0006_customer_version.sql`. Migrations are forward
+  only once applied somewhere ([ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)); before
+  that, the files are just code. Reset the local database: stop `pnpm db`, delete `apps/api/.data`, start it again.
+- **Already in production**: keep both files, which databases have already applied, and add a new
+  migration that drops the table (`drop table if exists customer;`). Back up the rows first if anyone might want them.
 
 ## 6. Keep it healthy
 
