@@ -33,6 +33,7 @@ The template calls itself "Monorepo Template". Replace it in:
 | `package.json`, `README.md`, `AGENTS.md` | The repository's name and what it is |
 | `LICENSE` | The copyright holder (or another license) |
 | `SECURITY.md` | Where reports go: private vulnerability reporting, or your contact |
+| `.github/CODEOWNERS` | Who reviews each area: uncomment the rules and name your people or teams |
 | `docs/security/threat-model.md` | Its scope and date, the hosts in the diagram, and the accepted risk on `*.<account>.workers.dev` once you have your own domain |
 
 Tests that name the product follow (`pnpm test` lists them). The `@repo/*` package names are
@@ -63,7 +64,9 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
 ## 4. Set up once
 
-- Protect `main`: pull requests only, with the `CI` checks required.
+- Protect `main`: pull requests only, with the `CI` checks required, and code owner review once
+  `.github/CODEOWNERS` names someone. Every pull request opens with the checklist of
+  `.github/pull_request_template.md`.
 - Dependency updates: install the [Renovate GitHub App](https://github.com/apps/renovate) on the
   repository; it reads `.github/renovate.json` and opens a dependency dashboard issue.
 - Security reports: turn on private vulnerability reporting, or put your contact in
