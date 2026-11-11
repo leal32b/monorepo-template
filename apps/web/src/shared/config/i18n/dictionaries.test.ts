@@ -46,4 +46,9 @@ describe('dictionaries', () => {
       }
     }
   })
+
+  it.each(languages)('keeps no text of its own in the %s locale file, only the merge', (language) => {
+    const owned = new Set([...groups.values()].flatMap((byLanguage) => Object.keys(byLanguage.get(language) ?? {})))
+    expect(Object.keys(merged[language]).filter((key) => !owned.has(key))).toEqual([])
+  })
 })
