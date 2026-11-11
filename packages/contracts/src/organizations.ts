@@ -1,4 +1,5 @@
 import * as z from 'zod/mini'
+import { instantSchema } from './time'
 
 /**
  * What can be done in an organization: resources and their actions (ADR 0033). They stay in code;
@@ -63,8 +64,7 @@ export const invitationSchema = z.object({
   organizationSlug: z.string(),
   inviterName: z.string(),
   status: z.enum(invitationStatuses),
-  /** ISO 8601. */
-  expiresAt: z.iso.datetime(),
+  expiresAt: instantSchema,
   member: z.boolean()
 })
 
