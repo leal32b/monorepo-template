@@ -12,7 +12,6 @@ import { RestoreCustomerController } from './commands/restore-customer/restore-c
 import { RestoreCustomerService } from './commands/restore-customer/restore-customer.service'
 import { UpdateCustomerController } from './commands/update-customer/update-customer.http-controller'
 import { UpdateCustomerService } from './commands/update-customer/update-customer.service'
-import type { CustomerRepository } from './customer-repository.port'
 import type { CustomersUnitOfWork } from './customers-unit-of-work.port'
 import { GetCustomerController } from './queries/get-customer/get-customer.http-controller'
 import { GetCustomerService } from './queries/get-customer/get-customer.service'
@@ -22,8 +21,7 @@ import { ListCustomersService } from './queries/list-customers/list-customers.se
 export type CustomerRoutesDeps = {
   session: CurrentSession
   membership: Membership
-  repository: CustomerRepository
-  /** For the use cases with more than one write (ADR 0052). */
+  /** Every use case runs inside it, confined to the organization the guard returned (ADR 0055). */
   unitOfWork: CustomersUnitOfWork
   clock: Clock
   ids: IdGenerator
@@ -34,31 +32,32 @@ const base = '/api/organizations/:organizationId/customers'
 /**
  * The module's routes, each behind the tenant guard (ADR 0033): the module builds its use cases from
  * the ports it is given, so the composition root passes ports and the module stays one unit to copy.
+ * It is given no repository: a use case reaches one only inside the unit of work (ADR 0055).
  */
 export function registerCustomerRoutes(
   router: HttpRouter,
-  { session, membership, repository, unitOfWork, clock, ids }: CustomerRoutesDeps
+  { session, membership, unitOfWork, clock, ids }: CustomerRoutesDeps
 ): void {
-  router.get(base, new ListCustomersController(session, membership, new ListCustomersService(repository)).handle)
+  router.get(base, new ListCustomersController(session, membership, new ListCustomersService(unitOfWork)).handle)
   router.post(
     base,
-    new CreateCustomerController(session, membership, new CreateCustomerService(repository, clock, ids)).handle
+    new CreateCustomerController(session, membership, new CreateCustomerService(unitOfWork, clock, ids)).handle
   )
   router.get(
     `${base}/:customerId`,
-    new GetCustomerController(session, membership, new GetCustomerService(repository)).handle
+    new GetCustomerController(session, membership, new GetCustomerService(unitOfWork)).handle
   )
   router.put(
     `${base}/:customerId`,
-    new UpdateCustomerController(session, membership, new UpdateCustomerService(repository, clock)).handle
+    new UpdateCustomerController(session, membership, new UpdateCustomerService(unitOfWork, clock)).handle
   )
   router.post(
     `${base}/:customerId/archive`,
-    new ArchiveCustomerController(session, membership, new ArchiveCustomerService(repository, clock)).handle
+    new ArchiveCustomerController(session, membership, new ArchiveCustomerService(unitOfWork, clock)).handle
   )
   router.post(
     `${base}/:customerId/restore`,
-    new RestoreCustomerController(session, membership, new RestoreCustomerService(repository, clock)).handle
+    new RestoreCustomerController(session, membership, new RestoreCustomerService(unitOfWork, clock)).handle
   )
   router.delete(
     `${base}/:customerId`,

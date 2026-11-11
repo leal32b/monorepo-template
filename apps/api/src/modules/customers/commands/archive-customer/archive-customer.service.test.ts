@@ -5,9 +5,9 @@ import { ArchiveCustomerService } from './archive-customer.service'
 
 describe('ArchiveCustomerService', () => {
   const setup = async () => {
-    const { repository, clock, ids } = testCustomers()
-    await new CreateCustomerService(repository, clock, ids).execute('org-1', { name: 'Ada' })
-    return { repository, service: new ArchiveCustomerService(repository, clock) }
+    const { repository, unitOfWork, clock, ids } = testCustomers()
+    await new CreateCustomerService(unitOfWork, clock, ids).execute('org-1', { name: 'Ada' })
+    return { repository, service: new ArchiveCustomerService(unitOfWork, clock) }
   }
 
   it('archives the customer today, at the next version, and keeps it', async () => {

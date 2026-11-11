@@ -54,8 +54,10 @@ No reference on the screen means the browser could not reach the API: look at th
   triggered the run).
 - If the host's log retention is too short, a log drain to a log service; the lines are already JSON.
 - The API and the database in the same region. A signed-in request makes at least two sequential
-  database round trips (the session, then the membership with its roles), so each millisecond
-  between them counts at least twice on every tenant route.
+  database round trips (the session, then the membership with its roles), and a tenant route then
+  opens a transaction for its own work (`begin`, the statement that sets the tenant, the query,
+  `commit`: [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), so each millisecond between them counts about six times on every
+  tenant route.
 
 ## When something breaks
 

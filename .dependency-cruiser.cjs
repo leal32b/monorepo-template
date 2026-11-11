@@ -95,6 +95,19 @@ module.exports = {
       }
     },
     {
+      name: 'api-tenant-adapters-through-the-unit-of-work',
+      comment:
+        "The composition root builds no repository on the pool: from a module's database/ it takes only the " +
+        'unit of work, whose transactions row-level security confines to one organization (ADR 0055). The ' +
+        'health probe reads no table.',
+      severity: 'error',
+      from: { path: '^apps/api/src/(app/|main)', pathNot: NOT_PRODUCTION },
+      to: {
+        path: '^apps/api/src/modules/[^/]+/database/',
+        pathNot: ['unit-of-work\\.ts$', '^apps/api/src/modules/health/database/']
+      }
+    },
+    {
       name: 'api-modules-not-to-app',
       comment: 'The composition root (app/) knows the modules, never the other way round: no service locator.',
       severity: 'error',

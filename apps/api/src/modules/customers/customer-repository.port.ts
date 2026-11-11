@@ -11,8 +11,9 @@ export type CustomerFilter = {
 
 /**
  * Where customers are kept. Every method takes the organization: the tenant is part of the key, so
- * no call can reach another organization's customer (ADR 0033). The first repository port of the
- * template; a module copies its shape.
+ * no call can reach another organization's customer (ADR 0033). Use cases reach it only inside the
+ * module's unit of work, where row-level security stands behind that filter (ADR 0055). The first
+ * repository port of the template; a module copies its shape.
  */
 export interface CustomerRepository {
   /** Throws `CustomerEmailTakenException` when another customer of the organization has the email. */

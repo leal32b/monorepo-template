@@ -7,8 +7,8 @@ import { DeleteCustomerService } from './delete-customer.service'
 describe('DeleteCustomerService', () => {
   const setup = async () => {
     const { repository, changes, unitOfWork, clock, ids } = testCustomers()
-    const create = new CreateCustomerService(repository, clock, ids)
-    const archive = new ArchiveCustomerService(repository, clock)
+    const create = new CreateCustomerService(unitOfWork, clock, ids)
+    const archive = new ArchiveCustomerService(unitOfWork, clock)
     await create.execute('org-1', { name: 'Ada' })
     return {
       repository,

@@ -5,10 +5,10 @@ import { ListCustomersService } from './list-customers.service'
 
 describe('ListCustomersService', () => {
   const setup = async (names: string[]) => {
-    const { repository, clock, ids } = testCustomers()
-    const create = new CreateCustomerService(repository, clock, ids)
+    const { unitOfWork, clock, ids } = testCustomers()
+    const create = new CreateCustomerService(unitOfWork, clock, ids)
     for (const name of names) await create.execute('org-1', { name })
-    return new ListCustomersService(repository)
+    return new ListCustomersService(unitOfWork)
   }
 
   it('answers a page in the shape of the contract, with the total and the page size', async () => {

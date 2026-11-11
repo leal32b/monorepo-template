@@ -37,7 +37,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0030](0030-add-a-scrim-colour-role.md) | Add a scrim colour role | accepted |
 | [0031](0031-animate-layers-with-short-transform-and-opacity-motion.md) | Animate layers with short transform and opacity motion | accepted |
 | [0032](0032-draw-icons-from-phosphor-generated-from-its-svgs.md) | Draw icons from Phosphor, generated from its SVGs | accepted |
-| [0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) | Run organizations on Better Auth, with roles in the database, behind a guard on the path | accepted |
+| [0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) | Run organizations on Better Auth, with roles in the database, behind a guard on the path | accepted; tenant queries backed by row-level security in [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) |
 | [0034](0034-keep-the-organization-slug-in-the-web-url.md) | Keep the organization slug in the web URL | accepted |
 | [0035](0035-show-the-server-working-with-one-progress-bar.md) | Show the server working with one progress bar | accepted; what drives the bar superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) |
 | [0036](0036-keep-the-screen-until-the-next-one-is-ready.md) | Keep the screen until the next one is ready | superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) |
@@ -56,6 +56,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0049](0049-delete-an-account-from-an-emailed-link.md) | Delete an account from an emailed link | accepted |
 | [0050](0050-purge-expired-rows-daily-from-a-job-of-its-own.md) | Purge expired rows daily, from a job of its own | accepted |
 | [0051](0051-propose-dependency-updates-with-renovate.md) | Propose dependency updates with Renovate | accepted |
-| [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md) | Run a use case's writes in one transaction through a unit of work | accepted |
+| [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md) | Run a use case's writes in one transaction through a unit of work | accepted; `run` takes the organization and every tenant use case opens one since [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) |
 | [0053](0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md) | Keep the time zone and the currency on the organization, and money in minor units | accepted |
 | [0054](0054-name-the-row-family-for-lists-not-for-settings.md) | Name the row family for lists, not for settings | accepted |
+| [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) | Keep tenants apart with row-level security, set by the unit of work | accepted |

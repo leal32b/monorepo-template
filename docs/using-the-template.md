@@ -86,23 +86,39 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
 Customers is the worked example of a tenant-scoped module, from contract to screen, with tests at
 every layer ([ADR 0044](adr/0044-build-customers-as-the-reference-vertical-module.md), "How to copy
-the module", and [ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
-for a use case with two writes). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
+the module", [ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
+for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) for tenant isolation). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
 
 1. The schemas in `packages/contracts`, and the resource in `statements` with the roles' share of it.
 2. The domain: pure rules and errors, no I/O.
 3. The repository port, its in-memory fake and the contract suite; the Kysely adapter and a new
    migration in `apps/api/migrations` (plain SQL, forward only,
-   [ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)).
+   [ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)). Every tenant table, a child table
+   included, has `organization_id text not null references auth."organization" ("id") on delete cascade`,
+   and its migration ends with the three lines that put it behind row-level security
+   ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)):
+
+   ```sql
+   alter table appointment enable row level security;
+   create policy tenant_isolation on appointment to app_tenant
+     using (organization_id = current_setting('app.organization_id', true));
+   grant select, insert, update, delete on appointment to app_tenant;
+   ```
+
+   Without them the table is invisible to the API (`permission denied`), and
+   `tenant-row-security.db.test.ts` names it. Add the table to `apps/api/test/reset-database.ts`.
 4. A service and a controller per use case, the routes behind `requireMember`, one line in
-   `app/create-app.ts`. A use case with one write takes the repository, as `ArchiveCustomerService`
-   does. One whose writes must be kept together or not at all (a sale and its items, an appointment
-   and its charge) takes the module's unit of work and does everything inside `run`, as
-   `DeleteCustomerService` does: copy `customers-unit-of-work.port.ts`,
-   `database/kysely-customers-unit-of-work.ts`, `snapshot()` on each in-memory fake and
+   `app/create-app.ts`. Every use case, a read included, takes the module's unit of work and does
+   its database work inside `run(organizationId, …)`, with the id the guard returned: Postgres then
+   shows and accepts only that organization's rows, even for a query that forgot its `where`, and
+   what the use case writes is kept together or not at all. Copy `customers-unit-of-work.port.ts`,
+   `database/kysely-customers-unit-of-work.ts` (the only place that builds the adapters:
+   `pnpm lint:deps` refuses one built in `create-app.ts`), `snapshot()` on each in-memory fake and
    `testing/customers-unit-of-work.contract.ts`. Inside `run`: only the repositories it hands
    over, and nothing but database work
    ([ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)).
+   Repository methods keep their own `where organization_id`: the fakes and any code on the pool
+   (a job, a back office) have nothing else.
 5. The web: the entity's reads and writes, the feature's forms, the page and its route with
    `preload`, the menu item, the texts in every language. Screens go through the `design-system`
    and `minimize-support` skills.
@@ -130,6 +146,10 @@ The database differs:
   that, the files are just code. Reset the local database: stop `pnpm db`, delete `apps/api/.data`, start it again.
 - **Already in production**: keep the files, which databases have already applied, and add a new
   migration that drops the tables (`drop table if exists customer_change; drop table if exists customer;`). Back up the rows first if anyone might want them.
+
+In both cases keep the first half of `0009_tenant_row_security.sql` (the `app_tenant` role and its
+grants), which every later tenant table needs; when deleting the customers migrations, delete only
+its lines about `customer` and `customer_change`.
 
 ## 6. Keep it healthy
 
