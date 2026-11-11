@@ -1,13 +1,12 @@
 import type { AddressInfo } from 'node:net'
 import { customerListSchema, customerSchema } from '@repo/contracts'
 import pino from 'pino'
-import { FixedClock } from '#libs/adapters/fixed-clock'
 import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
 import { FakeCurrentSession } from '#modules/identity/testing/fake-current-session'
 import { FakeMembership } from '#modules/identity/testing/fake-membership'
 import { registerCustomerRoutes } from './customers.routes'
-import { InMemoryCustomerRepository } from './testing/in-memory-customer-repository'
+import { testCustomers } from './testing/test-customers'
 
 const ada = { userId: 'user-ada', email: 'ada@example.com', name: 'Ada' }
 const closers: Array<() => Promise<void>> = []
@@ -16,15 +15,9 @@ const closers: Array<() => Promise<void>> = []
 async function serve() {
   const session = new FakeCurrentSession()
   const membership = new FakeMembership()
-  let count = 0
+  const { changes, ...ports } = testCustomers()
   const router = new HttpRouter()
-  registerCustomerRoutes(router, {
-    session,
-    membership,
-    repository: new InMemoryCustomerRepository(),
-    clock: new FixedClock(new Date('2026-11-07T10:00:00.000Z')),
-    ids: { generate: () => `id-${++count}` }
-  })
+  registerCustomerRoutes(router, { session, membership, ...ports })
   const server = createHttpServer({ router, logger: pino({ level: 'silent' }) })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())))
@@ -51,7 +44,7 @@ async function serve() {
     status: response.status,
     code: ((await response.json()) as { code?: string }).code
   })
-  return { signInWith, call, code }
+  return { signInWith, call, code, changes }
 }
 
 afterEach(async () => {
@@ -89,7 +82,7 @@ describe('the customers routes (ADR 0044)', () => {
   })
 
   it('creates, lists, reads, edits, archives, restores and deletes a customer', async () => {
-    const { signInWith, call } = await serve()
+    const { signInWith, call, changes } = await serve()
     signInWith(['read', 'create', 'update', 'delete'])
 
     const created = await call('POST', 'org-1/customers', { name: ' Ada ', email: 'ADA@example.com' })
@@ -120,6 +113,7 @@ describe('the customers routes (ADR 0044)', () => {
     expect(deleted.status).toBe(204)
     expect(await deleted.text()).toBe('')
     expect((await call('GET', 'org-1/customers/id-1')).status).toBe(404)
+    expect(await changes.list('org-1')).toMatchObject([{ customerId: 'id-1', action: 'deleted', actorId: ada.userId }])
   })
 
   it('answers 409 to an edit from someone who read an older version, and keeps the newer one', async () => {

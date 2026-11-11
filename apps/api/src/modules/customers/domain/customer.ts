@@ -85,7 +85,21 @@ export function restoreCustomer(customer: Customer, now: Date): Customer {
   return { ...customer, archivedAt: null, updatedAt: now }
 }
 
-/** A customer is archived before it is deleted, so a mistaken click costs a restore, not the record. */
-export function assertCanDelete(customer: Customer): void {
+/**
+ * A customer is archived before it is deleted, so a mistaken click costs a restore, not the record.
+ * What is left of a deleted customer is this line, kept in the same transaction as the delete (ADR 0052).
+ */
+export function deleteCustomer(
+  customer: Customer,
+  by: { changeId: string; actorId: string; now: Date }
+): CustomerChange {
   if (customer.archivedAt === null) throw new CustomerNotArchivedException()
+  return {
+    id: by.changeId,
+    organizationId: customer.organizationId,
+    customerId: customer.id,
+    action: 'deleted',
+    actorId: by.actorId,
+    at: by.now
+  }
 }
