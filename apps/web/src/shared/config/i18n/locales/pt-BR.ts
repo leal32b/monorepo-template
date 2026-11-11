@@ -271,7 +271,11 @@ export const ptBR: Messages = {
   organizations: {
     create: {
       name: 'Nome da organização',
-      submit: 'Criar organização'
+      submit: 'Criar organização',
+      timeZone: 'Fuso horário',
+      timeZoneHint: 'Datas e horários aparecem neste fuso para todos.',
+      currency: 'Moeda',
+      currencyHint: 'Novos valores usam esta moeda. Você pode alterar os dois depois.'
     },
     errors: {
       nameRequired: 'Digite um nome para a sua organização.',
@@ -281,7 +285,9 @@ export const ptBR: Messages = {
       slugInvalid: 'Use letras minúsculas, números e hifens simples, com até 48 caracteres.',
       slugReserved: 'Este endereço é reservado. Escolha outro.',
       slugTaken: 'Outra organização já usa este endereço. Escolha outro.',
-      notAllowed: 'Você não tem mais permissão para isso. Peça a um proprietário da organização.'
+      notAllowed: 'Você não tem mais permissão para isso. Peça a um proprietário da organização.',
+      invalidTimeZone: 'Escolha um fuso horário da lista.',
+      invalidCurrency: 'Escolha uma moeda da lista.'
     },
     unavailable: {
       title: 'Não conseguimos carregar suas organizações',
@@ -315,6 +321,29 @@ export const ptBR: Messages = {
         warning: 'Favoritos e links que usam o endereço atual deixam de funcionar quando você o altera.',
         save: 'Salvar endereço',
         saved: 'Endereço salvo'
+      }
+    },
+    regional: {
+      title: 'Horário e moeda',
+      description: 'Como datas, horários e valores aparecem para todos nesta organização.',
+      readOnly: 'Você pode ver estas configurações. Proprietários e administradores podem alterá-las.',
+      timeZone: {
+        title: 'Fuso horário',
+        now: '{{zone}} · agora {{time}}',
+        change: 'Alterar fuso horário',
+        label: 'Fuso horário',
+        hint: 'Datas e horários salvos continuam no mesmo momento e aparecem no novo fuso.',
+        save: 'Salvar fuso horário',
+        saved: 'Fuso horário salvo'
+      },
+      currency: {
+        title: 'Moeda',
+        example: '{{currency}} · {{amount}}',
+        change: 'Alterar moeda',
+        label: 'Moeda',
+        hint: 'Novos valores usam esta moeda. Valores já salvos mantêm a moeda deles.',
+        save: 'Salvar moeda',
+        saved: 'Moeda salva'
       }
     },
     delete: {

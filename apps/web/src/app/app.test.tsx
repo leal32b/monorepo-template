@@ -27,7 +27,7 @@ describe('App', () => {
     const auth = createAuthClient({
       fetch: async (input) =>
         String(input).includes('/organization/list')
-          ? Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+          ? Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }])
           : Response.json({ session: { id: 's1' }, user })
     })
 
@@ -114,7 +114,8 @@ describe('App', () => {
         const url = String(input)
         asked.push(new URL(url, 'http://localhost').pathname)
         if (url.includes('/organization/list-')) return new Promise<Response>(() => {})
-        if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+        if (url.includes('/organization/list'))
+          return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }])
         return Response.json({ session: { id: 's1' }, user })
       }
     })
@@ -408,7 +409,8 @@ describe('App', () => {
             })
           }
           if (url.includes('/organization/list-roles')) return Response.json([])
-          if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+          if (url.includes('/organization/list'))
+            return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }])
           return Response.json({ session: { id: 's1' }, user })
         }
       })
@@ -528,7 +530,9 @@ describe('App', () => {
             return Response.json({ id: 'org-1' })
           }
           if (url.includes('/organization/list')) {
-            return Response.json(deleted ? [] : [{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+            return Response.json(
+              deleted ? [] : [{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }]
+            )
           }
           return Response.json({ session: { id: 's1' }, user })
         }
@@ -612,7 +616,8 @@ describe('App', () => {
           asked.push(new URL(url, 'http://localhost').pathname)
           if (url.includes('/organization/list-members')) return Response.json({ members: [], total: 0 })
           if (url.includes('/organization/list-')) return Response.json([])
-          if (url.includes('/organization/list')) return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+          if (url.includes('/organization/list'))
+            return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }])
           return Response.json({ session: { id: 's1' }, user })
         }
       })
@@ -652,8 +657,8 @@ describe('App', () => {
           }
           if (url.includes('/organization/list')) {
             return later([
-              { id: 'org-1', name: 'Acme', slug: 'acme' },
-              { id: 'org-2', name: 'Globex', slug: 'globex' }
+              { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' },
+              { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' }
             ])
           }
           return later({ session: { id: 's1' }, user })
@@ -679,8 +684,8 @@ describe('App', () => {
 
   describe('the frame of someone who has an organization (W08, ADR 0039)', () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
-    const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
-    const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+    const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
+    const globex = { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' as const }
     const invitation = {
       id: 'inv-1',
       organizationName: 'Globex',

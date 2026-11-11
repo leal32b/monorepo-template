@@ -11,7 +11,9 @@ import { fileURLToPath } from 'node:url'
 const icons = {
   back: 'arrow-left',
   check: 'check',
+  clock: 'clock',
   close: 'x',
+  coins: 'coins',
   customers: 'address-book',
   error: 'warning-circle',
   expand: 'caret-up-down',

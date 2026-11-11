@@ -33,7 +33,9 @@ const routed = (screen: () => JSX.Element) => (
 
 describe('OrganizationsProvider', () => {
   it('reads the organizations once for every screen below, and again when asked', async () => {
-    const fetch = vi.fn(async () => Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }]))
+    const fetch = vi.fn(async () =>
+      Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }])
+    )
 
     render(() => (
       <AuthProvider client={createAuthClient({ fetch })}>
@@ -59,14 +61,17 @@ describe('OrganizationsProvider', () => {
   it('swaps one organization for its changed self, with no new request', async () => {
     const fetch = vi.fn(async () =>
       Response.json([
-        { id: 'org-1', name: 'Acme', slug: 'acme' },
-        { id: 'org-2', name: 'Globex', slug: 'globex' }
+        { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' },
+        { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' }
       ])
     )
     function Controls() {
       const { update } = useOrganizations()
       return (
-        <button type="button" onClick={() => update({ id: 'org-1', name: 'Acme Inc', slug: 'acme-inc' })}>
+        <button
+          type="button"
+          onClick={() => update({ id: 'org-1', name: 'Acme Inc', slug: 'acme-inc', timeZone: 'UTC', currency: 'USD' })}
+        >
           Rename
         </button>
       )
@@ -110,7 +115,7 @@ describe('OrganizationsProvider', () => {
   })
 
   describe('the list as last read', () => {
-    const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+    const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 
     function Known() {
       const { known, hasOrganization, refetch } = useOrganizations()

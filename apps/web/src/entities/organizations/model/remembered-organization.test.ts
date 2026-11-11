@@ -1,7 +1,7 @@
 import { rememberOrganization, startingOrganization } from './remembered-organization'
 
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
-const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
+const globex = { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' as const }
 
 describe('startingOrganization', () => {
   afterEach(() => window.localStorage.clear())

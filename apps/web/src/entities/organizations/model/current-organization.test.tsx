@@ -1,7 +1,7 @@
 import { render, screen } from '@solidjs/testing-library'
 import { CurrentOrganizationProvider, homeOf, useCurrentOrganization, useOrganization } from './current-organization'
 
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 
 function Rights() {
   const { organization, membership, can } = useOrganization()

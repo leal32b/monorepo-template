@@ -272,7 +272,11 @@ export const es: Messages = {
   organizations: {
     create: {
       name: 'Nombre de la organización',
-      submit: 'Crear organización'
+      submit: 'Crear organización',
+      timeZone: 'Zona horaria',
+      timeZoneHint: 'Las fechas y horas se muestran en esta zona para todos.',
+      currency: 'Moneda',
+      currencyHint: 'Los importes nuevos usan esta moneda. Puedes cambiar ambas después.'
     },
     errors: {
       nameRequired: 'Escribe un nombre para tu organización.',
@@ -282,7 +286,9 @@ export const es: Messages = {
       slugInvalid: 'Usa letras minúsculas, números y guiones simples, hasta 48 caracteres.',
       slugReserved: 'Esta dirección está reservada. Elige otra.',
       slugTaken: 'Otra organización ya usa esta dirección. Elige otra.',
-      notAllowed: 'Ya no tienes permiso para hacerlo. Pídeselo a un propietario de la organización.'
+      notAllowed: 'Ya no tienes permiso para hacerlo. Pídeselo a un propietario de la organización.',
+      invalidTimeZone: 'Elige una zona horaria de la lista.',
+      invalidCurrency: 'Elige una moneda de la lista.'
     },
     unavailable: {
       title: 'No pudimos cargar tus organizaciones',
@@ -316,6 +322,29 @@ export const es: Messages = {
         warning: 'Los marcadores y enlaces que usan la dirección actual dejarán de funcionar al cambiarla.',
         save: 'Guardar dirección',
         saved: 'Dirección guardada'
+      }
+    },
+    regional: {
+      title: 'Hora y moneda',
+      description: 'Cómo se muestran fechas, horas e importes para todos en esta organización.',
+      readOnly: 'Puedes ver estos ajustes. Los propietarios y administradores pueden cambiarlos.',
+      timeZone: {
+        title: 'Zona horaria',
+        now: '{{zone}} · ahora {{time}}',
+        change: 'Cambiar zona horaria',
+        label: 'Zona horaria',
+        hint: 'Las fechas y horas guardadas conservan su momento y se muestran en la nueva zona.',
+        save: 'Guardar zona horaria',
+        saved: 'Zona horaria guardada'
+      },
+      currency: {
+        title: 'Moneda',
+        example: '{{currency}} · {{amount}}',
+        change: 'Cambiar moneda',
+        label: 'Moneda',
+        hint: 'Los importes nuevos la usan. Los ya guardados conservan su propia moneda.',
+        save: 'Guardar moneda',
+        saved: 'Moneda guardada'
       }
     },
     delete: {

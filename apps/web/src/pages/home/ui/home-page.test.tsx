@@ -46,7 +46,7 @@ describe('HomePage', () => {
                       root={(root) => (
                         <OrganizationsProvider>
                           <CurrentOrganizationProvider
-                            organization={{ id: 'org-1', name: 'Acme', slug: 'acme' }}
+                            organization={{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }}
                             membership={{
                               roles: ['owner'],
                               permissions: permissions as OrganizationMembership['permissions']

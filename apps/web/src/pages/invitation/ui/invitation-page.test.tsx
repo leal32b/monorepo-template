@@ -229,7 +229,7 @@ describe('InvitationPage', () => {
   })
 
   describe('for someone who has an organization (D3, ADR 0039)', () => {
-    const initech = { id: 'org-9', name: 'Initech', slug: 'initech' }
+    const initech = { id: 'org-9', name: 'Initech', slug: 'initech', timeZone: 'UTC', currency: 'USD' as const }
     const inInitech = (others: Record<string, () => Response> = {}) =>
       authFor({ 'organization/list': () => Response.json([initech]), ...others })
 

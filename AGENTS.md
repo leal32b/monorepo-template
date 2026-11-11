@@ -77,6 +77,9 @@ docs/                # using the template, operations, testing, security, adr
 - **i18n:** UI text lives in typed dictionaries, one file per language ([ADR 0011](docs/adr/0011-typed-i18n-dictionaries.md)).
 - **Contracts:** every request/response is a Zod schema in `@repo/contracts`, except `/api/auth/*`,
   which keeps Better Auth's shapes ([ADR 0020](docs/adr/0020-authenticate-with-better-auth.md)).
+- **Money and time:** money is an integer in minor units with its currency (`moneySchema`); instants are ISO 8601
+  UTC, calendar dates and wall-clock times have their own schemas; the organization's `timeZone` and `currency`
+  draw them, through the formatters of `#shared/lib` ([ADR 0053](docs/adr/0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md)).
 - **Auth:** `better-auth` stays in `modules/identity/infrastructure/` (dependency-cruiser checks it).
   A route that needs a session calls `requireActor` from `#modules/identity/index` and gets an
   `Actor` or a 401; it never refreshes the session.
