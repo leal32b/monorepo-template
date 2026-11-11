@@ -59,3 +59,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md) | Run a use case's writes in one transaction through a unit of work | accepted |
 | [0053](0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md) | Keep the time zone and the currency on the organization, and money in minor units | accepted |
 | [0054](0054-name-the-row-family-for-lists-not-for-settings.md) | Name the row family for lists, not for settings | accepted |
+| [0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md) | Split the i18n dictionaries by slice and merge them per language | accepted |

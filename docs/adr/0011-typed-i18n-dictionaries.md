@@ -1,6 +1,6 @@
 # 0011. Typed i18n dictionaries with @solid-primitives/i18n
 
-- Status: accepted
+- Status: accepted (amended by [0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md): the dictionaries are split by slice)
 - Date: 2026-10-24
 
 ## Context and problem statement
@@ -24,7 +24,7 @@ or languages later must stay cheap. Which approach?
 
 Chosen option 2.
 
-- One TypeScript file per language in `shared/config/i18n/locales/`. English is the source:
+- One TypeScript file per language in `shared/config/i18n/locales/` (merging the per-slice files of ADR 0058). English is the source:
   `Messages = typeof en`, and every other language is typed as `Messages`, so a missing or extra
   key fails `pnpm typecheck`. `messages.ts` is the registry; `Locale` is derived from it.
 - A test also compares flattened keys and `{{placeholders}}` across languages (what types
