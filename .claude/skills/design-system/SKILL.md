@@ -101,6 +101,9 @@ The same idea looks and behaves the same everywhere. Before building, find it he
 | Nothing here yet | `EmptyState` | a blank page |
 | A row that left a list (removed, deleted, revoked) | the section's `status`, which takes focus | a `p role=status` with negative margins |
 | A date | `formatDate` from `#shared/lib` | `Intl.DateTimeFormat` with options of one's own |
+| An instant of the organization's business (an appointment, a payment) | `formatDateTime` with the organization's `timeZone` ([ADR 0053](../../../docs/adr/0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md)) | `formatDate`, or the device's zone |
+| A wall-clock time (opening hours, a slot) | `formatTime` | a `Date` built for it, a 24-hour string shown as it came |
+| Money | `formatMoney`, from minor units and their currency | `toFixed`, a division by 100, a symbol written by hand |
 | Answering an invitation | `/invitations/:id` only; other screens link to it | buttons to accept in a list |
 
 When two screens need the same idea with a difference, the difference is a prop of the one
