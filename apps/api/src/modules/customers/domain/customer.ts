@@ -29,6 +29,21 @@ export type Customer = CustomerDetails & {
   version: number
 }
 
+/**
+ * One line of the customer's history (ADR 0052): who did what to which customer, and when. Ids only,
+ * so a deleted customer's personal data goes with it.
+ */
+export type CustomerChange = {
+  id: string
+  organizationId: string
+  customerId: string
+  /** Deleting is the one change the customer's own row cannot tell. */
+  action: 'deleted'
+  /** The member who did it. */
+  actorId: string
+  at: Date
+}
+
 /** The domain draws no id and reads no clock: the use case passes both in. */
 export function createCustomer(input: {
   id: string
