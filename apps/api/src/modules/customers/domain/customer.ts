@@ -29,6 +29,21 @@ export type Customer = CustomerDetails & {
   version: number
 }
 
+/**
+ * One line of the customer's history (ADR 0052): who did what to which customer, and when. Ids only,
+ * so a deleted customer's personal data goes with it.
+ */
+export type CustomerChange = {
+  id: string
+  organizationId: string
+  customerId: string
+  /** Deleting is the one change the customer's own row cannot tell. */
+  action: 'deleted'
+  /** The member who did it. */
+  actorId: string
+  at: Date
+}
+
 /** The domain draws no id and reads no clock: the use case passes both in. */
 export function createCustomer(input: {
   id: string
@@ -70,7 +85,21 @@ export function restoreCustomer(customer: Customer, now: Date): Customer {
   return { ...customer, archivedAt: null, updatedAt: now }
 }
 
-/** A customer is archived before it is deleted, so a mistaken click costs a restore, not the record. */
-export function assertCanDelete(customer: Customer): void {
+/**
+ * A customer is archived before it is deleted, so a mistaken click costs a restore, not the record.
+ * What is left of a deleted customer is this line, kept in the same transaction as the delete (ADR 0052).
+ */
+export function deleteCustomer(
+  customer: Customer,
+  by: { changeId: string; actorId: string; now: Date }
+): CustomerChange {
   if (customer.archivedAt === null) throw new CustomerNotArchivedException()
+  return {
+    id: by.changeId,
+    organizationId: customer.organizationId,
+    customerId: customer.id,
+    action: 'deleted',
+    actorId: by.actorId,
+    at: by.now
+  }
 }

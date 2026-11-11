@@ -13,6 +13,7 @@ import { RestoreCustomerService } from './commands/restore-customer/restore-cust
 import { UpdateCustomerController } from './commands/update-customer/update-customer.http-controller'
 import { UpdateCustomerService } from './commands/update-customer/update-customer.service'
 import type { CustomerRepository } from './customer-repository.port'
+import type { CustomersUnitOfWork } from './customers-unit-of-work.port'
 import { GetCustomerController } from './queries/get-customer/get-customer.http-controller'
 import { GetCustomerService } from './queries/get-customer/get-customer.service'
 import { ListCustomersController } from './queries/list-customers/list-customers.http-controller'
@@ -22,6 +23,8 @@ export type CustomerRoutesDeps = {
   session: CurrentSession
   membership: Membership
   repository: CustomerRepository
+  /** For the use cases with more than one write (ADR 0052). */
+  unitOfWork: CustomersUnitOfWork
   clock: Clock
   ids: IdGenerator
 }
@@ -34,7 +37,7 @@ const base = '/api/organizations/:organizationId/customers'
  */
 export function registerCustomerRoutes(
   router: HttpRouter,
-  { session, membership, repository, clock, ids }: CustomerRoutesDeps
+  { session, membership, repository, unitOfWork, clock, ids }: CustomerRoutesDeps
 ): void {
   router.get(base, new ListCustomersController(session, membership, new ListCustomersService(repository)).handle)
   router.post(
@@ -59,6 +62,6 @@ export function registerCustomerRoutes(
   )
   router.delete(
     `${base}/:customerId`,
-    new DeleteCustomerController(session, membership, new DeleteCustomerService(repository)).handle
+    new DeleteCustomerController(session, membership, new DeleteCustomerService(unitOfWork, clock, ids)).handle
   )
 }

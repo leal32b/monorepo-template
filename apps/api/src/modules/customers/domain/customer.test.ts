@@ -1,8 +1,8 @@
 import {
   archiveCustomer,
-  assertCanDelete,
   type Customer,
   createCustomer,
+  deleteCustomer,
   restoreCustomer,
   updateCustomer
 } from './customer'
@@ -77,12 +77,21 @@ describe('restoreCustomer', () => {
   })
 })
 
-describe('assertCanDelete', () => {
-  it('lets an archived customer go', () => {
-    expect(() => assertCanDelete(archiveCustomer(customer(), later))).not.toThrow()
+describe('deleteCustomer', () => {
+  const by = { changeId: 'ch-1', actorId: 'user-ada', now: later }
+
+  it('lets an archived customer go, and says who deleted it and when, by ids only', () => {
+    expect(deleteCustomer(archiveCustomer(customer(), later), by)).toEqual({
+      id: 'ch-1',
+      organizationId: customer().organizationId,
+      customerId: customer().id,
+      action: 'deleted',
+      actorId: 'user-ada',
+      at: later
+    })
   })
 
   it('keeps an active customer: it is archived first', () => {
-    expect(() => assertCanDelete(customer())).toThrow(CustomerNotArchivedException)
+    expect(() => deleteCustomer(customer(), by)).toThrow(CustomerNotArchivedException)
   })
 })
