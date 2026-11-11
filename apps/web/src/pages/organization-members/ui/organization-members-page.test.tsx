@@ -9,7 +9,7 @@ import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shar
 import { OrganizationMembersPage } from './organization-members-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 
 const row = (id: string, name: string, role: string) => ({
   id,

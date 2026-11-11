@@ -5,7 +5,7 @@ import { ChangeAddressForm } from './change-address-form'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 const refused = (code: string, status = 400) => Response.json({ code, message: code }, { status })
 
 function renderForm(fetch: Fetch) {

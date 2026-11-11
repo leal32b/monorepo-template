@@ -5,7 +5,7 @@ import { LeaveOrganizationForm } from './leave-organization-form'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 
 function renderForm(fetch: Fetch) {
   const handlers = { onLeft: vi.fn(), onCancel: vi.fn() }

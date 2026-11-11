@@ -15,7 +15,7 @@ import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shar
 import { CustomersPage } from './customers-page'
 
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 const archivedAt = '2026-11-08T10:00:00.000Z'
 
 const customer = (id: string, name: string, over: Partial<Customer> = {}): Customer => ({

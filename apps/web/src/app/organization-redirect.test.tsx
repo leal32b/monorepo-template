@@ -7,8 +7,8 @@ import { OrganizationRedirect } from './organization-redirect'
 
 type AuthFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
-const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
+const globex = { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' as const }
 
 function renderRoot(auth: AuthFetch) {
   const history = createMemoryHistory()

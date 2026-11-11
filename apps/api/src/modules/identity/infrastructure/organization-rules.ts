@@ -1,12 +1,14 @@
 import {
   builtInRoles,
   covers,
+  currencySchema,
   organizationNameSchema,
   organizationSlugSchema,
   ownerOnlyPermissions,
   type Permissions,
   permissionsSchema,
-  roleNameSchema
+  roleNameSchema,
+  timeZoneSchema
 } from '@repo/contracts'
 import { APIError } from 'better-auth/api'
 import { type Kysely, sql } from 'kysely'
@@ -287,12 +289,31 @@ export class OrganizationRules {
   }
 }
 
-/** Name and slug of an organization, on create and on update (each only when it is sent). */
-export function checkOrganization({ name, slug }: { name?: unknown; slug?: unknown }): void {
+/**
+ * Name, slug, time zone and currency of an organization (ADR 0053), on create and on update, each only
+ * when it is sent: the plugin requires the settings on create, and refuses a `null` on update.
+ */
+export function checkOrganization({
+  name,
+  slug,
+  timeZone,
+  currency
+}: {
+  name?: unknown
+  slug?: unknown
+  timeZone?: unknown
+  currency?: unknown
+}): void {
   if (name !== undefined && !organizationNameSchema.safeParse(name).success) {
     throw refuse('BAD_REQUEST', 'INVALID_ORGANIZATION_NAME', 'Give the organization a name of 1 to 80 characters')
   }
   if (slug !== undefined && !organizationSlugSchema.safeParse(slug).success) {
     throw refuse('BAD_REQUEST', 'INVALID_ORGANIZATION_SLUG', 'Use lowercase letters, digits and single hyphens')
+  }
+  if (timeZone !== undefined && !timeZoneSchema.safeParse(timeZone).success) {
+    throw refuse('BAD_REQUEST', 'INVALID_TIME_ZONE', 'Choose a time zone from the list')
+  }
+  if (currency !== undefined && !currencySchema.safeParse(currency).success) {
+    throw refuse('BAD_REQUEST', 'INVALID_CURRENCY', 'Choose a currency from the list')
   }
 }

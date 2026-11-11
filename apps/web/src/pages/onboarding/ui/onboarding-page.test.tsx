@@ -9,7 +9,7 @@ import { OnboardingPage } from './onboarding-page'
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 const api = createApiClient({ fetch: async () => Response.json(null) })
 
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 const day = 24 * 60 * 60 * 1000
 const invitation = (id: string, name: string, expiresIn: number) => ({
   id,

@@ -103,8 +103,11 @@ describe('organizations through Better Auth (ADR 0033)', () => {
     return { email: address, cookie: cookieOf(await post('/sign-in/email', { email: address, password })) }
   }
 
-  const createOrganization = (cookie: string, name: string, slug: string) =>
-    post('/organization/create', { name, slug }, cookie)
+  /** The settings ADR 0053 asks for at creation, unless the test overrides them. */
+  const settings = { timeZone: 'America/Sao_Paulo', currency: 'BRL' }
+
+  const createOrganization = (cookie: string, name: string, slug: string, overrides: Record<string, unknown> = {}) =>
+    post('/organization/create', { name, slug, ...settings, ...overrides }, cookie)
 
   const invite = (cookie: string, organizationId: string, address: string, role: string, ip?: string) =>
     post('/organization/invite-member', { organizationId, email: address, role }, cookie, ip)
@@ -249,6 +252,74 @@ describe('organizations through Better Auth (ADR 0033)', () => {
 
       await expect(duplicateMember).rejects.toThrow(/unique/)
       await expect(duplicateRole).rejects.toThrow(/unique/)
+    })
+  })
+
+  describe('time zone and currency (ADR 0053)', () => {
+    it('creates an organization with its time zone and currency, and lists it with them', async () => {
+      const { cookie } = await account()
+
+      const created = await createOrganization(cookie, 'Acme', `acme-settings-${lastAccount}`)
+      const listing = await get('/api/auth/organization/list', cookie)
+
+      expect(await created.json()).toMatchObject({ timeZone: 'America/Sao_Paulo', currency: 'BRL' })
+      expect(await listing.json()).toEqual([
+        expect.objectContaining({ timeZone: 'America/Sao_Paulo', currency: 'BRL' })
+      ])
+    })
+
+    it.each([
+      ['no time zone', { timeZone: undefined }],
+      ['no currency', { currency: undefined }]
+    ])('refuses a creation with %s', async (_case, overrides) => {
+      const { cookie } = await account()
+
+      expect((await createOrganization(cookie, 'Acme', `acme-missing-${lastAccount}`, overrides)).status).toBe(400)
+    })
+
+    it.each([
+      ['an unknown time zone', { timeZone: 'Mars/Olympus_Mons' }, 'INVALID_TIME_ZONE'],
+      ['an offset for a time zone', { timeZone: '-03:00' }, 'INVALID_TIME_ZONE'],
+      ['a currency not offered', { currency: 'XXX' }, 'INVALID_CURRENCY']
+    ])('refuses a creation with %s', async (_case, overrides, code) => {
+      const { cookie } = await account()
+
+      expect(await outcome(createOrganization(cookie, 'Acme', `acme-invalid-${lastAccount}`, overrides))).toEqual({
+        status: 400,
+        code
+      })
+    })
+
+    it('lets whoever may update the organization change each setting, checked as it is sent', async () => {
+      const { id, people } = await organization({ admin: 'admin' })
+      const update = (data: Record<string, unknown>) =>
+        post('/organization/update', { organizationId: id, data }, person(people, 'admin').cookie)
+
+      expect(await outcome(update({ timeZone: 'Atlantis/Capital' }))).toEqual({
+        status: 400,
+        code: 'INVALID_TIME_ZONE'
+      })
+      expect(await outcome(update({ currency: 'brl' }))).toEqual({ status: 400, code: 'INVALID_CURRENCY' })
+      expect((await update({ timeZone: null })).status).toBe(400)
+      expect((await update({ timeZone: 'Europe/Lisbon' })).status).toBe(200)
+      expect(await (await update({ currency: 'EUR' })).json()).toMatchObject({
+        timeZone: 'Europe/Lisbon',
+        currency: 'EUR'
+      })
+    })
+
+    it('refuses a change of the settings to a member who may not update the organization', async () => {
+      const { id, people } = await organization({ member: 'member' })
+
+      expect(
+        await outcome(
+          post(
+            '/organization/update',
+            { organizationId: id, data: { currency: 'EUR' } },
+            person(people, 'member').cookie
+          )
+        )
+      ).toEqual({ status: 403, code: 'YOU_ARE_NOT_ALLOWED_TO_UPDATE_THIS_ORGANIZATION' })
     })
   })
 

@@ -1,30 +1,90 @@
 import { createPanels, ListPanel, ListRow, ListSection, PanelButton } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { batch, createSignal, Show } from 'solid-js'
-import { useOrganization, useOrganizations } from '#entities/organizations'
+import { currencyName, timeZoneLabel, useOrganization, useOrganizations } from '#entities/organizations'
 import { DeleteOrganizationForm } from '#features/organizations/delete-organization'
-import { ChangeAddressForm, RenameOrganizationForm } from '#features/organizations/edit-organization'
+import {
+  ChangeAddressForm,
+  ChangeSettingForm,
+  RenameOrganizationForm,
+  type Setting
+} from '#features/organizations/edit-organization'
 import { useI18n } from '#shared/config'
+import { formatDateTime, formatMoney } from '#shared/lib'
 import { AppShell } from '#widgets/app-shell'
 
+/** The amount the currency row writes, so the reader sees its symbol and its minor digits. */
+const EXAMPLE_AMOUNT = 123456
+
 /**
- * `/:orgSlug/settings/general`: the organization's name and address, and deleting it. What each role
+ * `/:orgSlug/settings/general`: the organization's name and address, its time zone and currency (ADR
+ * 0053, each shown as it reads: the time there now, an amount in it), and deleting it. What each role
  * may do comes from the permissions the API resolved (ADR 0033): whoever may update sees the buttons to
  * rename and to change the address, whoever may delete sees the deletion, and anyone else sees the
  * details and why they cannot change them. A form opens inline below its row, one at a time. A new
  * address moves the page to it; a deleted organization leaves for `/`, which opens another or onboarding.
  */
 export function OrganizationGeneralPage() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const navigate = useNavigate()
   const current = useOrganization()
   const { update, refetch } = useOrganizations()
-  const panels = createPanels<'name' | 'address' | 'delete'>()
+  const panels = createPanels<'name' | 'address' | Setting | 'delete'>()
   const [nameStatus, setNameStatus] = createSignal<string>()
   const [addressStatus, setAddressStatus] = createSignal<string>()
+  const [settingStatus, setSettingStatus] = createSignal<{ setting: Setting; text: string }>()
 
   const organization = () => current.organization
   const canUpdate = () => current.can('organization', 'update')
+
+  const settingDescription = (setting: Setting) => {
+    const { timeZone, currency } = organization()
+    return setting === 'timeZone'
+      ? t('organizationGeneral.regional.timeZone.now', {
+          zone: timeZoneLabel(timeZone),
+          time: formatDateTime(new Date(), timeZone, locale())
+        })
+      : t('organizationGeneral.regional.currency.example', {
+          currency: currencyName(currency, locale()),
+          amount: formatMoney({ amount: EXAMPLE_AMOUNT, currency }, locale())
+        })
+  }
+
+  /** A row of the time and money section: its value as it reads, and the form that changes it. */
+  const SettingRow = (props: { setting: Setting; icon: 'clock' | 'coins' }) => (
+    <ListRow
+      icon={props.icon}
+      title={t(`organizationGeneral.regional.${props.setting}.title`)}
+      description={settingDescription(props.setting)}
+      status={settingStatus()?.setting === props.setting ? settingStatus()?.text : undefined}
+      action={
+        <Show when={canUpdate()}>
+          <PanelButton panels={panels} panel={props.setting} onOpen={() => setSettingStatus(undefined)}>
+            {t(`organizationGeneral.regional.${props.setting}.change`)}
+          </PanelButton>
+        </Show>
+      }
+      panel={
+        <Show when={panels.isOpen(props.setting)}>
+          <ListPanel label={t(`organizationGeneral.regional.${props.setting}.change`)}>
+            <ChangeSettingForm
+              organization={organization()}
+              setting={props.setting}
+              onSaved={(value) => {
+                update({ ...organization(), [props.setting]: value })
+                setSettingStatus({
+                  setting: props.setting,
+                  text: t(`organizationGeneral.regional.${props.setting}.saved`)
+                })
+                panels.close()
+              }}
+              onCancel={panels.close}
+            />
+          </ListPanel>
+        </Show>
+      }
+    />
+  )
 
   return (
     <AppShell title={t('organizationGeneral.title')}>
@@ -94,6 +154,15 @@ export function OrganizationGeneralPage() {
             </Show>
           }
         />
+      </ListSection>
+      <ListSection
+        title={t('organizationGeneral.regional.title')}
+        description={t(
+          canUpdate() ? 'organizationGeneral.regional.description' : 'organizationGeneral.regional.readOnly'
+        )}
+      >
+        <SettingRow setting="timeZone" icon="clock" />
+        <SettingRow setting="currency" icon="coins" />
       </ListSection>
       <Show when={current.can('organization', 'delete')}>
         <ListSection

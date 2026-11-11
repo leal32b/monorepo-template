@@ -7,6 +7,8 @@ const acme = {
   id: 'org-1',
   name: 'Acme',
   slug: 'acme',
+  timeZone: 'America/Sao_Paulo',
+  currency: 'BRL',
   logo: null,
   createdAt: '2026-11-04T12:00:00.000Z',
   metadata: null
@@ -16,7 +18,9 @@ describe('listOrganizations', () => {
   it('reads the user’s organizations from Better Auth, keeping only what the app uses', async () => {
     const fetch = vi.fn<Fetch>(async () => Response.json([acme]))
 
-    expect(await listOrganizations(createAuthClient({ fetch }))).toEqual([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+    expect(await listOrganizations(createAuthClient({ fetch }))).toEqual([
+      { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'America/Sao_Paulo', currency: 'BRL' }
+    ])
     expect(String(fetch.mock.calls[0]?.[0])).toBe(`${window.location.origin}/api/auth/organization/list`)
   })
 

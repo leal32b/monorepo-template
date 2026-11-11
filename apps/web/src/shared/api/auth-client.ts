@@ -1,5 +1,10 @@
 import { createAuthClient as createBetterAuthClient } from 'better-auth/client'
-import { inferAdditionalFields, organizationClient, twoFactorClient } from 'better-auth/client/plugins'
+import {
+  inferAdditionalFields,
+  inferOrgAdditionalFields,
+  organizationClient,
+  twoFactorClient
+} from 'better-auth/client/plugins'
 
 export type AuthClientOptions = {
   /** How requests go out: `window.fetch` in the app, a fake in tests. */
@@ -20,7 +25,18 @@ export function createAuthClient({ fetch }: AuthClientOptions) {
       twoFactorClient(),
       // Organizations, members, invitations and custom roles (ADR 0033). What the caller may do comes
       // from the API's `/me`, never from a role name, so the client holds no access control.
-      organizationClient({ dynamicAccessControl: { enabled: true } }),
+      // Its time zone and currency (ADR 0053) are fields the API adds: asked at creation, changed on update.
+      organizationClient({
+        dynamicAccessControl: { enabled: true },
+        schema: inferOrgAdditionalFields({
+          organization: {
+            additionalFields: {
+              timeZone: { type: 'string', required: true },
+              currency: { type: 'string', required: true }
+            }
+          }
+        })
+      }),
       // The user's field the API adds: a sign-up must say which language its emails are written in.
       inferAdditionalFields({ user: { locale: { type: 'string', required: true } } })
     ]

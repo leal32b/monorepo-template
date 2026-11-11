@@ -134,6 +134,16 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret, google 
       organization({
         ac: accessControl,
         roles,
+        // ADR 0053: asked at creation, changed with `organization:update`, returned by every read of the
+        // organization; `checkOrganization` holds them to the contracts, the plugin only to strings.
+        schema: {
+          organization: {
+            additionalFields: {
+              timeZone: { type: 'string', required: true, input: true },
+              currency: { type: 'string', required: true, input: true }
+            }
+          }
+        },
         dynamicAccessControl: {
           enabled: true,
           maximumRolesPerOrganization: organizationLimits.customRolesPerOrganization
