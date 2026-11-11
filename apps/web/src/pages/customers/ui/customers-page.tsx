@@ -9,6 +9,7 @@ import {
   ListPanel,
   ListRow,
   ListSection,
+  Pager,
   PanelButton,
   SegmentedControl
 } from '@repo/ui'
@@ -286,17 +287,16 @@ function Customers() {
             </Show>
           </ListSection>
           <Show when={pages(loaded()) > 1}>
-            <nav class="flex items-center justify-between gap-3" aria-label={t('customers.section.title')}>
-              <Button variant="secondary" disabled={page() <= 1} onClick={() => setPage(page() - 1)}>
-                {t('customers.pager.previous')}
-              </Button>
-              <p class="text-sm text-muted-foreground">
-                {t('customers.pager.page', { page: loaded().page, pages: pages(loaded()) })}
-              </p>
-              <Button variant="secondary" disabled={page() >= pages(loaded())} onClick={() => setPage(page() + 1)}>
-                {t('customers.pager.next')}
-              </Button>
-            </nav>
+            <Pager
+              label={t('customers.section.title')}
+              previousLabel={t('customers.pager.previous')}
+              nextLabel={t('customers.pager.next')}
+              summary={t('customers.pager.page', { page: loaded().page, pages: pages(loaded()) })}
+              hasPrevious={page() > 1}
+              hasNext={page() < pages(loaded())}
+              onPrevious={() => setPage(page() - 1)}
+              onNext={() => setPage(page() + 1)}
+            />
           </Show>
         </div>
       )}

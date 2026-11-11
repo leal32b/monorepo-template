@@ -47,6 +47,7 @@ export {
   menuTriggerClass
 } from '#menu'
 export { createLate, motion } from '#motion'
+export { Pager, type PagerProps } from '#pager'
 export { PasswordField, type PasswordFieldProps } from '#password-field'
 export { ProgressBar, type ProgressBarProps } from '#progress-bar'
 export { QrCode, type QrCodeProps } from '#qr-code'
