@@ -1,4 +1,4 @@
-import { Alert, Avatar, Link, SettingsPanel, SettingsRow, SettingsSection, SettingsSkeleton } from '@repo/ui'
+import { Alert, Avatar, Link, ListPanel, ListRow, ListSection, ListSkeleton } from '@repo/ui'
 import { useNavigate, useSearchParams } from '@solidjs/router'
 import { Show, Suspense } from 'solid-js'
 import { accountDeletionQuery } from '#entities/accounts'
@@ -32,7 +32,7 @@ export function DeleteAccountPage() {
       >
         {(current) => (
           <ReadFailure message={t('accountDeletion.unavailable')}>
-            <Suspense fallback={<SettingsSkeleton label={t('accountDeletion.loading')} rows={1} />}>
+            <Suspense fallback={<ListSkeleton label={t('accountDeletion.loading')} rows={1} />}>
               <Confirmation token={current()} />
             </Suspense>
           </ReadFailure>
@@ -54,26 +54,23 @@ function Confirmation(props: { token: string }) {
   return (
     <Show when={plan()}>
       {(loaded) => (
-        <SettingsSection
-          title={t('accountDeletion.confirm.title')}
-          description={t('accountDeletion.confirm.description')}
-        >
-          <SettingsRow
+        <ListSection title={t('accountDeletion.confirm.title')} description={t('accountDeletion.confirm.description')}>
+          <ListRow
             avatar={<Avatar name={user.name} />}
             title={user.name}
             description={user.email}
             panel={
-              <SettingsPanel label={t('accountDeletion.confirm.title')}>
+              <ListPanel label={t('accountDeletion.confirm.title')}>
                 <ConfirmAccountDeletionForm
                   token={props.token}
                   plan={loaded()}
                   onDeleted={() => navigate('/login?deleted=1', { replace: true })}
                   onCancel={() => navigate('/settings/profile')}
                 />
-              </SettingsPanel>
+              </ListPanel>
             }
           />
-        </SettingsSection>
+        </ListSection>
       )}
     </Show>
   )

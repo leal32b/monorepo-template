@@ -1,4 +1,4 @@
-import { Badge, PanelButton, SettingsPanel, SettingsRow, Stepper } from '@repo/ui'
+import { Badge, ListPanel, ListRow, PanelButton, Stepper } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { DisableTwoFactor } from '#features/disable-two-factor'
@@ -44,7 +44,7 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
   }
 
   return (
-    <SettingsRow
+    <ListRow
       icon="phone"
       title={t('account.authenticator.title')}
       badge={
@@ -80,7 +80,7 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
       }
       panel={
         opened('turn-on') ? (
-          <SettingsPanel label={t('account.authenticator.stepper')}>
+          <ListPanel label={t('account.authenticator.stepper')}>
             <Stepper
               aria-label={t('account.authenticator.stepper')}
               steps={[
@@ -115,9 +115,9 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
                 />
               )}
             </Show>
-          </SettingsPanel>
+          </ListPanel>
         ) : opened('turn-off') ? (
-          <SettingsPanel label={t('account.authenticator.turnOff')}>
+          <ListPanel label={t('account.authenticator.turnOff')}>
             <DisableTwoFactor
               onDisabled={() => {
                 turned(false)
@@ -125,7 +125,7 @@ export function AuthenticatorRow(props: AuthenticatorRowProps) {
               }}
               onCancel={close}
             />
-          </SettingsPanel>
+          </ListPanel>
         ) : undefined
       }
     />

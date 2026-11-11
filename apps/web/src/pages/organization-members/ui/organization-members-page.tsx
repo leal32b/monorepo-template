@@ -1,14 +1,5 @@
 import { covers } from '@repo/contracts'
-import {
-  Avatar,
-  Badge,
-  createPanels,
-  PanelButton,
-  type Panels,
-  SettingsPanel,
-  SettingsRow,
-  SettingsSection
-} from '@repo/ui'
+import { Avatar, Badge, createPanels, ListPanel, ListRow, ListSection, PanelButton, type Panels } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { createSignal, For, Match, Show, Switch } from 'solid-js'
 import {
@@ -111,7 +102,7 @@ function People(props: { panels: Panels }) {
     }
 
     return (
-      <SettingsRow
+      <ListRow
         avatar={<Avatar name={member.name} />}
         title={member.name}
         badge={
@@ -149,7 +140,7 @@ function People(props: { panels: Panels }) {
         panel={
           <Switch>
             <Match when={panels.isOpen(`role:${member.id}`)}>
-              <SettingsPanel label={t('organizationMembers.actions.changeRole')}>
+              <ListPanel label={t('organizationMembers.actions.changeRole')}>
                 <ChangeMemberRoleForm
                   organizationId={current.organization.id}
                   member={member}
@@ -170,10 +161,10 @@ function People(props: { panels: Panels }) {
                   onGone={gone}
                   onCancel={panels.close}
                 />
-              </SettingsPanel>
+              </ListPanel>
             </Match>
             <Match when={panels.isOpen(`remove:${member.id}`)}>
-              <SettingsPanel label={t('organizationMembers.actions.remove')}>
+              <ListPanel label={t('organizationMembers.actions.remove')}>
                 <RemoveMemberForm
                   organizationId={current.organization.id}
                   organizationName={current.organization.name}
@@ -185,10 +176,10 @@ function People(props: { panels: Panels }) {
                   onGone={gone}
                   onCancel={panels.close}
                 />
-              </SettingsPanel>
+              </ListPanel>
             </Match>
             <Match when={panels.isOpen(`leave:${member.id}`)}>
-              <SettingsPanel label={t('organizationMembers.actions.leave')}>
+              <ListPanel label={t('organizationMembers.actions.leave')}>
                 <LeaveOrganizationForm
                   organization={current.organization}
                   onLeft={() => {
@@ -198,7 +189,7 @@ function People(props: { panels: Panels }) {
                   }}
                   onCancel={panels.close}
                 />
-              </SettingsPanel>
+              </ListPanel>
             </Match>
           </Switch>
         }
@@ -209,7 +200,7 @@ function People(props: { panels: Panels }) {
   return (
     <Show when={team()}>
       {(loaded) => (
-        <SettingsSection
+        <ListSection
           title={t('organizationMembers.section.title')}
           description={t(
             canChange() || canRemove()
@@ -220,7 +211,7 @@ function People(props: { panels: Panels }) {
           status={sectionStatus()}
         >
           <For each={loaded().members}>{(member) => rowOf(member, loaded)}</For>
-        </SettingsSection>
+        </ListSection>
       )}
     </Show>
   )

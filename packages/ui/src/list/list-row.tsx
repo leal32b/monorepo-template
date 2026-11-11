@@ -11,7 +11,7 @@ import {
 import { Icon, type IconName } from '#icon'
 import { cn } from '#libs'
 
-export type SettingsRowProps = Omit<ComponentProps<'div'>, 'title'> & {
+export type ListRowProps = Omit<ComponentProps<'div'>, 'title'> & {
   /** A decorative icon before the title. */
   icon?: IconName | undefined
   /** An `Avatar` in the icon's place, for a row about a person or an organization. */
@@ -34,7 +34,7 @@ export type SettingsRowProps = Omit<ComponentProps<'div'>, 'title'> & {
   /** The row's actions, such as `Button`s: on the right, and full width where the row is narrow. */
   action?: JSX.Element
   /**
-   * The form an action opens, inline below the row, such as a `SettingsPanel`. The area shows only
+   * The form an action opens, inline below the row, such as a `ListPanel`. The area shows only
    * while there is something in it, so a `<Show>` that is off draws nothing. One panel at a time:
    * `createPanels`.
    */
@@ -49,7 +49,7 @@ const drawn = (resolved: unknown[]) => resolved.some((item) => item !== undefine
  * the row is narrow (a phone, or a narrow column such as onboarding's) the action drops below and takes
  * the full width: the row follows its own width, not the screen's, and a word too long for it breaks.
  * What the action opens appears under the row in the `panel`, never on another page. Put it inside a
- * `SettingsSection`.
+ * `ListSection`.
  */
 /** The id of the row's note, while it has one: a button that cannot act points to it for its reason. */
 const NoteContext = createContext<() => string | undefined>(() => undefined)
@@ -57,7 +57,7 @@ const NoteContext = createContext<() => string | undefined>(() => undefined)
 /** The id of the `note` of the row around, if it has one (`PanelButton` uses it when disabled). */
 export const useRowNote = () => useContext(NoteContext)
 
-export function SettingsRow(props: SettingsRowProps) {
+export function ListRow(props: ListRowProps) {
   const noteId = createUniqueId()
 
   return (
@@ -68,7 +68,7 @@ export function SettingsRow(props: SettingsRowProps) {
 }
 
 /** The row itself, inside its note's context, so the actions it draws can read it. */
-function Row(props: SettingsRowProps & { noteId: string }) {
+function Row(props: ListRowProps & { noteId: string }) {
   const [local, rest] = splitProps(props, [
     'class',
     'icon',

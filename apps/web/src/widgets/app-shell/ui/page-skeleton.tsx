@@ -1,4 +1,4 @@
-import { createLate, SettingsSkeleton } from '@repo/ui'
+import { createLate, ListSkeleton } from '@repo/ui'
 import { createMemo, onCleanup, Show } from 'solid-js'
 import type { Organization } from '#entities/organizations'
 import { useI18n } from '#shared/config'
@@ -24,7 +24,7 @@ export function PageSkeleton(props: { organization?: Organization | undefined })
       <Show when={late()}>
         <div aria-hidden="true" class="h-8 w-48 max-w-full rounded-md bg-secondary" />
       </Show>
-      <SettingsSkeleton label={t('appShell.loading')} />
+      <ListSkeleton label={t('appShell.loading')} />
     </main>
   )
 }

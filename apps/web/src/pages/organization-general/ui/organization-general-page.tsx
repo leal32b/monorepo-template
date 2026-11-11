@@ -1,4 +1,4 @@
-import { createPanels, PanelButton, SettingsPanel, SettingsRow, SettingsSection } from '@repo/ui'
+import { createPanels, ListPanel, ListRow, ListSection, PanelButton } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { batch, createSignal, Show } from 'solid-js'
 import { useOrganization, useOrganizations } from '#entities/organizations'
@@ -28,13 +28,13 @@ export function OrganizationGeneralPage() {
 
   return (
     <AppShell title={t('organizationGeneral.title')}>
-      <SettingsSection
+      <ListSection
         title={t('organizationGeneral.details.title')}
         description={t(
           canUpdate() ? 'organizationGeneral.details.description' : 'organizationGeneral.details.readOnly'
         )}
       >
-        <SettingsRow
+        <ListRow
           icon="organization"
           title={t('organizationGeneral.details.name.title')}
           description={organization().name}
@@ -48,7 +48,7 @@ export function OrganizationGeneralPage() {
           }
           panel={
             <Show when={panels.isOpen('name')}>
-              <SettingsPanel label={t('organizationGeneral.details.name.change')}>
+              <ListPanel label={t('organizationGeneral.details.name.change')}>
                 <RenameOrganizationForm
                   organization={organization()}
                   onSaved={(name) => {
@@ -58,11 +58,11 @@ export function OrganizationGeneralPage() {
                   }}
                   onCancel={panels.close}
                 />
-              </SettingsPanel>
+              </ListPanel>
             </Show>
           }
         />
-        <SettingsRow
+        <ListRow
           icon="globe"
           title={t('organizationGeneral.details.address.title')}
           description={`/${organization().slug}`}
@@ -76,7 +76,7 @@ export function OrganizationGeneralPage() {
           }
           panel={
             <Show when={panels.isOpen('address')}>
-              <SettingsPanel label={t('organizationGeneral.details.address.change')}>
+              <ListPanel label={t('organizationGeneral.details.address.change')}>
                 <ChangeAddressForm
                   organization={organization()}
                   onSaved={(slug) => {
@@ -90,17 +90,17 @@ export function OrganizationGeneralPage() {
                   }}
                   onCancel={panels.close}
                 />
-              </SettingsPanel>
+              </ListPanel>
             </Show>
           }
         />
-      </SettingsSection>
+      </ListSection>
       <Show when={current.can('organization', 'delete')}>
-        <SettingsSection
+        <ListSection
           title={t('organizationGeneral.delete.title')}
           description={t('organizationGeneral.delete.description')}
         >
-          <SettingsRow
+          <ListRow
             icon="warning"
             title={t('organizationGeneral.delete.row')}
             description={t('organizationGeneral.delete.rowDescription')}
@@ -111,7 +111,7 @@ export function OrganizationGeneralPage() {
             }
             panel={
               <Show when={panels.isOpen('delete')}>
-                <SettingsPanel label={t('organizationGeneral.delete.open')}>
+                <ListPanel label={t('organizationGeneral.delete.open')}>
                   <DeleteOrganizationForm
                     organization={organization()}
                     onDeleted={() => {
@@ -122,11 +122,11 @@ export function OrganizationGeneralPage() {
                     }}
                     onCancel={panels.close}
                   />
-                </SettingsPanel>
+                </ListPanel>
               </Show>
             }
           />
-        </SettingsSection>
+        </ListSection>
       </Show>
     </AppShell>
   )

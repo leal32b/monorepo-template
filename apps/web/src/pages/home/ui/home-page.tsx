@@ -1,4 +1,4 @@
-import { buttonVariants, EmptyState, SettingsRow, SettingsSection } from '@repo/ui'
+import { buttonVariants, EmptyState, ListRow, ListSection } from '@repo/ui'
 import { A } from '@solidjs/router'
 import { Show } from 'solid-js'
 import { homeOf, useCurrentOrganization } from '#entities/organizations'
@@ -27,11 +27,11 @@ export function HomePage() {
         }
       >
         {(organization) => (
-          <SettingsSection
+          <ListSection
             title={t('home.gettingStarted.title')}
             description={t('home.gettingStarted.description', { name: organization().organization.name })}
           >
-            <SettingsRow
+            <ListRow
               icon="plus"
               title={t('home.gettingStarted.invite.title')}
               description={t('home.gettingStarted.invite.description', { name: organization().organization.name })}
@@ -41,7 +41,7 @@ export function HomePage() {
                 </A>
               }
             />
-          </SettingsSection>
+          </ListSection>
         )}
       </Show>
     </AppShell>

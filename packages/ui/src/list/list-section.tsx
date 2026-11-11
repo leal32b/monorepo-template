@@ -1,7 +1,7 @@
 import { type ComponentProps, createEffect, createUniqueId, type JSX, on, Show, splitProps } from 'solid-js'
 import { cn } from '#libs'
 
-export type SettingsSectionProps = Omit<ComponentProps<'section'>, 'title'> & {
+export type ListSectionProps = Omit<ComponentProps<'section'>, 'title'> & {
   /** What the section is about: its heading. */
   title: string
   /** One line under the heading, saying what the rows do together. */
@@ -12,15 +12,15 @@ export type SettingsSectionProps = Omit<ComponentProps<'section'>, 'title'> & {
    * on goes away.
    */
   status?: string | undefined
-  /** The section's `SettingsRow`s. */
+  /** The section's `ListRow`s. */
   children: JSX.Element
 }
 
 /**
- * A page of settings is sections. A section is a heading, one line, and a bordered group of rows
+ * A list of things you act on, such as a page of settings or a register's records, is sections. A section is a heading, one line, and a bordered group of rows
  * divided by a subtle line. It is a named region, so a screen reader can jump between sections.
  */
-export function SettingsSection(props: SettingsSectionProps) {
+export function ListSection(props: ListSectionProps) {
   const [local, rest] = splitProps(props, ['class', 'title', 'description', 'status', 'children'])
   const headingId = createUniqueId()
   let status: HTMLParagraphElement | undefined

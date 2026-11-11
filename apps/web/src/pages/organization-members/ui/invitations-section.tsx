@@ -1,13 +1,4 @@
-import {
-  Avatar,
-  Badge,
-  PanelButton,
-  type Panels,
-  SettingsPanel,
-  SettingsRow,
-  SettingsSection,
-  SettingsSkeleton
-} from '@repo/ui'
+import { Avatar, Badge, ListPanel, ListRow, ListSection, ListSkeleton, PanelButton, type Panels } from '@repo/ui'
 import { createSignal, For, Show, Suspense } from 'solid-js'
 import {
   membersQuery,
@@ -49,7 +40,7 @@ export function InvitationsSection(props: InvitationsSectionProps) {
   return (
     <Show when={current.can('invitation', 'create') || current.can('invitation', 'cancel')}>
       <ReadFailure message={t('organizationInvitations.unavailable')}>
-        <Suspense fallback={<SettingsSkeleton label={t('appShell.loading')} rows={1} />}>
+        <Suspense fallback={<ListSkeleton label={t('appShell.loading')} rows={1} />}>
           <Invitations panels={props.panels} />
         </Suspense>
       </ReadFailure>
@@ -95,7 +86,7 @@ function Invitations(props: InvitationsSectionProps) {
   }
 
   const rowOf = (invitation: PendingInvitation) => (
-    <SettingsRow
+    <ListRow
       avatar={<Avatar icon="mail" />}
       title={invitation.email}
       badge={<For each={invitation.roles}>{(role) => <Badge>{roleLabel(role)}</Badge>}</For>}
@@ -152,13 +143,13 @@ function Invitations(props: InvitationsSectionProps) {
   return (
     <Show when={loaded()}>
       {(data) => (
-        <SettingsSection
+        <ListSection
           title={t('organizationInvitations.section.title')}
           description={t('organizationInvitations.section.description', { name: current.organization.name })}
           status={sectionStatus()}
         >
           <Show when={canInvite()}>
-            <SettingsRow
+            <ListRow
               icon="plus"
               title={t('organizationInvitations.invite.title')}
               description={t('organizationInvitations.invite.description', { name: current.organization.name })}
@@ -170,7 +161,7 @@ function Invitations(props: InvitationsSectionProps) {
               }
               panel={
                 <Show when={props.panels.isOpen('invite')}>
-                  <SettingsPanel label={t('organizationInvitations.invite.open')}>
+                  <ListPanel label={t('organizationInvitations.invite.open')}>
                     <InvitePeopleForm
                       organizationId={id}
                       roles={data().choices}
@@ -183,7 +174,7 @@ function Invitations(props: InvitationsSectionProps) {
                       }}
                       onCancel={props.panels.close}
                     />
-                  </SettingsPanel>
+                  </ListPanel>
                 </Show>
               }
             />
@@ -192,7 +183,7 @@ function Invitations(props: InvitationsSectionProps) {
           <Show when={data().list.length === 0}>
             <p class="p-4 text-sm text-muted-foreground sm:px-5">{t('organizationInvitations.section.empty')}</p>
           </Show>
-        </SettingsSection>
+        </ListSection>
       )}
     </Show>
   )
