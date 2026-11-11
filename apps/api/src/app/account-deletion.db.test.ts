@@ -101,7 +101,7 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
   async function organization(owner: Person, name: string) {
     const created = await post(
       '/organization/create',
-      { name, slug: `${name.toLowerCase()}-${lastAccount}` },
+      { name, slug: `${name.toLowerCase()}-${lastAccount}`, timeZone: 'UTC', currency: 'USD' },
       owner.cookie
     )
     return ((await created.json()) as { id: string }).id

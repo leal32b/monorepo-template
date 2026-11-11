@@ -1,4 +1,4 @@
-import { Avatar, Button, buttonVariants, SettingsRow, SettingsSection } from '@repo/ui'
+import { Avatar, Button, buttonVariants, ListRow, ListSection } from '@repo/ui'
 import { A, useNavigate } from '@solidjs/router'
 import { For, Match, Show, Suspense, Switch } from 'solid-js'
 import { type Invitation, rememberOrganization, useOrganizations, userInvitationsQuery } from '#entities/organizations'
@@ -68,10 +68,10 @@ function Invitations(props: { open: Invitation[] }) {
   const { t, locale } = useI18n()
 
   return (
-    <SettingsSection title={t('onboarding.invited.invitations')}>
+    <ListSection title={t('onboarding.invited.invitations')}>
       <For each={props.open}>
         {(invitation) => (
-          <SettingsRow
+          <ListRow
             avatar={<Avatar name={invitation.organizationName} shape="square" />}
             title={invitation.organizationName}
             description={t('invitations.expires', { date: formatDate(invitation.expiresAt, locale()) })}
@@ -83,7 +83,7 @@ function Invitations(props: { open: Invitation[] }) {
           />
         )}
       </For>
-    </SettingsSection>
+    </ListSection>
   )
 }
 

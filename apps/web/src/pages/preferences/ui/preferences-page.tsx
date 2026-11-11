@@ -1,4 +1,4 @@
-import { type IconName, SegmentedControl, Select, SettingsRow, SettingsSection } from '@repo/ui'
+import { type IconName, ListRow, ListSection, SegmentedControl, Select } from '@repo/ui'
 import { type Locale, localeNames, locales, type Theme, themes, useI18n, useTheme } from '#shared/config'
 import { AppShell } from '#widgets/app-shell'
 
@@ -15,8 +15,8 @@ export function PreferencesPage() {
 
   return (
     <AppShell title={t('preferences.title')}>
-      <SettingsSection title={t('preferences.appearance.title')} description={t('preferences.appearance.description')}>
-        <SettingsRow
+      <ListSection title={t('preferences.appearance.title')} description={t('preferences.appearance.description')}>
+        <ListRow
           icon="monitor"
           title={t('preferences.theme.title')}
           description={t('preferences.theme.description')}
@@ -33,9 +33,9 @@ export function PreferencesPage() {
             />
           }
         />
-      </SettingsSection>
-      <SettingsSection title={t('preferences.language.title')} description={t('preferences.language.description')}>
-        <SettingsRow
+      </ListSection>
+      <ListSection title={t('preferences.language.title')} description={t('preferences.language.description')}>
+        <ListRow
           icon="globe"
           title={t('preferences.language.screens')}
           description={t('preferences.language.emails')}
@@ -48,7 +48,7 @@ export function PreferencesPage() {
             />
           }
         />
-      </SettingsSection>
+      </ListSection>
     </AppShell>
   )
 }

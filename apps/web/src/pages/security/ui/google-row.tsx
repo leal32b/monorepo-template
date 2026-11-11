@@ -1,4 +1,4 @@
-import { Badge, SettingsRow } from '@repo/ui'
+import { Badge, ListRow } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { useIdentityOptions } from '#entities/identity-options'
@@ -37,7 +37,7 @@ export function GoogleRow(props: GoogleRowProps) {
 
   return (
     <Show when={linked() || options()?.google}>
-      <SettingsRow
+      <ListRow
         ref={(element) => {
           row = element
         }}

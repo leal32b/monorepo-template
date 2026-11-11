@@ -1,4 +1,4 @@
-import { SettingsSkeleton } from '@repo/ui'
+import { ListSkeleton } from '@repo/ui'
 import { createMemo, onCleanup, onMount, type ParentProps, Show, Suspense } from 'solid-js'
 import { useCurrentOrganization } from '#entities/organizations'
 import { useI18n } from '#shared/config'
@@ -56,7 +56,7 @@ export function AppShell(props: AppShellProps) {
         </Show>
       </div>
       <Show when={shell.signOutFailure()}>{(failure) => <AuthFailureAlert failure={failure()} />}</Show>
-      <Suspense fallback={<SettingsSkeleton label={t('appShell.loading')} />}>{props.children}</Suspense>
+      <Suspense fallback={<ListSkeleton label={t('appShell.loading')} />}>{props.children}</Suspense>
     </main>
   )
 }

@@ -9,8 +9,8 @@ import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shar
 import { OrganizationGeneralPage } from './organization-general-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
-const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'America/Sao_Paulo', currency: 'BRL' as const }
+const globex = { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' as const }
 
 type Options = { permissions?: Permissions; auth?: Fetch; locale?: Locale }
 
@@ -61,6 +61,10 @@ function renderPage({ permissions = builtInRoles.owner, auth, locale = 'en' }: O
 }
 
 const details = () => within(screen.getByRole('region', { name: 'Organization' }))
+const regional = () => within(screen.getByRole('region', { name: 'Time and money' }))
+
+/** Every kind of space as a plain one: ICU versions differ on which space goes before PM. */
+const spaced = (text: string | null) => text?.replace(/\s/g, ' ')
 
 describe('OrganizationGeneralPage', () => {
   it('shows an owner the name and the address with their buttons, and the deletion', () => {
@@ -168,6 +172,71 @@ describe('OrganizationGeneralPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Delete organization' })).toHaveFocus())
+  })
+
+  describe('time and money (ADR 0053)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-11-11T17:30:00Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('shows the time zone with the time there now, and the currency with an amount in it', () => {
+      renderPage()
+
+      expect(spaced(regional().getByText(/America\/Sao Paulo/).textContent)).toBe(
+        'America/Sao Paulo · now Nov 11, 2026, 2:30 PM GMT-3'
+      )
+      expect(spaced(regional().getByText(/Brazilian Real/).textContent)).toBe('Brazilian Real (BRL) · R$1,234.56')
+      expect(regional().getByRole('button', { name: 'Change time zone' })).toBeInTheDocument()
+      expect(regional().getByRole('button', { name: 'Change currency' })).toBeInTheDocument()
+    })
+
+    it('shows a plain member the settings and why they cannot change them', () => {
+      renderPage({ permissions: builtInRoles.member })
+
+      expect(screen.getByText('You can see these settings. Owners and admins can change them.')).toBeInTheDocument()
+      expect(regional().queryByRole('button')).not.toBeInTheDocument()
+    })
+
+    it.each([
+      ['Change time zone', 'Time zone', 'Europe/Lisbon', 'Save time zone', 'Time zone saved'],
+      ['Change currency', 'Currency', 'EUR', 'Save currency', 'Currency saved']
+    ])('%s: saves it, says so in the row and gives focus back', async (opener, label, value, save, saved) => {
+      const auth = vi.fn<Fetch>(async (input) =>
+        String(input).includes('/organization/list') ? Response.json([acme, globex]) : Response.json(acme)
+      )
+      renderPage({ auth })
+      fireEvent.click(regional().getByRole('button', { name: opener }))
+      fireEvent.change(await screen.findByRole('combobox', { name: label }), { target: { value } })
+
+      fireEvent.click(screen.getByRole('button', { name: save }))
+
+      expect(await screen.findByText(saved)).toBeInTheDocument()
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+      await waitFor(() => expect(screen.getByRole('button', { name: opener })).toHaveFocus())
+    })
+
+    it('closes a setting’s form from Cancel', async () => {
+      renderPage()
+      fireEvent.click(regional().getByRole('button', { name: 'Change currency' }))
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Change currency' })).toHaveFocus())
+    })
+
+    it('writes them in the reader’s language', () => {
+      renderPage({ locale: 'pt-BR' })
+
+      expect(spaced(screen.getByText(/Real brasileiro/).textContent)).toBe('Real brasileiro (BRL) · R$ 1.234,56')
+      expect(spaced(screen.getByText(/agora/).textContent)).toBe(
+        'America/Sao Paulo · agora 11 de nov. de 2026, 14:30 BRT'
+      )
+    })
   })
 
   it('speaks the language of the provider', () => {

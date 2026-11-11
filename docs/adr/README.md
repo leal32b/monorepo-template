@@ -48,7 +48,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0041](0041-say-why-a-cold-start-takes-long-and-end-the-wait.md) | Say why a cold start takes long, and end the wait | accepted |
 | [0042](0042-ask-only-for-the-session-where-none-was-seen.md) | Ask only for the session where none was seen | accepted |
 | [0043](0043-remove-the-service-status-from-the-web.md) | Remove the service status from the web | accepted |
-| [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md) |
+| [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md) |
 | [0045](0045-run-the-end-to-end-suite-on-the-built-app-without-outside-services.md) | Run the end-to-end suite on the built app, without outside services | accepted |
 | [0046](0046-observe-through-structured-logs-tagged-with-the-release.md) | Observe through structured logs tagged with the release | accepted |
 | [0047](0047-put-time-limits-on-every-database-wait.md) | Put time limits on every database wait | accepted |
@@ -56,3 +56,6 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0049](0049-delete-an-account-from-an-emailed-link.md) | Delete an account from an emailed link | accepted |
 | [0050](0050-purge-expired-rows-daily-from-a-job-of-its-own.md) | Purge expired rows daily, from a job of its own | accepted |
 | [0051](0051-propose-dependency-updates-with-renovate.md) | Propose dependency updates with Renovate | accepted |
+| [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md) | Run a use case's writes in one transaction through a unit of work | accepted |
+| [0053](0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md) | Keep the time zone and the currency on the organization, and money in minor units | accepted |
+| [0054](0054-name-the-row-family-for-lists-not-for-settings.md) | Name the row family for lists, not for settings | accepted |

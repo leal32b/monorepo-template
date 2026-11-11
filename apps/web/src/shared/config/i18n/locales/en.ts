@@ -269,7 +269,11 @@ export const en = {
   organizations: {
     create: {
       name: 'Organization name',
-      submit: 'Create organization'
+      submit: 'Create organization',
+      timeZone: 'Time zone',
+      timeZoneHint: 'Dates and times show in this zone for everyone.',
+      currency: 'Currency',
+      currencyHint: 'New amounts use this currency. You can change both later.'
     },
     errors: {
       nameRequired: 'Enter a name for your organization.',
@@ -279,7 +283,9 @@ export const en = {
       slugInvalid: 'Use lowercase letters, numbers and single hyphens, up to 48 characters.',
       slugReserved: 'This address is reserved. Choose another.',
       slugTaken: 'Another organization already uses this address. Choose another.',
-      notAllowed: 'You no longer have permission to do this. Ask an owner of the organization.'
+      notAllowed: 'You no longer have permission to do this. Ask an owner of the organization.',
+      invalidTimeZone: 'Choose a time zone from the list.',
+      invalidCurrency: 'Choose a currency from the list.'
     },
     unavailable: {
       title: 'We could not load your organizations',
@@ -313,6 +319,29 @@ export const en = {
         warning: 'Bookmarks and links that use the current address stop working once you change it.',
         save: 'Save address',
         saved: 'Address saved'
+      }
+    },
+    regional: {
+      title: 'Time and money',
+      description: 'How dates, times and amounts appear for everyone in this organization.',
+      readOnly: 'You can see these settings. Owners and admins can change them.',
+      timeZone: {
+        title: 'Time zone',
+        now: '{{zone}} · now {{time}}',
+        change: 'Change time zone',
+        label: 'Time zone',
+        hint: 'Saved dates and times keep their moment and show in the new zone.',
+        save: 'Save time zone',
+        saved: 'Time zone saved'
+      },
+      currency: {
+        title: 'Currency',
+        example: '{{currency}} · {{amount}}',
+        change: 'Change currency',
+        label: 'Currency',
+        hint: 'New amounts use it. Amounts already saved keep their own currency.',
+        save: 'Save currency',
+        saved: 'Currency saved'
       }
     },
     delete: {

@@ -160,7 +160,9 @@ describe('AppShell', () => {
   })
 
   it('leads Home and the palette to the home of the organization in the URL (ADR 0034)', async () => {
-    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    const history = renderShell({
+      organization: { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }
+    })
 
     expect(
       within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Home' })
@@ -173,7 +175,9 @@ describe('AppShell', () => {
   })
 
   it('offers the organization’s customers in the side menu and the palette, and none outside an organization', async () => {
-    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    const history = renderShell({
+      organization: { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }
+    })
 
     expect(
       within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'Customers' })
@@ -186,7 +190,9 @@ describe('AppShell', () => {
   })
 
   it('offers the organization’s screens in the palette, as the side menu does', async () => {
-    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    const history = renderShell({
+      organization: { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }
+    })
     fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
     const dialog = within(await screen.findByRole('dialog', { name: 'Command palette' }))
 
@@ -197,7 +203,7 @@ describe('AppShell', () => {
   })
 
   it('puts the organization you are in at the top of the side menu, in place of the app’s name', () => {
-    renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' } })
     const menu = within(screen.getByRole('complementary', { hidden: true }))
 
     const switcher = menu.getByRole('button', { name: /Acme/ })
@@ -206,7 +212,7 @@ describe('AppShell', () => {
   })
 
   it('leaves the close button of the phone drawer its own place, beside the title and not over the switcher', async () => {
-    renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' } })
     fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
     const drawer = await screen.findByRole('dialog', { name: 'Menu' })
 
@@ -220,7 +226,9 @@ describe('AppShell', () => {
   })
 
   it('switches organization from the phone drawer, which closes after the move', async () => {
-    const history = renderShell({ organization: { id: 'org-1', name: 'Acme', slug: 'acme' } })
+    const history = renderShell({
+      organization: { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
     const drawer = await screen.findByRole('dialog', { name: 'Menu' })
     fireEvent.keyDown(within(drawer).getByRole('button', { name: /Acme/ }), { key: 'Enter' })
@@ -483,7 +491,7 @@ describe('AppShell', () => {
     })
 
     describe('of an organization', () => {
-      const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+      const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 
       it('shares the settings’ menu: the organization’s own screens join the account’s, the current one marked', () => {
         renderShell({ path: '/acme/settings/general', organization: acme })

@@ -9,7 +9,7 @@ describe('preloadTeam (ADR 0038)', () => {
       asked.push(`${url.pathname}${url.search}`)
       if (url.pathname.endsWith('/organization/list-members')) return Response.json({ members: [], total: 0 })
       if (url.pathname.endsWith('/organization/list'))
-        return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme' }])
+        return Response.json([{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }])
       return Response.json([])
     }
   })

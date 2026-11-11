@@ -8,7 +8,7 @@ import { RequireOrganization } from './require-organization'
 
 type ApiFetch = (input: string, init?: RequestInit) => Promise<Response>
 
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme' }
+const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 const admin = { roles: ['admin'], permissions: { member: ['create'] } }
 
 function Rights() {
@@ -161,7 +161,7 @@ describe('RequireOrganization', () => {
   })
 
   describe('while the organizations are read again (W10)', () => {
-    const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+    const globex = { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' as const }
 
     /** Better Auth's list: the first answer at once, each one after it when the test lets it. */
     function lists(first: unknown) {
@@ -276,7 +276,7 @@ describe('RequireOrganization', () => {
   })
 
   describe('coming from another screen', () => {
-    const globex = { id: 'org-2', name: 'Globex', slug: 'globex' }
+    const globex = { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' as const }
     const member = { roles: ['member'], permissions: {} }
 
     /** A screen outside the organizations, with links into them once they are read, as the account settings have. */

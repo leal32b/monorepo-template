@@ -87,20 +87,24 @@ The same idea looks and behaves the same everywhere. Before building, find it he
 
 | Idea | Use | Not |
 | --- | --- | --- |
-| A page of settings | `SettingsSection` of `SettingsRow`s | cards or lists of one's own |
-| A row's form, opened inline | `PanelButton` + `SettingsPanel`, one `createPanels()` per screen | a signal per section, a `panel.tsx` per page |
+| A list of things you act on: a page of settings, or records such as customers, members, roles ([ADR 0054](../../../docs/adr/0054-name-the-row-family-for-lists-not-for-settings.md)) | `ListSection` of `ListRow`s | cards or lists of one's own, a second family for records |
+| A row's form, opened inline | `PanelButton` + `ListPanel`, one `createPanels()` per screen | a signal per section, a `panel.tsx` per page |
 | The buttons that end a form | `FormActions` | `div.flex` with `w-full sm:w-auto` on each button |
 | Asking before removing (remove, leave, delete, revoke with consequences) | `ConfirmForm` in the row's panel, a field in it when the action cannot be undone | a dialog, a bespoke warning + buttons |
 | A labelled select | `SelectField` | a `label` + `Select` + hint by hand |
 | A group of controls with one label and one error | `Fieldset`; a resource's checkboxes in a `CheckboxGroup` | a `fieldset` whose `legend` sits on the border, a `p role=alert` by hand |
 | A person, an organization, an invited address | `Avatar` (circle, square, `mail` icon) | `icon="profile"`, `letter="@"` |
 | Who or what a menu is about (organization, account) | `menuTriggerClass` + `MenuTriggerContent` | trigger classes copied |
-| Waiting for the server ([ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md), [ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | nothing drawn yet: the family's skeleton (`SettingsSkeleton`, `EntrySkeleton`, `ShellSkeleton`, and `PageSkeleton` for a screen in the frame that cannot be drawn yet), timed once from boot by `createLate`, which a new skeleton uses too; moving to another screen: the next one at once, its title and its family's skeleton until its data is in, the chosen menu item marked at once; a screen read before: its last value at once, read again behind it; an action: its button's `pending`; the screen already drawn: the app's `ProgressBar`, which follows every request and every navigation that waits by itself; a wait past `motion.slowWaitDelay` (5 s) says why in an `Alert` of kind `info`, timed with `createLate(motion.slowWaitDelay)`, and a frame's skeleton holds the places of its menu and page, never an empty frame ([ADR 0041](../../../docs/adr/0041-say-why-a-cold-start-takes-long-and-end-the-wait.md)) | a spinner, an overlay, a "Loading…" text, a bar of one's own, a delay of one's own instead of `createLate`, the old screen held while the next one's data comes |
+| Waiting for the server ([ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md), [ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | nothing drawn yet: the family's skeleton (`ListSkeleton`, `EntrySkeleton`, `ShellSkeleton`, and `PageSkeleton` for a screen in the frame that cannot be drawn yet), timed once from boot by `createLate`, which a new skeleton uses too; moving to another screen: the next one at once, its title and its family's skeleton until its data is in, the chosen menu item marked at once; a screen read before: its last value at once, read again behind it; an action: its button's `pending`; the screen already drawn: the app's `ProgressBar`, which follows every request and every navigation that waits by itself; a wait past `motion.slowWaitDelay` (5 s) says why in an `Alert` of kind `info`, timed with `createLate(motion.slowWaitDelay)`, and a frame's skeleton holds the places of its menu and page, never an empty frame ([ADR 0041](../../../docs/adr/0041-say-why-a-cold-start-takes-long-and-end-the-wait.md)) | a spinner, an overlay, a "Loading…" text, a bar of one's own, a delay of one's own instead of `createLate`, the old screen held while the next one's data comes |
 
 | Reading data from the server ([ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | a `createQuery` in the entity's `api` segment, keyed by its arguments, started by the route's `preload` as it opens, never for a link only hovered ([ADR 0040](../../../docs/adr/0040-start-a-screens-reads-when-it-opens-not-on-hover.md)), reading its `params` at once, and read in the screen with `createRead`, which draws a key read before at once; after a change, `updateRead` or `readAgain` by its key; a read that fails, `ReadFailure`: the one alert with its retry, or the screen's own words for a case such as "not found" | `createResource` in a page, a `state === 'ready'` gate, a fallback of one's own, an `ErrorBoundary` of one's own, a page's private copy of data another screen reads |
+| Moving through a list a page at a time | `Pager`: the caller passes the labels and the "Page X of Y" text, `hasPrevious` and `hasNext` | previous and next buttons written in the page |
 | Nothing here yet | `EmptyState` | a blank page |
 | A row that left a list (removed, deleted, revoked) | the section's `status`, which takes focus | a `p role=status` with negative margins |
 | A date | `formatDate` from `#shared/lib` | `Intl.DateTimeFormat` with options of one's own |
+| An instant of the organization's business (an appointment, a payment) | `formatDateTime` with the organization's `timeZone` ([ADR 0053](../../../docs/adr/0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md)) | `formatDate`, or the device's zone |
+| A wall-clock time (opening hours, a slot) | `formatTime` | a `Date` built for it, a 24-hour string shown as it came |
+| Money | `formatMoney`, from minor units and their currency | `toFixed`, a division by 100, a symbol written by hand |
 | Answering an invitation | `/invitations/:id` only; other screens link to it | buttons to accept in a list |
 
 When two screens need the same idea with a difference, the difference is a prop of the one
@@ -119,13 +123,13 @@ Elements must not "tremble" between states or screens.
   button below the field: the press itself moves focus, and errors coming or going above the button
   move it from under the pointer before the click lands, so the click is lost. A button beside the
   input (show password) does not move, so the check runs.
-- **Empty slots draw nothing.** `SettingsRow` draws its action and panel areas only when they hold
+- **Empty slots draw nothing.** `ListRow` draws its action and panel areas only when they hold
   something, so `panel={<Show when={open}>…</Show>}` is safe. A component that takes a slot does the
   same (`children()` and check what it resolved to), never `<Show when={props.slot}>`, which is always
   truthy for JSX.
 - **Lay out by the container, not the screen.** A component that may sit in a narrow column (an entry
   screen) and in a wide one (settings) switches with container queries (`@container`, `@md:`), as
-  `SettingsRow` and `FormActions` do; `sm:` only for the page's own frame.
+  `ListRow` and `FormActions` do; `sm:` only for the page's own frame.
 - **An error takes the hint's place.** A field shows its hint or its error, never both: they often
   say the same thing twice.
 - **Stable frame.** The layout keeps its scrollbar gutter (`scrollbar-gutter: stable` on `html`), so a

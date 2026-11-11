@@ -1,3 +1,4 @@
+import type { InMemoryStore } from '#libs/adapters/in-memory-unit-of-work'
 import type { CustomerFilter, CustomerRepository } from '../customer-repository.port'
 import type { Customer } from '../domain/customer'
 import {
@@ -12,8 +13,15 @@ const lower = (text: string | null) => text?.toLowerCase() ?? null
  * The repository for use-case tests: the same rules as the database adapter (the shared contract
  * test runs against both), with plain code-unit ordering, which is also how the adapter orders.
  */
-export class InMemoryCustomerRepository implements CustomerRepository {
-  readonly #customers = new Map<string, Customer>()
+export class InMemoryCustomerRepository implements CustomerRepository, InMemoryStore {
+  #customers = new Map<string, Customer>()
+
+  snapshot(): () => void {
+    const before = new Map(this.#customers)
+    return () => {
+      this.#customers = before
+    }
+  }
 
   async insert(customer: Customer): Promise<void> {
     this.#assertEmailFree(customer)

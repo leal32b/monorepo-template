@@ -1,4 +1,4 @@
-import { Badge, PanelButton, SettingsPanel, SettingsRow } from '@repo/ui'
+import { Badge, ListPanel, ListRow, PanelButton } from '@repo/ui'
 import { createSignal } from 'solid-js'
 import type { AccountSecurity } from '#entities/accounts'
 import { ChangePasswordForm } from '#features/change-password'
@@ -20,7 +20,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
   const close = () => props.panels.close()
 
   return (
-    <SettingsRow
+    <ListRow
       icon="key"
       title={t('account.password.title')}
       badge={
@@ -55,7 +55,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
       }
       panel={
         props.panels.isOpen('password') ? (
-          <SettingsPanel label={t('account.password.change')}>
+          <ListPanel label={t('account.password.change')}>
             <p class="text-muted-foreground">{t('changePassword.signsOut')}</p>
             <ChangePasswordForm
               onChanged={() => {
@@ -64,7 +64,7 @@ export function PasswordRow(props: RowPanelProps & { security: AccountSecurity }
               }}
               onCancel={close}
             />
-          </SettingsPanel>
+          </ListPanel>
         ) : (
           failure() && <AuthFailureAlert failure={failure() as AuthFailure} />
         )

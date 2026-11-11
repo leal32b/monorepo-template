@@ -86,7 +86,8 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
 Customers is the worked example of a tenant-scoped module, from contract to screen, with tests at
 every layer ([ADR 0044](adr/0044-build-customers-as-the-reference-vertical-module.md), "How to copy
-the module"). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
+the module", and [ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
+for a use case with two writes). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
 
 1. The schemas in `packages/contracts`, and the resource in `statements` with the roles' share of it.
 2. The domain: pure rules and errors, no I/O.
@@ -94,7 +95,14 @@ the module"). Copy and rename it, in this order, each step test first (the `tdd-
    migration in `apps/api/migrations` (plain SQL, forward only,
    [ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)).
 4. A service and a controller per use case, the routes behind `requireMember`, one line in
-   `app/create-app.ts`.
+   `app/create-app.ts`. A use case with one write takes the repository, as `ArchiveCustomerService`
+   does. One whose writes must be kept together or not at all (a sale and its items, an appointment
+   and its charge) takes the module's unit of work and does everything inside `run`, as
+   `DeleteCustomerService` does: copy `customers-unit-of-work.port.ts`,
+   `database/kysely-customers-unit-of-work.ts`, `snapshot()` on each in-memory fake and
+   `testing/customers-unit-of-work.contract.ts`. Inside `run`: only the repositories it hands
+   over, and nothing but database work
+   ([ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)).
 5. The web: the entity's reads and writes, the feature's forms, the page and its route with
    `preload`, the menu item, the texts in every language. Screens go through the `design-system`
    and `minimize-support` skills.
@@ -116,11 +124,12 @@ code goes the same way in both cases below:
 The database differs:
 
 - **Never deployed** (no production database has run the migrations yet): delete
-  `apps/api/migrations/0004_customers.sql` and `0006_customer_version.sql`. Migrations are forward
+  `apps/api/migrations/0004_customers.sql`, `0006_customer_version.sql` and
+  `0007_customer_change.sql`, and their tables in `apps/api/test/reset-database.ts`. Migrations are forward
   only once applied somewhere ([ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)); before
   that, the files are just code. Reset the local database: stop `pnpm db`, delete `apps/api/.data`, start it again.
-- **Already in production**: keep both files, which databases have already applied, and add a new
-  migration that drops the table (`drop table if exists customer;`). Back up the rows first if anyone might want them.
+- **Already in production**: keep the files, which databases have already applied, and add a new
+  migration that drops the tables (`drop table if exists customer_change; drop table if exists customer;`). Back up the rows first if anyone might want them.
 
 ## 6. Keep it healthy
 

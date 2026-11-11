@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from '@solidjs/testing-library'
 import { Button } from '#button'
+import { ListPanel } from './list-panel'
+import { ListRow } from './list-row'
 import { PanelButton } from './panel-button'
 import { createPanels } from './panels'
-import { SettingsPanel } from './settings-panel'
-import { SettingsRow } from './settings-row'
 
 /** Two rows, each with a panel, on one screen. */
 function Screen() {
@@ -11,7 +11,7 @@ function Screen() {
   return (
     <>
       {(['name', 'address'] as const).map((panel) => (
-        <SettingsRow
+        <ListRow
           title={panel}
           action={
             <PanelButton panels={panels} panel={panel}>
@@ -20,10 +20,10 @@ function Screen() {
           }
           panel={
             panels.isOpen(panel) && (
-              <SettingsPanel label={`Change ${panel}`}>
+              <ListPanel label={`Change ${panel}`}>
                 <Button onClick={panels.close}>Cancel</Button>
                 <Button onClick={panels.dismiss}>Gone</Button>
-              </SettingsPanel>
+              </ListPanel>
             )
           }
         />
@@ -89,7 +89,7 @@ describe('createPanels and PanelButton', () => {
     const panels = createPanels()
     render(() => (
       <>
-        <SettingsRow
+        <ListRow
           title="Ada"
           note="The only owner."
           action={
@@ -98,7 +98,7 @@ describe('createPanels and PanelButton', () => {
             </PanelButton>
           }
         />
-        <SettingsRow
+        <ListRow
           title="Grace"
           note="Shown, but not why the button waits."
           action={

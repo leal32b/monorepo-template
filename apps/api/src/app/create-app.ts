@@ -9,6 +9,7 @@ import { createHttpServer } from '#libs/http/server'
 import type { Clock } from '#libs/ports/clock.port'
 import type { EmailSender } from '#libs/ports/email-sender.port'
 import { KyselyCustomerRepository } from '#modules/customers/database/kysely-customer-repository'
+import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomerRoutes } from '#modules/customers/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
 import { GetHealthController } from '#modules/health/queries/get-health/get-health.http-controller'
@@ -87,6 +88,7 @@ export function createApp({
     session,
     membership,
     repository: new KyselyCustomerRepository(db),
+    unitOfWork: kyselyCustomersUnitOfWork(db),
     clock,
     ids: new UuidGenerator()
   })

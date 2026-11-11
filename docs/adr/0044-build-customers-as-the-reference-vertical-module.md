@@ -1,6 +1,6 @@
 # 0044. Build customers as the reference vertical module
 
-- Status: accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md)
+- Status: accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
 - Date: 2026-11-07
 
 ## Context and problem statement

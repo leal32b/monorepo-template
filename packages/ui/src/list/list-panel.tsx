@@ -1,15 +1,15 @@
 import { onMount, type ParentProps } from 'solid-js'
 
-export type SettingsPanelProps = ParentProps<{
+export type ListPanelProps = ParentProps<{
   /** What the panel is for, read out by screen readers: usually the label of the button that opened it. */
   label: string
 }>
 
 /**
- * The form a `SettingsRow` opens below itself (its `panel`): a group named for screen readers, given
+ * The form a `ListRow` opens below itself (its `panel`): a group named for screen readers, given
  * focus when it opens, so the keyboard starts where the form does.
  */
-export function SettingsPanel(props: SettingsPanelProps) {
+export function ListPanel(props: ListPanelProps) {
   return (
     <fieldset
       tabIndex={-1}

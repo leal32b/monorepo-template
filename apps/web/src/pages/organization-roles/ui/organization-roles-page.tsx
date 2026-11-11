@@ -1,5 +1,5 @@
 import { covers, statements } from '@repo/contracts'
-import { Badge, createPanels, PanelButton, SettingsPanel, SettingsRow, SettingsSection } from '@repo/ui'
+import { Badge, createPanels, ListPanel, ListRow, ListSection, PanelButton } from '@repo/ui'
 import { createSignal, For, Show } from 'solid-js'
 import {
   holdersOf,
@@ -114,7 +114,7 @@ function Roles() {
           : undefined
 
     return (
-      <SettingsRow
+      <ListRow
         icon="role"
         title={roleLabel(role.name)}
         badge={
@@ -149,12 +149,12 @@ function Roles() {
         panel={
           <>
             <Show when={panels.isOpen(`view:${role.name}`)}>
-              <SettingsPanel label={t('organizationRoles.actions.view')}>
+              <ListPanel label={t('organizationRoles.actions.view')}>
                 <RoleView role={role} onClose={panels.close} />
-              </SettingsPanel>
+              </ListPanel>
             </Show>
             <Show when={panels.isOpen(`edit:${role.name}`)}>
-              <SettingsPanel label={t('organizationRoles.actions.edit')}>
+              <ListPanel label={t('organizationRoles.actions.edit')}>
                 <RoleForm
                   organizationId={current.organization.id}
                   role={role}
@@ -172,10 +172,10 @@ function Roles() {
                   onGone={gone}
                   onCancel={panels.close}
                 />
-              </SettingsPanel>
+              </ListPanel>
             </Show>
             <Show when={panels.isOpen(`delete:${role.name}`)}>
-              <SettingsPanel label={t('organizationRoles.actions.delete')}>
+              <ListPanel label={t('organizationRoles.actions.delete')}>
                 <DeleteRoleForm
                   organizationId={current.organization.id}
                   role={role}
@@ -186,7 +186,7 @@ function Roles() {
                   onGone={gone}
                   onCancel={panels.close}
                 />
-              </SettingsPanel>
+              </ListPanel>
             </Show>
           </>
         }
@@ -200,20 +200,20 @@ function Roles() {
         const custom = () => loaded().roles.filter((role) => !role.builtIn)
         return (
           <>
-            <SettingsSection
+            <ListSection
               title={t('organizationRoles.builtIn.title')}
               description={t('organizationRoles.builtIn.description')}
             >
               <For each={loaded().roles.filter((role) => role.builtIn)}>{(role) => rowOf(role, loaded)}</For>
-            </SettingsSection>
+            </ListSection>
             <Show when={current.can('ac', 'create') || custom().length > 0}>
-              <SettingsSection
+              <ListSection
                 title={t('organizationRoles.custom.title', { name: current.organization.name })}
                 description={t('organizationRoles.custom.description')}
                 status={sectionStatus()}
               >
                 <Show when={current.can('ac', 'create')}>
-                  <SettingsRow
+                  <ListRow
                     icon="plus"
                     title={t('organizationRoles.custom.create.title')}
                     description={t('organizationRoles.custom.create.description')}
@@ -224,7 +224,7 @@ function Roles() {
                     }
                     panel={
                       <Show when={panels.isOpen('create')}>
-                        <SettingsPanel label={t('organizationRoles.custom.create.open')}>
+                        <ListPanel label={t('organizationRoles.custom.create.open')}>
                           <RoleForm
                             organizationId={current.organization.id}
                             roles={loaded().roles}
@@ -240,13 +240,13 @@ function Roles() {
                             onGone={gone}
                             onCancel={panels.close}
                           />
-                        </SettingsPanel>
+                        </ListPanel>
                       </Show>
                     }
                   />
                 </Show>
                 <For each={custom()}>{(role) => rowOf(role, loaded)}</For>
-              </SettingsSection>
+              </ListSection>
             </Show>
           </>
         )
