@@ -33,14 +33,14 @@ the rest.
 
 | # | Item | Priority | Model | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
-| [P0-1](#p0-1-transactions-across-repositories) | Transactions across repositories | P0 | Fable | | Todo |
+| [P0-1](#p0-1-transactions-across-repositories) | Transactions across repositories | P0 | Fable | | Done |
 | [P0-2](#p0-2-tenant-isolation-with-a-safety-net) | Tenant isolation with a safety net | P0 | Fable | P0-1 | Todo |
-| [P0-3](#p0-3-organization-settings-time-zone-currency-and-money) | Organization settings: time zone, currency and money | P0 | Opus | | Todo |
+| [P0-3](#p0-3-organization-settings-time-zone-currency-and-money) | Organization settings: time zone, currency and money | P0 | Opus | | Done |
 | [P0-4](#p0-4-background-work) | Background work | P0 | Fable, then Opus | P0-1 | Todo |
 | [P0-5](#p0-5-public-tenant-surface) | Public tenant surface | P0 | Fable, then Opus | P0-2 | Todo |
 | [P0-6](#p0-6-subscription-of-the-tenant) | Subscription of the tenant | P0 | Fable, then Opus | P0-1, P0-4 | Todo |
 | [P1-1](#p1-1-audit-trail) | Audit trail | P1 | Opus | P0-1 | Todo |
-| [P1-2](#p1-2-design-system-for-product-screens) | Design system for product screens | P1 | Sonnet | | Todo |
+| [P1-2](#p1-2-design-system-for-product-screens) | Design system for product screens | P1 | Sonnet | | In progress |
 | [P1-3](#p1-3-a-cheaper-mould) | A cheaper mould | P1 | Opus, then Sonnet | P0-1, P0-2, P1-2 | Todo |
 | [P1-4](#p1-4-new-module-skill-and-product-mode) | `new-module` skill and product mode | P1 | Sonnet | P1-3 | Todo |
 | [P1-5](#p1-5-file-storage) | File storage | P1 | Opus | | Todo |
@@ -66,7 +66,7 @@ then P1 by need.
 ### P0-1. Transactions across repositories
 
 - **Model:** Fable
-- **Status:** Todo
+- **Status:** Done ([ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)). Deleting a customer and recording who did it is the two-write use case; the record (`customer_change`) is what P1-1 grows or replaces.
 - **Finding:** no use case writes to two tables, and nothing in `apps/api/src` opens a transaction.
   The reference module shows one repository per use case, so the first use case of a product that
   needs two (an appointment and its charge, a sale and its items) has no pattern to copy.
@@ -105,7 +105,7 @@ then P1 by need.
 ### P0-3. Organization settings: time zone, currency and money
 
 - **Model:** Opus
-- **Status:** Todo
+- **Status:** Done ([ADR 0053](adr/0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md)). The settings are additional fields of Better Auth's organization table.
 - **Finding:** an organization has a name and a slug. There is no time zone, currency or locale
   per organization, no money type, and the only formatter is `formatDate` (date only). Scheduling
   without the organization's time zone is the classic defect; finance needs one way to hold money.
@@ -201,7 +201,7 @@ then P1 by need.
 ### P1-2. Design system for product screens
 
 - **Model:** Sonnet
-- **Status:** Todo
+- **Status:** In progress. Done: the `Settings*` family renamed to `List*` ([ADR 0054](adr/0054-name-the-row-family-for-lists-not-for-settings.md)) and the `Pager`. The other components wait for a screen that uses them: none is added without a user.
 - **Finding:** `@repo/ui` covers settings and entry screens. It has no Dialog, data list or table,
   Tabs, Toast, Textarea, Switch, Radio, Tooltip, Combobox, date, time or money input, calendar, or
   pager. The customers list is drawn with `SettingsRow` and `SettingsSection`, and its pager is
