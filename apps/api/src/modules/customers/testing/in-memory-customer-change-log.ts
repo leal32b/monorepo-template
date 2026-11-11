@@ -21,8 +21,9 @@ export class InMemoryCustomerChangeLog implements CustomerChangeLog, InMemorySto
   async list(organizationId: string): Promise<CustomerChange[]> {
     return [...this.#changes.values()]
       .filter((change) => change.organizationId === organizationId)
-      .sort((a, b) => a.at.getTime() - b.at.getTime() || compare(a.id, b.id))
+      .sort((a, b) => a.at.getTime() - b.at.getTime() || byId(a.id, b.id))
   }
 }
 
-const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
+/** Plain code-unit order, as the adapter's `collate "C"`; two changes never share an id. */
+const byId = (a: string, b: string) => (a < b ? -1 : 1)

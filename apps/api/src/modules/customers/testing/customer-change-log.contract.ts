@@ -34,11 +34,12 @@ export function describeCustomerChangeLog(label: string, make: () => Promise<Cus
     })
 
     it('lists the oldest first, then by id', async () => {
-      await log.append(aChange('ch3', { at: new Date('2026-11-08T10:00:00.000Z') }))
-      await log.append(aChange('ch2'))
+      await log.append(aChange('ch0', { at: new Date('2026-11-08T10:00:00.000Z') }))
+      await log.append(aChange('ch3'))
       await log.append(aChange('ch1'))
+      await log.append(aChange('ch2'))
 
-      expect((await log.list('org-1')).map((change) => change.id)).toEqual(['ch1', 'ch2', 'ch3'])
+      expect((await log.list('org-1')).map((change) => change.id)).toEqual(['ch1', 'ch2', 'ch3', 'ch0'])
     })
 
     it('shows nothing of another organization', async () => {
