@@ -61,8 +61,9 @@ Chosen options 1 and a.
 ### The settings, on Better Auth's organization table
 
 - `auth.organization` gains `timeZone` and `currency`, both `text not null`
-  (`migrations/0008_organization_settings.sql`, as `auth:schema` prints it). Existing rows get `UTC`
-  and `USD`, then the defaults are dropped, so every new row states its own.
+  (`migrations/0008_organization_settings.sql`, as `auth:schema` prints it). Their defaults, `UTC`
+  and `USD`, only fill the organizations made before and rows written outside Better Auth (a seed,
+  a test). Every creation through the API must state both.
 - `auth.ts` declares them as additional fields of the organization plugin: `required` and `input`.
   The plugin then, in Better Auth 1.7.14 (read in its source, since the documentation says little
   here):
