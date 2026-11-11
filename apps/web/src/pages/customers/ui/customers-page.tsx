@@ -6,11 +6,11 @@ import {
   createPanels,
   EmptyState,
   Field,
+  ListPanel,
+  ListRow,
+  ListSection,
   PanelButton,
-  SegmentedControl,
-  SettingsPanel,
-  SettingsRow,
-  SettingsSection
+  SegmentedControl
 } from '@repo/ui'
 import { createEffect, createSignal, For, Match, Show, Switch } from 'solid-js'
 import { customersQuery } from '#entities/customers'
@@ -111,7 +111,7 @@ function Customers() {
     [customer.company, customer.email, customer.phone].filter(Boolean).join(' · ') || undefined
 
   const rowOf = (customer: Customer) => (
-    <SettingsRow
+    <ListRow
       avatar={<Avatar name={customer.name} />}
       title={customer.name}
       badge={
@@ -157,7 +157,7 @@ function Customers() {
       panel={
         <Switch>
           <Match when={panels.isOpen(`edit:${customer.id}`)}>
-            <SettingsPanel label={t('customers.actions.edit')}>
+            <ListPanel label={t('customers.actions.edit')}>
               <CustomerForm
                 organizationId={id}
                 customer={customer}
@@ -172,10 +172,10 @@ function Customers() {
                 onStale={stale}
                 onCancel={panels.close}
               />
-            </SettingsPanel>
+            </ListPanel>
           </Match>
           <Match when={panels.isOpen(`delete:${customer.id}`)}>
-            <SettingsPanel label={t('customers.actions.delete')}>
+            <ListPanel label={t('customers.actions.delete')}>
               <DeleteCustomerForm
                 organizationId={id}
                 customer={customer}
@@ -183,7 +183,7 @@ function Customers() {
                 onChanged={changed('customers.errors.changed')}
                 onCancel={panels.close}
               />
-            </SettingsPanel>
+            </ListPanel>
           </Match>
         </Switch>
       }
@@ -238,7 +238,7 @@ function Customers() {
               ]}
             />
           </div>
-          <SettingsSection
+          <ListSection
             title={t('customers.section.title')}
             description={t(
               canAdd() || canEdit() || canDelete() ? 'customers.section.description' : 'customers.section.readOnly',
@@ -249,7 +249,7 @@ function Customers() {
             status={sectionStatus()}
           >
             <Show when={canAdd() && status() === 'active'}>
-              <SettingsRow
+              <ListRow
                 icon="plus"
                 title={t('customers.add.title')}
                 description={t('customers.add.description')}
@@ -260,7 +260,7 @@ function Customers() {
                 }
                 panel={
                   <Show when={panels.isOpen('add')}>
-                    <SettingsPanel label={t('customers.add.title')}>
+                    <ListPanel label={t('customers.add.title')}>
                       <CustomerForm
                         organizationId={id}
                         onSaved={(saved) => {
@@ -271,7 +271,7 @@ function Customers() {
                         onStale={stale}
                         onCancel={panels.close}
                       />
-                    </SettingsPanel>
+                    </ListPanel>
                   </Show>
                 }
               />
@@ -284,7 +284,7 @@ function Customers() {
             >
               <For each={loaded().items}>{rowOf}</For>
             </Show>
-          </SettingsSection>
+          </ListSection>
           <Show when={pages(loaded()) > 1}>
             <nav class="flex items-center justify-between gap-3" aria-label={t('customers.section.title')}>
               <Button variant="secondary" disabled={page() <= 1} onClick={() => setPage(page() - 1)}>

@@ -76,7 +76,7 @@ Use these first; a missing one is added where it belongs, with tests, not improv
 | Recovery | | Soft delete with trash; an activity log the user can see |
 | Billing | | Self-service billing portal |
 | Invitations | `GET /api/invitations/:id` tells the invitee whether it is pending, expired, accepted, declined or withdrawn, each with what to do; resend renews the week; another account is told and offered to switch; sign-up and sign-in keep the way back (`next`) | |
-| Empty and loading | `EmptyState`; `SettingsSkeleton`, `EntrySkeleton`, `ShellSkeleton` and `PageSkeleton` (a screen in the frame that cannot be drawn yet) after 300 ms, timed once from boot (`createLate`), so a quick load shows nothing and a slow one does not jump; a screen read before draws its last value at once | |
+| Empty and loading | `EmptyState`; `ListSkeleton`, `EntrySkeleton`, `ShellSkeleton` and `PageSkeleton` (a screen in the frame that cannot be drawn yet) after 300 ms, timed once from boot (`createLate`), so a quick load shows nothing and a slow one does not jump; a screen read before draws its last value at once | |
 | Import | | Preview and a report of rejected rows |
 | Operation | Health routes with the release; every log line tagged with the release and the request id ([operations](../../../docs/operations.md)) | Status page; admin impersonation; error tracking |
 

@@ -2,15 +2,15 @@ import { render, screen, within } from '@solidjs/testing-library'
 import { createSignal, Show } from 'solid-js'
 import { Badge } from '#badge'
 import { Button } from '#button'
-import { SettingsRow } from './settings-row'
-import { SettingsSection } from './settings-section'
+import { ListRow } from './list-row'
+import { ListSection } from './list-section'
 
-describe('SettingsSection', () => {
+describe('ListSection', () => {
   it('is a region named by its heading, with a line saying what the rows do together', () => {
     render(() => (
-      <SettingsSection title="Ways to sign in" description="How you get into your account.">
-        <SettingsRow title="Password" />
-      </SettingsSection>
+      <ListSection title="Ways to sign in" description="How you get into your account.">
+        <ListRow title="Password" />
+      </ListSection>
     ))
     const region = screen.getByRole('region', { name: 'Ways to sign in' })
 
@@ -22,9 +22,9 @@ describe('SettingsSection', () => {
   it('says what happened to the section below its rows, and gives that line focus', async () => {
     const [status, setStatus] = createSignal<string>()
     render(() => (
-      <SettingsSection title="People" status={status()}>
-        <SettingsRow title="Grace" />
-      </SettingsSection>
+      <ListSection title="People" status={status()}>
+        <ListRow title="Grace" />
+      </ListSection>
     ))
     const line = within(screen.getByRole('region', { name: 'People' }))
       .getAllByRole('status')
@@ -40,9 +40,9 @@ describe('SettingsSection', () => {
 
   it('needs no description, and adds a passed class to its own', () => {
     render(() => (
-      <SettingsSection title="Backup" class="mt-8">
-        <SettingsRow title="Codes" />
-      </SettingsSection>
+      <ListSection title="Backup" class="mt-8">
+        <ListRow title="Codes" />
+      </ListSection>
     ))
     const region = screen.getByRole('region', { name: 'Backup' })
 
@@ -51,10 +51,10 @@ describe('SettingsSection', () => {
   })
 })
 
-describe('SettingsRow', () => {
+describe('ListRow', () => {
   it('shows the title with its state, the description and the action', () => {
     render(() => (
-      <SettingsRow
+      <ListRow
         icon="key"
         title="Password"
         badge={<Badge variant="success">On</Badge>}
@@ -71,7 +71,7 @@ describe('SettingsRow', () => {
 
   it('says why something cannot be done in a note under the description, with a hidden icon', () => {
     const { container } = render(() => (
-      <SettingsRow title="Ada" description="ada@example.com" note="The only owner. Make someone else an owner first." />
+      <ListRow title="Ada" description="ada@example.com" note="The only owner. Make someone else an owner first." />
     ))
 
     expect(screen.getByText('The only owner. Make someone else an owner first.')).toBeInTheDocument()
@@ -79,7 +79,7 @@ describe('SettingsRow', () => {
   })
 
   it('has no note, and no room for one, unless given', () => {
-    const { container } = render(() => <SettingsRow title="Ada" description="ada@example.com" />)
+    const { container } = render(() => <ListRow title="Ada" description="ada@example.com" />)
 
     expect(container.querySelector('svg')).toBeNull()
   })
@@ -87,8 +87,8 @@ describe('SettingsRow', () => {
   it('has an icon only when given one, hidden from screen readers', () => {
     const { container } = render(() => (
       <>
-        <SettingsRow title="Plain" />
-        <SettingsRow title="With icon" icon="phone" />
+        <ListRow title="Plain" />
+        <ListRow title="With icon" icon="phone" />
       </>
     ))
 
@@ -98,7 +98,7 @@ describe('SettingsRow', () => {
 
   it("has an avatar in the icon's place, for a row about a person", () => {
     const { container } = render(() => (
-      <SettingsRow title="Grace" icon="profile" avatar={<span data-testid="avatar">G</span>} />
+      <ListRow title="Grace" icon="profile" avatar={<span data-testid="avatar">G</span>} />
     ))
 
     expect(screen.getByTestId('avatar')).toBeInTheDocument()
@@ -106,7 +106,7 @@ describe('SettingsRow', () => {
   })
 
   it("has a letter in the icon's place for a mark the icon set lacks", () => {
-    const { container } = render(() => <SettingsRow title="Google" letter="G" />)
+    const { container } = render(() => <ListRow title="Google" letter="G" />)
 
     expect(container.querySelector('svg')).toBeNull()
     expect(screen.getByText('G')).toBeInTheDocument()
@@ -114,7 +114,7 @@ describe('SettingsRow', () => {
   })
 
   it('announces what just happened in the row, in an area that is always there', () => {
-    render(() => <SettingsRow title="Password" status="Your password was changed." />)
+    render(() => <ListRow title="Password" status="Your password was changed." />)
 
     expect(screen.getByRole('status')).toHaveTextContent('Your password was changed.')
     expect(screen.getByRole('status')).toHaveClass('text-success')
@@ -122,13 +122,13 @@ describe('SettingsRow', () => {
   })
 
   it('keeps the status area, empty, when nothing happened', () => {
-    render(() => <SettingsRow title="Password" />)
+    render(() => <ListRow title="Password" />)
 
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
   it('needs only a title: no description, action or panel', () => {
-    const { container } = render(() => <SettingsRow title="Only a title" />)
+    const { container } = render(() => <ListRow title="Only a title" />)
 
     expect(container.querySelector('p:not([role])')).toBeNull()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
@@ -137,7 +137,7 @@ describe('SettingsRow', () => {
 
   it('opens its form inline, below the row, on the surface', () => {
     render(() => (
-      <SettingsRow
+      <ListRow
         title="Password"
         panel={
           <label>
@@ -153,7 +153,7 @@ describe('SettingsRow', () => {
   })
 
   it('stacks the action below where the row is narrow, full width, and puts it on the right where it is wide', () => {
-    render(() => <SettingsRow title="Password" action={<Button>Change</Button>} data-testid="row" />)
+    render(() => <ListRow title="Password" action={<Button>Change</Button>} data-testid="row" />)
     const button = screen.getByRole('button', { name: 'Change' })
 
     // The row's own width decides, not the screen's: it is a container, and its parts query it.
@@ -164,7 +164,7 @@ describe('SettingsRow', () => {
 
   it('breaks a word too long for the row, such as an email, so nothing runs past a phone screen (W11)', () => {
     const email = 'maximilianaalexandrinamontgomerywolfenstein@example.com'
-    render(() => <SettingsRow title={email} description={email} note={`Held by ${email}`} />)
+    render(() => <ListRow title={email} description={email} note={`Held by ${email}`} />)
     const [title, description] = screen.getAllByText(email)
 
     // `overflow-wrap: anywhere`, which a flex item's narrowest width counts too, on the column of the texts.
@@ -176,7 +176,7 @@ describe('SettingsRow', () => {
 
   it('draws no action area and no panel when what it was given draws nothing, such as a Show that is off', () => {
     const { container } = render(() => (
-      <SettingsRow
+      <ListRow
         title="Password"
         action={<Show when={false}>{<Button>Change</Button>}</Show>}
         panel={<Show when={false}>A form</Show>}
@@ -188,7 +188,7 @@ describe('SettingsRow', () => {
   })
 
   it('adds a passed class to its own and passes other attributes on', () => {
-    render(() => <SettingsRow title="Password" class="opacity-50" data-testid="row" />)
+    render(() => <ListRow title="Password" class="opacity-50" data-testid="row" />)
 
     expect(screen.getByTestId('row')).toHaveClass('opacity-50')
   })

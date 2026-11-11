@@ -56,3 +56,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0049](0049-delete-an-account-from-an-emailed-link.md) | Delete an account from an emailed link | accepted |
 | [0050](0050-purge-expired-rows-daily-from-a-job-of-its-own.md) | Purge expired rows daily, from a job of its own | accepted |
 | [0051](0051-propose-dependency-updates-with-renovate.md) | Propose dependency updates with Renovate | accepted |
+| [0054](0054-name-the-row-family-for-lists-not-for-settings.md) | Name the row family for lists, not for settings | accepted |

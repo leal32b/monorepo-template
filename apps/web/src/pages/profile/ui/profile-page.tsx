@@ -1,14 +1,5 @@
 import type { AccountDeletion } from '@repo/contracts'
-import {
-  Avatar,
-  createPanels,
-  Link,
-  PanelButton,
-  SettingsPanel,
-  SettingsRow,
-  SettingsSection,
-  SettingsSkeleton
-} from '@repo/ui'
+import { Avatar, createPanels, Link, ListPanel, ListRow, ListSection, ListSkeleton, PanelButton } from '@repo/ui'
 import { createSignal, For, Show, Suspense } from 'solid-js'
 import { accountDeletionQuery } from '#entities/accounts'
 import { useSession } from '#entities/sessions'
@@ -29,12 +20,12 @@ export function ProfilePage() {
 
   return (
     <AppShell title={t('profile.title')}>
-      <SettingsSection title={t('profile.details.title')} description={t('profile.details.description')}>
-        <SettingsRow icon="profile" title={t('profile.details.name')} description={user.name} />
-        <SettingsRow icon="mail" title={t('profile.details.email')} description={user.email} />
-      </SettingsSection>
+      <ListSection title={t('profile.details.title')} description={t('profile.details.description')}>
+        <ListRow icon="profile" title={t('profile.details.name')} description={user.name} />
+        <ListRow icon="mail" title={t('profile.details.email')} description={user.email} />
+      </ListSection>
       <ReadFailure message={t('accountDeletion.unavailable')}>
-        <Suspense fallback={<SettingsSkeleton label={t('accountDeletion.loading')} rows={1} />}>
+        <Suspense fallback={<ListSkeleton label={t('accountDeletion.loading')} rows={1} />}>
           <AccountDeletionSection />
         </Suspense>
       </ReadFailure>
@@ -60,14 +51,14 @@ function AccountDeletionSection() {
   return (
     <Show when={plan()}>
       {(loaded) => (
-        <SettingsSection
+        <ListSection
           title={t('accountDeletion.title')}
           description={t('accountDeletion.description')}
           status={status()}
         >
           <For each={blocked(loaded())}>
             {(organization) => (
-              <SettingsRow
+              <ListRow
                 avatar={<Avatar name={organization.name} shape="square" />}
                 title={t('accountDeletion.blocked.title', { name: organization.name })}
                 description={t('accountDeletion.blocked.description')}
@@ -75,7 +66,7 @@ function AccountDeletionSection() {
               />
             )}
           </For>
-          <SettingsRow
+          <ListRow
             icon="warning"
             title={t('accountDeletion.row')}
             description={t('accountDeletion.rowDescription')}
@@ -88,7 +79,7 @@ function AccountDeletionSection() {
             }
             panel={
               <Show when={panels.isOpen('delete')}>
-                <SettingsPanel label={t('accountDeletion.open')}>
+                <ListPanel label={t('accountDeletion.open')}>
                   <RequestAccountDeletionForm
                     plan={loaded()}
                     email={user.email}
@@ -102,11 +93,11 @@ function AccountDeletionSection() {
                     }}
                     onCancel={panels.close}
                   />
-                </SettingsPanel>
+                </ListPanel>
               </Show>
             }
           />
-        </SettingsSection>
+        </ListSection>
       )}
     </Show>
   )

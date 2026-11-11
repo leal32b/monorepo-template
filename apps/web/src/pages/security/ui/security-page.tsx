@@ -1,4 +1,4 @@
-import { createPanels, SettingsSection } from '@repo/ui'
+import { createPanels, ListSection } from '@repo/ui'
 import { useSearchParams } from '@solidjs/router'
 import { Show } from 'solid-js'
 import { type AccountSecurity, type SignInMethods, signInMethodsQuery } from '#entities/accounts'
@@ -64,14 +64,14 @@ function Sections() {
     <Show when={security()}>
       {(current) => (
         <>
-          <SettingsSection title={t('account.signIn.title')} description={t('account.signIn.description')}>
+          <ListSection title={t('account.signIn.title')} description={t('account.signIn.description')}>
             <PasswordRow panels={panels} security={current()} />
             <GoogleRow panels={panels} security={current()} error={params.error} onChange={change} />
-          </SettingsSection>
-          <SettingsSection title={t('account.twoFactor.title')} description={t('account.twoFactor.description')}>
+          </ListSection>
+          <ListSection title={t('account.twoFactor.title')} description={t('account.twoFactor.description')}>
             <AuthenticatorRow panels={panels} security={current()} onChange={change} />
             <BackupCodesRow panels={panels} security={current()} onChange={change} />
-          </SettingsSection>
+          </ListSection>
         </>
       )}
     </Show>

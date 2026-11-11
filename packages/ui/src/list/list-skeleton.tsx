@@ -1,7 +1,7 @@
 import { For, Show } from 'solid-js'
 import { createLate } from '#motion'
 
-export type SettingsSkeletonProps = {
+export type ListSkeletonProps = {
   /** Said to screen readers while it waits ("Loading…"). */
   label: string
   /** How many rows to draw: about as many as usually come. */
@@ -9,11 +9,11 @@ export type SettingsSkeletonProps = {
 }
 
 /**
- * The place of a `SettingsSection` while its rows load: a heading bar and rows of the same height, so
+ * The place of a `ListSection` while its rows load: a heading bar and rows of the same height, so
  * nothing below jumps when they arrive. It appears only after a moment, so a quick load does not flash, and
  * on time when it takes over from another placeholder of the same wait (`createLate`).
  */
-export function SettingsSkeleton(props: SettingsSkeletonProps) {
+export function ListSkeleton(props: ListSkeletonProps) {
   const late = createLate()
 
   return (
