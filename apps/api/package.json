@@ -11,6 +11,7 @@
     "db": "pglite-server --db=.data --port=5433 --max-connections=10",
     "migrate": "tsx --env-file-if-exists=.env src/migrate.ts",
     "purge": "tsx --env-file-if-exists=.env src/purge.ts",
+    "worker": "tsx --env-file-if-exists=.env src/worker.ts | pino-pretty",
     "auth:schema": "tsx auth-schema.ts",
     "dev": "pnpm migrate && tsx watch --env-file-if-exists=.env src/main.ts | pino-pretty",
     "build": "node build.ts",
