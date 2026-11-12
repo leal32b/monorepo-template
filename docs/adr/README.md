@@ -68,3 +68,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0061](0061-keep-one-append-only-audit-trail-per-organization.md) | Keep one append-only audit trail per organization | accepted |
 | [0062](0062-wait-in-the-worker-while-the-host-wakes-the-api.md) | Wait in the Worker while the host wakes the API | accepted |
 | [0063](0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md) | Subscribe each organization through a billing port, and check entitlements, not plans | proposed |
+| [0064](0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md) | Start billing on Asaas, because Stripe cannot charge recurring Pix in Brazil | proposed |
