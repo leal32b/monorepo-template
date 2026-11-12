@@ -1,6 +1,6 @@
 # 0059. Open a public surface per tenant, behind a rate limiter of our own
 
-- Status: accepted
+- Status: accepted; `customer_change` replaced by the audit trail of [0061](0061-keep-one-append-only-audit-trail-per-organization.md)
 - Date: 2026-11-12
 
 ## Context and problem statement
