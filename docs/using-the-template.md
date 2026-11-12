@@ -127,7 +127,8 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
    Repository methods keep their own `where organization_id`: the fakes and any code on the pool
    (a job, a back office) have nothing else.
 5. A route for people who are not members, if the feature has one (a client booking online): a
-   public route ([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)), below.
+   public route ([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md))
+   and its public screen ([ADR 0060](adr/0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md)), below.
 6. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
    fail, anything too slow for a request): a job
    ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)), below.
@@ -222,6 +223,34 @@ pipeline with `InMemoryRateLimiter` and `FakePublicOrganizations`, as
 `customers.routes.integration.test.ts` does, with a case for the limit and one for an unknown slug.
 What to look at in production: [operations.md](operations.md#public-routes-and-rate-limits).
 
+### A public screen
+
+The web side of a public route: a page a visitor opens with no account, under `/p/:orgSlug`
+([ADR 0060](adr/0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md)).
+The reference is `pages/public-organization/` with `features/customers/register-as-customer/`. Five
+pieces:
+
+1. **The read**, a router query in the entity's `api` segment over the `public…` schema, never the
+   member's: `publicOrganizationQuery` in `entities/public-organizations/` is the one every public
+   page starts from. A write goes beside the module's other calls (`registerAsCustomer` in
+   `entities/customers/`).
+2. **The form**, in a feature: checked with the contract's own schema before the request, its rules
+   said before anyone trips on them (a field's or a `Fieldset`'s `description`), the visitor's own
+   fields with autofill on (`name`, `email`, `tel`), and the honeypot rendered as
+   `RegistrationForm` does (off screen, `aria-hidden`, `tabIndex={-1}`, `autocomplete="off"`, sent
+   as it is). Its success says only what the API's uniform answer allows ("received"); a failure goes
+   to `AuthFailureAlert`, which says how long to wait after a `429`.
+3. **The page**, in `EntryLayout` with `brand` set to the organization's name, its read under
+   `ReadFailure` with the page's own words for `404`, and `EntrySkeleton brand="pending"` while it
+   waits.
+4. **The route**, under `publicPath` in `app/routes.tsx`: `lazy`, so neither the sign-in nor the
+   signed-in screens download it, with a `preload` like `preloadPublic`, never the `preload` helper:
+   a public page asks nothing of the session. A new first segment (a product that prefers `/book/`)
+   joins `reservedSlugs`; the routes' test asks for it.
+5. **The texts** in a dictionary group of the module, in every language, and the end-to-end journey
+   as a visitor (`newPerson`), with the page in `accessibility.spec.ts` and, when it is a page people
+   land on, a budget in `bundle-budget.spec.ts`.
+
 A product that does not need customers removes the module whole, with an ADR that says why. The
 code goes the same way in both cases below:
 
@@ -230,10 +259,11 @@ code goes the same way in both cases below:
    share of it in `packages/contracts/src/organizations.ts`.
 2. `apps/api/src/modules/customers/` and its line in `app/create-app.ts`.
 3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
-   `app/routes.tsx`, the menu and palette items in `widgets/app-shell/`, and the `customers` texts
+   `app/routes.tsx`, the registration form on `pages/public-organization/` and its `registration`
+   texts (`dictionaries/public/`), the menu and palette items in `widgets/app-shell/`, and the `customers` texts
    and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`).
 4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
-   organization), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
+   organization), `public-registration.spec.ts`, the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
    used.
 
 The database differs:
