@@ -7,14 +7,18 @@ import { JobRegistry } from '#libs/jobs/job-registry'
 import { JobWorker } from '#libs/jobs/job-worker'
 import { WakingJobQueue } from '#libs/jobs/waking-job-queue'
 import type { Clock } from '#libs/ports/clock.port'
+import type { EmailSender } from '#libs/ports/email-sender.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import type { Timer } from '#libs/ports/timer.port'
 import { registerHealthJobs } from '#modules/health/jobs/queue-check'
+import { registerIdentityJobs } from '#modules/identity/jobs/send-email'
 
 export type JobsDeps = {
   db: Kysely<unknown>
   clock: Clock
   logger: Logger
+  /** Where identity's emails go (ADR 0021): the process that runs the jobs sends them (ADR 0057). */
+  emailSender: EmailSender
   /** How the worker waits; real time unless a test says otherwise. */
   timer?: Timer
   /** The longest an idle worker sleeps before it looks again (`JOB_IDLE_POLL_SECONDS`). */
@@ -35,7 +39,7 @@ export type Jobs = {
  * module's handlers. A module with job kinds adds its `registerXJobs` here, with the ports its
  * handlers need. The API process and the worker process both build this, so either can run the jobs.
  */
-export function createJobs({ db, clock, logger, timer = new SystemTimer(), idlePollMs }: JobsDeps): Jobs {
+export function createJobs({ db, clock, logger, emailSender, timer = new SystemTimer(), idlePollMs }: JobsDeps): Jobs {
   const ids = new UuidGenerator()
   const store = new KyselyJobs(db, ids, clock)
   const registry = new JobRegistry()
@@ -43,6 +47,7 @@ export function createJobs({ db, clock, logger, timer = new SystemTimer(), idleP
   const waking = (queue: JobQueue) => new WakingJobQueue(queue, () => worker.nudge())
 
   registerHealthJobs(registry, { clock, logger })
+  registerIdentityJobs(registry, { emailSender })
 
   return {
     queue: waking(store),
