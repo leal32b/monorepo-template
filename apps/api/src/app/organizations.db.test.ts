@@ -6,11 +6,14 @@ import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
+import { SystemClock } from '#libs/adapters/system-clock'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
+import { createJobs } from './create-jobs'
 
 const webOrigin = 'http://localhost:5173'
 const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
@@ -22,6 +25,24 @@ describe('organizations through Better Auth (ADR 0033)', () => {
   const logger = pino({ level: 'silent' })
   const db = createDatabase(createPool(inject('databaseUrl'), logger))
   const email = new RecordingEmailSender()
+  const clock = new FixedClock(new Date('2026-11-04T12:00:00.000Z'))
+  /**
+   * Not started: a test runs the jobs with `drain()` before it reads what was sent (ADR 0057). On the
+   * system clock, so emails asked for one request after another are sent in that order.
+   */
+  const jobs = createJobs({
+    db,
+    clock: new SystemClock(),
+    logger,
+    emailSender: email,
+    timer: new ManualTimer(clock),
+    idlePollMs: 3_600_000
+  })
+  /** Every email sent once the jobs due have run. */
+  const sent = async () => {
+    await jobs.worker.drain()
+    return email.sent
+  }
   let server: Server
   let url: string
   let lastIp = 0
@@ -31,7 +52,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
     await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
-      clock: new FixedClock(new Date('2026-11-04T12:00:00.000Z')),
+      clock,
       logger,
       serviceName: 'api',
       release: 'test',
@@ -39,7 +60,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
       corsOrigins: [],
       proxySecret: undefined,
       db,
-      emailSender: email,
+      jobs: jobs.queue,
       authSecret: 'fedcba9876543210'.repeat(2),
       google: undefined
     })
@@ -86,8 +107,8 @@ describe('organizations through Better Auth (ADR 0033)', () => {
       .map((cookie) => cookie.split(';')[0])
       .join('; ')
 
-  const lastEmailTo = (to: string) => {
-    const message = email.sent.findLast((sent) => sent.to === to)
+  const lastEmailTo = async (to: string) => {
+    const message = (await sent()).findLast((sent) => sent.to === to)
     if (message === undefined) throw new Error(`Nothing was emailed to ${to}`)
     return message
   }
@@ -98,7 +119,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
   async function account(locale = 'en') {
     const address = `person-${++lastAccount}@example.com`
     await post('/sign-up/email', { name: `Person ${lastAccount}`, email: address, password, locale })
-    const confirm = linkIn(lastEmailTo(address).text)
+    const confirm = linkIn((await lastEmailTo(address)).text)
     await get(confirm.pathname + confirm.search)
     return { email: address, cookie: cookieOf(await post('/sign-in/email', { email: address, password })) }
   }
@@ -336,7 +357,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
         expiresAt: string
       }
 
-      const message = lastEmailTo(invitee)
+      const message = await lastEmailTo(invitee)
       expect(linkIn(message.text).href).toBe(`${webOrigin}/invitations/${invitation.id}`)
       expect(message.subject).toContain('Acme')
       expect(message.text).toContain(owner.email)

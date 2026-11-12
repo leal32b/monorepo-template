@@ -1,3 +1,4 @@
+import { createEmailSender } from '#app/create-email-sender'
 import { createJobs } from '#app/create-jobs'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
@@ -20,7 +21,13 @@ try {
 
 const logger = createLogger({ level: env.logLevel, service: 'worker', release: env.release })
 const db = createDatabase(createPool(env.databaseUrl, logger))
-const jobs = createJobs({ db, clock: new SystemClock(), logger, idlePollMs: env.jobs.idlePollMs })
+const jobs = createJobs({
+  db,
+  clock: new SystemClock(),
+  logger,
+  emailSender: createEmailSender(env.email, logger),
+  idlePollMs: env.jobs.idlePollMs
+})
 
 jobs.worker.start()
 logger.info({ idlePollMs: env.jobs.idlePollMs }, 'worker running')

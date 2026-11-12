@@ -6,9 +6,9 @@ import { createAccessControl } from 'better-auth/plugins/access'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
 import * as z from 'zod/mini'
-import type { EmailSender } from '#libs/ports/email-sender.port'
+import type { JobQueue } from '#libs/ports/job-queue.port'
 import { type EmailKind, emailTexts, type Locale } from '../emails/email-texts'
-import { writeEmail } from '../emails/write-email'
+import { EMAIL_LINK_SECONDS, sendEmail } from '../jobs/send-email'
 import { KyselyAccountDeletion } from './kysely-account-deletion'
 import { checkOrganization, OrganizationReader, OrganizationRules, organizationLimits } from './organization-rules'
 import { hashPassword, verifyPassword } from './password-hashing'
@@ -16,7 +16,8 @@ import { hashPassword, verifyPassword } from './password-hashing'
 export type AuthDeps = {
   db: Kysely<unknown>
   logger: Logger
-  emailSender: EmailSender
+  /** The queue on the pool: Better Auth's callbacks run outside any unit of work (ADR 0057). */
+  jobs: JobQueue
   /** The web app's origin (ADR 0019): every link and callback comes through it. */
   webOrigin: string
   /** `BETTER_AUTH_SECRET`: signs the session cookies. */
@@ -24,9 +25,6 @@ export type AuthDeps = {
   /** Google sign-in, on only when it is configured (ADR 0020). */
   google: { clientId: string; clientSecret: string } | undefined
 }
-
-/** How long the link that confirms an account deletion works (ADR 0049), as its email says. */
-const ACCOUNT_DELETION_LINK_SECONDS = 60 * 60
 
 /** The languages emails are written in: a sign-up in any other is refused. */
 const localeSchema = z.enum(Object.keys(emailTexts) as [Locale, ...Locale[]])
@@ -40,13 +38,14 @@ const roles = {
 }
 
 /** Better Auth with the template's defaults (ADR 0020). */
-export function createAuth({ db, logger, emailSender, webOrigin, secret, google }: AuthDeps) {
-  /** Not awaited, so a slow provider changes no response time; a failure is logged (ADR 0021). */
-  const send = (kind: EmailKind, user: { email: string }, url: string, values?: Record<string, string>) => {
+export function createAuth({ db, logger, jobs, webOrigin, secret, google }: AuthDeps) {
+  /**
+   * Enqueued, not sent (ADR 0057): the response waits for one insert, never for the provider, and a
+   * provider's failure is retried by the queue. A failed insert fails the request, so nothing is lost unseen.
+   */
+  const send = async (kind: EmailKind, user: { email: string }, url: string, values?: Record<string, string>) => {
     const { email, locale } = user as { email: string; locale: Locale } // `locale` is our additional field
-    void emailSender.send(writeEmail(kind, { to: email, locale, url, values })).catch((err: unknown) => {
-      logger.error({ err, kind }, 'email not sent')
-    })
+    await jobs.enqueue(sendEmail, { email: kind, to: email, locale, url, values })
   }
   const rules = new OrganizationRules(new OrganizationReader(db))
   const accountDeletion = new KyselyAccountDeletion(db)
@@ -71,7 +70,7 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret, google 
       // invitations they sent go with the user row (`on delete cascade`).
       deleteUser: {
         enabled: true,
-        deleteTokenExpiresIn: ACCOUNT_DELETION_LINK_SECONDS,
+        deleteTokenExpiresIn: EMAIL_LINK_SECONDS,
         sendDeleteAccountVerification: async ({ user, token }) =>
           send('deleteAccount', user, `${webOrigin}/settings/delete-account?token=${token}`),
         beforeDelete: async (user) => accountDeletion.beforeDelete(user.id)
@@ -84,6 +83,8 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret, google 
       minPasswordLength: passwordLength.min,
       maxPasswordLength: passwordLength.max,
       password: { hash: hashPassword, verify: verifyPassword },
+      // As its email says; the email job's attempts end before it (ADR 0057).
+      resetPasswordTokenExpiresIn: EMAIL_LINK_SECONDS,
       sendResetPassword: async ({ user, url }) => send('resetPassword', user, url),
       // Whoever had the old password is signed out everywhere (T10).
       revokeSessionsOnPasswordReset: true,
@@ -95,6 +96,7 @@ export function createAuth({ db, logger, emailSender, webOrigin, secret, google 
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
+      expiresIn: EMAIL_LINK_SECONDS,
       sendVerificationEmail: async ({ user, url }) => send('confirmEmail', user, url)
     },
     // Every request reads the session row: GHSA-xg6x-h9c9-2m83 came from this cache.

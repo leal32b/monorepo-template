@@ -10,6 +10,11 @@ export type JobDefinition<Payload> = {
   schema: z.ZodMiniType<Payload>
   /** How many times a worker tries before the job is left as `failed`; 5 when unset. */
   maxAttempts?: number
+  /**
+   * The payload is a credential, such as an emailed link with a token (ADR 0057): it is kept for the
+   * retries and set to `null` by the write that ends the job, done or failed, rather than until the purge.
+   */
+  secretPayload?: boolean
 }
 
 export type EnqueueOptions = {

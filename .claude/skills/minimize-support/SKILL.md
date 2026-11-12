@@ -71,7 +71,7 @@ Use these first; a missing one is added where it belongs, with tests, not improv
 | Validation | Zod contracts shared by API and web (`@repo/contracts`); `validation_failed` lists each field; `Field` shows an error read by screen readers | |
 | Errors | RFC 9457 problems with a stable `code` and the `requestId` (also `X-Request-Id`); web `ApiError` by kind; texts per code in the i18n dictionaries; `/login?error=<code>` for OAuth flows; a disabled action carries its reason in the row's `note`; a read that fails shows `ReadFailure`'s one alert with its retry, and one that found the session ended goes to sign in and back | A standard error component with code, explanation and action |
 | Auth | Confirmed email, reset links that expire in 1 hour and work once, MFA with backup codes, the same answer for known and unknown emails, rate limits (429), `requireActor` → 401 | |
-| Email | Localized templates; a failed send is logged and never blocks the flow | |
+| Email | Localized templates; sent from the job queue after the response, a provider's failure retried for about 40 minutes, then a `job failed` line (ADR 0057) | Telling the user an email failed for good |
 | Repetition | Rate limits; buttons wait while their request is on its way; one panel open at a time (`createPanels`), every other action waiting | Idempotency keys |
 | Recovery | | Soft delete with trash; an activity log the user can see |
 | Billing | | Self-service billing portal |

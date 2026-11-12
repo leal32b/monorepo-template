@@ -27,7 +27,8 @@ const logger = createLogger({ level: env.logLevel, service: 'api', release: env.
 // The suite's database is PGlite behind its socket server: one connection, one statement at a time (ADR 0055).
 const db = createDatabase(createPool(env.databaseUrl, logger, { maxConnections: 1 }))
 const clock = new SystemClock()
-const jobs = createJobs({ db, clock, logger, idlePollMs: env.jobs.idlePollMs })
+const emailSender = new FileEmailSender(outbox)
+const jobs = createJobs({ db, clock, logger, emailSender, idlePollMs: env.jobs.idlePollMs })
 const server = createApp({
   clock,
   logger,
@@ -37,7 +38,7 @@ const server = createApp({
   corsOrigins: env.corsOrigins,
   proxySecret: env.proxySecret,
   db,
-  emailSender: new FileEmailSender(outbox),
+  jobs: jobs.queue,
   authSecret: env.authSecret,
   google: env.google
 })

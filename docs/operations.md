@@ -45,7 +45,10 @@ A job line has `jobId`, `kind` and `attempt` instead of a request's fields:
 - `job queue working` (info): the check the API enqueues as it starts was run, `waitedMs` after it
   was enqueued.
 
-A job's payload is never logged: it may hold an address or a link.
+A job's payload is never logged: it may hold an address or a link. Identity's emails are jobs of the
+kind `identity.send-email` ([ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)):
+a provider's refusal shows as `job attempt failed`, with the provider's status and error code in
+`err`, and an email that failed every attempt as `job failed`.
 
 Headers, cookies and bodies are never logged. Keep it that way: a log line may be read by anyone with
 access to the host.
@@ -67,7 +70,9 @@ Work that runs after a request answers, or at a time, is a row in the `job` tabl
 ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)): `pending` until a
 worker runs it, then `done`, or `failed` after its last attempt. The worker runs inside the API
 process unless `JOB_WORKER=off`, and then in a process of its own (`node dist/worker.js`). The daily
-purge deletes `done` jobs after 7 days and `failed` ones after 30.
+purge deletes `done` jobs after 7 days and `failed` ones after 30. A kind whose payload is a
+credential, such as `identity.send-email` with its link, has its payload set to `null` as soon as
+the job ends, done or failed.
 
 What is in the queue, in the database's SQL console (payloads may hold personal data: select the
 columns you need, not `*`):
@@ -89,7 +94,9 @@ or its worker died and it runs again when the lease ends (2 minutes at most); `l
 `run_at` in the future is waiting for its retry.
 
 Put a failed job back once its cause is fixed (a provider back up, a secret corrected, a handler
-deployed). It gets all its attempts again:
+deployed). It gets all its attempts again. A failed `identity.send-email` cannot come back: its
+payload is gone, and its link has expired or nearly; the user asks again from the screen (a new
+confirmation, reset or deletion email) and an inviter presses Resend:
 
 ```sql
 update job set state = 'pending', attempts = 0, run_at = now(), finished_at = null where id = '<id>';
@@ -132,7 +139,7 @@ keeping the container awake does not keep the database awake.
 | Pages load, every call fails | Worker log: an exception there means the Worker cannot reach `API_ORIGIN`; a 403 from the API means `PROXY_SECRET` differs between the Worker and the API |
 | `job failed` in the log, or something that should have happened later did not | [Background jobs](#background-jobs): the failed rows and their `last_error`; fix the cause, then put them back |
 | Jobs wait and nothing runs them | No `job queue working` line after the last start means no worker runs: `JOB_WORKER=off` on the API with no worker process beside it, or the worker process is down (its log, `service: worker`). `job poll failed` means the database is out of reach. A delayed job that ran late on a free tier waited for the container to wake |
-| Emails do not arrive | API log: `email not sent` with the provider's error; the sender domain in Resend |
+| Emails do not arrive | API log (or the worker's): `job attempt failed` or `job failed` with `kind: identity.send-email`, and `err` with the provider's status and error code; the failed rows in [Background jobs](#background-jobs). No such line and no `job done` for the kind means no worker runs (the row above). A refusal from Resend names the cause: the key, or the sender domain in Resend (until it is verified, only the provider account's own address receives) |
 | The deploy fails at the smoke test | The step's output: which check failed, and the `release` that answered |
 | The first request after a quiet time takes about a minute | Expected on free tiers: Render and Neon wake up; the web says so after 5 s ([ADR 0041](adr/0041-say-why-a-cold-start-takes-long-and-end-the-wait.md)) |
 

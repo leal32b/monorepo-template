@@ -3,7 +3,7 @@ import { newJob } from '#libs/jobs/new-job'
 import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
 import type { EnqueueOptions, JobDefinition, JobQueue } from '#libs/ports/job-queue.port'
-import type { ClaimedJob, Job, JobState, JobStore } from '#libs/ports/job-store.port'
+import type { ClaimedJob, EndOptions, Job, JobState, JobStore } from '#libs/ports/job-store.port'
 
 type JobRow = {
   id: string
@@ -80,16 +80,16 @@ export class KyselyJobs implements JobQueue, JobStore {
     return rows[0]
   }
 
-  async complete(job: ClaimedJob, now: Date): Promise<void> {
-    await this.#end(job, { state: 'done', finished_at: now })
+  async complete(job: ClaimedJob, now: Date, options: EndOptions = {}): Promise<void> {
+    await this.#end(job, { state: 'done', finished_at: now, ...forgotten(options) })
   }
 
   async retry(job: ClaimedJob, runAt: Date, error: string): Promise<void> {
     await this.#end(job, { run_at: runAt, last_error: error })
   }
 
-  async fail(job: ClaimedJob, now: Date, error: string): Promise<void> {
-    await this.#end(job, { state: 'failed', finished_at: now, last_error: error })
+  async fail(job: ClaimedJob, now: Date, error: string, options: EndOptions = {}): Promise<void> {
+    await this.#end(job, { state: 'failed', finished_at: now, last_error: error, ...forgotten(options) })
   }
 
   async nextDueAt(): Promise<Date | undefined> {
@@ -129,6 +129,9 @@ export class KyselyJobs implements JobQueue, JobStore {
       .execute()
   }
 }
+
+/** The change that blanks a secret payload as the job ends (ADR 0057): JSON `null`, the column stays not null. */
+const forgotten = ({ forgetPayload = false }: EndOptions) => (forgetPayload ? { payload: sql`'null'::jsonb` } : {})
 
 /**
  * How long a finished job is kept (ADR 0056): a done one long enough to answer "did it run?", a

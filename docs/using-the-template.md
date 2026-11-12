@@ -17,7 +17,9 @@ pnpm dev   # API :3001, web :5173
 ```
 
 Open `http://localhost:5173`, sign up, and take the confirmation link from the API log (no email
-provider is needed locally, [ADR 0021](adr/0021-send-email-through-a-provider-neutral-port.md)).
+provider is needed locally, [ADR 0021](adr/0021-send-email-through-a-provider-neutral-port.md));
+it comes a moment after the response, from the job that sends it
+([ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)).
 Everyday commands are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## 2. Name the product
@@ -138,7 +140,9 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
 three pieces:
 
 1. **The definition**, in the module (`jobs/<what-it-does>.ts`): a name and the schema of its
-   payload. The payload is stored as JSON and kept until the purge: carry ids, not records.
+   payload. The payload is stored as JSON and kept until the purge: carry ids, not records. A
+   payload that must carry a credential (a link with a token) sets `secretPayload: true`, and is
+   forgotten as the job ends, as `modules/identity/jobs/send-email.ts` does.
 
    ```ts
    export const sendReminder: JobDefinition<{ organizationId: string; appointmentId: string }> = {
@@ -171,7 +175,9 @@ three pieces:
 
 Tests: a use case takes `InMemoryJobs` (`#libs/adapters/in-memory-jobs`), which a unit of work rolls
 back like any fake, and asserts on `jobs.all`; to run what was enqueued, build a `JobWorker` on it
-with `ManualTimer` and call `drain()`, as `queue-check.test.ts` does. What to look at in production:
+with `ManualTimer` and call `drain()`, as `queue-check.test.ts` does. An HTTP test whose request
+enqueues builds `createJobs` with `ManualTimer`, does not start it, and drains it before asserting,
+as the tests that read identity's emails do. What to look at in production:
 [operations.md](operations.md#background-jobs).
 
 A product that does not need customers removes the module whole, with an ADR that says why. The

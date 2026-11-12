@@ -7,7 +7,7 @@ import { fromFetchHandler } from '#libs/http/fetch-handler'
 import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
 import type { Clock } from '#libs/ports/clock.port'
-import type { EmailSender } from '#libs/ports/email-sender.port'
+import type { JobQueue } from '#libs/ports/job-queue.port'
 import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomerRoutes } from '#modules/customers/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
@@ -43,8 +43,8 @@ export type AppDeps = {
   proxySecret: string | undefined
   /** The database: adapters behind ports are built on it here (ADR 0013). */
   db: Kysely<unknown>
-  /** Where identity emails go (ADR 0021): Resend, the log, or a test's recorder. */
-  emailSender: EmailSender
+  /** The job queue on the pool (ADR 0056): identity's emails are enqueued on it (ADR 0057). */
+  jobs: JobQueue
   /** Better Auth's secret (ADR 0020). */
   authSecret: string
   /** Google sign-in credentials; `undefined` keeps Google off. */
@@ -64,13 +64,13 @@ export function createApp({
   corsOrigins,
   proxySecret,
   db,
-  emailSender,
+  jobs,
   authSecret,
   google
 }: AppDeps): Server {
   const router = new HttpRouter()
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
-  const auth = createAuth({ db, logger, emailSender, webOrigin, secret: authSecret, google })
+  const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google })
   const session = new BetterAuthCurrentSession(auth)
   const membership = new KyselyMembership(db)
   registerRoutes(router, {

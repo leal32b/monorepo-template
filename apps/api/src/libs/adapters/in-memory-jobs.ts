@@ -2,7 +2,7 @@ import { newJob } from '#libs/jobs/new-job'
 import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
 import type { EnqueueOptions, JobDefinition, JobQueue } from '#libs/ports/job-queue.port'
-import type { ClaimedJob, Job, JobStore } from '#libs/ports/job-store.port'
+import type { ClaimedJob, EndOptions, Job, JobStore } from '#libs/ports/job-store.port'
 import type { InMemoryStore } from './in-memory-unit-of-work'
 
 /**
@@ -51,16 +51,16 @@ export class InMemoryJobs implements JobQueue, JobStore, InMemoryStore {
     return { id: claimed.id, kind: claimed.kind, payload: claimed.payload, attempts: claimed.attempts }
   }
 
-  async complete(job: ClaimedJob, now: Date): Promise<void> {
-    this.#end(job, { state: 'done', finishedAt: now })
+  async complete(job: ClaimedJob, now: Date, options: EndOptions = {}): Promise<void> {
+    this.#end(job, { state: 'done', finishedAt: now, ...forgotten(options) })
   }
 
   async retry(job: ClaimedJob, runAt: Date, error: string): Promise<void> {
     this.#end(job, { runAt, lastError: error })
   }
 
-  async fail(job: ClaimedJob, now: Date, error: string): Promise<void> {
-    this.#end(job, { state: 'failed', finishedAt: now, lastError: error })
+  async fail(job: ClaimedJob, now: Date, error: string, options: EndOptions = {}): Promise<void> {
+    this.#end(job, { state: 'failed', finishedAt: now, lastError: error, ...forgotten(options) })
   }
 
   async nextDueAt(): Promise<Date | undefined> {
@@ -79,6 +79,9 @@ export class InMemoryJobs implements JobQueue, JobStore, InMemoryStore {
     this.#jobs.set(job.id, { ...kept, lockedUntil: null, ...change })
   }
 }
+
+/** A secret payload blanked as the job ends (ADR 0057), as the adapter stores it. */
+const forgotten = ({ forgetPayload = false }: EndOptions) => (forgetPayload ? { payload: null } : {})
 
 /**
  * When a pending job can be taken: its time, or the end of the lease a worker holds on it (a lease

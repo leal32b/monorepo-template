@@ -6,7 +6,9 @@
   statuses and logging updated on 2026-11-07, in Phase 9; account deletion (T34, T35) added on
   2026-11-08 ([ADR 0049](../adr/0049-delete-an-account-from-an-emailed-link.md)); T04 made
   independent of the domain the same day, with HSTS sent by the web origin; two accepted risks
-  bounded by the daily purge of expired rows ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)).
+  bounded by the daily purge of expired rows ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md));
+  emails sent through the job queue (T37) added on 2026-11-11
+  ([ADR 0057](../adr/0057-send-identity-emails-through-the-job-queue.md)).
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -38,7 +40,7 @@ Worker), [ADR 0033](../adr/0033-organizations-with-roles-in-the-database-behind-
 | --- | --- | --- |
 | B1 | Browser ↔ web origin | Untrusted input, the session cookie, OAuth redirects |
 | B2 | Worker ↔ API | Every API request; the API is also public at `*.onrender.com` |
-| B3 | API ↔ Postgres | Users, accounts, sessions, verification tokens, rate-limit counters, organizations, members, roles, invitations, and every tenant's records |
+| B3 | API ↔ Postgres | Users, accounts, sessions, verification tokens, rate-limit counters, organizations, members, roles, invitations, every tenant's records, and the emails waiting in the job queue with their links |
 | B4 | API ↔ email provider, API ↔ Google | Links with tokens; OAuth codes and tokens |
 | B5 | GitHub Actions ↔ Render, Cloudflare | Deploy credentials and runtime secrets |
 | B6 | Organization ↔ organization | Every tenant's data, in the same tables and behind the same routes |
@@ -108,6 +110,7 @@ it).
 | T34 | Deleting someone's account from a session taken over, or from a browser left open | T, D | Asking only emails a link to the account's confirmed address; the link opens a page that deletes nothing until its button is pressed; the token is single use, expires in 1 hour and works only with a session of the same user (`deleteUser` with `sendDeleteAccountVerification`); an email scanner that opens the link changes nothing | in place |
 | T35 | Deleting an account leaves an organization with members but no owner, or leaves data behind | D, E | The API refuses while the user is the only owner of an organization that has other members, before emailing and again before deleting; an organization only they are in is deleted with its records (`on delete cascade`); sessions, sign-in methods, two-step verification, memberships and the invitations they sent go with the user row | in place |
 | T36 | A tenant query written without its organization filter (a new module, a raw fragment, a join) shows or changes another tenant's rows | I, T | Every tenant use case runs in a unit of work whose transaction switches to the `app_tenant` role and names the organization, both for that transaction only; a policy on each tenant table shows and accepts only that organization's rows, and the role has nothing on the `auth` schema. A test reads the catalog and fails for a tenant table without its policy; `lint:deps` refuses a repository built outside the unit of work ([ADR 0055](../adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)) | in place |
+| T37 | A link with a token read from the job table (a leaked backup, a read-only role, an operator's query) or from the logs, while its email waits or after | I, S | An `identity.send-email` job holds the link only while it waits: its kind is marked `secretPayload`, and the statement that ends the job, done or failed, sets the payload to `null`; five attempts end within about 48 minutes, before the 1-hour link expires; no job log line carries a payload, and `last_error` keeps only the provider's status and error code ([ADR 0057](../adr/0057-send-identity-emails-through-the-job-queue.md)) | in place |
 
 ## Accepted risks
 

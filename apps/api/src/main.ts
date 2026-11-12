@@ -20,8 +20,9 @@ try {
 const logger = createLogger({ level: env.logLevel, service: 'api', release: env.release })
 const db = createDatabase(createPool(env.databaseUrl, logger, { maxConnections: env.databasePoolSize }))
 const clock = new SystemClock()
+const emailSender = createEmailSender(env.email, logger)
 // Background work (ADR 0056): this process runs the jobs unless a worker of its own does.
-const jobs = createJobs({ db, clock, logger, idlePollMs: env.jobs.idlePollMs })
+const jobs = createJobs({ db, clock, logger, emailSender, idlePollMs: env.jobs.idlePollMs })
 const server = createApp({
   clock,
   logger,
@@ -31,7 +32,7 @@ const server = createApp({
   corsOrigins: env.corsOrigins,
   proxySecret: env.proxySecret,
   db,
-  emailSender: createEmailSender(env.email, logger),
+  jobs: jobs.queue,
   authSecret: env.authSecret,
   google: env.google
 })

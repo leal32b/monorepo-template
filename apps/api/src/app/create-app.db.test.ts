@@ -3,7 +3,8 @@ import { apiProblemSchema, healthResponseSchema, identityOptionsSchema, liveness
 import pino from 'pino'
 import { inject } from 'vitest'
 import { FixedClock } from '#libs/adapters/fixed-clock'
-import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
+import { InMemoryJobs } from '#libs/adapters/in-memory-jobs'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { createApp } from './create-app'
 
@@ -11,7 +12,7 @@ const clock = new FixedClock(new Date('2026-10-17T12:00:00.000Z'))
 const logger = pino({ level: 'silent' })
 const webOrigin = 'https://app.example.com'
 const proxySecret = '0123456789abcdef'.repeat(4)
-const emailSender = new RecordingEmailSender()
+const jobs = new InMemoryJobs(new UuidGenerator(), clock)
 const authSecret = 'fedcba9876543210'.repeat(2)
 
 describe('API', () => {
@@ -25,7 +26,7 @@ describe('API', () => {
     corsOrigins: [webOrigin],
     proxySecret,
     db,
-    emailSender,
+    jobs,
     authSecret,
     google: undefined
   })
@@ -109,7 +110,7 @@ describe('API without its database', () => {
     corsOrigins: [],
     proxySecret: undefined,
     db,
-    emailSender,
+    jobs,
     authSecret,
     google: undefined
   })
