@@ -64,3 +64,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0057](0057-send-identity-emails-through-the-job-queue.md) | Send identity emails through the job queue | accepted |
 | [0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md) | Split the i18n dictionaries by slice and merge them per language | accepted |
 | [0059](0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) | Open a public surface per tenant, behind a rate limiter of our own | accepted |
+| [0060](0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md) | Draw a tenant's public pages under a reserved prefix, in a frame of their own | accepted |

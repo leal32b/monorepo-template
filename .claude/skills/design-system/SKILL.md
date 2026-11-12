@@ -196,7 +196,9 @@ Elements must not "tremble" between states or screens.
 - Every control has a visible label (a placeholder is not a label) and the right `type`,
   `autocomplete` and `inputmode`. The browser's suggestions are off (`autocomplete="off"`) on name,
   email and code fields; the sign-in's email (`username`) and the password fields (`current-password`,
-  `new-password`) keep theirs, since password managers fill them by it.
+  `new-password`) keep theirs, since password managers fill them by it. A visitor's form on a public
+  page asks for their own name and contact, so it keeps them on (`name`, `email`, `tel`)
+  ([ADR 0060](../../../docs/adr/0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md)).
 - Touch targets are at least 44px tall on phones for the main controls (WCAG 2.2 asks 24px at least);
   inputs use 16px text on phones, or iOS zooms in on focus.
 - On a route change, focus moves to the `h1`; after a failed submit, to the first invalid field, or
