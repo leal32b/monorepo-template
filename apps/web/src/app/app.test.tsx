@@ -817,15 +817,15 @@ describe('App', () => {
   describe('a tenant’s public page (ADR 0060)', () => {
     const acme = { name: 'Acme Barbershop', slug: 'acme', timeZone: 'UTC', currency: 'USD' }
 
-    /** Both clients, recording every path asked; the public profile answers, anything else is refused. */
+    /** Both clients, recording every path asked; Acme's public profile answers, other slugs are unknown, anything else is refused. */
     function clientsAsked() {
       const asked: string[] = []
       const client = createApiClient({
         fetch: async (path) => {
           asked.push(path)
-          return path === '/api/public/organizations/acme'
-            ? Response.json(acme)
-            : Response.json({ code: 'unauthorized' }, { status: 401 })
+          if (path === '/api/public/organizations/acme') return Response.json(acme)
+          if (path.startsWith('/api/public/')) return Response.json({ code: 'organization_not_found' }, { status: 404 })
+          return Response.json({ code: 'unauthorized' }, { status: 401 })
         }
       })
       const auth = createAuthClient({
@@ -847,6 +847,17 @@ describe('App', () => {
       expect(screen.getByText('Acme Barbershop')).toBeInTheDocument()
       expect(screen.queryByRole('link', { name: 'Monorepo Template' })).not.toBeInTheDocument()
       expect(asked).toEqual(['/api/public/organizations/acme'])
+    })
+
+    it('says there is no page at an address no organization has', async () => {
+      const { client, auth } = clientsAsked()
+      window.history.replaceState(null, '', '/p/nowhere')
+
+      render(() => <App client={client} auth={auth} locale="en" />)
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'There is no page at this address' })
+      ).toBeInTheDocument()
     })
 
     it('asks nothing of the session even on a device where one was seen (ADR 0042)', async () => {

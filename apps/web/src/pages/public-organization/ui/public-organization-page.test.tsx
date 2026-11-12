@@ -39,6 +39,23 @@ describe('PublicOrganizationPage', () => {
     expect(screen.getByRole('combobox', { name: 'Language' })).toBeInTheDocument()
   })
 
+  it('sends the registration to this organization, and says it received it', async () => {
+    const fetch = vi.fn<Fetch>(async (path) =>
+      path.endsWith('/customer-registrations')
+        ? Response.json({ received: true }, { status: 202 })
+        : Response.json(organization('sent'))
+    )
+    renderPage(fetch, 'sent')
+    await heading('Become a customer')
+
+    fireEvent.input(screen.getByRole('textbox', { name: 'Your name' }), { target: { value: 'Carla' } })
+    fireEvent.input(screen.getByRole('textbox', { name: 'Phone' }), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send my details' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Acme Barbershop received your details.')
+    expect(fetch.mock.calls.at(-1)?.[0]).toBe('/api/public/organizations/sent/customer-registrations')
+  })
+
   it('draws at once an organization read a moment ago, as when its route started the read (ADR 0038)', async () => {
     await publicOrganizationQuery(createApiClient({ fetch: async () => Response.json(organization('drawn')) }))('drawn')
 
