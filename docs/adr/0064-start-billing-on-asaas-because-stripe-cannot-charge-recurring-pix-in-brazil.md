@@ -5,8 +5,7 @@
 
 **Stripe cannot cover Pix, boleto and card for subscriptions on a Brazilian account.** Its own Pix
 page says Pix Automático is not available to businesses domiciled in Brazil. A Brazilian Stripe
-account can bill subscriptions by card and by boleto, and can take Pix only as a one-time payment,
-by invitation. The owner chose Stripe on 2026-11-12, and the plan requires Pix and boleto (P0-6's
+account can bill subscriptions by card and by boleto, and can take Pix only as a one-time payment. The owner chose Stripe on 2026-11-12, and the plan requires Pix and boleto (P0-6's
 open question). This record therefore recommends **Asaas** for the first adapter, against that
 choice, and keeps Stripe as the second. The owner decides.
 
@@ -69,9 +68,15 @@ Both pages are right; they speak of different parties.
   business outside Brazil up to US$ 3,000 a day and US$ 10,000 a month.
 
 So recurring Pix on Stripe works for a customer in Brazil who pays a business outside Brazil, and not
-for a business in Brazil. On a Brazilian Stripe account, one-time Pix is also invitation only: the
-Brazilian pricing page heads its Pix fee "somente por convite" (by invitation only), and the
-payment-method table lists Pix's business locations as "BR (Invite only), US".
+for a business in Brazil.
+
+Whether one-time Pix on a Brazilian account needs an invitation, Stripe's pages differ. The Pix page,
+in Portuguese as well (`?locale=pt-BR`), says "As contas Stripe no Brasil podem aceitar pagamentos
+únicos via Pix, com liquidação em BRL" (Stripe accounts in Brazil can accept one-time Pix payments,
+settled in BRL), with no word of an invitation. The Brazilian pricing page heads its Pix fee "somente
+por convite" (by invitation only), and the payment-method support table lists Pix's business
+locations as "BR (Invite only), US". The decision does not rest on it: recurring Pix is the blocker
+either way.
 
 ### How they compare
 
@@ -99,7 +104,7 @@ not the same as "no".
 | | Card | Boleto | Pix |
 | --- | --- | --- | --- |
 | Asaas | 1.99% + R$ 0.49 = R$ 2.46, "in the first 3 months" (the later rate was not on the page read) | R$ 0.99 or R$ 1.99 (the page shows both; which one is current could not be told) | R$ 0.99 or R$ 1.99 (same) |
-| Stripe, Brazilian account | 3.99% + R$ 0.39, plus Billing's 0.7% = R$ 5.03 | R$ 3.45 plus 0.7% = R$ 4.14 | Not available in subscriptions (one-time: 1.19%, by invitation) |
+| Stripe, Brazilian account | 3.99% + R$ 0.39, plus Billing's 0.7% = R$ 5.03 | R$ 3.45 plus 0.7% = R$ 4.14 | Not available in subscriptions (one-time: 1.19%, by invitation according to the pricing page, not according to the Pix page) |
 
 Asaas charges no monthly fee. Stripe adds 2% for a card issued abroad. IOF is a Brazilian tax on
 transactions that involve currency exchange, as Stripe's own Pix page defines it; a Brazilian account
@@ -222,8 +227,9 @@ The decision is the owner's, and the port stays the same, so this is what choosi
 
 - **What works:** card and boleto subscriptions; Checkout in subscription mode; the customer portal;
   signed notices; idempotency keys; Smart Retries; test clocks.
-- **What does not:** Pix in subscriptions. One-time Pix only by invitation. Boleto subscriptions ask
-  the payer to pay a new voucher at each renewal, and a boleto cannot be refunded.
+- **What does not:** Pix in subscriptions. One-time Pix works, by invitation according to the pricing
+  page, though the Pix page names none. Boleto subscriptions ask the payer to pay a new voucher at
+  each renewal, and a boleto cannot be refunded.
 - **Variables:** `STRIPE_SECRET_KEY` (a restricted key limited to Checkout, customers, subscriptions
   and the portal; its presence selects Stripe) and `STRIPE_WEBHOOK_SECRET` (`whsec_…`).
 - **Dashboard:** a Brazilian account with boleto turned on; a webhook endpoint at
@@ -252,6 +258,7 @@ The decision is the owner's, and the port stays the same, so this is what choosi
 
 Sources, all read on 2026-11-12:
 Stripe: [Pix payments](https://docs.stripe.com/payments/pix),
+[Pix payments, in Portuguese](https://docs.stripe.com/payments/pix?locale=pt-BR),
 [changelog 2026-04-22, Pix recurring payments](https://docs.stripe.com/changelog/dahlia/2026-04-22/pix-recurring-payments-support),
 [set up a subscription with Pix](https://docs.stripe.com/billing/subscriptions/pix),
 [Pix Automático](https://docs.stripe.com/payments/pix/pix-automatico),
