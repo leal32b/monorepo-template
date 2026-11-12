@@ -126,13 +126,15 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
    ([ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)).
    Repository methods keep their own `where organization_id`: the fakes and any code on the pool
    (a job, a back office) have nothing else.
-5. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
+5. A route for people who are not members, if the feature has one (a client booking online): a
+   public route ([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)), below.
+6. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
    fail, anything too slow for a request): a job
    ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)), below.
-6. The web: the entity's reads and writes, the feature's forms, the page and its route with
+7. The web: the entity's reads and writes, the feature's forms, the page and its route with
    `preload`, the menu item, the texts in every language. Screens go through the `design-system`
    and `minimize-support` skills.
-7. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
+8. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
 
 ### A job kind
 
@@ -180,10 +182,51 @@ enqueues builds `createJobs` with `ManualTimer`, does not start it, and drains i
 as the tests that read identity's emails do. What to look at in production:
 [operations.md](operations.md#background-jobs).
 
+### A public route
+
+A route a visitor reaches with no session names its tenant by slug and is built with `publicRoute`
+([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
+`modules/customers/commands/register-customer/` is the worked write, and
+`modules/identity/queries/get-public-organization/` the read. Four pieces:
+
+1. **A schema of its own** in `packages/contracts`, named `public…`: what a visitor may send, and
+   what they may see. Never the member's schema: write the public one field by field, with no id.
+   A form's input carries a honeypot field, as `publicCustomerRegistrationInputSchema` does.
+2. **A use case** that takes the organization's id and does its database work inside
+   `unitOfWork.run(organizationId, …)`, like a member's: row-level security confines it to that
+   organization. It has no actor; if it creates a row, it records that a visitor did.
+3. **A controller** wrapped in `publicRoute(surface, publicLimits.read | publicLimits.write, handler)`
+   from `#modules/identity/index`. It counts the request for the client address, resolves the slug,
+   and hands the handler `organization`; there is no other way to get the id, so the limit cannot
+   be forgotten. A route with a different need passes a limit of its own
+   (`{ name: 'public-book', max: 5, windowSeconds: 600 }`).
+
+   ```ts
+   this.handle = publicRoute(surface, publicLimits.write, async (req, res, { organization, requestId }) => {
+     const { referralCode, ...values } = await readValidJson(req, publicBookingInputSchema)
+     if (referralCode) surface.logger.info({ reqId: requestId, reason: 'honeypot' }, 'public write ignored')
+     else await service.execute(organization.id, values)
+     sendJson(res, 202, { received: true })
+   })
+   ```
+
+4. **The route**, registered by the module under `/api/public/organizations/:organizationSlug/...`,
+   with `publicSurface` among the ports `create-app.ts` passes it.
+
+Rules that keep a public route safe: answer the same whatever the write found (a `409` that says
+"this email is already a customer" tells a stranger who the tenant's customers are); send nothing
+to an address the visitor typed until a limit of its own covers it; and return only what the
+tenant shows the world. A visitor is anonymous: when a product lets them see or change what they
+created, the one-time code is built on the seam ADR 0059 describes. Tests: the route on the real
+pipeline with `InMemoryRateLimiter` and `FakePublicOrganizations`, as
+`customers.routes.integration.test.ts` does, with a case for the limit and one for an unknown slug.
+What to look at in production: [operations.md](operations.md#public-routes-and-rate-limits).
+
 A product that does not need customers removes the module whole, with an ADR that says why. The
 code goes the same way in both cases below:
 
-1. `packages/contracts/src/customers.ts` and its export; the `customer` statement and each role's
+1. `packages/contracts/src/customers.ts` and its exports (the public registration's among them);
+   the `customer` statement and each role's
    share of it in `packages/contracts/src/organizations.ts`.
 2. `apps/api/src/modules/customers/` and its line in `app/create-app.ts`.
 3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
@@ -204,8 +247,10 @@ The database differs:
   migration that drops the tables (`drop table if exists customer_change; drop table if exists customer;`). Back up the rows first if anyone might want them.
 
 In both cases keep the first half of `0009_tenant_row_security.sql` (the `app_tenant` role and its
-grants), which every later tenant table needs; when deleting the customers migrations, delete only
-its lines about `customer` and `customer_change`.
+grants), which every later tenant table needs, and the `rate_limit` table of
+`0011_public_surface.sql`, which every public route counts in; when deleting the customers
+migrations, delete only their lines about `customer` and `customer_change`. The public profile
+(`GET /api/public/organizations/:organizationSlug`) belongs to identity and stays.
 
 ### Texts and languages
 

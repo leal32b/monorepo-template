@@ -4,8 +4,9 @@ How to see what production is doing, and what to do when it misbehaves. The deci
 [ADR 0014](adr/0014-hosting-and-deploy-from-github-actions.md) (hosting and deploy) and
 [ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md) (observability),
 [ADR 0047](adr/0047-put-time-limits-on-every-database-wait.md) (time limits on the database),
-[ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md) (the daily purge) and
-[ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md) (background jobs).
+[ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md) (the daily purge),
+[ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md) (background jobs) and
+[ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) (public routes and their rate limits).
 Neon, Render and Cloudflare are the template's own hosts; on others, the same signals live elsewhere.
 
 ## Signals
@@ -17,7 +18,8 @@ Neon, Render and Cloudflare are the template's own hosts; on others, the same si
 | API log | stdout, read in the host's log viewer | One JSON line per request, plus every unexpected error with its stack |
 | Worker log | Cloudflare dashboard, Workers Logs | Each request through the web origin, its status and any exception |
 | Deploy | GitHub Actions, `Deploy` workflow | Which commit went live, and the smoke tests it passed |
-| Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, and how many finished jobs |
+| Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, how many finished jobs, and how many of our own rate-limit counters |
+| Rate limits | API log; the `rate_limit` table | `rate limited` when an address passes a limit of a public route, with the limit's name; which addresses are counting now |
 | Jobs | API log (or the worker's, `service: worker`); the `job` table | `job queue working` after every start; `job attempt failed` and `job failed` when a handler fails; what is waiting, running or failed |
 
 ## Reading the API log
@@ -33,6 +35,16 @@ and `hostname`. A request line adds `reqId`, `method`, `route` (the pattern, suc
 - `dependency unavailable` (warn): the database was out of reach or did not answer in time; the
   request answered `503 service_unavailable` and its `reason` says which limit ended the wait. No
   stack: it is not a bug.
+
+Two lines come from the public routes (`/api/public/...`,
+[ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)), each with
+the `reqId` of its request line:
+
+- `rate limited` (warn): an address passed a limit; `limit` names it (`public-read`,
+  `public-write`) and `retryAfterSeconds` is what the 429 told the caller. The address is not in the
+  log: see [Public routes and rate limits](#public-routes-and-rate-limits).
+- `public write ignored` (info), with `reason: honeypot`: a request filled the field no person
+  sees, got the usual answer and wrote nothing. A script, almost always.
 
 A job line has `jobId`, `kind` and `attempt` instead of a request's fields:
 
@@ -112,6 +124,38 @@ jobs to run on time, keep the container awake (the uptime monitor below, on an i
 than the host's idle limit) or move to an always-on plan. An idle worker sends no queries, so
 keeping the container awake does not keep the database awake.
 
+## Public routes and rate limits
+
+Routes under `/api/public/organizations/:organizationSlug` answer without a session
+([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)), still
+through the Worker. Each counts its request first, per client address: 60 reads a minute and 10
+writes per 10 minutes (`publicLimits` in `apps/api/src/modules/identity/public-route.ts`). Past a
+limit the answer is `429 rate_limited` with `Retry-After`, until the window ends. The counters are
+rows of the `rate_limit` table, one per limit and address, deleted by the daily purge a day after
+their window started. Better Auth keeps its own counters, for its own routes, in `auth."rateLimit"`.
+
+Who is counting, in the database's SQL console (a key ends in a client address, which is personal
+data):
+
+```sql
+-- The busiest counters of the last hour. An IPv6 address shows as its /64.
+select key, count, window_start from rate_limit
+where window_start > now() - interval '1 hour' order by count desc limit 20;
+
+-- Requests with no usable address share this one. A count that grows in production means the
+-- proxy in front stopped sending X-Client-IP.
+select key, count, window_start from rate_limit where key like '%:unknown';
+```
+
+To let one address through again before its window ends, delete its row. What visitors created, to
+tell a flood from real use (the reference module marks it):
+
+```sql
+select organization_id, count(*) from customer_change
+where action = 'created' and actor_kind = 'visitor' and at > now() - interval '1 day'
+group by organization_id order by count(*) desc;
+```
+
 ## Set up once per product
 
 - An uptime monitor (any free one) on `<web origin>/api/health` every 5 to 10 minutes, alerting on a
@@ -124,7 +168,7 @@ keeping the container awake does not keep the database awake.
   database round trips (the session, then the membership with its roles), and a tenant route then
   opens a transaction for its own work (`begin`, the statement that sets the tenant, the query,
   `commit`: [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), so each millisecond between them counts about six times on every
-  tenant route.
+  tenant route. A public route makes two before its own work: the rate-limit counter, then the slug.
 
 ## When something breaks
 
@@ -137,6 +181,9 @@ keeping the container awake does not keep the database awake.
 | The `Purge` workflow fails, or stopped running | Its log: `purge failed` with the error, or `Invalid environment: DATABASE_URL`. A runner that cannot connect means the database refuses GitHub's addresses: allow them, or run `node dist/purge.js` from the API image on the host's cron. GitHub pauses a schedule after 60 days without activity: enable it again on the workflow's page. A missed day only lets rows wait |
 | `/api/health` does not answer | Render: the service's events and log; a crash leaves a `fatal` line |
 | Pages load, every call fails | Worker log: an exception there means the Worker cannot reach `API_ORIGIN`; a 403 from the API means `PROXY_SECRET` differs between the Worker and the API |
+| Visitors of one place (an office, a shop's own Wi-Fi) say a public page tells them to wait | They share one address and passed a limit: `rate limited` lines with that `limit`, and the address's row in [Public routes and rate limits](#public-routes-and-rate-limits). Delete the row to let them through now; raise the limit in `publicLimits` if it is too low for the product |
+| Every visitor is told to wait, on every public page | The `…:unknown` counter is growing: requests reach the API with no `X-Client-IP`, so they all share one count. The Worker sets it from `CF-Connecting-IP` ([ADR 0022](adr/0022-accept-api-requests-only-from-the-web-worker.md)); on another proxy, set the header to the client's address there |
+| A tenant's list fills with customers nobody knows | [Public routes and rate limits](#public-routes-and-rate-limits): the visitor-made rows per organization, and `rate limited` lines. From few addresses, the limit is holding and can be lowered; from many, put the host's rate limiting or a CAPTCHA in front of `/api/public/` |
 | `job failed` in the log, or something that should have happened later did not | [Background jobs](#background-jobs): the failed rows and their `last_error`; fix the cause, then put them back |
 | Jobs wait and nothing runs them | No `job queue working` line after the last start means no worker runs: `JOB_WORKER=off` on the API with no worker process beside it, or the worker process is down (its log, `service: worker`). `job poll failed` means the database is out of reach. A delayed job that ran late on a free tier waited for the container to wake |
 | Emails do not arrive | API log (or the worker's): `job attempt failed` or `job failed` with `kind: identity.send-email`, and `err` with the provider's status and error code; the failed rows in [Background jobs](#background-jobs). No such line and no `job done` for the kind means no worker runs (the row above). A refusal from Resend names the cause: the key, or the sender domain in Resend (until it is verified, only the provider account's own address receives) |

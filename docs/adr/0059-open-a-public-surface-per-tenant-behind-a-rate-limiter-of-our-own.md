@@ -250,6 +250,9 @@ two-table write as `app_tenant`.
 contracts, a use case that takes the organization id, a controller wrapped in `publicRoute` with
 `publicLimits.read` or `.write`, registered under `/api/public/organizations/:organizationSlug/`.
 
+The [threat model](../security/threat-model.md) gains the boundary between a visitor and an
+organization (B7), the threats T38 to T43 and five accepted risks.
+
 ### Consequences
 
 - Good: a visitor reaches a tenant without an account, and the pattern is one function to copy.
