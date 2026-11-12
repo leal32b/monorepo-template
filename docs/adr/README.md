@@ -63,3 +63,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0056](0056-run-background-work-from-a-job-table-in-postgres.md) | Run background work from a job table in Postgres | accepted |
 | [0057](0057-send-identity-emails-through-the-job-queue.md) | Send identity emails through the job queue | accepted |
 | [0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md) | Split the i18n dictionaries by slice and merge them per language | accepted |
+| [0059](0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) | Open a public surface per tenant, behind a rate limiter of our own | accepted |
