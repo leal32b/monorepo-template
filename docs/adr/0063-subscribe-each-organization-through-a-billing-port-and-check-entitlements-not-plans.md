@@ -1,6 +1,6 @@
 # 0063. Subscribe each organization through a billing port, and check entitlements, not plans
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-12
 
 Amends [ADR 0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) (the tenant

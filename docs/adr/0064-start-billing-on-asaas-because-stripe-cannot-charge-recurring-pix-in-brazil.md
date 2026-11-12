@@ -1,13 +1,14 @@
 # 0064. Start billing on Asaas, because Stripe cannot charge recurring Pix in Brazil
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-12
 
 **Stripe cannot cover Pix, boleto and card for subscriptions on a Brazilian account.** Its own Pix
 page says Pix Automático is not available to businesses domiciled in Brazil. A Brazilian Stripe
-account can bill subscriptions by card and by boleto, and can take Pix only as a one-time payment. The owner chose Stripe on 2026-11-12, and the plan requires Pix and boleto (P0-6's
-open question). This record therefore recommends **Asaas** for the first adapter, against that
-choice, and keeps Stripe as the second. The owner decides.
+account can bill subscriptions by card and by boleto, and can take Pix only as a one-time payment.
+The plan requires Pix and boleto (P0-6's open question), so the first adapter is **Asaas**, and
+Stripe is kept as the second. The owner had first chosen Stripe, on the same day, before its
+documentation was read for this record.
 
 ## Context and problem statement
 
@@ -221,9 +222,9 @@ The accounts are the owner's to open. In each environment:
    turn it off if that is too much for a small business.
 6. **How far ahead charges are created** (item 6 above), set to 7 days if the account allows it.
 
-### Stripe, if the owner keeps it
+### Stripe, as the second adapter
 
-The decision is the owner's, and the port stays the same, so this is what choosing Stripe means:
+The port stays the same, so this is what a Stripe adapter would cover, for a product that adds it:
 
 - **What works:** card and boleto subscriptions; Checkout in subscription mode; the customer portal;
   signed notices; idempotency keys; Smart Retries; test clocks.
@@ -318,7 +319,6 @@ Pagar.me: [subscriptions](https://docs.pagar.me/reference/assinaturas-1).
   billing emails until P1-6.
 - Good: Pix Automático is in the same API for a later step, when charging Pix without the payer's
   action each month is worth a flow of its own.
-- Bad: the owner's choice of Stripe is reversed by this record; it needs the owner's approval.
 - Bad: notices are authenticated by a fixed token with no signature or timestamp. ADR 0063's design
   makes a forged notice harmless, but the token is still a secret whose leak lets anyone call the
   route.
