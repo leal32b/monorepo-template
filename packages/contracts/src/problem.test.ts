@@ -25,6 +25,13 @@ describe('apiProblemSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts the seconds to wait of a 429, and refuses less than one', () => {
+    const limited = { ...valid, status: 429, code: 'rate_limited' }
+
+    expect(apiProblemSchema.parse({ ...limited, retryAfter: 40 }).retryAfter).toBe(40)
+    expect(apiProblemSchema.safeParse({ ...limited, retryAfter: 0 }).success).toBe(false)
+  })
+
   it.each([200, 399, 600])('rejects the status %i (not an error status)', (status) => {
     expect(apiProblemSchema.safeParse({ ...valid, status }).success).toBe(false)
   })

@@ -2,6 +2,7 @@ import { EnvError, loadDatabaseEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
 import { createDatabase, createPool } from '#libs/database/database'
 import { purgeFinishedJobs } from '#libs/database/kysely-jobs'
+import { purgeRateLimits } from '#libs/database/kysely-rate-limiter'
 import { createLogger } from '#libs/logging/create-logger'
 import { purgeExpiredIdentityRows } from '#modules/identity/infrastructure/purge-expired'
 
@@ -27,7 +28,9 @@ try {
   const identity = await purgeExpiredIdentityRows(db, now)
   // Finished jobs past their keep (ADR 0056): done after 7 days, failed after 30.
   const jobs = await purgeFinishedJobs(db, now)
-  logger.info({ removed: { identity, jobs } }, 'expired rows purged')
+  // Counters of our own rate limiter (ADR 0059), a day after their window started.
+  const rateLimits = await purgeRateLimits(db, now)
+  logger.info({ removed: { identity, jobs, rateLimits } }, 'expired rows purged')
 } catch (error) {
   logger.fatal({ err: error }, 'purge failed')
   process.exitCode = 1
