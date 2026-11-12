@@ -1,6 +1,7 @@
 import { EnvError, loadDatabaseEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
 import { createDatabase, createPool } from '#libs/database/database'
+import { purgeFinishedJobs } from '#libs/database/kysely-jobs'
 import { createLogger } from '#libs/logging/create-logger'
 import { purgeExpiredIdentityRows } from '#modules/identity/infrastructure/purge-expired'
 
@@ -22,8 +23,11 @@ const logger = createLogger({ level: env.logLevel, service: 'purge', release: en
 const db = createDatabase(createPool(env.databaseUrl, logger))
 
 try {
-  const identity = await purgeExpiredIdentityRows(db, new SystemClock().now())
-  logger.info({ removed: { identity } }, 'expired rows purged')
+  const now = new SystemClock().now()
+  const identity = await purgeExpiredIdentityRows(db, now)
+  // Finished jobs past their keep (ADR 0056): done after 7 days, failed after 30.
+  const jobs = await purgeFinishedJobs(db, now)
+  logger.info({ removed: { identity, jobs } }, 'expired rows purged')
 } catch (error) {
   logger.fatal({ err: error }, 'purge failed')
   process.exitCode = 1

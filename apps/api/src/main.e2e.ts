@@ -1,9 +1,11 @@
 import { createApp } from '#app/create-app'
+import { createJobs } from '#app/create-jobs'
 import { loadEnv } from '#config/env'
 import { FileEmailSender } from '#libs/adapters/file-email-sender'
 import { SystemClock } from '#libs/adapters/system-clock'
 import { createDatabase, createPool } from '#libs/database/database'
 import { createLogger } from '#libs/logging/create-logger'
+import { enqueueQueueCheck } from '#modules/health/jobs/queue-check'
 
 /**
  * The API as the end-to-end suite runs it (ADR 0045): the production wiring, except that emails go
@@ -24,8 +26,10 @@ const env = loadEnv(process.env)
 const logger = createLogger({ level: env.logLevel, service: 'api', release: env.release })
 // The suite's database is PGlite behind its socket server: one connection, one statement at a time (ADR 0055).
 const db = createDatabase(createPool(env.databaseUrl, logger, { maxConnections: 1 }))
+const clock = new SystemClock()
+const jobs = createJobs({ db, clock, logger, idlePollMs: env.jobs.idlePollMs })
 const server = createApp({
-  clock: new SystemClock(),
+  clock,
   logger,
   serviceName: 'api',
   release: env.release,
@@ -40,10 +44,15 @@ const server = createApp({
 
 server.listen(env.port, env.host, () => {
   logger.info({ url: `http://${env.host}:${env.port}` }, 'API listening for the end-to-end suite')
+  jobs.worker.start()
+  void enqueueQueueCheck(jobs.queue, clock, env.release)
 })
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     server.close()
-    void db.destroy().then(() => process.exit(0))
+    void jobs.worker
+      .stop()
+      .then(() => db.destroy())
+      .then(() => process.exit(0))
   })
 }

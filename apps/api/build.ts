@@ -12,7 +12,7 @@ rmSync(`${root}/dist`, { recursive: true, force: true })
 
 await build({
   absWorkingDir: root,
-  entryPoints: ['src/main.ts', 'src/migrate.ts', 'src/purge.ts'],
+  entryPoints: ['src/main.ts', 'src/migrate.ts', 'src/purge.ts', 'src/worker.ts'],
   outdir: 'dist',
   bundle: true,
   platform: 'node',

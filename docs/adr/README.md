@@ -60,4 +60,5 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0053](0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md) | Keep the time zone and the currency on the organization, and money in minor units | accepted |
 | [0054](0054-name-the-row-family-for-lists-not-for-settings.md) | Name the row family for lists, not for settings | accepted |
 | [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) | Keep tenants apart with row-level security, set by the unit of work | accepted |
+| [0056](0056-run-background-work-from-a-job-table-in-postgres.md) | Run background work from a job table in Postgres | accepted |
 | [0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md) | Split the i18n dictionaries by slice and merge them per language | accepted |
