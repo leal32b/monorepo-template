@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 
 /** The template's name for an icon (what it means) and Phosphor's. */
 const icons = {
+  activity: 'clock-counter-clockwise',
   back: 'arrow-left',
   check: 'check',
   clock: 'clock',
@@ -51,7 +52,18 @@ const icons = {
  */
 const weights = {
   regular: Object.keys(icons),
-  duotone: ['home', 'profile', 'security', 'preferences', 'monitor', 'organization', 'users', 'role', 'customers']
+  duotone: [
+    'home',
+    'profile',
+    'security',
+    'preferences',
+    'monitor',
+    'organization',
+    'users',
+    'role',
+    'customers',
+    'activity'
+  ]
 }
 
 // The package keeps its SVGs in `assets/`, which it does not export: read them from where it is installed.

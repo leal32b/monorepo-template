@@ -196,7 +196,8 @@ describe('AppShell', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
     const dialog = within(await screen.findByRole('dialog', { name: 'Command palette' }))
 
-    for (const name of ['General', 'Members', 'Roles']) expect(dialog.getByRole('option', { name })).toBeInTheDocument()
+    for (const name of ['General', 'Members', 'Roles', 'Activity'])
+      expect(dialog.getByRole('option', { name })).toBeInTheDocument()
     fireEvent.click(dialog.getByRole('option', { name: 'Members' }))
 
     await waitFor(() => expect(history.get()).toBe('/acme/settings/members'))
@@ -502,7 +503,8 @@ describe('AppShell', () => {
         expect(organization.getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
           ['General', '/acme/settings/general'],
           ['Members', '/acme/settings/members'],
-          ['Roles', '/acme/settings/roles']
+          ['Roles', '/acme/settings/roles'],
+          ['Activity', '/acme/settings/activity']
         ])
         expect(organization.getByRole('link', { name: 'General' })).toHaveAttribute('aria-current', 'page')
       })

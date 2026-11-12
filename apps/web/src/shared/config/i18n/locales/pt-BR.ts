@@ -1,4 +1,5 @@
 import { accountPtBR } from '../dictionaries/account/pt-BR'
+import { auditPtBR } from '../dictionaries/audit/pt-BR'
 import { customersPtBR } from '../dictionaries/customers/pt-BR'
 import { entryPtBR } from '../dictionaries/entry/pt-BR'
 import { organizationsPtBR } from '../dictionaries/organizations/pt-BR'
@@ -12,5 +13,6 @@ export const ptBR: Messages = {
   ...accountPtBR,
   ...organizationsPtBR,
   ...entryPtBR,
-  ...publicPtBR
+  ...publicPtBR,
+  ...auditPtBR
 }

@@ -41,10 +41,11 @@ const accountItems: Item<'profile' | 'security' | 'preferences'>[] = [
 ]
 
 /** The settings of the organization, under its slug (ADR 0034). */
-const organizationItems = (home: string): Item<'general' | 'members' | 'roles'>[] => [
+const organizationItems = (home: string): Item<'general' | 'members' | 'roles' | 'activity'>[] => [
   { href: `${home}/settings/general`, label: 'general', icon: 'organization' },
   { href: `${home}/settings/members`, label: 'members', icon: 'users' },
-  { href: `${home}/settings/roles`, label: 'roles', icon: 'role' }
+  { href: `${home}/settings/roles`, label: 'roles', icon: 'role' },
+  { href: `${home}/settings/activity`, label: 'activity', icon: 'activity' }
 ]
 
 const linkClass =

@@ -39,6 +39,9 @@ const OrganizationMembersPage = lazy(() =>
 const OrganizationRolesPage = lazy(() =>
   import('#pages/organization-roles').then((m) => ({ default: m.OrganizationRolesPage }))
 )
+const OrganizationActivityPage = lazy(() =>
+  import('#pages/organization-activity').then((m) => ({ default: m.OrganizationActivityPage }))
+)
 const InvitationPage = lazy(() => import('#pages/invitation').then((m) => ({ default: m.InvitationPage })))
 const OnboardingPage = lazy(() => import('#pages/onboarding').then((m) => ({ default: m.OnboardingPage })))
 const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: m.ProfilePage })))
@@ -111,6 +114,19 @@ const preloadCustomers = onOpen(({ params }) => {
     if (organization === undefined) return
     const { customersQuery } = await import('#entities/customers')
     await customersQuery(api)(organization.id, 'active', '', 1)
+  })
+})
+/**
+ * The newest page of the organization's activity starts as soon as the organization is known (ADR 0061), as
+ * `preloadCustomers` does; a role without `audit:read` is refused it, and its screen asks for nothing.
+ */
+const preloadActivity = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  preload(organizations, async (entity, { auth, api }) => {
+    const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
+    if (organization === undefined) return
+    const { auditEntriesQuery } = await import('#entities/audit-entries')
+    await auditEntriesQuery(api)(organization.id, '')
   })
 })
 const identityOptions = () => import('#entities/identity-options')
@@ -227,7 +243,8 @@ export const routes: RouteDefinition[] = [
                       { path: '/', component: SettingsOfOrganization },
                       { path: '/general', component: OrganizationGeneralPage },
                       { path: '/members', component: OrganizationMembersPage, preload: preloadTeam },
-                      { path: '/roles', component: OrganizationRolesPage, preload: preloadTeam }
+                      { path: '/roles', component: OrganizationRolesPage, preload: preloadTeam },
+                      { path: '/activity', component: OrganizationActivityPage, preload: preloadActivity }
                     ]
                   }
                 ]

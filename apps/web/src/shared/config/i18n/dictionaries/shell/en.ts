@@ -49,6 +49,7 @@ export const shellEn = {
         general: 'organization name address delete',
         members: 'people team invite remove role',
         roles: 'permissions access',
+        activity: 'audit log history changes who',
         customers: 'clients contacts people companies',
         create: 'organization new team',
         profile: 'account name email',
@@ -75,6 +76,7 @@ export const shellEn = {
       general: 'General',
       members: 'Members',
       roles: 'Roles',
+      activity: 'Activity',
       customers: 'Customers'
     },
     account: {

@@ -1,4 +1,5 @@
 import { accountEs } from '../dictionaries/account/es'
+import { auditEs } from '../dictionaries/audit/es'
 import { customersEs } from '../dictionaries/customers/es'
 import { entryEs } from '../dictionaries/entry/es'
 import { organizationsEs } from '../dictionaries/organizations/es'
@@ -12,5 +13,6 @@ export const es: Messages = {
   ...accountEs,
   ...organizationsEs,
   ...entryEs,
-  ...publicEs
+  ...publicEs,
+  ...auditEs
 }

@@ -51,6 +51,7 @@ export const shellEs: typeof shellEn = {
         general: 'organización nombre dirección eliminar',
         members: 'personas equipo invitar quitar rol',
         roles: 'permisos acceso',
+        activity: 'auditoría registro historial cambios quién',
         customers: 'clientes contactos personas empresas',
         create: 'organización nueva equipo',
         profile: 'cuenta nombre correo',
@@ -77,6 +78,7 @@ export const shellEs: typeof shellEn = {
       general: 'General',
       members: 'Miembros',
       roles: 'Roles',
+      activity: 'Actividad',
       customers: 'Clientes'
     },
     account: {
