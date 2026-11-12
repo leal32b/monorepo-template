@@ -18,7 +18,7 @@ Neon, Render and Cloudflare are the template's own hosts; on others, the same si
 | API log | stdout, read in the host's log viewer | One JSON line per request, plus every unexpected error with its stack |
 | Worker log | Cloudflare dashboard, Workers Logs | Each request through the web origin, its status and any exception |
 | Deploy | GitHub Actions, `Deploy` workflow | Which commit went live, and the smoke tests it passed |
-| Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, how many finished jobs, and how many of our own rate-limit counters |
+| Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, how many finished jobs, how many of our own rate-limit counters, and how many audit entries older than a year ([ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)) |
 | Rate limits | API log; the `rate_limit` table | `rate limited` when an address passes a limit of a public route, with the limit's name; which addresses are counting now |
 | Jobs | API log (or the worker's, `service: worker`); the `job` table | `job queue working` after every start; `job attempt failed` and `job failed` when a handler fails; what is waiting, running or failed |
 
