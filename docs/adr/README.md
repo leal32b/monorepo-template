@@ -66,3 +66,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0059](0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) | Open a public surface per tenant, behind a rate limiter of our own | accepted; `customer_change` replaced by [0061](0061-keep-one-append-only-audit-trail-per-organization.md) |
 | [0060](0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md) | Draw a tenant's public pages under a reserved prefix, in a frame of their own | accepted |
 | [0061](0061-keep-one-append-only-audit-trail-per-organization.md) | Keep one append-only audit trail per organization | accepted |
+| [0062](0062-wait-in-the-worker-while-the-host-wakes-the-api.md) | Wait in the Worker while the host wakes the API | accepted |

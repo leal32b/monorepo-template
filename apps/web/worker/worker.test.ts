@@ -82,6 +82,61 @@ describe('web Worker', () => {
 
       expect(forwarded(api).headers.has('Host')).toBe(false)
     })
+
+    describe('while Render wakes the API', () => {
+      const asleep = () =>
+        new Response('Too Many Requests', { status: 429, headers: { 'X-Render-Routing': 'hibernate-rate-limited' } })
+
+      beforeEach(() => vi.useFakeTimers())
+      afterEach(() => vi.useRealTimers())
+
+      it('asks again until the API answers, so the browser sees one slow request', async () => {
+        const { api, env } = setup()
+        api.mockResolvedValueOnce(asleep()).mockResolvedValueOnce(asleep())
+
+        const answer = worker.fetch(new Request('https://web.example.com/api/auth/get-session'), env)
+        await vi.advanceTimersByTimeAsync(10_000)
+
+        expect((await answer).status).toBe(200)
+        expect(api).toHaveBeenCalledTimes(3)
+      })
+
+      it('sends a write again with its body, since Render refused it before the API saw it', async () => {
+        const { api, env } = setup()
+        api.mockResolvedValueOnce(asleep())
+        const request = new Request('https://web.example.com/api/auth/sign-in/email', {
+          method: 'POST',
+          body: '{"email":"a@example.com"}'
+        })
+
+        const answer = worker.fetch(request, env)
+        await vi.advanceTimersByTimeAsync(10_000)
+        await answer
+
+        const bodies = await Promise.all(api.mock.calls.map(([, init]) => new Response(init.body).text()))
+        expect(bodies).toEqual(['{"email":"a@example.com"}', '{"email":"a@example.com"}'])
+      })
+
+      it('gives up before the web stops waiting for a read, with Render’s answer', async () => {
+        const { api, env } = setup()
+        api.mockImplementation(async () => asleep())
+
+        const answer = worker.fetch(new Request('https://web.example.com/api/auth/get-session'), env)
+        await vi.advanceTimersByTimeAsync(90_000)
+
+        expect((await answer).status).toBe(429)
+      })
+
+      it('returns at once a 429 of the API itself, such as a rate limit', async () => {
+        const { api, env } = setup()
+        api.mockResolvedValueOnce(new Response('{}', { status: 429 }))
+
+        const response = await worker.fetch(new Request('https://web.example.com/api/auth/sign-in/email'), env)
+
+        expect(response.status).toBe(429)
+        expect(api).toHaveBeenCalledOnce()
+      })
+    })
   })
 
   describe('paths that are not a file of the build', () => {
