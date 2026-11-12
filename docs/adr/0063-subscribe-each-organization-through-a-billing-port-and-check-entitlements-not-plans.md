@@ -100,11 +100,14 @@ template's words, never a provider's:
 
 | Method | What it does |
 | --- | --- |
-| `startCheckout({ organizationId, plan, customerId?, returnUrl, cancelUrl })` | Opens the provider's hosted page where the owner pays for `plan`, at the catalogue's price and interval. It reuses the provider's customer when the row holds one, and returns `{ checkoutId, url, customerId, expiresAt }`. Money moves on that page, never in our request. |
+| `startCheckout({ organizationId, plan, customerId?, returnUrl, cancelUrl })` | Opens the provider's hosted page where the owner subscribes to `plan`, at the catalogue's price and interval. It reuses the provider's customer when the row holds one, and returns `{ checkoutId, url, customerId, expiresAt }`. Money moves on that page, never in our request. |
+| `startPayment({ organizationId, customerId, amount, description, returnUrl, cancelUrl })` | Opens a hosted page for one payment of `amount` (an upgrade's difference, see "Changing plan"), for the customer who holds the subscription. Returns `{ checkoutId, url, expiresAt }`. |
+| `payment(checkoutId)` | The state of that one payment: `open`, `paid` or `expired`. |
+| `minimumCharge` | The smallest amount the provider accepts for one charge, as money. |
 | `paymentPage(subscriptionId)` | A hosted page where the payer pays what is overdue or changes how they pay, or `null` when the provider has none. The screen then offers a new checkout. |
 | `changePlan(subscriptionId, plan)` | Sets the price of the next charges. Charges nothing now. |
 | `cancel(subscriptionId, { atPeriodEnd })`, `resume(subscriptionId)` | Ends the subscription now or when the paid period ends, or withdraws a scheduled end. |
-| `subscription(subscriptionId)` | The provider's current state, as `ProviderSubscription`: `subscriptionId`, `customerId`, `reference` (the organization id we sent), `status` (`pending`, `active`, `past_due` or `cancelled`), `paidThrough`, `overdueSince`, `cancelAtPeriodEnd` and `price`. |
+| `subscription(subscriptionId)` | The provider's current state, as `ProviderSubscription`: `subscriptionId`, `customerId`, `reference` (the organization id we sent), `status` (`pending`, `active`, `past_due` or `cancelled`), `periodStart`, `paidThrough`, `overdueSince`, `cancelAtPeriodEnd` and `price`. |
 | `readWebhook(rawBody, headers)` | Authenticates a notice and returns `{ eventId, subscriptionId?, checkoutId?, customerId? }`. It returns `ignored` for a kind the template does not use, and throws `WebhookRefused` when authentication fails. |
 
 The adapters live in `#libs/adapters/<provider>-billing-provider.ts` and call the provider with
@@ -117,7 +120,8 @@ the fake when the web origin is `https`, as it refuses the log email adapter.
 with the API's clock. Tests drive it through its methods. The end-to-end suite and a developer drive
 it through its webhook route. It can be told to:
 
-- accept a checkout (`checkout.complete`): the subscription is active, paid for a month;
+- accept a checkout (`checkout.complete`): the subscription is active, paid for a month, or an
+  upgrade's payment is paid;
 - abandon a checkout (`checkout.abandon`): nothing is charged;
 - fail a payment (`payment.fail`): past due from now;
 - recover (`payment.recover`): active again, paid for a month from now;
@@ -199,12 +203,13 @@ Migration `0013_subscription.sql` creates a tenant table under ADR 0055:
 | `organization_id` | Primary key, `references auth."organization" on delete cascade`: one row per organization. |
 | `status` | `trialing`, `active`, `past_due` or `cancelled`, held by a check. |
 | `plan` | The plan paid for, a key of `plans`. Null until a checkout is confirmed. |
+| `next_plan` | A downgrade scheduled for `paid_through`, or null. |
 | `trial_ends_at` | When the trial ends or ended. |
-| `paid_through` | The end of the period paid for, from the provider. |
+| `period_starts_at`, `paid_through` | The start and the end of the period paid for, from the provider. |
 | `past_due_since` | The due date of the oldest unpaid charge, from the provider. Null when nothing is overdue. |
 | `cancel_at_period_end` | A cancellation is scheduled for `paid_through`. |
 | `provider`, `provider_customer_id`, `provider_subscription_id` | Who holds the customer, and its ids there. Each id is unique with `provider`. |
-| `checkout_plan`, `checkout_id`, `checkout_url`, `checkout_expires_at` | The checkout that is open, if any (see "A retried upgrade does not pay twice"). |
+| `checkout_kind`, `checkout_plan`, `checkout_amount`, `checkout_id`, `checkout_url`, `checkout_expires_at` | The checkout that is open, if any: a first subscription or an upgrade's payment, for which plan, and for how much (see "A retried upgrade does not pay twice"). |
 | `version`, `created_at`, `updated_at` | The version of [ADR 0048](0048-refuse-a-stale-save-with-a-version-per-record.md), and times. |
 
 - **No row means the trial.** An organization has no row until its owner first opens a checkout.
@@ -215,9 +220,11 @@ Migration `0013_subscription.sql` creates a tenant table under ADR 0055:
   exists at that moment, with its trial starting on the migration's day, so a deployed template
   does not put its existing organizations straight into read only.
 - **The plan is ours; the payment is the provider's.** `plan` changes only through the billing use
-  cases: a checkout the provider confirmed, or the owner's change of plan. `status`, `paid_through`,
-  `past_due_since` and `cancel_at_period_end` come only from the provider's state. No request body
-  can set the plan, and the provider cannot put an organization on a plan nobody chose.
+  cases: a checkout or an upgrade's payment that the provider confirmed, a free upgrade below the
+  provider's minimum, or a downgrade whose period ended. `status`, `period_starts_at`,
+  `paid_through`, `past_due_since` and `cancel_at_period_end` come only from the provider's state.
+  No request body can set the plan, and the provider cannot put an organization on a plan nobody
+  chose.
 - **Row-level security** uses the three lines of ADR 0055, without a `delete` grant: the row goes
   only with its organization. Its writes happen in the billing module's unit of work, with their
   audit entry, and `lint:deps` keeps its repository from being bound anywhere else.
@@ -239,7 +246,8 @@ The membership statement gains two joins:
 
 ```sql
 select m.role, /* the custom roles, as today */, o."createdAt",
-       s.status, s.plan, s.trial_ends_at, s.paid_through, s.past_due_since, s.cancel_at_period_end
+       s.status, s.plan, s.next_plan, s.trial_ends_at, s.period_starts_at, s.paid_through,
+       s.past_due_since, s.cancel_at_period_end, s.checkout_kind, s.checkout_plan, s.checkout_amount
 from auth.member m
 join auth."organization" o on o.id = m."organizationId"
 left join subscription s on s.organization_id = m."organizationId"
@@ -317,11 +325,64 @@ is the floor, for as long as the organization exists, and paying again restores 
 Only the owner deletes an organization (ADR 0033). A product that wants to delete organizations left
 unpaid for a long time writes that policy, with notice to the owner, in an ADR of its own.
 
-**Plan changes.** An upgrade gives the new plan's entitlements at once and charges the new price
-from the next renewal. A downgrade takes effect when the paid period ends. Neither charges anything
-from our request, and neither prorates. A downgrade below what the organization already holds (300
-customers on a plan of 100) deletes nothing: creating more is refused until the organization is
-under the limit.
+### Changing plan
+
+**An upgrade charges the difference for the days left, and its entitlements follow the money.**
+Choosing a dearer plan while `active` opens a one-off payment on the provider's hosted page
+(`startPayment`), through the same one open checkout per organization. Its amount is computed in
+integer minor units:
+
+```text
+difference   = new plan's price − current plan's price
+daysInPeriod = whole days from period_starts_at to paid_through (rounded to the nearest day)
+daysLeft     = whole days from now to paid_through, a part of a day counted as a whole one,
+               at most daysInPeriod
+amount       = floor(difference × daysLeft / daysInPeriod)
+```
+
+The division rounds down, so the payer is never charged more than the exact share, and at most one
+centavo less. Days are spans of 24 hours between instants, with no time zone involved. From `basic`
+(R$ 49.00) to `pro` (R$ 99.00) with 12 of 30 days left, the amount is 5 000 × 12 / 30 = 2 000, so
+R$ 20.00. With 10 of 31 days left it is 50 000 / 31 = 1 612.9, so R$ 16.12. The function is
+`prorateUpgrade` in `@repo/contracts`, so the plan page shows the amount before the owner chooses.
+The API computes it again when it opens the payment, and its number is the one charged.
+
+- **When the provider confirms the payment**, the sync job sets the subscription's price at the
+  provider to the new plan's (`changePlan`, for the next charges). Then, in `run`, it sets `plan` and
+  clears the checkout. The new entitlements apply from that moment, and from the next renewal the
+  subscription costs the new plan's price. A card confirms in seconds, Pix in minutes and a boleto in
+  up to three business days. Until then the organization keeps its current plan, so entitlements
+  never run ahead of the money.
+- **While the payment waits**, the plan page says "Upgrade to Pro: waiting for the payment of
+  R$ 20.00. Pro starts as soon as it is confirmed: a card in seconds, Pix in minutes, a boleto in up
+  to three business days.", with "Open the payment" while the provider's page is still valid, and
+  "Cancel the upgrade". The frame shows nothing and members see nothing, because the organization
+  works as before.
+- **When the payment is abandoned**, because it expires or the owner cancels it, the checkout clears
+  and nothing was charged. The page says "The upgrade to Pro was not paid. You are still on Basic,
+  and nothing was charged.", and "Choose" works again. If the paid period ends with the payment still
+  open, the sync cancels it at the provider, since its amount was for days that are gone. An owner
+  who still wants Pro chooses it again, for the new period's days.
+- **Below the provider's minimum, the upgrade is free.** A provider refuses a charge under its
+  minimum; Asaas's help centre states R$ 5.00 a charge (ADR 0064). Each adapter declares its
+  `minimumCharge`. When the amount is zero or below it, no payment is opened: the API calls
+  `changePlan`, sets `plan` at once and records `plan-changed`. Before the owner confirms, the plan
+  page says "Pro starts now. There is nothing to pay for the 2 days left; from 5 December it costs
+  R$ 99.00 a month."
+- **A downgrade takes effect when the paid period ends.** It sets `next_plan`, and the plan page says
+  "Changes to Basic on 5 December", with "Keep Pro". At the renewal the sync calls `changePlan` and
+  moves `next_plan` into `plan`. Nothing is refunded, and the organization keeps what it paid for
+  until then. An upgrade clears a scheduled downgrade, and choosing the current plan again clears it
+  too, at no charge.
+- **No plan is used without being paid for.** An upgrade on day 1 pays the whole month's difference,
+  and a downgrade on day 29 changes the plan only at the renewal. The one exception is below the
+  provider's minimum: upgrading for free in the last two or three days and downgrading the same day
+  gives those days of the higher plan, worth less than any charge the provider would take.
+- **When an upgrade is allowed.** Only from `active`. On trial, choosing a plan is the first checkout,
+  at the full price. While past due, "Pay now" comes first, and "Choose" carries the reason in its
+  note. With a cancellation scheduled, "Keep the plan" comes first.
+- **A downgrade deletes nothing.** Below what the organization already holds (300 customers on a plan
+  of 100), creating more is refused until it is under the limit.
 
 ### What each screen says, and who sees it
 
@@ -336,6 +397,9 @@ the web slice writes them in every language of the dictionaries.
 | Trial, last 7 days | `info`: "Your trial ends on 5 December. Choose a plan to keep adding and changing records. Nothing is deleted." with "See plans" | From the last 3 days, `info`: "This organization's trial ends on 5 December. After that it is read only until its owner chooses a plan." |
 | Trial ended | `warning`: "Your trial ended on 5 December. The organization is read only: everyone can view and delete, nobody can add or change. Choose a plan to edit again. Nothing was deleted." with "See plans" | `warning`: "This organization is read only since 5 December, until its owner chooses a plan. You can still view everything." |
 | Active | Nothing. The plan page shows the plan, its price and "Paid until 5 January". | Nothing |
+| Upgrade waiting for its payment | Nothing in the frame. The plan page says "Upgrade to Pro: waiting for the payment of R$ 20.00. Pro starts as soon as it is confirmed…" with "Open the payment" and "Cancel the upgrade". | Nothing |
+| Upgrade not paid (expired or cancelled) | Nothing in the frame. The plan page says "The upgrade to Pro was not paid. You are still on Basic, and nothing was charged." | Nothing |
+| Downgrade scheduled | Nothing in the frame. The plan page says "Changes to Basic on 5 January" with "Keep Pro". | Nothing |
 | Cancellation scheduled | `info`: "Your plan ends on 5 January. After that the organization is read only." with "Keep the plan" | From the last 3 days, `info`: "This organization's plan ends on 5 January. After that it is read only." |
 | Past due, within the grace period | `warning`: "We have not received the payment due on 3 November. Pay by 17 November to keep editing. Nothing is deleted." with "Pay now" | `info`: "This organization's payment is late. From 17 November it is read only until its owner pays." |
 | Past due, grace period over | `warning`: "The organization is read only since 17 November because the payment due on 3 November was not received. Pay to edit again. Nothing was deleted." with "Pay now" | `warning`: "This organization is read only since 17 November, until its owner pays. You can still view everything." |
@@ -349,15 +413,19 @@ refused afterwards.
 `billing:manage`, and the menu shows it only to them. It has:
 
 - the current state, in one sentence;
-- the plans from the catalogue, with their prices and what each adds, and "Choose" for each;
+- the plans from the catalogue, with their prices and what each adds, and "Choose" for each. For a
+  dearer plan, the choice says first what is paid now and from when the new price runs ("You pay
+  R$ 20.00 now for the 12 days left; from 5 December, R$ 99.00 a month"), or that the change is free
+  below the provider's minimum. For a cheaper one, it says the date the change takes effect;
 - "Pay now" while a payment is overdue;
 - "Change payment" when the provider has a page for it;
 - "Cancel plan" in a `ConfirmForm` that says until when the plan stays paid, that nothing is
   deleted, and that it can be kept until then;
 - the provider's reference for the subscription in small text, for a support request.
 
-**Coming back from the provider.** The return URL lands on the plan page with `?checkout=returned`.
-Until the provider's notice is applied, the page says "Confirming your payment with the provider…"
+**Coming back from the provider**, after a first subscription or an upgrade's payment. The return URL
+lands on the plan page with `?checkout=returned`. Until the provider's notice is applied, the page
+says "Confirming your payment with the provider…"
 and reads the membership again every 3 seconds, for up to a minute. Then it says "The provider has
 not confirmed the payment yet. A boleto or Pix can take a while. This page shows it when it arrives,
 and you can keep working." The cancel URL says "Payment not completed. Nothing was charged."
@@ -365,7 +433,8 @@ and you can keep working." The cancel URL says "Payment not completed. Nothing w
 **A limit or a capability.**
 
 - `plan_limit_reached`. To the owner: "Your plan allows 100 active customers. Choose a larger plan,
-  or archive customers you no longer serve." with "See plans". To other members: "This
+  or archive customers you no longer serve." with "See plans", or, while an upgrade waits for its
+  payment, "The upgrade to Pro starts when its payment is confirmed." To other members: "This
   organization's plan allows 100 active customers. Archiving customers you no longer serve frees
   room; its owner can choose a larger plan." The refusal should be the exception (a second tab, a
   stale screen): once the list's total reaches the limit, the "New customer" action carries the same
@@ -383,8 +452,10 @@ web's error kinds go by status; the code says why.
 
 - Input: nothing is typed. A plan is picked from the catalogue (eliminate).
 - State: an abandoned or expired checkout leads to "Nothing was charged", and "Choose" opens a new
-  one (recover). An organization deleted while a payment is pending has its provider subscription
-  cancelled (below), and later notices about it are ignored.
+  one (recover). An upgrade not paid leaves the organization on its plan, with the same words. An
+  upgrade's payment still open when the period ends is cancelled at the provider, so a payment for
+  days already gone cannot be made. An organization deleted while a payment is pending has its
+  provider subscription cancelled (below), and later notices about it are ignored.
 - Permission: wherever the plan matters, a member who cannot manage it reads that its owner does
   (self-diagnosis).
 - Concurrency and timing: a double click or a second tab gets the same open checkout back (prevent).
@@ -396,14 +467,19 @@ web's error kinds go by status; the code says why.
   again (recover). The operator sees `job failed`, and a paused notice queue at the provider
   ([operations.md](../operations.md)).
 - Understanding: every banner says what is happening, what happens next and when, in the
-  organization's time zone, and that nothing is deleted.
+  organization's time zone, and that nothing is deleted. Before an upgrade, the owner reads what is
+  paid now and the price from the next renewal; before a downgrade, the date it takes effect
+  (prevent a surprise charge or a surprise loss). While an upgrade's payment waits, the page says how
+  long each method takes (self-diagnosis).
 - Irreversibility: a cancellation takes effect at the end of the paid period and can be withdrawn
   until then (recover). Deleting the organization says, in its confirmation, that the plan is
   cancelled with it.
 - Account and billing: a declined card or an unpaid boleto gets the grace period and "Pay now", to
-  the provider's page. A limit gets its note before the action, and archiving as a way out.
+  the provider's page. A limit gets its note before the action, and archiving as a way out. An
+  upgrade charges only the days left, and a difference too small for the provider to charge is not
+  charged at all (eliminate). A downgrade refunds nothing, and says so before it is confirmed.
 - Left out: billing emails from the template (P1-6, below), a list of past invoices (the provider's
-  pages have it), and proration.
+  pages have it), and credits or refunds for a downgrade.
 
 ### Who manages it
 
@@ -461,7 +537,9 @@ This is a new kind of route: no session, no organization slug, and the caller is
   secret key). It finds the organization by our row's `provider_customer_id`, and checks that the
   provider's `reference` names the same organization. Then, in `run(organizationId, …)`, it applies
   the state through the domain (`applyProviderState`), saves it with the row's version, and records
-  an audit entry if anything changed. Therefore:
+  an audit entry if anything changed. When the notice concerns the row's open checkout, the job reads
+  that payment instead (`provider.payment(id)`) and, once it is paid, completes the first
+  subscription or the upgrade ("Changing plan"). Therefore:
   - order does not matter: no provider promises it, and every sync writes the latest state;
   - a repeat, a replay, or a forged notice that passed authentication can at most make the API read
     the provider again;
@@ -478,16 +556,18 @@ This is a new kind of route: no session, no organization slug, and the caller is
 
 ### A retried upgrade does not pay twice
 
-Money moves on the provider's hosted page, where the payer confirms it. No request of the template
-charges anything. The risk is two checkouts paid, or two subscriptions created, for one
-organization: a double click, a second tab, or a request sent again after a timeout. Writes have no
+Money moves on the provider's hosted page, where the payer confirms it, for a first subscription and
+for an upgrade's difference alike. No request of the template charges anything. The risk is two
+checkouts paid, two subscriptions created, or one difference paid twice, for one organization: a
+double click, a second tab, or a request sent again after a timeout. Writes have no
 time limit on the web
 ([ADR 0041](0041-say-why-a-cold-start-takes-long-and-end-the-wait.md)) precisely because one may have
 gone through though its answer was late.
 
-- **One open checkout per organization.** `POST …/billing/checkout` first claims the checkout on the
-  row, inside `run`, with the row's version. The first request wins. A second sees the open checkout
-  and gets its URL back while it has not expired. The first then calls the provider, outside the
+- **One open checkout per organization.** `POST …/billing/checkout`, for a first subscription or an
+  upgrade, first claims the checkout on the row, inside `run`, with the row's version. The first
+  request wins. A second sees the open checkout and gets its URL back while it has not expired; a
+  request for another plan is refused until that one is paid, abandoned or cancelled. The first then calls the provider, outside the
   transaction (ADR 0052), and stores the checkout's id, URL and expiry. If the process dies between
   the claim and the store, the claim expires after 10 minutes, and a new checkout may start.
 - **The provider's own guard, where it has one.** Stripe takes an `Idempotency-Key` on every `POST`,
@@ -501,7 +581,8 @@ gone through though its answer was late.
   refused with `409 subscription_changed`, and the screen reads again (ADR 0048).
 
 **P2-1 does not come now.** Its trigger is the first write that moves money, and P0-6 has none: the
-money moves on the provider's page. What a retry can duplicate here is one checkout, and the row
+money moves on the provider's page, an upgrade's difference included. What a retry can duplicate
+here is one checkout, and the row
 guards that more precisely than a general store of answers would. P2-1 stays for the first product
 write that charges from our own request (a no-show fee on a saved card, a refund), where no hosted
 page stands between the click and the money.
@@ -510,7 +591,8 @@ page stands between the click and the money.
 
 Every change of the row records an entry (ADR 0061) in the same `run`. The resource is
 `subscription`, and the resource id is the organization's id. The actions are `checkout-started`,
-`activated`, `plan-changed`, `payment-failed`, `payment-recovered`, `cancellation-scheduled`,
+`activated`, `upgrade-started`, `upgrade-abandoned`, `plan-changed`, `downgrade-scheduled`,
+`downgrade-withdrawn`, `payment-failed`, `payment-recovered`, `cancellation-scheduled`,
 `cancellation-withdrawn` and `cancelled`, each with the names of the fields that changed. The actor
 is the owner (`member`) for what they asked for, and `system` for what a provider's notice brought.
 Moving into read only is the clock, not a write, so it records nothing; the screens show its date.
@@ -549,8 +631,12 @@ first.
   Entitlements come only from the subscription row the tenant guard joins, never from a request.
   `requireMember` refuses `POST`, `PUT` and `PATCH` for a read-only organization in one place. A
   limited use case counts inside its transaction. The plan changes only through the owner's billing
-  routes, after the provider accepted; the payment state changes only from the provider. The web's
-  copy only draws.
+  routes, after the provider accepted; the payment state changes only from the provider. A dearer
+  plan's entitlements apply only once the provider confirms its difference was paid. The server
+  computes that amount from the catalogue and the provider's period, never from the request, and
+  waives it only below the provider's minimum charge. A downgrade waits for the end of the paid
+  period, so an upgrade followed by a downgrade never gives a higher plan for a lower price. The
+  web's copy only draws.
 - **T50. A tenant pays for another, or a payment lands on the wrong organization: a checkout opened
   for an organization the caller does not own, one provider customer shared by two organizations, or
   a reference changed at the provider (S, T, E).** The organization comes from the path, behind
@@ -563,7 +649,9 @@ first.
   payment pages, never a provider's card or card-token endpoints (ADR 0064).
 - **Accepted risks.** Two creates at the same instant can pass a limit by one. A user can start
   another trial by creating another organization, bounded by the five organizations per user of
-  ADR 0033. The screens can lag the provider by the time a notice takes.
+  ADR 0033. The screens can lag the provider by the time a notice takes. An upgrade whose
+  difference falls below the provider's minimum is free, so upgrading in the last days of a period
+  and downgrading at once gives those few days of the higher plan.
 - **Assets and secrets** gain the provider's API key and webhook secret, kept and pushed as the
   other runtime secrets are.
 
@@ -590,12 +678,20 @@ first.
 - **Option C, applying the payload in the job.** It is still exposed to the order and to a leaked
   token.
 - **Option y, P2-1 now.** See "P2-1 does not come now".
+- **An upgrade that applies at once and charges the new price from the next renewal.** Upgrading on
+  day 1 and downgrading on day 29 would give the higher plan every month at the lower price.
+- **An upgrade that applies at once and charges the difference afterwards.** Entitlements would run
+  ahead of the money: a boleto never paid would still have given days of the higher plan, and taking
+  them back needs a rule of its own. Waiting costs a card payer seconds and a boleto payer days.
+- **A downgrade that applies at once, with a credit.** Credits are a balance to keep, to show and to
+  spend, at every provider in its own way, for a case the end of the period already serves.
 
 Sources: [Stripe: receive webhook events (signatures, retries, duplicates, order)](https://docs.stripe.com/webhooks),
 [Stripe: idempotent requests](https://docs.stripe.com/api/idempotent_requests),
 [Stripe: Smart Retries](https://docs.stripe.com/billing/revenue-recovery/smart-retries),
 [Asaas: about webhooks (at least once, event id, 14 days)](https://docs.asaas.com/docs/sobre-os-webhooks),
 [Asaas: duplicate charges after a retry without idempotency](https://docs.asaas.com/docs/cobran%C3%A7a-duplicada-ap%C3%B3s-retry-sem-idempot%C3%AAncia),
+[Asaas help centre: limits for creating charges (R$ 5.00 minimum)](https://central.ajuda.asaas.com/hc/pt-br/articles/31972480144795-Quais-s%C3%A3o-os-limites-para-cria%C3%A7%C3%A3o-de-cobran%C3%A7as),
 [RFC 9110, 402 Payment Required](https://www.rfc-editor.org/rfc/rfc9110#name-402-payment-required).
 Read on 2026-11-12.
 
@@ -611,12 +707,17 @@ Read on 2026-11-12.
 - Good: forged, repeated, late or out-of-order notices cannot set a wrong state, because the state
   always comes from the provider.
 - Good: the template never handles card data.
+- Good: entitlements always follow money. An upgrade pays only for the days left, and no sequence of
+  upgrades and downgrades gives a higher plan for a lower price, beyond the few days below a
+  provider's minimum.
 - Bad: identity's membership query now joins a billing table. The coupling is one statement, named
   here and covered by its database test.
 - Bad: every change of price or limit is a deploy.
 - Bad: each notice costs one or two calls to the provider, and the screens can lag the provider by
   the time a notice takes to arrive.
 - Bad: a limit can be passed by one under concurrency.
+- Bad: an upgrade paid by boleto waits days for its entitlements, and an upgrade is a payment of its
+  own plus a change of price at the provider: two calls, kept together by the job's retries.
 - Bad: the public surface keeps working for an organization in read only.
 - Bad: a user can start a new trial by creating a new organization, up to the ceiling of five.
 - Bad: no billing email comes from the product until P1-6. The payer relies on the provider's
@@ -627,8 +728,8 @@ Read on 2026-11-12.
 
 ## Revisit when
 
-A product needs prices per seat or per use, yearly plans, prorated changes, or plans in more than
-one currency. Notices are lost often enough that a daily reconciliation with the provider is worth
+A product needs prices per seat or per use, yearly plans, credits for a downgrade, or plans in more
+than one currency. Notices are lost often enough that a daily reconciliation with the provider is worth
 its calls. P1-6 gives modules a way to send email (then add the trial and payment emails). A
 product's first write charges money from our own request (then P2-1). A limit passed under
 concurrency starts to matter (then lock the row in the limited use cases). The membership read shows

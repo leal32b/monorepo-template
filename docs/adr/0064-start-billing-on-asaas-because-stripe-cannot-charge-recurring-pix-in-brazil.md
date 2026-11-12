@@ -139,6 +139,9 @@ a `User-Agent` (Asaas requires one for accounts created from 13 June 2024).
 | --- | --- |
 | `startCheckout`, by card | An Asaas Checkout with `chargeTypes: ['RECURRENT']`, `billingTypes: ['CREDIT_CARD']`, a monthly `subscription` at the plan's value, the organization's id as `externalReference`, the return and cancel URLs as `callback`, and `minutesToExpire` of 30. Asaas creates the subscription when the payer finishes; its id arrives with `SUBSCRIPTION_CREATED`. |
 | `startCheckout`, by Pix or boleto | The customer (looked up first, by `externalReference`), then a subscription by the API with `billingType` `PIX` or `BOLETO`. The owner is sent to the first charge's `invoiceUrl`. No card data is involved. |
+| `startPayment`, an upgrade's difference | By card or Pix: an Asaas Checkout with `chargeTypes: ['DETACHED']` (one payment) for the subscription's customer, with the same `externalReference` and callbacks. Its documentation shows Pix with `DETACHED`, and its reference lists card among the `billingTypes`. By boleto, which Checkout does not offer: a charge by the API (`POST /v3/payments`, `billingType: 'BOLETO'`), and the owner is sent to its `invoiceUrl`. |
+| `payment` | The checkout's status (`PAID`, `EXPIRED`, `CANCELED`), or the charge's for a boleto. |
+| `minimumCharge` | R$ 5.00, the minimum a charge may have, as Asaas's help centre states. Its API reference states no minimum. |
 | `paymentPage` | The `invoiceUrl` of the oldest overdue charge, or `null`. |
 | `changePlan` | The subscription's new value, for future charges only. |
 | `cancel`, `resume` | Delete the subscription (which also removes its pending and overdue charges) when cancelling now. Setting an end date at `paid_through`, and clearing it to resume, when cancelling at the period's end. |
@@ -176,6 +179,12 @@ adapter's slice starts by trying each:
    the payer from seeing next month's boleto at the start of this one.
 7. When `PAYMENT_CONFIRMED` arrives for a boleto: at payment, or when the bank clears it.
 8. Which of the two published Pix and boleto fees is current, and the card fee after three months.
+9. Whether a one-off charge can sit beside the customer's subscription (no page says either way), and
+   whether a card `DETACHED` checkout works as the reference suggests.
+10. Whether changing the subscription's value also changes a charge already created for the next
+    cycle, since charges are created days ahead (item 6). An upgrade paid after that charge exists
+    must not leave the next renewal at the old price.
+11. Whether the R$ 5.00 minimum of the help centre holds for each method in the sandbox.
 
 ### Environment variables
 
@@ -270,6 +279,9 @@ Asaas: [subscriptions](https://docs.asaas.com/docs/assinaturas-recorr%C3%AAncia)
 [Asaas Checkout](https://docs.asaas.com/docs/checkout-asaas),
 [recurring Checkout](https://docs.asaas.com/docs/checkout-com-assinatura-recorrente),
 [create a checkout](https://docs.asaas.com/reference/criar-novo-checkout),
+[Checkout for Pix](https://docs.asaas.com/docs/checkout-para-pix),
+[create a charge](https://docs.asaas.com/reference/criar-nova-cobranca),
+[limits for creating charges](https://central.ajuda.asaas.com/hc/pt-br/articles/31972480144795-Quais-s%C3%A3o-os-limites-para-cria%C3%A7%C3%A3o-de-cobran%C3%A7as),
 [about webhooks](https://docs.asaas.com/docs/sobre-os-webhooks),
 [receiving events](https://docs.asaas.com/docs/receive-asaas-events-at-your-webhook-endpoint),
 [queue interrupted](https://docs.asaas.com/docs/webhooks-queue-paused),
@@ -309,7 +321,7 @@ Pagar.me: [subscriptions](https://docs.pagar.me/reference/assinaturas-1).
   events older than 14 days are then lost.
 - Bad: Pix and boleto in a subscription ask the payer to pay each month. Only a card renews by
   itself, until Pix Automático is built.
-- Bad: eight points are unverified on the pages read, and the adapter's slice starts in the sandbox
+- Bad: eleven points are unverified on the pages read, and the adapter's slice starts in the sandbox
   to settle them.
 - Bad: the Stripe adapter stays unbuilt until a product needs cards from abroad, or Stripe opens
   recurring Pix to Brazilian businesses.
