@@ -1,10 +1,12 @@
 import { fileURLToPath } from 'node:url'
-import { sql } from 'kysely'
+import { type Kysely, sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
 import { createDatabase, createPool } from '#libs/database/database'
+import { KyselyUnitOfWork } from '#libs/database/kysely-unit-of-work'
 import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../../../test/reset-database'
+import type { Customer } from '../domain/customer'
 import { aCustomer, contractOrganizations, describeCustomerRepository } from '../testing/customer-repository.contract'
 import { KyselyCustomerRepository } from './kysely-customer-repository'
 
@@ -57,5 +59,55 @@ describe('KyselyCustomerRepository', () => {
       code: '23505',
       constraint: 'customer_pkey'
     })
+  })
+})
+
+/** What the net is for (ADR 0055): a repository whose every query forgot the organization. */
+describe('a repository that forgets the organization filter', () => {
+  const forgetful = (on: Kysely<unknown>) => ({
+    names: async () =>
+      (await sql<{ name: string }>`select name from customer order by name`.execute(on)).rows.map((row) => row.name),
+    renameAll: async (name: string) =>
+      Number((await sql`update customer set name = ${name}`.execute(on)).numAffectedRows),
+    removeAll: async () => Number((await sql`delete from customer`.execute(on)).numAffectedRows),
+    moveAll: (organizationId: string) => sql`update customer set organization_id = ${organizationId}`.execute(on),
+    insert: (customer: Customer) => new KyselyCustomerRepository(on).insert(customer)
+  })
+  const unitOfWork = new KyselyUnitOfWork(db, forgetful)
+
+  beforeEach(async () => {
+    await sql`truncate customer`.execute(db)
+    const owner = new KyselyCustomerRepository(db)
+    await owner.insert(aCustomer('c1', { name: 'Theirs' }))
+    await owner.insert(aCustomer('c2', { organizationId: 'org-2', name: 'Ours' }))
+  })
+
+  it('reads every organization on the bare connection, where nothing stands behind the filter', async () => {
+    expect(await forgetful(db).names()).toEqual(['Ours', 'Theirs'])
+  })
+
+  it('reads only its organization inside a unit of work', async () => {
+    expect(await unitOfWork.run('org-2', (customers) => customers.names())).toEqual(['Ours'])
+  })
+
+  it('changes and deletes only its organization inside a unit of work', async () => {
+    expect(await unitOfWork.run('org-2', (customers) => customers.renameAll('Renamed'))).toBe(1)
+    expect(await forgetful(db).names()).toEqual(['Renamed', 'Theirs'])
+
+    expect(await unitOfWork.run('org-2', (customers) => customers.removeAll())).toBe(1)
+    expect(await forgetful(db).names()).toEqual(['Theirs'])
+  })
+
+  it('cannot write a customer into another organization, nor move one there', async () => {
+    const refused = { code: '42501' }
+
+    await expect(unitOfWork.run('org-2', (customers) => customers.insert(aCustomer('c3')))).rejects.toMatchObject(
+      refused
+    )
+    await expect(unitOfWork.run('org-2', (customers) => customers.moveAll('org-1'))).rejects.toMatchObject(refused)
+  })
+
+  it('sees nothing of an organization that does not exist', async () => {
+    expect(await unitOfWork.run('', (customers) => customers.names())).toEqual([])
   })
 })

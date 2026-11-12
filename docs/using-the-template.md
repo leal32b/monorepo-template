@@ -17,7 +17,9 @@ pnpm dev   # API :3001, web :5173
 ```
 
 Open `http://localhost:5173`, sign up, and take the confirmation link from the API log (no email
-provider is needed locally, [ADR 0021](adr/0021-send-email-through-a-provider-neutral-port.md)).
+provider is needed locally, [ADR 0021](adr/0021-send-email-through-a-provider-neutral-port.md));
+it comes a moment after the response, from the job that sends it
+([ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)).
 Everyday commands are in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## 2. Name the product
@@ -26,7 +28,7 @@ The template calls itself "Monorepo Template". Replace it in:
 
 | Where | What |
 | --- | --- |
-| `apps/web/src/shared/config/i18n/locales/*.ts` | `app.name`, in every language |
+| `apps/web/src/shared/config/i18n/dictionaries/shell/*.ts` | `app.name`, in every language |
 | `apps/web/index.html`, `apps/web/public/favicon.svg` | The page title, the icon and its title |
 | `apps/api/src/modules/identity/infrastructure/auth.ts` | The authenticator app's `issuer` |
 | `apps/web/wrangler.jsonc` | The Worker's `name` (its `*.workers.dev` hostname) |
@@ -59,7 +61,12 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 3. Push to `main`. The first run publishes the API image and stops at the configuration check: make
    the image's package public on GHCR, create a Render web service from it (free plan, health check
    path `/api/health/live`), set `RENDER_SERVICE_ID` and `API_ORIGIN`, and re-run the failed jobs.
-4. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
+4. Background jobs run inside the API process, which is all a free tier's single container allows
+   ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)). On a paid plan they
+   can have a service of their own: the same image and variables with the command
+   `node --enable-source-maps dist/worker.js` and `JOB_IDLE_POLL_SECONDS=5`, and `JOB_WORKER=off` on
+   the API. The deploy workflow does not create that service or set those variables: add them to it.
+5. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
    answers `/api/health` ([ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md)).
 
 ## 4. Set up once
@@ -86,27 +93,92 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
 Customers is the worked example of a tenant-scoped module, from contract to screen, with tests at
 every layer ([ADR 0044](adr/0044-build-customers-as-the-reference-vertical-module.md), "How to copy
-the module", and [ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
-for a use case with two writes). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
+the module", [ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
+for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) for tenant isolation). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
 
 1. The schemas in `packages/contracts`, and the resource in `statements` with the roles' share of it.
 2. The domain: pure rules and errors, no I/O.
 3. The repository port, its in-memory fake and the contract suite; the Kysely adapter and a new
    migration in `apps/api/migrations` (plain SQL, forward only,
-   [ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)).
+   [ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)). Every tenant table, a child table
+   included, has `organization_id text not null references auth."organization" ("id") on delete cascade`,
+   and its migration ends with the three lines that put it behind row-level security
+   ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)):
+
+   ```sql
+   alter table appointment enable row level security;
+   create policy tenant_isolation on appointment to app_tenant
+     using (organization_id = current_setting('app.organization_id', true));
+   grant select, insert, update, delete on appointment to app_tenant;
+   ```
+
+   Without them the table is invisible to the API (`permission denied`), and
+   `tenant-row-security.db.test.ts` names it. Add the table to `apps/api/test/reset-database.ts`.
 4. A service and a controller per use case, the routes behind `requireMember`, one line in
-   `app/create-app.ts`. A use case with one write takes the repository, as `ArchiveCustomerService`
-   does. One whose writes must be kept together or not at all (a sale and its items, an appointment
-   and its charge) takes the module's unit of work and does everything inside `run`, as
-   `DeleteCustomerService` does: copy `customers-unit-of-work.port.ts`,
-   `database/kysely-customers-unit-of-work.ts`, `snapshot()` on each in-memory fake and
+   `app/create-app.ts`. Every use case, a read included, takes the module's unit of work and does
+   its database work inside `run(organizationId, …)`, with the id the guard returned: Postgres then
+   shows and accepts only that organization's rows, even for a query that forgot its `where`, and
+   what the use case writes is kept together or not at all. Copy `customers-unit-of-work.port.ts`,
+   `database/kysely-customers-unit-of-work.ts` (the only place that builds the adapters:
+   `pnpm lint:deps` refuses one built in `create-app.ts`), `snapshot()` on each in-memory fake and
    `testing/customers-unit-of-work.contract.ts`. Inside `run`: only the repositories it hands
    over, and nothing but database work
    ([ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)).
-5. The web: the entity's reads and writes, the feature's forms, the page and its route with
+   Repository methods keep their own `where organization_id`: the fakes and any code on the pool
+   (a job, a back office) have nothing else.
+5. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
+   fail, anything too slow for a request): a job
+   ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)), below.
+6. The web: the entity's reads and writes, the feature's forms, the page and its route with
    `preload`, the menu item, the texts in every language. Screens go through the `design-system`
    and `minimize-support` skills.
-6. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
+7. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
+
+### A job kind
+
+`modules/health/jobs/queue-check.ts` is the smallest example. A module with background work has
+three pieces:
+
+1. **The definition**, in the module (`jobs/<what-it-does>.ts`): a name and the schema of its
+   payload. The payload is stored as JSON and kept until the purge: carry ids, not records. A
+   payload that must carry a credential (a link with a token) sets `secretPayload: true`, and is
+   forgotten as the job ends, as `modules/identity/jobs/send-email.ts` does.
+
+   ```ts
+   export const sendReminder: JobDefinition<{ organizationId: string; appointmentId: string }> = {
+     kind: 'appointments.send-reminder',
+     schema: z.object({ organizationId: z.string(), appointmentId: z.string() })
+   }
+   ```
+
+2. **The handler**, registered by the module's `registerXJobs(registrar, deps)`, which
+   `app/create-jobs.ts` calls with the ports the handlers need, as `create-app.ts` does for routes:
+
+   ```ts
+   export function registerAppointmentJobs(registrar: JobRegistrar, deps: { reminders: SendReminderService }): void {
+     registrar.register(sendReminder, (payload, { signal }) => deps.reminders.execute(payload, signal))
+   }
+   ```
+
+   A handler may run more than once for the same job (a crash, a retry after the effect happened):
+   make it bear a repeat, by checking what it already did or writing with a key. Throwing asks for a
+   retry (five attempts over about 43 minutes, then the job stays as `failed`). It has 60 s: pass
+   `signal` to what it waits on, and split longer work into several jobs. Its database work goes
+   through the same ports as a request; tenant work opens the unit of work with the organization
+   from the payload.
+
+3. **The enqueue**, from a use case, through the `JobQueue` port:
+   `await jobs.enqueue(sendReminder, { organizationId, appointmentId }, { runAt })`. With the change
+   that causes it, add `jobs: JobQueue` to the module's unit of work (`jobs: jobs.bind(transaction)`
+   in its Kysely factory, `createJobs(...).bind`): the job is then kept or dropped with the
+   transaction. Outside one, the use case takes `createJobs(...).queue`.
+
+Tests: a use case takes `InMemoryJobs` (`#libs/adapters/in-memory-jobs`), which a unit of work rolls
+back like any fake, and asserts on `jobs.all`; to run what was enqueued, build a `JobWorker` on it
+with `ManualTimer` and call `drain()`, as `queue-check.test.ts` does. An HTTP test whose request
+enqueues builds `createJobs` with `ManualTimer`, does not start it, and drains it before asserting,
+as the tests that read identity's emails do. What to look at in production:
+[operations.md](operations.md#background-jobs).
 
 A product that does not need customers removes the module whole, with an ADR that says why. The
 code goes the same way in both cases below:
@@ -116,7 +188,7 @@ code goes the same way in both cases below:
 2. `apps/api/src/modules/customers/` and its line in `app/create-app.ts`.
 3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
    `app/routes.tsx`, the menu and palette items in `widgets/app-shell/`, and the `customers` texts
-   and role descriptions in every locale.
+   and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`).
 4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
    organization), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
    used.
@@ -130,6 +202,43 @@ The database differs:
   that, the files are just code. Reset the local database: stop `pnpm db`, delete `apps/api/.data`, start it again.
 - **Already in production**: keep the files, which databases have already applied, and add a new
   migration that drops the tables (`drop table if exists customer_change; drop table if exists customer;`). Back up the rows first if anyone might want them.
+
+In both cases keep the first half of `0009_tenant_row_security.sql` (the `app_tenant` role and its
+grants), which every later tenant table needs; when deleting the customers migrations, delete only
+its lines about `customer` and `customer_change`.
+
+### Texts and languages
+
+Texts live in `apps/web/src/shared/config/i18n/dictionaries/<group>/<language>.ts`, one file per module and
+language ([ADR 0058](adr/0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)). The
+`locales/*.ts` files only merge them.
+
+A new module adds its texts like this, and edits no other module's file:
+
+1. `dictionaries/<module>/en.ts` exports `<module>En`, an object of top-level keys no other group uses.
+2. `es.ts` and `pt-BR.ts` beside it export `<module>Es` and `<module>PtBR`, typed `typeof <module>En`, so a key
+   missing in one language fails `pnpm typecheck` in that file.
+3. One import and one `...<module>En` line in each of `locales/en.ts`, `es.ts` and `pt-BR.ts` (the only shared
+   edit, two adjacent lines). A group left out of the merge fails `dictionaries.test.ts` and the screens that
+   use its keys.
+
+If the test says a key has no group right after you add one, run it again after touching
+`dictionaries.test.ts`: Vitest keeps the list of files its glob found.
+
+A product that does not sell in a language (say `es`) removes it in these places:
+
+1. `apps/web/src/shared/config/i18n/locales/es.ts` and every `dictionaries/*/es.ts`.
+2. `messages.ts`: its line in `loaders` and in `localeNames`; `detect-locale.ts`: its branch.
+3. The tests that name it (`messages.test.ts`, `context.test.tsx`, `detect-locale.test.ts`, and any page test
+   that renders in it).
+4. `apps/api/src/modules/identity/emails/locales/es.ts` and its line in `emails/email-texts.ts`: emails are
+   written in the language chosen at sign-up, so a language the web no longer offers must go there too.
+5. The API tests that sign up in it (`authentication.db.test.ts`, `organizations.db.test.ts`,
+   `account-deletion.db.test.ts` use `pt-BR`; check the others with `grep -rn "'es'" apps`).
+
+Then run the whole definition of done: the typecheck names anything left behind. Adding a language is the same
+list backwards: a file per group, a line in `loaders` and `localeNames`, a branch in `detect-locale.ts`, and the
+emails.
 
 ## 6. Keep it healthy
 

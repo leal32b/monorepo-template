@@ -21,6 +21,12 @@ export const QUERY_TIMEOUT_MS = 15_000
 export type PoolOptions = {
   /** The client's deadline per statement; `0` waits without limit, as the migrations do. */
   queryTimeoutMs?: number
+  /**
+   * How many connections the pool opens. One over PGlite's socket server (local development and the
+   * end-to-end suite): it is a single session and mixes up the statements of connections that wait
+   * behind another's transaction, so the pool must send one thing at a time (ADR 0055).
+   */
+  maxConnections?: number | undefined
 }
 
 /**
@@ -31,11 +37,11 @@ export type PoolOptions = {
 export function createPool(
   connectionString: string,
   logger: Logger,
-  { queryTimeoutMs = QUERY_TIMEOUT_MS }: PoolOptions = {}
+  { queryTimeoutMs = QUERY_TIMEOUT_MS, maxConnections = MAX_CONNECTIONS }: PoolOptions = {}
 ): pg.Pool {
   const pool = new pg.Pool({
     connectionString,
-    max: MAX_CONNECTIONS,
+    max: maxConnections,
     connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
     query_timeout: queryTimeoutMs
   })

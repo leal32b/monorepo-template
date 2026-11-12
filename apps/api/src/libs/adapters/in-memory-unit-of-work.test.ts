@@ -21,7 +21,7 @@ describe('InMemoryUnitOfWork', () => {
   it('keeps every write and returns what the work returns', async () => {
     const { first, second, unitOfWork } = setup()
 
-    const result = await unitOfWork.run(async (stores) => {
+    const result = await unitOfWork.run('org-1', async (stores) => {
       stores.first.items.push('a')
       stores.second.items.push('b')
       return 'done'
@@ -35,7 +35,7 @@ describe('InMemoryUnitOfWork', () => {
     const { first, second, unitOfWork } = setup()
     first.items.push('kept')
 
-    const work = unitOfWork.run(async (stores) => {
+    const work = unitOfWork.run('org-1', async (stores) => {
       stores.first.items.push('a')
       stores.second.items.push('b')
       throw new Error('the second write failed')

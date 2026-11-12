@@ -6,7 +6,9 @@
   statuses and logging updated on 2026-11-07, in Phase 9; account deletion (T34, T35) added on
   2026-11-08 ([ADR 0049](../adr/0049-delete-an-account-from-an-emailed-link.md)); T04 made
   independent of the domain the same day, with HSTS sent by the web origin; two accepted risks
-  bounded by the daily purge of expired rows ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)).
+  bounded by the daily purge of expired rows ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md));
+  emails sent through the job queue (T37) added on 2026-11-11
+  ([ADR 0057](../adr/0057-send-identity-emails-through-the-job-queue.md)).
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -38,7 +40,7 @@ Worker), [ADR 0033](../adr/0033-organizations-with-roles-in-the-database-behind-
 | --- | --- | --- |
 | B1 | Browser ↔ web origin | Untrusted input, the session cookie, OAuth redirects |
 | B2 | Worker ↔ API | Every API request; the API is also public at `*.onrender.com` |
-| B3 | API ↔ Postgres | Users, accounts, sessions, verification tokens, rate-limit counters, organizations, members, roles, invitations |
+| B3 | API ↔ Postgres | Users, accounts, sessions, verification tokens, rate-limit counters, organizations, members, roles, invitations, every tenant's records, and the emails waiting in the job queue with their links |
 | B4 | API ↔ email provider, API ↔ Google | Links with tokens; OAuth codes and tokens |
 | B5 | GitHub Actions ↔ Render, Cloudflare | Deploy credentials and runtime secrets |
 | B6 | Organization ↔ organization | Every tenant's data, in the same tables and behind the same routes |
@@ -92,7 +94,7 @@ it).
 | T18 | A known vulnerability in a dependency | T, E | Weekly `pnpm audit --audit-level high` in CI (`.github/workflows/audit.yml`); a Better Auth advisory is fixed the same week | in place |
 | T19 | Phishing with look-alike email | S | Mail is sent from a domain the product verifies with its provider (SPF, DKIM, DMARC) | accepted until a product sets its domain |
 | T20 | Someone at a signed-in browser left open changes how the account signs in | E | Changing the password needs the current one; turning MFA on or off and getting new backup codes need the password; unlinking Google needs a session signed in within the last day; the only way left to sign in cannot be removed | in place |
-| T21 | Reaching another tenant's data by changing an id in the path or the body (IDOR) | I, T, E | Every tenant route is `/api/organizations/:organizationId/...` and calls `requireMember`, which reads membership from the database; tenant queries filter on the id the guard returned, never on one from the body; the plugin's own endpoints check membership of the id they are given (tested through HTTP) | in place |
+| T21 | Reaching another tenant's data by changing an id in the path or the body (IDOR) | I, T, E | Every tenant route is `/api/organizations/:organizationId/...` and calls `requireMember`, which reads membership from the database; tenant queries filter on the id the guard returned, never on one from the body, inside a transaction that row-level security confines to that organization (T36); the plugin's own endpoints check membership of the id they are given (tested through HTTP) | in place |
 | T22 | A tab left on one organization writes to another | T | The API reads the tenant only from the path, never from the session's active organization; the web keeps the slug in the URL, per tab | in place |
 | T23 | Finding out which organizations exist through the API | I | `requireMember` answers 404 both for a missing organization and for one the caller is not in; ids are random 32-character strings; the web shows the same not-found for an unknown and a foreign slug | in place |
 | T24 | A member defines a role with more than they hold | E | The plugin refuses a permission the creator lacks on `create-role` and `update-role` (seen in the spike); `organization:delete` is the owner's only and no custom role can hold it; at most 20 custom roles | in place |
@@ -107,6 +109,8 @@ it).
 | T33 | An open redirect through the return path after an invitee signs in | S | The return path must be a relative path on the web origin, checked before use | in place |
 | T34 | Deleting someone's account from a session taken over, or from a browser left open | T, D | Asking only emails a link to the account's confirmed address; the link opens a page that deletes nothing until its button is pressed; the token is single use, expires in 1 hour and works only with a session of the same user (`deleteUser` with `sendDeleteAccountVerification`); an email scanner that opens the link changes nothing | in place |
 | T35 | Deleting an account leaves an organization with members but no owner, or leaves data behind | D, E | The API refuses while the user is the only owner of an organization that has other members, before emailing and again before deleting; an organization only they are in is deleted with its records (`on delete cascade`); sessions, sign-in methods, two-step verification, memberships and the invitations they sent go with the user row | in place |
+| T36 | A tenant query written without its organization filter (a new module, a raw fragment, a join) shows or changes another tenant's rows | I, T | Every tenant use case runs in a unit of work whose transaction switches to the `app_tenant` role and names the organization, both for that transaction only; a policy on each tenant table shows and accepts only that organization's rows, and the role has nothing on the `auth` schema. A test reads the catalog and fails for a tenant table without its policy; `lint:deps` refuses a repository built outside the unit of work ([ADR 0055](../adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)) | in place |
+| T37 | A link with a token read from the job table (a leaked backup, a read-only role, an operator's query) or from the logs, while its email waits or after | I, S | An `identity.send-email` job holds the link only while it waits: its kind is marked `secretPayload`, and the statement that ends the job, done or failed, sets the payload to `null`; five attempts end within about 48 minutes, before the 1-hour link expires; no job log line carries a payload, and `last_error` keeps only the provider's status and error code ([ADR 0057](../adr/0057-send-identity-emails-through-the-job-queue.md)) | in place |
 
 ## Accepted risks
 
@@ -122,6 +126,7 @@ it).
 | The breached-password check fails closed: while it cannot be reached, sign-up and password changes answer 500 | Rare and visible; failing open would accept known passwords | The check fails often |
 | Slugs can be probed: the plugin's `check-slug` and `get-full-organization` tell an existing slug from a missing one | Slugs are names chosen to be read and shared; ids, the API's key, are random; `check-slug` is what lets a user pick a free slug | A product treats the organization's name as confidential |
 | Every member can list the organization's members and their emails | That is how the plugin's `list-members` works, and teams expect to see each other | A product needs members hidden from one another |
+| Code that runs on the pool as the tables' owner (migrations, the purge job, a future job worker or back office) is not confined by row-level security, and the owner role bypasses it on the default host | The API keeps one connection string and no role is created by hand; tenant routes reach tenant tables only through the unit of work ([ADR 0055](../adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)) | A product adds code that reads tenant tables outside a unit of work, or its threat model includes SQL injection: then connect the API as a second login role that is a member of `app_tenant` and owns nothing |
 | An organization deleted is gone at once, with no grace period | The owner types the name first; Phase 7 decides what its records need | A product holds data that a mistaken deletion would make costly |
 | An account deleted is gone at once, with no grace period; expired verification rows of its address stay until they expire | The emailed link and the last screen's button are two deliberate acts; the rows hold no secret that works without the account | A product holds data that a mistaken deletion would make costly, or must keep records after an account goes |
 | Expired invitations stay in the table as `pending` for 30 days | They cannot be accepted, and the web hides them; the daily purge deletes them after 30 days, so support can still see why one failed ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)) | A product must keep them longer for an audit |

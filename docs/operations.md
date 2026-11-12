@@ -3,8 +3,9 @@
 How to see what production is doing, and what to do when it misbehaves. The decisions behind it:
 [ADR 0014](adr/0014-hosting-and-deploy-from-github-actions.md) (hosting and deploy) and
 [ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md) (observability),
-[ADR 0047](adr/0047-put-time-limits-on-every-database-wait.md) (time limits on the database) and
-[ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md) (the daily purge).
+[ADR 0047](adr/0047-put-time-limits-on-every-database-wait.md) (time limits on the database),
+[ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md) (the daily purge) and
+[ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md) (background jobs).
 Neon, Render and Cloudflare are the template's own hosts; on others, the same signals live elsewhere.
 
 ## Signals
@@ -16,7 +17,8 @@ Neon, Render and Cloudflare are the template's own hosts; on others, the same si
 | API log | stdout, read in the host's log viewer | One JSON line per request, plus every unexpected error with its stack |
 | Worker log | Cloudflare dashboard, Workers Logs | Each request through the web origin, its status and any exception |
 | Deploy | GitHub Actions, `Deploy` workflow | Which commit went live, and the smoke tests it passed |
-| Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went |
+| Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, and how many finished jobs |
+| Jobs | API log (or the worker's, `service: worker`); the `job` table | `job queue working` after every start; `job attempt failed` and `job failed` when a handler fails; what is waiting, running or failed |
 
 ## Reading the API log
 
@@ -32,6 +34,22 @@ and `hostname`. A request line adds `reqId`, `method`, `route` (the pattern, suc
   request answered `503 service_unavailable` and its `reason` says which limit ended the wait. No
   stack: it is not a bug.
 
+A job line has `jobId`, `kind` and `attempt` instead of a request's fields:
+
+- `job done` (info), with `durationMs`.
+- `job attempt failed` (warn): the handler threw or ran past 60 s; `err` says why and `retryAt` when
+  it runs again (after 30 s, 2 min, 8 min, 32 min).
+- `job failed` (error): the last attempt (the fifth, unless the kind says otherwise). The job stays
+  in the table as `failed`; see [Background jobs](#background-jobs).
+- `job poll failed` (warn): the worker could not reach the database; it looks again in 30 s.
+- `job queue working` (info): the check the API enqueues as it starts was run, `waitedMs` after it
+  was enqueued.
+
+A job's payload is never logged: it may hold an address or a link. Identity's emails are jobs of the
+kind `identity.send-email` ([ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)):
+a provider's refusal shows as `job attempt failed`, with the provider's status and error code in
+`err`, and an email that failed every attempt as `job failed`.
+
 Headers, cookies and bodies are never logged. Keep it that way: a log line may be read by anyone with
 access to the host.
 
@@ -46,16 +64,67 @@ access to the host.
 No reference on the screen means the browser could not reach the API: look at the Worker log and at
 `/api/health`.
 
+## Background jobs
+
+Work that runs after a request answers, or at a time, is a row in the `job` table
+([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)): `pending` until a
+worker runs it, then `done`, or `failed` after its last attempt. The worker runs inside the API
+process unless `JOB_WORKER=off`, and then in a process of its own (`node dist/worker.js`). The daily
+purge deletes `done` jobs after 7 days and `failed` ones after 30. A kind whose payload is a
+credential, such as `identity.send-email` with its link, has its payload set to `null` as soon as
+the job ends, done or failed.
+
+What is in the queue, in the database's SQL console (payloads may hold personal data: select the
+columns you need, not `*`):
+
+```sql
+-- How many of each kind, by state.
+select kind, state, count(*) from job group by kind, state order by kind, state;
+
+-- Failed: every attempt was used. The message is the last error; the log has the stack (`jobId`).
+select id, kind, attempts, last_error, finished_at from job where state = 'failed' order by finished_at desc;
+
+-- Waiting past their time: the worker is not running, or each is held by a lease or a retry.
+select id, kind, attempts, run_at, locked_until, last_error from job
+where state = 'pending' and run_at < now() - interval '5 minutes' order by run_at;
+```
+
+Reading a `pending` row: `attempts = 0` has never run; `locked_until` in the future is running now,
+or its worker died and it runs again when the lease ends (2 minutes at most); `last_error` set and
+`run_at` in the future is waiting for its retry.
+
+Put a failed job back once its cause is fixed (a provider back up, a secret corrected, a handler
+deployed). It gets all its attempts again. A failed `identity.send-email` cannot come back: its
+payload is gone, and its link has expired or nearly; the user asks again from the screen (a new
+confirmation, reset or deletion email) and an inviter presses Resend:
+
+```sql
+update job set state = 'pending', attempts = 0, run_at = now(), finished_at = null where id = '<id>';
+```
+
+The worker sees it at its next look: at once after any enqueue or restart, within
+`JOB_IDLE_POLL_SECONDS` (an hour by default) otherwise. To drop a job instead, delete its row.
+Handlers are written to bear a repeat, so running a job twice is safe.
+
+On a host whose container sleeps when idle, nothing runs while it sleeps: a job due at 09:00 runs
+when the next request wakes the container. Jobs caused by a request are not affected. For delayed
+jobs to run on time, keep the container awake (the uptime monitor below, on an interval shorter
+than the host's idle limit) or move to an always-on plan. An idle worker sends no queries, so
+keeping the container awake does not keep the database awake.
+
 ## Set up once per product
 
 - An uptime monitor (any free one) on `<web origin>/api/health` every 5 to 10 minutes, alerting on a
   status other than 200. Each check wakes the database: a shorter interval spends its free compute.
+  It also keeps a sleeping container awake, which is what makes a delayed job run on time there.
 - Notifications for a failed `Deploy`, `Audit` or `Purge` workflow in GitHub (on by default for the person who
   triggered the run).
 - If the host's log retention is too short, a log drain to a log service; the lines are already JSON.
 - The API and the database in the same region. A signed-in request makes at least two sequential
-  database round trips (the session, then the membership with its roles), so each millisecond
-  between them counts at least twice on every tenant route.
+  database round trips (the session, then the membership with its roles), and a tenant route then
+  opens a transaction for its own work (`begin`, the statement that sets the tenant, the query,
+  `commit`: [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), so each millisecond between them counts about six times on every
+  tenant route.
 
 ## When something breaks
 
@@ -63,10 +132,14 @@ No reference on the screen means the browser could not reach the API: look at th
 | --- | --- |
 | `/api/health` answers 503 | The database: Neon's status page and the project's compute; the API log's `idle database connection lost` |
 | Calls answer 503 `service_unavailable` after up to about 25 s | API log: `dependency unavailable` and its `reason`. `timeout exceeded when trying to connect` means every connection was busy (a slow query holding them, or more traffic than five connections serve); `Query read timeout`, a code `57014` or a connection error point at the database: `/api/health`, then the provider's status and the project's compute. The API recovers on its own once the database answers; a restart does not help |
+| A deploy fails in its migrations with `permission denied to create role` | Migration `0009_tenant_row_security` creates the role `app_tenant` ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), and the database user of `DATABASE_URL` lacks `CREATEROLE` (Neon's and most hosts' default users have it). As the host's administrator, run `create role app_tenant nologin; grant app_tenant to "<that user>" with admin option;`, then redeploy: the migration finds the role and carries on |
+| A tenant route answers 500 with `permission denied for table …` or `new row violates row-level security policy` in the log | The first: the table's migration lacks its three lines (policy and grant to `app_tenant`), see [using-the-template.md](using-the-template.md) step 5.3. The second: a use case passed one organization to `run` and wrote a row of another |
 | The `Purge` workflow fails, or stopped running | Its log: `purge failed` with the error, or `Invalid environment: DATABASE_URL`. A runner that cannot connect means the database refuses GitHub's addresses: allow them, or run `node dist/purge.js` from the API image on the host's cron. GitHub pauses a schedule after 60 days without activity: enable it again on the workflow's page. A missed day only lets rows wait |
 | `/api/health` does not answer | Render: the service's events and log; a crash leaves a `fatal` line |
 | Pages load, every call fails | Worker log: an exception there means the Worker cannot reach `API_ORIGIN`; a 403 from the API means `PROXY_SECRET` differs between the Worker and the API |
-| Emails do not arrive | API log: `email not sent` with the provider's error; the sender domain in Resend |
+| `job failed` in the log, or something that should have happened later did not | [Background jobs](#background-jobs): the failed rows and their `last_error`; fix the cause, then put them back |
+| Jobs wait and nothing runs them | No `job queue working` line after the last start means no worker runs: `JOB_WORKER=off` on the API with no worker process beside it, or the worker process is down (its log, `service: worker`). `job poll failed` means the database is out of reach. A delayed job that ran late on a free tier waited for the container to wake |
+| Emails do not arrive | API log (or the worker's): `job attempt failed` or `job failed` with `kind: identity.send-email`, and `err` with the provider's status and error code; the failed rows in [Background jobs](#background-jobs). No such line and no `job done` for the kind means no worker runs (the row above). A refusal from Resend names the cause: the key, or the sender domain in Resend (until it is verified, only the provider account's own address receives) |
 | The deploy fails at the smoke test | The step's output: which check failed, and the `release` that answered |
 | The first request after a quiet time takes about a minute | Expected on free tiers: Render and Neon wake up; the web says so after 5 s ([ADR 0041](adr/0041-say-why-a-cold-start-takes-long-and-end-the-wait.md)) |
 

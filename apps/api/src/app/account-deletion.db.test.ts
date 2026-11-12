@@ -6,11 +6,14 @@ import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
+import { SystemClock } from '#libs/adapters/system-clock'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
+import { createJobs } from './create-jobs'
 
 const webOrigin = 'http://localhost:5173'
 const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
@@ -22,6 +25,24 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
   const logger = pino({ level: 'silent' })
   const db = createDatabase(createPool(inject('databaseUrl'), logger))
   const email = new RecordingEmailSender()
+  const clock = new FixedClock(new Date('2026-11-08T12:00:00.000Z'))
+  /**
+   * Not started: a test runs the jobs with `drain()` before it reads what was sent (ADR 0057). On the
+   * system clock, so emails asked for one request after another are sent in that order.
+   */
+  const jobs = createJobs({
+    db,
+    clock: new SystemClock(),
+    logger,
+    emailSender: email,
+    timer: new ManualTimer(clock),
+    idlePollMs: 3_600_000
+  })
+  /** Every email sent once the jobs due have run. */
+  const sent = async () => {
+    await jobs.worker.drain()
+    return email.sent
+  }
   let server: Server
   let url: string
   let lastIp = 0
@@ -31,7 +52,7 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
     await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
-      clock: new FixedClock(new Date('2026-11-08T12:00:00.000Z')),
+      clock,
       logger,
       serviceName: 'api',
       release: 'test',
@@ -39,7 +60,7 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
       corsOrigins: [],
       proxySecret: undefined,
       db,
-      emailSender: email,
+      jobs: jobs.queue,
       authSecret: 'fedcba9876543210'.repeat(2),
       google: undefined
     })
@@ -84,14 +105,14 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
       .map((cookie) => cookie.split(';')[0])
       .join('; ')
 
-  const emailsTo = (to: string) => email.sent.filter((sent) => sent.to === to)
+  const emailsTo = async (to: string) => (await sent()).filter((sent) => sent.to === to)
   const linkIn = (text: string) => new URL(text.match(/https?:\/\/\S+/)?.[0] ?? '')
 
   /** A confirmed account, signed in. */
   async function account(locale = 'en'): Promise<Person> {
     const address = `leaving-${++lastAccount}@example.com`
     await post('/sign-up/email', { name: `Person ${lastAccount}`, email: address, password, locale })
-    const confirm = linkIn((emailsTo(address).at(-1) as { text: string }).text)
+    const confirm = linkIn(((await emailsTo(address)).at(-1) as { text: string }).text)
     await get(confirm.pathname + confirm.search)
     const signedIn = await post('/sign-in/email', { email: address, password })
     const { user } = (await signedIn.clone().json()) as { user: { id: string } }
@@ -127,7 +148,7 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
   /** Asks for the deletion, then follows the emailed page's button: the token goes back with the session. */
   async function deleteAccount(person: Person) {
     await post('/delete-user', {}, person.cookie)
-    const link = linkIn((emailsTo(person.email).at(-1) as { text: string }).text)
+    const link = linkIn(((await emailsTo(person.email)).at(-1) as { text: string }).text)
     return post('/delete-user', { token: link.searchParams.get('token') }, person.cookie)
   }
 
@@ -166,7 +187,7 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
     const asked = await post('/delete-user', {}, ada.cookie)
 
     expect(asked.status).toBe(200)
-    const sent = emailsTo(ada.email).at(-1) as { subject: string; text: string }
+    const sent = (await emailsTo(ada.email)).at(-1) as { subject: string; text: string }
     expect(sent.subject).toBe('Confirme a exclusão da sua conta')
     expect(linkIn(sent.text).pathname).toBe('/settings/delete-account')
     expect(await count('user', 'id', ada.id)).toBe(1)
@@ -208,13 +229,13 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
     const bob = await account()
     const shared = await organization(ada, 'Shared')
     await join(shared, ada, bob, 'admin')
-    const before = emailsTo(ada.email).length
+    const before = (await emailsTo(ada.email)).length
 
     expect(await outcome(post('/delete-user', {}, ada.cookie))).toEqual({
       status: 403,
       code: 'SOLE_OWNER_OF_SHARED_ORGANIZATION'
     })
-    expect(emailsTo(ada.email)).toHaveLength(before)
+    expect(await emailsTo(ada.email)).toHaveLength(before)
   })
 
   it('checks again with the token, since an owner may have left after the link was sent', async () => {
@@ -225,7 +246,7 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
     await join(shared, bob, ada, 'owner')
     await join(shared, bob, carol, 'member')
     await post('/delete-user', {}, ada.cookie)
-    const link = linkIn((emailsTo(ada.email).at(-1) as { text: string }).text)
+    const link = linkIn(((await emailsTo(ada.email)).at(-1) as { text: string }).text)
     await post('/organization/leave', { organizationId: shared }, bob.cookie)
 
     const refused = post('/delete-user', { token: link.searchParams.get('token') }, ada.cookie)
@@ -249,7 +270,7 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
     const ada = await account()
     const eve = await account()
     await post('/delete-user', {}, ada.cookie)
-    const link = linkIn((emailsTo(ada.email).at(-1) as { text: string }).text)
+    const link = linkIn(((await emailsTo(ada.email)).at(-1) as { text: string }).text)
 
     const refused = await post('/delete-user', { token: link.searchParams.get('token') }, eve.cookie)
 

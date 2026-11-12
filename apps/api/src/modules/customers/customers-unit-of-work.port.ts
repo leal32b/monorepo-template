@@ -9,8 +9,8 @@ export type CustomerRepositories = {
 }
 
 /**
- * The module's writes that commit or roll back together (ADR 0052). A use case with more than one
- * write takes this, and reads, decides and writes inside `run`; one with a single write keeps taking
- * the repository.
+ * The module's database work for one organization (ADR 0052, ADR 0055). Every use case takes this and
+ * reads, decides and writes inside `run(organizationId, …)`: what it writes commits or rolls back
+ * together, and Postgres confines it to that organization.
  */
 export type CustomersUnitOfWork = UnitOfWork<CustomerRepositories>

@@ -6,11 +6,11 @@ import { RestoreCustomerService } from './restore-customer.service'
 
 describe('RestoreCustomerService', () => {
   const setup = async () => {
-    const { repository, clock, ids } = testCustomers()
-    await new CreateCustomerService(repository, clock, ids).execute('org-1', { name: 'Ada' })
+    const { unitOfWork, clock, ids } = testCustomers()
+    await new CreateCustomerService(unitOfWork, clock, ids).execute('org-1', { name: 'Ada' })
     return {
-      archive: new ArchiveCustomerService(repository, clock),
-      service: new RestoreCustomerService(repository, clock)
+      archive: new ArchiveCustomerService(unitOfWork, clock),
+      service: new RestoreCustomerService(unitOfWork, clock)
     }
   }
 

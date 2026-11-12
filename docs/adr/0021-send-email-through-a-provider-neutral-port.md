@@ -1,6 +1,6 @@
 # 0021. Send email through a provider-neutral port
 
-- Status: accepted
+- Status: accepted; failures superseded by [0057](0057-send-identity-emails-through-the-job-queue.md)
 - Date: 2026-10-28
 
 ## Context and problem statement

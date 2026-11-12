@@ -23,8 +23,37 @@ describe('loadEnv', () => {
       authSecret,
       email: { kind: 'log' },
       google: undefined,
-      databaseUrl: required.DATABASE_URL
+      jobs: { worker: true, idlePollMs: 3_600_000 },
+      databaseUrl: required.DATABASE_URL,
+      databasePoolSize: undefined
     })
+  })
+
+  it('reads JOB_WORKER and JOB_IDLE_POLL_SECONDS, for a worker in a process of its own (ADR 0056)', () => {
+    expect(loadEnv({ ...required, JOB_WORKER: 'off', JOB_IDLE_POLL_SECONDS: '5' }).jobs).toEqual({
+      worker: false,
+      idlePollMs: 5_000
+    })
+    expect(loadEnv({ ...required, JOB_WORKER: 'on' }).jobs.worker).toBe(true)
+  })
+
+  it('treats empty job settings as unset, as a copied .env.example leaves them', () => {
+    expect(loadEnv({ ...required, JOB_WORKER: '', JOB_IDLE_POLL_SECONDS: '' }).jobs).toEqual({
+      worker: true,
+      idlePollMs: 3_600_000
+    })
+  })
+
+  it.each([
+    { JOB_WORKER: 'yes' },
+    { JOB_IDLE_POLL_SECONDS: '0' },
+    { JOB_IDLE_POLL_SECONDS: '1.5' },
+    { JOB_IDLE_POLL_SECONDS: '86401' },
+    { JOB_IDLE_POLL_SECONDS: 'soon' }
+  ])('rejects the job setting %j', (setting) => {
+    expect(() => loadEnv({ ...required, ...setting })).toThrow(
+      expect.objectContaining({ variables: Object.keys(setting) })
+    )
   })
 
   it('reads HOST, PORT and LOG_LEVEL', () => {
@@ -33,6 +62,17 @@ describe('loadEnv', () => {
       port: 8080,
       logLevel: 'debug'
     })
+  })
+
+  it('reads DATABASE_POOL_SIZE, one for a local PGlite (ADR 0055)', () => {
+    expect(loadEnv({ ...required, DATABASE_POOL_SIZE: '1' }).databasePoolSize).toBe(1)
+    expect(loadEnv({ ...required, DATABASE_POOL_SIZE: '' }).databasePoolSize).toBeUndefined()
+  })
+
+  it.each(['0', '101', '2.5', 'many'])('rejects the pool size %j', (size) => {
+    expect(() => loadEnv({ ...required, DATABASE_POOL_SIZE: size })).toThrow(
+      expect.objectContaining({ variables: ['DATABASE_POOL_SIZE'] })
+    )
   })
 
   it('reads RELEASE, the version the deploy built', () => {

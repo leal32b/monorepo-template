@@ -34,9 +34,9 @@ the rest.
 | # | Item | Priority | Model | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
 | [P0-1](#p0-1-transactions-across-repositories) | Transactions across repositories | P0 | Fable | | Done |
-| [P0-2](#p0-2-tenant-isolation-with-a-safety-net) | Tenant isolation with a safety net | P0 | Fable | P0-1 | Todo |
+| [P0-2](#p0-2-tenant-isolation-with-a-safety-net) | Tenant isolation with a safety net | P0 | Fable | P0-1 | Done |
 | [P0-3](#p0-3-organization-settings-time-zone-currency-and-money) | Organization settings: time zone, currency and money | P0 | Opus | | Done |
-| [P0-4](#p0-4-background-work) | Background work | P0 | Fable, then Opus | P0-1 | Todo |
+| [P0-4](#p0-4-background-work) | Background work | P0 | Fable, then Opus | P0-1 | Done |
 | [P0-5](#p0-5-public-tenant-surface) | Public tenant surface | P0 | Fable, then Opus | P0-2 | Todo |
 | [P0-6](#p0-6-subscription-of-the-tenant) | Subscription of the tenant | P0 | Fable, then Opus | P0-1, P0-4 | Todo |
 | [P1-1](#p1-1-audit-trail) | Audit trail | P1 | Opus | P0-1 | Todo |
@@ -49,7 +49,7 @@ the rest.
 | [P1-8](#p1-8-browser-errors-reach-the-log) | Browser errors reach the log | P1 | Sonnet | | Todo |
 | [P1-9](#p1-9-staging-and-backups) | Staging and backups | P1 | Opus | | Todo |
 | [P1-10](#p1-10-terms-privacy-and-data-export) | Terms, privacy and data export | P1 | Opus | P0-4 | Todo |
-| [P1-11](#p1-11-split-the-dictionaries-by-slice) | Split the dictionaries by slice | P1 | Sonnet | | Todo |
+| [P1-11](#p1-11-split-the-dictionaries-by-slice) | Split the dictionaries by slice | P1 | Sonnet | | Done |
 | [P2-1](#p2-1-idempotent-writes) | Idempotent writes | P2 | Opus | P0-1 | Todo |
 | [P2-2](#p2-2-search-and-paging-at-scale) | Search and paging at scale | P2 | Sonnet | | Todo |
 | [P2-3](#p2-3-installable-web-app) | Installable web app | P2 | Sonnet | | Todo |
@@ -86,7 +86,7 @@ then P1 by need.
 ### P0-2. Tenant isolation with a safety net
 
 - **Model:** Fable
-- **Status:** Todo
+- **Status:** Done ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)). Row-level security only, set by the unit of work (`run(organizationId, work)`); a pooler in transaction mode keeps the setting. It costs three more round trips per tenant request, which P2-4 now has to count.
 - **Depends on:** P0-1
 - **Finding:** isolation is a convention: each repository method takes `organizationId` and adds
   the `where`. The migrations define no row-level security, and no check fails when a new table's
@@ -122,7 +122,7 @@ then P1 by need.
 ### P0-4. Background work
 
 - **Model:** Fable for the ADR and the queue, Opus for the adapters
-- **Status:** Todo
+- **Status:** Done ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md), [ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)). A table of our own; the worker runs in the API process by default or as `dist/worker.js`. Identity's emails are its first real user.
 - **Depends on:** P0-1
 - **Finding:** the only scheduled work is the daily purge, run by a GitHub Actions cron
   ([ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)). Identity emails are
@@ -326,7 +326,7 @@ then P1 by need.
 ### P1-11. Split the dictionaries by slice
 
 - **Model:** Sonnet
-- **Status:** Todo
+- **Status:** Done ([ADR 0058](adr/0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)). One file per group and language, merged per language; loading texts with the route was rejected at this size.
 - **Finding:** each language is one file of about 790 lines. Every screen of a product edits the
   same three files, which grow to thousands of lines and collide between sessions.
 - **Scope:** one dictionary per slice, merged with types kept, loaded with the slice's code; the

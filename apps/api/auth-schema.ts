@@ -8,7 +8,9 @@ import { PGlite } from '@electric-sql/pglite'
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket'
 import { getMigrations } from 'better-auth/db/migration'
 import pino from 'pino'
-import { LogEmailSender } from '#libs/adapters/log-email-sender'
+import { InMemoryJobs } from '#libs/adapters/in-memory-jobs'
+import { SystemClock } from '#libs/adapters/system-clock'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { createAuth } from '#modules/identity/infrastructure/auth'
@@ -24,7 +26,7 @@ try {
   const auth = createAuth({
     db,
     logger,
-    emailSender: new LogEmailSender(logger),
+    jobs: new InMemoryJobs(new UuidGenerator(), new SystemClock()), // no email is sent here
     webOrigin: 'http://localhost:5173',
     secret: 'schema-only-secret-0123456789abcdef',
     google: undefined // Google adds no tables or columns

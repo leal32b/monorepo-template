@@ -32,6 +32,7 @@ const release = optional(z.string().check(z.regex(RELEASE)))
 const envSchema = z
   .object({
     DATABASE_URL: databaseUrl,
+    DATABASE_POOL_SIZE: optional(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(100)))),
     // abort: an invalid origin skips the rules below, which read it.
     WEB_ORIGIN: z.string().check(z.refine(isOrigin, { abort: true })),
     BETTER_AUTH_SECRET: z.string().check(z.minLength(32)),
@@ -55,7 +56,9 @@ const envSchema = z
     RESEND_API_KEY: optional(z.string()),
     EMAIL_FROM: optional(z.string().check(z.regex(SENDER))),
     GOOGLE_CLIENT_ID: optional(z.string()),
-    GOOGLE_CLIENT_SECRET: optional(z.string())
+    GOOGLE_CLIENT_SECRET: optional(z.string()),
+    JOB_WORKER: optional(z.enum(['on', 'off'])),
+    JOB_IDLE_POLL_SECONDS: optional(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(86_400))))
   })
   .check(
     // Behind https the API is deployed, and only the web Worker may call it (ADR 0022).
@@ -84,6 +87,8 @@ export type EmailTransport = { kind: 'log' } | { kind: 'resend'; apiKey: string;
 export type ApiEnv = {
   /** Postgres connection string (ADR 0013). It holds the password: never log it. */
   databaseUrl: string
+  /** Connections the API's pool opens; unset, the pool's own five (ADR 0047). One over a local PGlite (ADR 0055). */
+  databasePoolSize: number | undefined
   host: string
   port: number
   logLevel: (typeof LOG_LEVELS)[number]
@@ -100,6 +105,12 @@ export type ApiEnv = {
   email: EmailTransport
   /** Google sign-in (ADR 0020): off unless both credentials are set. */
   google: { clientId: string; clientSecret: string } | undefined
+  /**
+   * Background work (ADR 0056). `worker`: whether this process runs the jobs; off when a process of
+   * its own does (`dist/worker.js`). `idlePollMs`: the longest an idle worker sleeps before it looks
+   * again; an hour where the API enqueues and runs, a few seconds for a worker in its own process.
+   */
+  jobs: { worker: boolean; idlePollMs: number }
 }
 
 /** Names the invalid variables, never their values (a wrong value may be a secret). */
@@ -132,6 +143,7 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
   const env = parse(envSchema, source)
   return {
     databaseUrl: env.DATABASE_URL,
+    databasePoolSize: env.DATABASE_POOL_SIZE,
     host: env.HOST,
     port: env.PORT,
     logLevel: env.LOG_LEVEL,
@@ -148,6 +160,7 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
     google:
       env.GOOGLE_CLIENT_ID === undefined
         ? undefined
-        : { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET as string }
+        : { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET as string },
+    jobs: { worker: env.JOB_WORKER !== 'off', idlePollMs: (env.JOB_IDLE_POLL_SECONDS ?? 3_600) * 1000 }
   }
 }

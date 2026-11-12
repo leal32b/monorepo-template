@@ -15,9 +15,9 @@ const closers: Array<() => Promise<void>> = []
 async function serve() {
   const session = new FakeCurrentSession()
   const membership = new FakeMembership()
-  const { changes, ...ports } = testCustomers()
+  const { changes, unitOfWork, clock, ids } = testCustomers()
   const router = new HttpRouter()
-  registerCustomerRoutes(router, { session, membership, ...ports })
+  registerCustomerRoutes(router, { session, membership, unitOfWork, clock, ids })
   const server = createHttpServer({ router, logger: pino({ level: 'silent' }) })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())))
