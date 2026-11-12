@@ -17,6 +17,7 @@ const APP = [
   { path: '/:org/settings/general', heading: 'General' },
   { path: '/:org/settings/members', heading: 'Members' },
   { path: '/:org/settings/roles', heading: 'Roles' },
+  { path: '/:org/settings/activity', heading: 'Activity' },
   { path: '/onboarding', heading: 'Create an organization' },
   { path: '/settings/profile', heading: 'Profile' },
   { path: '/settings/security', heading: 'Security' },
