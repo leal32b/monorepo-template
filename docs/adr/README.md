@@ -67,3 +67,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0060](0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md) | Draw a tenant's public pages under a reserved prefix, in a frame of their own | accepted |
 | [0061](0061-keep-one-append-only-audit-trail-per-organization.md) | Keep one append-only audit trail per organization | accepted |
 | [0062](0062-wait-in-the-worker-while-the-host-wakes-the-api.md) | Wait in the Worker while the host wakes the API | accepted |
+| [0063](0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md) | Subscribe each organization through a billing port, and check entitlements, not plans | proposed |

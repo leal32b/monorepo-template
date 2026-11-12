@@ -86,6 +86,11 @@ docs/                # using the template, operations, testing, security, adr
   `/api/public/organizations/:organizationSlug` and is built with `publicRoute`, which counts it against a
   rate limit before resolving the slug; it returns a `public…` schema of its own
   ([ADR 0059](docs/adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
+- **Webhooks:** a route a provider calls has no session and no slug: it is `POST /api/webhooks/<provider>`, still
+  behind the Worker's secret, built with `webhookRoute`, which authenticates the raw body before parsing it, records
+  the event id in `webhook_event` and enqueues one job in the same transaction, then answers 200. The job reads the
+  provider's current state and never applies the notice's payload. Code checks entitlements (`entitlement`), never a
+  plan's name ([ADR 0063](docs/adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
 - **Database:** Postgres ([ADR 0003](docs/adr/0003-postgres-as-the-database.md)).
 - **Language:** code, comments and docs in English; conversation with the owner in pt-BR.
 
