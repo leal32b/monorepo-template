@@ -2,6 +2,7 @@ import { Alert } from '@repo/ui'
 import { type JSX, onMount } from 'solid-js'
 import type { AuthFailure } from '#shared/api'
 import { useI18n } from '#shared/config'
+import { formatWait } from '#shared/lib'
 
 export type AuthFailureAlertProps = {
   failure: AuthFailure
@@ -20,17 +21,26 @@ function kindOf({ status }: AuthFailure) {
 
 /**
  * Says what went wrong with a call to Better Auth: in the screen's own words when it has them;
- * otherwise the API out of reach, too many attempts, or anything else, with the code and request id
+ * otherwise the API out of reach, too many attempts (with how long to wait, when the API said it), or anything else, with the code and request id
  * support needs to find it. It takes focus when it appears, so the keyboard goes on from the message.
  */
 export function AuthFailureAlert(props: AuthFailureAlertProps) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   const reference = () => {
     const parts = [props.failure.code, props.failure.requestId].filter(Boolean)
     return props.message === undefined && kindOf(props.failure) === 'unexpected' && parts.length > 0
       ? t('failure.reference', { reference: parts.join(' · ') })
       : undefined
+  }
+
+  /** The generic words for the failure; a limit that said how long to wait says it too. */
+  const said = () => {
+    const wait = props.failure.retryAfter
+    if (kindOf(props.failure) === 'rateLimited' && wait !== undefined) {
+      return t('failure.rateLimitedFor', { wait: formatWait(wait, locale()) })
+    }
+    return t(`failure.${kindOf(props.failure)}`)
   }
 
   return (
@@ -42,7 +52,7 @@ export function AuthFailureAlert(props: AuthFailureAlertProps) {
       ref={(alert) => onMount(() => alert.focus())}
       class="outline-none"
     >
-      {props.message ?? t(`failure.${kindOf(props.failure)}`)}
+      {props.message ?? said()}
     </Alert>
   )
 }

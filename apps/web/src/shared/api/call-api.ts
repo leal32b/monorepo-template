@@ -12,7 +12,13 @@ export async function callApi(call: () => Promise<unknown>): Promise<AuthFailure
     return undefined
   } catch (error) {
     if (error instanceof ApiError && error.kind === 'http') {
-      return { status: error.status, code: error.problem?.code, requestId: error.problem?.requestId }
+      const retryAfter = error.problem?.retryAfter
+      return {
+        status: error.status,
+        code: error.problem?.code,
+        requestId: error.problem?.requestId,
+        ...(retryAfter !== undefined && { retryAfter })
+      }
     }
     return { status: undefined, code: undefined, requestId: undefined }
   }

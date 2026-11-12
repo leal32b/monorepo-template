@@ -96,6 +96,7 @@ export const shellEn = {
   failure: {
     network: 'We could not reach the server. Check your connection and try again.',
     rateLimited: 'Too many attempts. Wait a minute, then try again.',
+    rateLimitedFor: 'Too many attempts from this connection. Try again in {{wait}}.',
     unexpected: 'Something went wrong on our side. Try again in a moment.',
     reference: 'If it keeps happening, tell support: {{reference}}'
   }

@@ -6,7 +6,8 @@ export {
   formatDateTime,
   formatMoney,
   /** @public */
-  formatTime
+  formatTime,
+  formatWait
 } from './format'
 export {
   type CurrentPasswordProblem,

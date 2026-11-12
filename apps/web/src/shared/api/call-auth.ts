@@ -6,6 +6,8 @@ export type AuthFailure = {
   code: string | undefined
   /** The `X-Request-Id` the API logged the request under, for support to find it. */
   requestId: string | undefined
+  /** Seconds to wait before trying again, when a 429 of our API said it (ADR 0059). */
+  retryAfter?: number | undefined
 }
 
 export type AuthCallOptions = {
