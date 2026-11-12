@@ -42,7 +42,7 @@ describe('RegistrationForm', () => {
     renderForm(vi.fn<Fetch>())
 
     expect(field('Your name')).toHaveAttribute('autocomplete', 'name')
-    expect(screen.getByRole('group', { name: 'How can Acme Barbershop reach you?' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'How to reach you' })).toBeInTheDocument()
     expect(field('Email')).toHaveAttribute('autocomplete', 'email')
     expect(field('Phone')).toHaveAttribute('autocomplete', 'tel')
     expect(screen.getByText('An email or a phone is enough.')).toBeInTheDocument()

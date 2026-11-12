@@ -91,7 +91,7 @@ export function RegistrationForm(props: RegistrationFormProps) {
           error={error('name')}
         />
         <Fieldset
-          label={t('registration.contact', names())}
+          label={t('registration.contact')}
           description={t('registration.contactHint')}
           error={error('contact')}
           class="gap-4"

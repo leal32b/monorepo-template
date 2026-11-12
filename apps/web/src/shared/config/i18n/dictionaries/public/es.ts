@@ -12,7 +12,7 @@ export const publicEs: typeof publicEn = {
   },
   registration: {
     name: 'Tu nombre',
-    contact: '¿Cómo puede {{organization}} contactarte?',
+    contact: 'Cómo contactarte',
     email: 'Correo electrónico',
     phone: 'Teléfono',
     contactHint: 'Basta con un correo o un teléfono.',

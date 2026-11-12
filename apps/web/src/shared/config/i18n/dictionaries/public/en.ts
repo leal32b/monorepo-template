@@ -11,7 +11,7 @@ export const publicEn = {
   },
   registration: {
     name: 'Your name',
-    contact: 'How can {{organization}} reach you?',
+    contact: 'How to reach you',
     email: 'Email',
     phone: 'Phone',
     contactHint: 'An email or a phone is enough.',

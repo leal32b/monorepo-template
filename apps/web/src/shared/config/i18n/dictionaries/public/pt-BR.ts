@@ -12,7 +12,7 @@ export const publicPtBR: typeof publicEn = {
   },
   registration: {
     name: 'Seu nome',
-    contact: 'Como {{organization}} pode falar com você?',
+    contact: 'Como falar com você',
     email: 'E-mail',
     phone: 'Telefone',
     contactHint: 'Basta um e-mail ou um telefone.',
