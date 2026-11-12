@@ -26,7 +26,7 @@ The template calls itself "Monorepo Template". Replace it in:
 
 | Where | What |
 | --- | --- |
-| `apps/web/src/shared/config/i18n/locales/*.ts` | `app.name`, in every language |
+| `apps/web/src/shared/config/i18n/dictionaries/shell/*.ts` | `app.name`, in every language |
 | `apps/web/index.html`, `apps/web/public/favicon.svg` | The page title, the icon and its title |
 | `apps/api/src/modules/identity/infrastructure/auth.ts` | The authenticator app's `issuer` |
 | `apps/web/wrangler.jsonc` | The Worker's `name` (its `*.workers.dev` hostname) |
@@ -116,7 +116,7 @@ code goes the same way in both cases below:
 2. `apps/api/src/modules/customers/` and its line in `app/create-app.ts`.
 3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
    `app/routes.tsx`, the menu and palette items in `widgets/app-shell/`, and the `customers` texts
-   and role descriptions in every locale.
+   and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`).
 4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
    organization), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
    used.
@@ -130,6 +130,39 @@ The database differs:
   that, the files are just code. Reset the local database: stop `pnpm db`, delete `apps/api/.data`, start it again.
 - **Already in production**: keep the files, which databases have already applied, and add a new
   migration that drops the tables (`drop table if exists customer_change; drop table if exists customer;`). Back up the rows first if anyone might want them.
+
+### Texts and languages
+
+Texts live in `apps/web/src/shared/config/i18n/dictionaries/<group>/<language>.ts`, one file per module and
+language ([ADR 0058](adr/0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)). The
+`locales/*.ts` files only merge them.
+
+A new module adds its texts like this, and edits no other module's file:
+
+1. `dictionaries/<module>/en.ts` exports `<module>En`, an object of top-level keys no other group uses.
+2. `es.ts` and `pt-BR.ts` beside it export `<module>Es` and `<module>PtBR`, typed `typeof <module>En`, so a key
+   missing in one language fails `pnpm typecheck` in that file.
+3. One import and one `...<module>En` line in each of `locales/en.ts`, `es.ts` and `pt-BR.ts` (the only shared
+   edit, two adjacent lines). A group left out of the merge fails `dictionaries.test.ts` and the screens that
+   use its keys.
+
+If the test says a key has no group right after you add one, run it again after touching
+`dictionaries.test.ts`: Vitest keeps the list of files its glob found.
+
+A product that does not sell in a language (say `es`) removes it in these places:
+
+1. `apps/web/src/shared/config/i18n/locales/es.ts` and every `dictionaries/*/es.ts`.
+2. `messages.ts`: its line in `loaders` and in `localeNames`; `detect-locale.ts`: its branch.
+3. The tests that name it (`messages.test.ts`, `context.test.tsx`, `detect-locale.test.ts`, and any page test
+   that renders in it).
+4. `apps/api/src/modules/identity/emails/locales/es.ts` and its line in `emails/email-texts.ts`: emails are
+   written in the language chosen at sign-up, so a language the web no longer offers must go there too.
+5. The API tests that sign up in it (`authentication.db.test.ts`, `organizations.db.test.ts`,
+   `account-deletion.db.test.ts` use `pt-BR`; check the others with `grep -rn "'es'" apps`).
+
+Then run the whole definition of done: the typecheck names anything left behind. Adding a language is the same
+list backwards: a file per group, a line in `loaders` and `localeNames`, a branch in `detect-locale.ts`, and the
+emails.
 
 ## 6. Keep it healthy
 
