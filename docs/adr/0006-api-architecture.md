@@ -1,6 +1,6 @@
 # 0006. API architecture: use-case slices, ports and a composition root
 
-- Status: accepted
+- Status: accepted; a module's routes declared through a helper, without controllers, since [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md)
 - Date: 2026-10-17
 
 ## Context and problem statement

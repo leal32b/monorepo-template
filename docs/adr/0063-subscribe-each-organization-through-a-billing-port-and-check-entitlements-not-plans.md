@@ -1,6 +1,6 @@
 # 0063. Subscribe each organization through a billing port, and check entitlements, not plans
 
-- Status: accepted
+- Status: accepted; its route checks land in the tenant route helper of [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md)
 - Date: 2026-11-12
 
 Amends [ADR 0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) (the tenant
