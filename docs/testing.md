@@ -31,7 +31,7 @@ The first time, install the browser: `pnpm --filter @repo/e2e exec playwright in
 | `password-reset.spec.ts` | A reset from the email, then a sign-in with the new password |
 | `two-factor.spec.ts` | Two-step verification turned on, then a sign-in with a code |
 | `accessibility.spec.ts` | No serious or critical axe violation on every screen, panel and the palette, light and dark; the phone menu's focus |
-| `bundle-budget.spec.ts` | The gzipped JavaScript of a cold load: 78 KB before sign-in, 117 KB before the first signed-in screen |
+| `bundle-budget.spec.ts` | The gzipped JavaScript of a cold load: 77 KB before sign-in, 117 KB before the first signed-in screen, 81 KB before a tenant's public page |
 | `security-headers.spec.ts` | The page carries HSTS, the permissions policy and COOP from `public/_headers` |
 
 Rules for a new test:

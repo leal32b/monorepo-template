@@ -6,7 +6,8 @@ const ENTRY = [
   { path: '/login', heading: 'Sign in' },
   { path: '/signup', heading: 'Create your account' },
   { path: '/forgot-password', heading: 'Reset your password' },
-  { path: '/reset-password?token=expired', heading: 'Choose a new password' }
+  { path: '/reset-password?token=expired', heading: 'Choose a new password' },
+  { path: '/p/no-such-organization', heading: 'There is no page at this address' }
 ]
 
 /** Screens of the signed-in owner; `:org` is the organization's address. */
@@ -69,6 +70,18 @@ for (const colorScheme of ['light', 'dark'] as const) {
           expect(await seriousViolations(page)).toEqual([])
         })
       }
+
+      // A tenant's public page is the same for anyone (ADR 0060): the owner's address is the one known here.
+      test('/p/:org, the public page, has no serious axe violation, nor once its form says what to fix', async ({
+        page
+      }) => {
+        await page.goto(`/p/${org}`)
+        await expect(page.getByRole('heading', { name: 'Become a customer', level: 1 })).toBeVisible()
+        expect(await seriousViolations(page)).toEqual([])
+        await page.getByRole('button', { name: 'Send my details' }).click()
+        await expect(page.getByText('Enter your name.')).toBeVisible()
+        expect(await seriousViolations(page)).toEqual([])
+      })
 
       test('the command palette has no serious axe violation', async ({ page }) => {
         await page.getByRole('button', { name: 'Search' }).click()
