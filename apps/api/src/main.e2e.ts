@@ -38,7 +38,7 @@ const server = createApp({
   corsOrigins: env.corsOrigins,
   proxySecret: env.proxySecret,
   db,
-  emailSender,
+  jobs: jobs.queue,
   authSecret: env.authSecret,
   google: env.google
 })

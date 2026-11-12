@@ -7,13 +7,16 @@ import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
+import { SystemClock } from '#libs/adapters/system-clock'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { emailTexts } from '#modules/identity/emails/email-texts'
 import { createAuth } from '#modules/identity/infrastructure/auth'
 import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
+import { createJobs } from './create-jobs'
 
 const webOrigin = 'http://localhost:5173'
 const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
@@ -61,6 +64,24 @@ describe('authentication through Better Auth (ADR 0020)', () => {
   const logger = pino({ level: 'silent' })
   const db = createDatabase(createPool(inject('databaseUrl'), logger))
   const email = new RecordingEmailSender()
+  const clock = new FixedClock(new Date('2026-10-29T12:00:00.000Z'))
+  /**
+   * Not started: a test runs the jobs with `drain()` before it reads what was sent (ADR 0057). On the
+   * system clock, so emails asked for one request after another are sent in that order.
+   */
+  const jobs = createJobs({
+    db,
+    clock: new SystemClock(),
+    logger,
+    emailSender: email,
+    timer: new ManualTimer(clock),
+    idlePollMs: 3_600_000
+  })
+  /** Every email sent once the jobs due have run. */
+  const sent = async () => {
+    await jobs.worker.drain()
+    return email.sent
+  }
   let server: Server
   let url: string
   /** Each test comes from its own address, as the Worker reports it (ADR 0022). */
@@ -76,7 +97,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
-      clock: new FixedClock(new Date('2026-10-29T12:00:00.000Z')),
+      clock,
       logger,
       serviceName: 'api',
       release: 'test',
@@ -84,7 +105,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
       corsOrigins: [],
       proxySecret: undefined,
       db,
-      emailSender: email,
+      jobs: jobs.queue,
       authSecret: 'fedcba9876543210'.repeat(2),
       google: googleClient
     })
@@ -141,8 +162,8 @@ describe('authentication through Better Auth (ADR 0020)', () => {
       .join('; ')
 
   /** Path and query of the link in the last email to `to`: the browser follows it through the Worker. */
-  const linkTo = (to: string) => {
-    const link = email.sent.findLast((message) => message.to === to)?.text.match(/https?:\/\/\S+/)?.[0]
+  const linkTo = async (to: string) => {
+    const link = (await sent()).findLast((message) => message.to === to)?.text.match(/https?:\/\/\S+/)?.[0]
     if (link === undefined) throw new Error(`No link was emailed to ${to}`)
     const { pathname, search } = new URL(link)
     return pathname + search
@@ -153,7 +174,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
 
   async function signUpAndConfirm(address: string, locale = 'en') {
     await signUp(address, locale)
-    await get(linkTo(address))
+    await get(await linkTo(address))
   }
 
   /** Signs in and turns TOTP on, as the account security screen will. */
@@ -203,7 +224,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
 
   /** The page the reset link sends the browser to, with the token in its query. */
   async function resetPage(address: string) {
-    const visit = await get(linkTo(address))
+    const visit = await get(await linkTo(address))
     return new URL(visit.headers.get('location') ?? '', webOrigin)
   }
 
@@ -211,11 +232,11 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     const response = await signUp('ada@example.com', 'pt-BR')
 
     expect(response.status).toBe(200)
-    expect(email.sent.at(-1)).toMatchObject({
+    expect((await sent()).at(-1)).toMatchObject({
       to: 'ada@example.com',
       subject: emailTexts['pt-BR'].confirmEmail.subject
     })
-    expect(email.sent.at(-1)?.text).toContain(`${webOrigin}/api/auth/verify-email?token=`)
+    expect((await sent()).at(-1)?.text).toContain(`${webOrigin}/api/auth/verify-email?token=`)
   })
 
   it('refuses to sign in before the email is confirmed', async () => {
@@ -230,7 +251,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
   it('confirms the email with the link and signs the user in', async () => {
     await signUp('cleo@example.com')
 
-    const confirmed = await get(linkTo('cleo@example.com'))
+    const confirmed = await get(await linkTo('cleo@example.com'))
     const session = await get('/api/auth/get-session', cookieOf(confirmed))
 
     expect(confirmed.status).toBe(302)
@@ -267,18 +288,6 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     expect(rows[0]?.password).toMatch(/^\$argon2id\$/)
   })
 
-  it('logs an email that could not be sent, and keeps the sign-up', async () => {
-    vi.spyOn(email, 'send').mockRejectedValueOnce(new Error('provider down'))
-    const error = vi.spyOn(logger, 'error')
-
-    const response = await signUp('gus@example.com')
-
-    expect(response.status).toBe(200)
-    await vi.waitFor(() =>
-      expect(error).toHaveBeenCalledWith(expect.objectContaining({ kind: 'confirmEmail' }), 'email not sent')
-    )
-  })
-
   it('answers a sign-up for a taken email as for a new one, and tells the owner (T08)', async () => {
     const fields = async (response: Response) => Object.keys(((await response.json()) as { user: object }).user).sort()
 
@@ -287,11 +296,11 @@ describe('authentication through Better Auth (ADR 0020)', () => {
 
     expect(again.status).toBe(first.status)
     expect(await fields(again)).toEqual(await fields(first))
-    expect(email.sent.at(-1)).toMatchObject({
+    expect((await sent()).at(-1)).toMatchObject({
       to: 'hana@example.com',
       subject: emailTexts['pt-BR'].alreadyRegistered.subject
     })
-    expect(email.sent.at(-1)?.text).toContain(`${webOrigin}/login`)
+    expect((await sent()).at(-1)?.text).toContain(`${webOrigin}/login`)
   })
 
   it('refuses a password found in breaches', async () => {
@@ -312,7 +321,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     const response = await signUp('jay@example.com')
 
     expect(response.status).toBe(500)
-    expect(email.sent.some((message) => message.to === 'jay@example.com')).toBe(false)
+    expect((await sent()).some((message) => message.to === 'jay@example.com')).toBe(false)
   })
 
   it.each([
@@ -360,11 +369,11 @@ describe('authentication through Better Auth (ADR 0020)', () => {
 
     expect(known.status).toBe(200)
     expect(await unknown.json()).toEqual(await known.json())
-    expect(email.sent.at(-1)).toMatchObject({
+    expect((await sent()).at(-1)).toMatchObject({
       to: 'nina@example.com',
       subject: emailTexts['pt-BR'].resetPassword.subject
     })
-    expect(email.sent.some((message) => message.to === 'nobody@example.com')).toBe(false)
+    expect((await sent()).some((message) => message.to === 'nobody@example.com')).toBe(false)
   })
 
   it('sets a new password through the link and ends every session (T10)', async () => {
@@ -542,7 +551,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     const auth = createAuth({
       db,
       logger,
-      emailSender: email,
+      jobs: jobs.queue,
       webOrigin,
       secret: 'fedcba9876543210'.repeat(2),
       google: undefined
