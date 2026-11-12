@@ -170,6 +170,20 @@ keeps the table bounded at a size the index serves.
   on `(organization_id, resource_type, resource_id, at)`, when a product has a record screen to put it
   on.
 
+### How to copy the module, with its audit entries
+
+This adds to "How to copy the module" of [ADR 0044](0044-build-customers-as-the-reference-vertical-module.md)
+and [ADR 0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md):
+
+- Every command of a module takes an `AuditActor` and records one entry in the same `run` as its
+  change; it copies `UpdateCustomerService` (a read, a change, a save, an entry) or
+  `CreateCustomerService` (two writes and no read).
+- The module's unit of work offers `audit: AuditTrail`; it has no history table of its own.
+- Its resource and actions join `auditActions` in `@repo/contracts`, and their texts the `audit`
+  group of the web's dictionaries.
+- Removing a module leaves the trail: its entries stay as history until the purge, or a migration
+  deletes its `resource_type`. [docs/using-the-template.md](../using-the-template.md) has the steps.
+
 ### Threat model
 
 Rows T44 to T46 of [docs/security/threat-model.md](../security/threat-model.md): a member who erases

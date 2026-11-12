@@ -126,6 +126,7 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
    ([ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)).
    Repository methods keep their own `where organization_id`: the fakes and any code on the pool
    (a job, a back office) have nothing else.
+   Every write also records who did it, in the same `run`: see "Recording who changed what" below.
 5. A route for people who are not members, if the feature has one (a client booking online): a
    public route ([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md))
    and its public screen ([ADR 0060](adr/0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md)), below.
@@ -136,6 +137,35 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
    `preload`, the menu item, the texts in every language. Screens go through the `design-system`
    and `minimize-support` skills.
 8. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
+
+### Recording who changed what
+
+Every write of a module leaves one entry in the organization's audit trail, the table `audit_entry`
+that all modules share ([ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)).
+A module has no history table of its own.
+
+1. Add the resource and the actions it records to `auditActions` in `packages/contracts/src/audit.ts`
+   (`appointment: ['created', 'rescheduled', 'cancelled']`), and their texts to
+   `apps/web/src/shared/config/i18n/dictionaries/audit/` in every language: `entries.<resource>.<action>`
+   and `fields.<resource>.<field>`, and the field list in `pages/organization-activity`.
+2. Add `audit: AuditTrail` (`#libs/ports/audit-trail.port`) to the module's unit of work, bound to
+   `new KyselyAuditTrail(transaction)` in `database/` and to an `InMemoryAuditTrail` in the module's
+   test setup.
+3. Each command takes the actor as an argument (`AuditActor`): a member's controller passes
+   `{ kind: 'member', id: member.userId }` from `requireMember`, a public route `{ kind: 'visitor' }`,
+   a job `{ kind: 'system' }`. The command draws the entry's id with the record's, and records the
+   entry inside the same `run` as the change, after it succeeded (copy `customer-audit.ts` and
+   `UpdateCustomerService`).
+4. What an entry may hold: the record's own id, the codes, and the names of the fields the change set
+   (for a create, those filled; for an edit, those that differ; none for a change of state). Never a
+   value, never free text, never what identifies a person: a record deleted for good must leave no
+   personal data in the trail. A pure `changedFields` in the domain says which fields.
+5. Tests: the service test reads the in-memory trail; the module's unit-of-work contract shows the
+   change rolled back when its entry cannot be recorded.
+
+The tenant role may only insert and select entries, so nothing in a request can change one. The
+daily purge deletes them after `auditRetention.days` (365, in `libs/database/kysely-audit-trail.ts`);
+a product with a legal retention duty changes it there.
 
 ### A job kind
 
@@ -256,30 +286,40 @@ code goes the same way in both cases below:
 
 1. `packages/contracts/src/customers.ts` and its exports (the public registration's among them);
    the `customer` statement and each role's
-   share of it in `packages/contracts/src/organizations.ts`.
+   share of it in `packages/contracts/src/organizations.ts`; the `customer` line of `auditActions` in
+   `packages/contracts/src/audit.ts` (it needs at least one resource: add the product's own first).
 2. `apps/api/src/modules/customers/` and its line in `app/create-app.ts`.
 3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
    `app/routes.tsx`, the registration form on `pages/public-organization/` and its `registration`
    texts (`dictionaries/public/`), the menu and palette items in `widgets/app-shell/`, and the `customers` texts
-   and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`).
+   and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`), and
+   the `customer` texts of the activity (`entries.customer` and `fields.customer` in `dictionaries/audit/`,
+   and its field list in `pages/organization-activity/`). The audit trail and its screen stay: they
+   belong to every module.
 4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
-   organization), `public-registration.spec.ts`, the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
+   organization), `public-registration.spec.ts`, `activity.spec.ts` (or point it at the product's own module), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
    used.
 
 The database differs:
 
 - **Never deployed** (no production database has run the migrations yet): delete
   `apps/api/migrations/0004_customers.sql`, `0006_customer_version.sql` and
-  `0007_customer_change.sql`, and their tables in `apps/api/test/reset-database.ts`. Migrations are forward
+  `0007_customer_change.sql`, the lines about `customer_change` at the end of `0011_public_surface.sql`
+  and of `0012_audit_entry.sql` (the move into the trail), the test of that move
+  (`libs/database/audit-trail-migration.db.test.ts`), and their tables in `apps/api/test/reset-database.ts`. Migrations are forward
   only once applied somewhere ([ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)); before
   that, the files are just code. Reset the local database: stop `pnpm db`, delete `apps/api/.data`, start it again.
 - **Already in production**: keep the files, which databases have already applied, and add a new
-  migration that drops the tables (`drop table if exists customer_change; drop table if exists customer;`). Back up the rows first if anyone might want them.
+  migration that drops the table (`drop table if exists customer;`); `customer_change` is already gone,
+  folded into the audit trail by `0012_audit_entry.sql`. The module's audit entries stay as history until
+  the purge takes them; to remove them at once, the same migration deletes them
+  (`delete from audit_entry where resource_type = 'customer';`). Back up the rows first if anyone might want them.
 
 In both cases keep the first half of `0009_tenant_row_security.sql` (the `app_tenant` role and its
 grants), which every later tenant table needs, and the `rate_limit` table of
 `0011_public_surface.sql`, which every public route counts in; when deleting the customers
-migrations, delete only their lines about `customer` and `customer_change`. The public profile
+migrations, delete only their lines about `customer` and `customer_change`. Keep `audit_entry`, which every
+module records into. The public profile
 (`GET /api/public/organizations/:organizationSlug`) belongs to identity and stays.
 
 ### Texts and languages
