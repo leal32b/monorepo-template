@@ -96,7 +96,8 @@ every layer ([ADR 0044](adr/0044-build-customers-as-the-reference-vertical-modul
 the module", [ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
 for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) for tenant isolation). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
 
-1. The schemas in `packages/contracts`, and the resource in `statements` with the roles' share of it.
+1. The schemas in `packages/contracts`, and the resource in `statements` (and in `permissionsSchema`
+   beside it) with the roles' share of it.
 2. The domain: pure rules and errors, no I/O.
 3. The repository port, its in-memory fake and the contract suite; the Kysely adapter and a new
    migration in `apps/api/migrations` (plain SQL, forward only,
@@ -114,8 +115,27 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
 
    Without them the table is invisible to the API (`permission denied`), and
    `tenant-row-security.db.test.ts` names it. Add the table to `apps/api/test/reset-database.ts`.
-4. A service and a controller per use case, the routes behind `requireMember`, one line in
-   `app/create-app.ts`. Every use case, a read included, takes the module's unit of work and does
+4. A service per use case, in `commands/<use-case>/` or `queries/<use-case>/` with its unit test,
+   and the module's routes declared in `<module>.routes.ts` through `tenantRoutes`
+   ([ADR 0065](adr/0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md));
+   one line in `app/create-app.ts`. A route says what it asks and which use case answers; the helper
+   runs the tenant guard with the permission, parses the input with the schema (a `GET`'s query
+   string, any other method's body), and hands the use case the organization, the input, the path's
+   parameters and the member as the audit actor:
+
+   ```ts
+   const tenant = tenantRoutes(router, deps)
+   tenant.post(
+     '/api/organizations/:organizationId/appointments',
+     { permission: { appointment: ['create'] }, input: appointmentInputSchema, status: 201 },
+     ({ organizationId, input, actor }) => book.execute(organizationId, input, actor)
+   )
+   ```
+
+   The answer is what the use case returns, with the status (200 unless said); nothing returned is
+   a 204. The routes test serves the module with `serveRoutes` (`#modules/identity/testing/serve-routes`)
+   and covers the module's permissions and each route's main path; what the helper itself does is
+   proven once. Every use case, a read included, takes the module's unit of work and does
    its database work inside `run(organizationId, …)`, with the id the guard returned: Postgres then
    shows and accepts only that organization's rows, even for a query that forgot its `where`, and
    what the use case writes is kept together or not at all. Copy `customers-unit-of-work.port.ts`,
@@ -151,8 +171,8 @@ A module has no history table of its own.
 2. Add `audit: AuditTrail` (`#libs/ports/audit-trail.port`) to the module's unit of work, bound to
    `new KyselyAuditTrail(transaction)` in `database/` and to an `InMemoryAuditTrail` in the module's
    test setup.
-3. Each command takes the actor as an argument (`AuditActor`): a member's controller passes
-   `{ kind: 'member', id: member.userId }` from `requireMember`, a public route `{ kind: 'visitor' }`,
+3. Each command takes the actor as an argument (`AuditActor`): a tenant route passes the `actor`
+   that `tenantRoutes` hands it (`{ kind: 'member', id }`), a public route `{ kind: 'visitor' }`,
    a job `{ kind: 'system' }`. The command draws the entry's id with the record's, and records the
    entry inside the same `run` as the change, after it succeeded (copy `customer-audit.ts` and
    `UpdateCustomerService`).
@@ -217,7 +237,7 @@ as the tests that read identity's emails do. What to look at in production:
 
 A route a visitor reaches with no session names its tenant by slug and is built with `publicRoute`
 ([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
-`modules/customers/commands/register-customer/` is the worked write, and
+`modules/customers/customers.routes.ts` with `commands/register-customer/` is the worked write, and
 `modules/identity/queries/get-public-organization/` the read. Four pieces:
 
 1. **A schema of its own** in `packages/contracts`, named `public…`: what a visitor may send, and
@@ -226,19 +246,22 @@ A route a visitor reaches with no session names its tenant by slug and is built 
 2. **A use case** that takes the organization's id and does its database work inside
    `unitOfWork.run(organizationId, …)`, like a member's: row-level security confines it to that
    organization. It has no actor; if it creates a row, it records that a visitor did.
-3. **A controller** wrapped in `publicRoute(surface, publicLimits.read | publicLimits.write, handler)`
-   from `#modules/identity/index`. It counts the request for the client address, resolves the slug,
-   and hands the handler `organization`; there is no other way to get the id, so the limit cannot
-   be forgotten. A route with a different need passes a limit of its own
+3. **A handler** wrapped in `publicRoute(surface, publicLimits.read | publicLimits.write, handler)`
+   from `#modules/identity/index`, declared in the module's routes file beside its tenant routes.
+   It counts the request for the client address, resolves the slug, and hands the handler
+   `organization`; there is no other way to get the id, so the limit cannot be forgotten. A route with a different need passes a limit of its own
    (`{ name: 'public-book', max: 5, windowSeconds: 600 }`).
 
    ```ts
-   this.handle = publicRoute(surface, publicLimits.write, async (req, res, { organization, requestId }) => {
-     const { referralCode, ...values } = await readValidJson(req, publicBookingInputSchema)
-     if (referralCode) surface.logger.info({ reqId: requestId, reason: 'honeypot' }, 'public write ignored')
-     else await service.execute(organization.id, values)
-     sendJson(res, 202, { received: true })
-   })
+   router.post(
+     `${publicBase}/bookings`,
+     publicRoute(publicSurface, publicLimits.write, async (req, res, { organization, requestId }) => {
+       const { referralCode, ...values } = await readValidJson(req, publicBookingInputSchema)
+       if (referralCode) publicSurface.logger.info({ reqId: requestId, reason: 'honeypot' }, 'public write ignored')
+       else await book.execute(organization.id, values)
+       sendJson(res, 202, { received: true })
+     })
+   )
    ```
 
 4. **The route**, registered by the module under `/api/public/organizations/:organizationSlug/...`,
