@@ -165,6 +165,10 @@ keeps the table bounded at a size the index serves.
   the names of the actors who are members now. One extra query per page. A member who left, or
   whose account was deleted, comes back without a name and the screen says "a former member"; a
   visitor and the system have their own texts.
+- **The web's early read.** The route's `preload` waits for the caller's membership, a router query the
+  organization's frame reads anyway (one request for both), and starts the trail's read only when it holds
+  `audit:read`, so a plain member's console shows no refused call
+  ([ADR 0042](0042-ask-only-for-the-session-where-none-was-seen.md)).
 - **Filters:** none now. One organization's trail at the template's scale reads newest first; the
   first filter worth adding is by record (a customer's own history, from its screen), with an index
   on `(organization_id, resource_type, resource_id, at)`, when a product has a record screen to put it

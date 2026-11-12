@@ -527,6 +527,30 @@ describe('App', () => {
       expect(asked.filter((path) => path.includes('/audit-entries'))).toEqual([
         '/api/organizations/org-1/audit-entries'
       ])
+      // The preload waited for the membership the frame reads: one request for both.
+      expect(asked.filter((path) => path === '/api/organizations/org-1/me')).toHaveLength(1)
+    })
+
+    it('asks a plain member for no activity, whose role does not hold audit:read (ADR 0042)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/activity')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') {
+            return Response.json({ roles: ['member'], permissions: builtInRoles.member })
+          }
+          return new Response(null, { status: 403 })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByText('You cannot see the activity here')).toBeInTheDocument()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(asked.filter((path) => path.includes('/audit-entries'))).toEqual([])
+      expect(asked.filter((path) => path === '/api/organizations/org-1/me')).toHaveLength(1)
     })
 
     it('asks for no activity at an address that names none of the user’s organizations', async () => {
