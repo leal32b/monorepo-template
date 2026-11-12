@@ -263,7 +263,7 @@ organization (B7), the threats T38 to T43 and five accepted risks.
 - Good: our own routes can now be limited anywhere, not only the public ones: `enforceRateLimit` is
   generic.
 - Bad: every public request costs one more round trip, a write to a counter. A public read is two
-  round trips, a public write six.
+  round trips; the reference write is seven (the counter, the slug, and a transaction of five).
 - Bad: the limit is per address. A flood from many addresses is not slowed, and people behind one
   address (an office, a mobile carrier's NAT) share one count.
 - Bad: a fixed window allows twice the limit across its edge.
