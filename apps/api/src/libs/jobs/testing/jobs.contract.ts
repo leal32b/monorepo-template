@@ -167,6 +167,19 @@ export function describeJobs(
       expect(await jobs.claim(after(500_000), after(600_000))).toBeUndefined()
     })
 
+    it('forgets the payload of a job it ends as done or failed when asked, and keeps it otherwise', async () => {
+      const kept = await jobs.enqueue(greet, { name: 'kept' })
+      const done = await jobs.enqueue(greet, { name: 'done' })
+      const failed = await jobs.enqueue(greet, { name: 'failed' })
+      await jobs.complete(await take(start, after(120_000)), after(50))
+      await jobs.complete(await take(start, after(120_000)), after(50), { forgetPayload: true })
+      await jobs.fail(await take(start, after(120_000)), after(50), 'still no', { forgetPayload: true })
+
+      expect(await jobs.find(kept)).toMatchObject({ state: 'done', payload: { name: 'kept' } })
+      expect(await jobs.find(done)).toMatchObject({ state: 'done', payload: null })
+      expect(await jobs.find(failed)).toMatchObject({ state: 'failed', payload: null, lastError: 'still no' })
+    })
+
     it('ignores a worker whose lease was taken over by another', async () => {
       const id = await jobs.enqueue(greet, { name: 'Ada' })
       const late = await take(start, after(120_000))

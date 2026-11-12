@@ -62,11 +62,13 @@ export class JobWorker {
     const failure = await this.#attempt(job, registration)
     const line = { jobId: job.id, kind: job.kind, attempt: job.attempts }
     const ended = this.#clock.now()
+    // A payload that is a credential goes with the end of the job, not with the purge (ADR 0057).
+    const end = { forgetPayload: registration?.definition.secretPayload === true }
     if (failure === undefined) {
-      await this.#store.complete(job, ended)
+      await this.#store.complete(job, ended, end)
       this.#logger.info({ ...line, durationMs: ended.getTime() - now.getTime() }, 'job done')
     } else if (job.attempts >= (registration?.definition.maxAttempts ?? jobLimits.maxAttempts)) {
-      await this.#store.fail(job, ended, messageOf(failure.error))
+      await this.#store.fail(job, ended, messageOf(failure.error), end)
       this.#logger.error({ ...line, err: failure.error }, 'job failed')
     } else {
       const retryAt = new Date(ended.getTime() + retryDelayMs(job.attempts))

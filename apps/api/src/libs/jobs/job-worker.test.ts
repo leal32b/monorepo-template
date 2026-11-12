@@ -143,6 +143,35 @@ describe('JobWorker running a job (ADR 0056)', () => {
     expect(jobs.all).toMatchObject([{ state: 'failed', attempts: 1 }])
   })
 
+  it('keeps the payload of a secret kind for its retries and forgets it once the job is done', async () => {
+    const { clock, jobs, registry, worker } = setup()
+    const secret = { ...greet, secretPayload: true }
+    registry.register(secret, async (_payload, { attempt }) => {
+      if (attempt === 1) throw new Error('the provider said no')
+    })
+    await jobs.enqueue(secret, { name: 'Ada' })
+
+    await worker.runNext()
+    expect(jobs.all).toMatchObject([{ state: 'pending', payload: { name: 'Ada' } }])
+
+    clock.advance(30_000)
+    await worker.runNext()
+    expect(jobs.all).toMatchObject([{ state: 'done', payload: null }])
+  })
+
+  it('forgets the payload of a secret kind when its last attempt fails', async () => {
+    const { jobs, registry, worker } = setup()
+    const secret = { ...greet, secretPayload: true, maxAttempts: 1 }
+    registry.register(secret, async () => {
+      throw new Error('still no')
+    })
+    await jobs.enqueue(secret, { name: 'Ada' })
+
+    await worker.runNext()
+
+    expect(jobs.all).toMatchObject([{ state: 'failed', payload: null, lastError: 'still no' }])
+  })
+
   it('fails the attempt of a job whose kind has no handler, as an older release would meet', async () => {
     const { jobs, worker } = setup()
     await jobs.enqueue(greet, { name: 'Ada' })
