@@ -25,3 +25,4 @@ export {
 /** @public */
 export { requireActor } from './require-actor'
 export { requireMember } from './require-member'
+export { type TenantGuard, tenantRoutes } from './tenant-route'

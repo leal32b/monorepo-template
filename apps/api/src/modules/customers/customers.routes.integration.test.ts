@@ -1,60 +1,23 @@
-import type { AddressInfo } from 'node:net'
 import { customerListSchema, customerSchema, publicCustomerRegistrationSchema } from '@repo/contracts'
 import { InMemoryRateLimiter } from '#libs/adapters/in-memory-rate-limiter'
-import { HttpRouter } from '#libs/http/router'
-import { createHttpServer } from '#libs/http/server'
-import { memoryLogger } from '#libs/jobs/testing/memory-logger'
-import { FakeCurrentSession } from '#modules/identity/testing/fake-current-session'
-import { FakeMembership } from '#modules/identity/testing/fake-membership'
 import { FakePublicOrganizations } from '#modules/identity/testing/fake-public-organizations'
+import { ada, serveRoutes } from '#modules/identity/testing/serve-routes'
 import { registerCustomerRoutes } from './customers.routes'
 import { testCustomers } from './testing/test-customers'
 
-const ada = { userId: 'user-ada', email: 'ada@example.com', name: 'Ada' }
-const closers: Array<() => Promise<void>> = []
-
 /** The module's routes behind the real pipeline, with the tenant guard on fakes of its two ports. */
 async function serve() {
-  const session = new FakeCurrentSession()
-  const membership = new FakeMembership()
   const { audit, unitOfWork, clock, ids } = testCustomers()
-  const { logger, lines } = memoryLogger()
-  const publicSurface = {
-    limiter: new InMemoryRateLimiter(clock),
-    organizations: new FakePublicOrganizations([
-      { id: 'org-1', name: 'Acme Barbers', slug: 'acme', timeZone: 'UTC', currency: 'USD' },
-      { id: 'org-2', name: 'Other', slug: 'other', timeZone: 'UTC', currency: 'USD' }
-    ]),
-    logger
-  }
-  const router = new HttpRouter()
-  registerCustomerRoutes(router, { session, membership, publicSurface, unitOfWork, clock, ids })
-  const server = createHttpServer({ router, logger })
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
-  closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())))
-  const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
-  const url = `${origin}/api/organizations`
-
-  /** Ada, signed in, with `customer` actions in `org-1`. */
-  const signInWith = (actions: Array<'read' | 'create' | 'update' | 'delete'>) => {
-    session.actor = ada
-    membership.add({
-      userId: ada.userId,
-      organizationId: 'org-1',
-      roles: ['custom'],
-      permissions: { customer: actions }
-    })
-  }
-
-  const call = (method: string, path: string, body?: unknown) =>
-    fetch(`${url}/${path}`, {
-      method,
-      headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
-      body: body === undefined ? null : JSON.stringify(body)
-    })
-  const code = async (response: Response) => ({
-    status: response.status,
-    code: ((await response.json()) as { code?: string }).code
+  const { origin, signInAs, call, code, lines } = await serveRoutes((router, { session, membership, logger }) => {
+    const publicSurface = {
+      limiter: new InMemoryRateLimiter(clock),
+      organizations: new FakePublicOrganizations([
+        { id: 'org-1', name: 'Acme Barbers', slug: 'acme', timeZone: 'UTC', currency: 'USD' },
+        { id: 'org-2', name: 'Other', slug: 'other', timeZone: 'UTC', currency: 'USD' }
+      ]),
+      logger
+    }
+    registerCustomerRoutes(router, { session, membership, publicSurface, unitOfWork, clock, ids })
   })
   /** A visitor, with no session, asks to be a customer of the organization with this slug. */
   const register = (slug: string, body: unknown, address = '203.0.113.7') =>
@@ -63,12 +26,17 @@ async function serve() {
       headers: { 'Content-Type': 'application/json', 'X-Client-IP': address, 'X-Request-Id': 'req-1' },
       body: JSON.stringify(body)
     })
-  return { signInWith, call, code, audit, register, clock, lines }
+  return {
+    /** Ada, signed in, with `customer` actions in `org-1`. */
+    signInWith: (actions: Array<'read' | 'create' | 'update' | 'delete'>) => signInAs({ customer: actions }),
+    call: (method: string, path: string, body?: unknown) => call(method, `/api/organizations/${path}`, body),
+    code,
+    audit,
+    register,
+    clock,
+    lines
+  }
 }
-
-afterEach(async () => {
-  await Promise.all(closers.splice(0).map((close) => close()))
-})
 
 describe('the customers routes (ADR 0044)', () => {
   it('answers 401 without a session, and 404 to someone outside the organization', async () => {
