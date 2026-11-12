@@ -32,6 +32,7 @@ const release = optional(z.string().check(z.regex(RELEASE)))
 const envSchema = z
   .object({
     DATABASE_URL: databaseUrl,
+    DATABASE_POOL_SIZE: optional(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(100)))),
     // abort: an invalid origin skips the rules below, which read it.
     WEB_ORIGIN: z.string().check(z.refine(isOrigin, { abort: true })),
     BETTER_AUTH_SECRET: z.string().check(z.minLength(32)),
@@ -84,6 +85,8 @@ export type EmailTransport = { kind: 'log' } | { kind: 'resend'; apiKey: string;
 export type ApiEnv = {
   /** Postgres connection string (ADR 0013). It holds the password: never log it. */
   databaseUrl: string
+  /** Connections the API's pool opens; unset, the pool's own five (ADR 0047). One over a local PGlite (ADR 0055). */
+  databasePoolSize: number | undefined
   host: string
   port: number
   logLevel: (typeof LOG_LEVELS)[number]
@@ -132,6 +135,7 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
   const env = parse(envSchema, source)
   return {
     databaseUrl: env.DATABASE_URL,
+    databasePoolSize: env.DATABASE_POOL_SIZE,
     host: env.HOST,
     port: env.PORT,
     logLevel: env.LOG_LEVEL,

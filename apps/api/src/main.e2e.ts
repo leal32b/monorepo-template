@@ -22,7 +22,8 @@ globalThis.fetch = (input, init) =>
 
 const env = loadEnv(process.env)
 const logger = createLogger({ level: env.logLevel, service: 'api', release: env.release })
-const db = createDatabase(createPool(env.databaseUrl, logger))
+// The suite's database is PGlite behind its socket server: one connection, one statement at a time (ADR 0055).
+const db = createDatabase(createPool(env.databaseUrl, logger, { maxConnections: 1 }))
 const server = createApp({
   clock: new SystemClock(),
   logger,

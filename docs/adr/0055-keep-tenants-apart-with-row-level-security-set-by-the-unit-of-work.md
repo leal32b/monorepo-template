@@ -172,6 +172,30 @@ unit of work and the tests do not change.
   customer. P2-4 of the product readiness plan (one round trip for the tenant guard) takes back two
   of the round trips on the other side of the request.
 
+### One connection over PGlite
+
+Local development and the end-to-end suite run on PGlite behind its socket server (`pglite-server`),
+which is one Postgres session shared by every connection. It queues protocol messages one by one,
+and gives a transaction's connection the turn until it commits. When two other connections wait
+behind that transaction, their `Parse` and `Bind` messages are then taken in arrival order, not per
+connection: the second `Parse` replaces the first's unnamed statement, and the first connection
+either fails with `08P01` ("bind message supplies 1 parameters, but prepared statement requires 2")
+or, with the same number of parameters, receives the other query's rows. Seen with
+`@electric-sql/pglite-socket` 0.2.14, and reproduced with three connections in a script.
+
+It was there before this record, but a transaction was rare (deleting a customer). With one per
+tenant request, the end-to-end suite failed about two runs in three, on screens that have nothing to
+do with customers (the organization list answered 500). It cannot happen on a Postgres server, where
+each connection is its own session.
+
+So over PGlite the API's pool has one connection, which sends one statement or one transaction at a
+time: `main.e2e.ts` builds its pool with `maxConnections: 1`, and `pnpm dev` runs with
+`DATABASE_POOL_SIZE=1` (a new, optional variable; unset, the pool keeps the five of ADR 0047, and
+the deploy does not set it). PGlite ran one statement at a time already, so nothing is slower. With
+one connection, code inside `run` that asks the pool for a second one waits ten seconds and fails,
+which is the rule of ADR 0052 made loud. The database tests (`*.db.test.ts`) keep the pool of five:
+each file awaits its statements in turn.
+
 ### Why not the others
 
 - **Option 3, a shared contract with a cross-organization case per method.** It runs only the
@@ -223,13 +247,16 @@ Read on 2026-11-11.
 - Bad: the in-memory unit of work ignores the organization. A use case that passes one organization
   to `run` and another to a repository is refused by Postgres and accepted by the fake; the
   repository's own filter is what the fake checks.
-- Bad: on PGlite every transaction waits for the one before it (one session), so the tests and the
-  end-to-end suite show the rules, not the concurrency.
+- Bad: on PGlite every transaction waits for the one before it (one session), and the API's pool is
+  one connection there, so the tests and the end-to-end suite show the rules, not the concurrency.
+- Bad: a database test that sent statements from three connections at once, one of them inside a
+  transaction, would meet the socket server's defect; none does today.
 
 ## Revisit when
 
 Tenant requests show the extra round trips in their latency, or pool waits appear under normal load
 (then: a database in the API's region first, P2-4 second, a larger pool third); a product adds code
 that reads tenant tables outside a unit of work as a matter of course (a back office, reports),
-which is the signal for a second login role; or a host's pooler is found to drop transaction-local
+which is the signal for a second login role; `pglite-socket` keeps a connection's messages together
+(then drop `maxConnections: 1` and `DATABASE_POOL_SIZE=1`); or a host's pooler is found to drop transaction-local
 settings, which would end this design and ADR 0018 with it.

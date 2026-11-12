@@ -27,6 +27,16 @@ describe('createPool', () => {
     await pool.end()
   })
 
+  it('keeps five connections unless told otherwise', async () => {
+    const usual = createPool('postgres://localhost/unused', pino({ level: 'silent' }))
+    const single = createPool('postgres://localhost/unused', pino({ level: 'silent' }), { maxConnections: 1 })
+
+    expect(usual.options.max).toBe(5)
+    expect(single.options.max).toBe(1)
+    await usual.end()
+    await single.end()
+  })
+
   it('takes another statement deadline, or none', async () => {
     const pool = createPool('postgres://localhost/unused', pino({ level: 'silent' }), { queryTimeoutMs: 0 })
 
