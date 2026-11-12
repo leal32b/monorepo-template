@@ -148,10 +148,10 @@ select key, count, window_start from rate_limit where key like '%:unknown';
 ```
 
 To let one address through again before its window ends, delete its row. What visitors created, to
-tell a flood from real use (the reference module marks it):
+tell a flood from real use (the audit trail marks it, [ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)):
 
 ```sql
-select organization_id, count(*) from customer_change
+select organization_id, count(*) from audit_entry
 where action = 'created' and actor_kind = 'visitor' and at > now() - interval '1 day'
 group by organization_id order by count(*) desc;
 ```

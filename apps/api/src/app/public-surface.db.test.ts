@@ -10,6 +10,7 @@ import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { memoryLogger } from '#libs/jobs/testing/memory-logger'
+import { customerEntry } from '#modules/customers/customer-audit'
 import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomer } from '#modules/customers/domain/customer'
 import { resetDatabase } from '../../test/reset-database'
@@ -61,7 +62,7 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
   })
 
   beforeEach(async () => {
-    await sql`truncate customer, customer_change, rate_limit`.execute(db)
+    await sql`truncate customer, audit_entry, rate_limit`.execute(db)
     lines.length = 0
   })
 
@@ -95,7 +96,7 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
   const changesOf = async (organizationId: string) =>
     (
       await sql`
-        select action, actor_kind, actor_id from customer_change where organization_id = ${organizationId}
+        select action, actor_kind, actor_id from audit_entry where organization_id = ${organizationId}
       `.execute(db)
     ).rows
 
@@ -139,19 +140,22 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
     const unitOfWork = kyselyCustomersUnitOfWork(db)
     const foreign = registerCustomer({
       id: 'c-foreign',
-      changeId: 'ch-foreign',
       organizationId: 'org-other',
       now: clock.now(),
       details: { name: 'Mallory', email: null, phone: '555 0199' }
     })
+    const entry = customerEntry(foreign, {
+      id: 'e-foreign',
+      at: clock.now(),
+      actor: { kind: 'visitor' },
+      action: 'created'
+    })
 
     // The transaction of a public write to `acme`, handed rows that name `other`.
-    await expect(unitOfWork.run('org-acme', ({ customers }) => customers.insert(foreign.customer))).rejects.toThrow(
+    await expect(unitOfWork.run('org-acme', ({ customers }) => customers.insert(foreign))).rejects.toThrow(
       /row-level security/
     )
-    await expect(unitOfWork.run('org-acme', ({ changes }) => changes.append(foreign.change))).rejects.toThrow(
-      /row-level security/
-    )
+    await expect(unitOfWork.run('org-acme', ({ audit }) => audit.record(entry))).rejects.toThrow(/row-level security/)
     expect(await customersOf('org-other')).toEqual([])
   })
 

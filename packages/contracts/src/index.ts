@@ -1,3 +1,4 @@
+export { type AuditAction, type AuditResourceType, auditActions } from './audit'
 export {
   type Customer,
   type CustomerInput,

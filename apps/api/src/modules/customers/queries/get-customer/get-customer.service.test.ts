@@ -1,12 +1,12 @@
 import { CreateCustomerService } from '../../commands/create-customer/create-customer.service'
 import { CustomerNotFoundException } from '../../domain/customers.errors'
-import { testCustomers } from '../../testing/test-customers'
+import { byAda, testCustomers } from '../../testing/test-customers'
 import { GetCustomerService } from './get-customer.service'
 
 describe('GetCustomerService', () => {
   const setup = async () => {
     const { unitOfWork, clock, ids } = testCustomers()
-    await new CreateCustomerService(unitOfWork, clock, ids).execute('org-1', { name: 'Ada' })
+    await new CreateCustomerService(unitOfWork, clock, ids).execute('org-1', { name: 'Ada' }, byAda)
     return new GetCustomerService(unitOfWork)
   }
 

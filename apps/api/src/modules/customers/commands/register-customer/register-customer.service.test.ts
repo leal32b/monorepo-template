@@ -1,13 +1,13 @@
-import { testCustomers } from '../../testing/test-customers'
+import { byAda, testCustomers } from '../../testing/test-customers'
 import { CreateCustomerService } from '../create-customer/create-customer.service'
 import { RegisterCustomerService } from './register-customer.service'
 
 describe('RegisterCustomerService (ADR 0059)', () => {
   const setup = () => {
-    const { repository, changes, unitOfWork, clock, ids } = testCustomers()
+    const { repository, audit, unitOfWork, clock, ids } = testCustomers()
     return {
       repository,
-      changes,
+      audit,
       unitOfWork,
       clock,
       service: new RegisterCustomerService(unitOfWork, clock, ids),
@@ -16,7 +16,7 @@ describe('RegisterCustomerService (ADR 0059)', () => {
   }
 
   it('adds an active customer to the organization and records that a visitor created it', async () => {
-    const { repository, changes, service } = setup()
+    const { repository, audit, service } = setup()
 
     await service.execute('org-1', { name: 'Grace', email: 'grace@example.com', phone: null })
 
@@ -29,14 +29,16 @@ describe('RegisterCustomerService (ADR 0059)', () => {
       archivedAt: null,
       version: 1
     })
-    expect(await changes.list('org-1')).toEqual([
+    expect(await audit.list('org-1', { limit: 10 })).toEqual([
       {
         id: 'id-2',
         organizationId: 'org-1',
-        customerId: 'id-1',
-        action: 'created',
+        at: new Date('2026-11-07T10:00:00.000Z'),
         actor: { kind: 'visitor' },
-        at: new Date('2026-11-07T10:00:00.000Z')
+        resourceType: 'customer',
+        resourceId: 'id-1',
+        action: 'created',
+        fields: ['name', 'email']
       }
     ])
     expect(await repository.list('org-2', { status: 'active', page: 1, pageSize: 10 })).toMatchObject({ total: 0 })
@@ -51,8 +53,8 @@ describe('RegisterCustomerService (ADR 0059)', () => {
   })
 
   it('ends the same way when the email is already a customer, and changes nothing', async () => {
-    const { repository, changes, service, create } = setup()
-    await create.execute('org-1', { name: 'Grace Hopper', email: 'grace@example.com', notes: 'Since 1952' })
+    const { repository, audit, service, create } = setup()
+    await create.execute('org-1', { name: 'Grace Hopper', email: 'grace@example.com', notes: 'Since 1952' }, byAda)
 
     await expect(
       service.execute('org-1', { name: 'Someone else', email: 'grace@example.com', phone: '555 0100' })
@@ -62,7 +64,7 @@ describe('RegisterCustomerService (ADR 0059)', () => {
       total: 1,
       items: [{ name: 'Grace Hopper', phone: null, notes: 'Since 1952' }]
     })
-    expect(await changes.list('org-1')).toEqual([])
+    expect((await audit.list('org-1', { limit: 10 })).map((entry) => entry.actor)).toEqual([byAda])
   })
 
   it('keeps no customer when its record cannot be written, and says so', async () => {

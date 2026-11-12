@@ -1,8 +1,9 @@
 import type { PublicCustomerRegistrationValues } from '@repo/contracts'
 import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
+import { customerEntry } from '../../customer-audit'
 import type { CustomersUnitOfWork } from '../../customers-unit-of-work.port'
-import { registerCustomer } from '../../domain/customer'
+import { changedFields, registerCustomer } from '../../domain/customer'
 import { CustomerEmailTakenException } from '../../domain/customers.errors'
 
 /**
@@ -19,17 +20,25 @@ export class RegisterCustomerService {
   ) {}
 
   async execute(organizationId: string, values: Omit<PublicCustomerRegistrationValues, 'referralCode'>): Promise<void> {
-    const { customer, change } = registerCustomer({
+    const now = this.clock.now()
+    const customer = registerCustomer({
       id: this.ids.generate(),
-      changeId: this.ids.generate(),
       organizationId,
-      now: this.clock.now(),
+      now,
       details: { name: values.name, email: values.email ?? null, phone: values.phone ?? null }
     })
+    // The actor is always a visitor, who has no id (ADR 0061): the route has no session.
+    const entry = customerEntry(customer, {
+      id: this.ids.generate(),
+      at: now,
+      actor: { kind: 'visitor' },
+      action: 'created',
+      fields: changedFields(null, customer)
+    })
     try {
-      await this.unitOfWork.run(organizationId, async ({ customers, changes }) => {
+      await this.unitOfWork.run(organizationId, async ({ customers, audit }) => {
         await customers.insert(customer)
-        await changes.append(change)
+        await audit.record(entry)
       })
     } catch (error) {
       // Already a customer: the transaction rolled back, and the stored customer stays as the members keep it.

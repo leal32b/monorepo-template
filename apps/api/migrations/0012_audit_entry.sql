@@ -30,3 +30,11 @@ create policy tenant_read on audit_entry for select to app_tenant
 create policy tenant_append on audit_entry for insert to app_tenant
   with check (organization_id = current_setting('app.organization_id', true));
 grant select, insert on audit_entry to app_tenant;
+
+-- The customers' history becomes part of the trail: its rows are ids, an actor and an instant, and
+-- they are the answers to "who deleted this" the trail exists to keep.
+insert into audit_entry (id, organization_id, at, actor_kind, actor_id, resource_type, resource_id, action, fields)
+  select id, organization_id, at, actor_kind, actor_id, 'customer', customer_id, action, '{}'
+  from customer_change;
+
+drop table customer_change;

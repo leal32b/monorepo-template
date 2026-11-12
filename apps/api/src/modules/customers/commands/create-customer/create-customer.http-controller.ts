@@ -16,9 +16,16 @@ export class CreateCustomerController {
 
   readonly handle: HttpHandler = async (req, res, { params }) => {
     const organizationId = params.organizationId as string
-    await requireMember({ session: this.session, membership: this.membership }, req, organizationId, {
+    const member = await requireMember({ session: this.session, membership: this.membership }, req, organizationId, {
       customer: ['create']
     })
-    sendJson(res, 201, await this.service.execute(organizationId, await readValidJson(req, customerInputSchema)))
+    sendJson(
+      res,
+      201,
+      await this.service.execute(organizationId, await readValidJson(req, customerInputSchema), {
+        kind: 'member',
+        id: member.userId
+      })
+    )
   }
 }

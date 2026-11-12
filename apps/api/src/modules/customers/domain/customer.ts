@@ -29,26 +29,6 @@ export type Customer = CustomerDetails & {
   version: number
 }
 
-/** Who did something to a customer: a member, by id, or a visitor of the public surface, who has none (ADR 0059). */
-export type ChangeActor = { kind: 'member'; id: string } | { kind: 'visitor' }
-
-/**
- * One line of the customer's history (ADR 0052): who did what to which customer, and when. Ids only,
- * so a deleted customer's personal data goes with it.
- */
-export type CustomerChange = {
-  id: string
-  organizationId: string
-  customerId: string
-  /**
-   * What the customer's own row cannot tell: that it was deleted, and that a visitor created it
-   * (ADR 0059). A member's create is not recorded here.
-   */
-  action: 'created' | 'deleted'
-  actor: ChangeActor
-  at: Date
-}
-
 /** The domain draws no id and reads no clock: the use case passes both in. */
 export function createCustomer(input: {
   id: string
@@ -92,50 +72,36 @@ export function restoreCustomer(customer: Customer, now: Date): Customer {
 
 /**
  * A customer is archived before it is deleted, so a mistaken click costs a restore, not the record.
- * What is left of a deleted customer is this line, kept in the same transaction as the delete (ADR 0052).
+ * What is left of a deleted customer is its audit entry, ids only (ADR 0061).
  */
-export function deleteCustomer(
-  customer: Customer,
-  by: { changeId: string; actorId: string; now: Date }
-): CustomerChange {
+export function deleteCustomer(customer: Customer): void {
   if (customer.archivedAt === null) throw new CustomerNotArchivedException()
-  return {
-    id: by.changeId,
-    organizationId: customer.organizationId,
-    customerId: customer.id,
-    action: 'deleted',
-    actor: { kind: 'member', id: by.actorId },
-    at: by.now
-  }
 }
 
 /**
  * A visitor asks to be a customer, through the public surface (ADR 0059): an active customer from
- * the three things a visitor may say, and the line that tells members a visitor created it, kept in
- * the same transaction. Company and notes are the members' to fill.
+ * the three things a visitor may say. Company and notes are the members' to fill.
  */
 export function registerCustomer(input: {
   id: string
-  changeId: string
   organizationId: string
   now: Date
   details: Pick<CustomerDetails, 'name' | 'email' | 'phone'>
-}): { customer: Customer; change: CustomerChange } {
-  const customer = createCustomer({
+}): Customer {
+  return createCustomer({
     id: input.id,
     organizationId: input.organizationId,
     now: input.now,
     details: { ...input.details, company: null, notes: null }
   })
-  return {
-    customer,
-    change: {
-      id: input.changeId,
-      organizationId: input.organizationId,
-      customerId: input.id,
-      action: 'created',
-      actor: { kind: 'visitor' },
-      at: input.now
-    }
-  }
+}
+
+const detailFields = ['name', 'email', 'phone', 'company', 'notes'] as const
+
+/**
+ * What an audit entry may say of a change (ADR 0061): the names of the fields it set, never their
+ * values. For a new customer (`before` is null), the fields filled; for an edit, those that differ.
+ */
+export function changedFields(before: CustomerDetails | null, after: CustomerDetails): (keyof CustomerDetails)[] {
+  return detailFields.filter((field) => (before === null ? after[field] !== null : before[field] !== after[field]))
 }

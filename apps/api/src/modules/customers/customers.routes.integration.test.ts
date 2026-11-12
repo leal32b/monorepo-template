@@ -17,7 +17,7 @@ const closers: Array<() => Promise<void>> = []
 async function serve() {
   const session = new FakeCurrentSession()
   const membership = new FakeMembership()
-  const { changes, unitOfWork, clock, ids } = testCustomers()
+  const { audit, unitOfWork, clock, ids } = testCustomers()
   const { logger, lines } = memoryLogger()
   const publicSurface = {
     limiter: new InMemoryRateLimiter(clock),
@@ -63,7 +63,7 @@ async function serve() {
       headers: { 'Content-Type': 'application/json', 'X-Client-IP': address, 'X-Request-Id': 'req-1' },
       body: JSON.stringify(body)
     })
-  return { signInWith, call, code, changes, register, clock, lines }
+  return { signInWith, call, code, audit, register, clock, lines }
 }
 
 afterEach(async () => {
@@ -101,7 +101,7 @@ describe('the customers routes (ADR 0044)', () => {
   })
 
   it('creates, lists, reads, edits, archives, restores and deletes a customer', async () => {
-    const { signInWith, call, changes } = await serve()
+    const { signInWith, call, audit } = await serve()
     signInWith(['read', 'create', 'update', 'delete'])
 
     const created = await call('POST', 'org-1/customers', { name: ' Ada ', email: 'ADA@example.com' })
@@ -132,9 +132,19 @@ describe('the customers routes (ADR 0044)', () => {
     expect(deleted.status).toBe(204)
     expect(await deleted.text()).toBe('')
     expect((await call('GET', 'org-1/customers/id-1')).status).toBe(404)
-    expect(await changes.list('org-1')).toMatchObject([
-      { customerId: 'id-1', action: 'deleted', actor: { kind: 'member', id: ada.userId } }
+    // Every write left its entry, by the member the guard returned (ADR 0061).
+    const entries = await audit.list('org-1', { limit: 10 })
+    expect(entries.map((entry) => [entry.action, entry.fields])).toEqual([
+      ['deleted', []],
+      ['archived', []],
+      ['restored', []],
+      ['archived', []],
+      ['updated', ['name', 'email']],
+      ['created', ['name', 'email']]
     ])
+    expect(new Set(entries.map((entry) => JSON.stringify([entry.resourceId, entry.actor])))).toEqual(
+      new Set([JSON.stringify(['id-1', { kind: 'member', id: ada.userId }])])
+    )
   })
 
   it('answers 409 to an edit from someone who read an older version, and keeps the newer one', async () => {
@@ -197,7 +207,7 @@ describe('the public customer registration (ADR 0059)', () => {
   const taken = { status: 202, body: { received: true } }
 
   it('takes a visitor in without a session, as a customer the members see, created by a visitor', async () => {
-    const { signInWith, call, register, changes } = await serve()
+    const { signInWith, call, register, audit } = await serve()
 
     const response = await register('acme', grace)
 
@@ -208,10 +218,10 @@ describe('the public customer registration (ADR 0059)', () => {
     expect(listed.items).toMatchObject([
       { name: 'Grace Hopper', email: 'grace@example.com', phone: null, company: null, notes: null, archivedAt: null }
     ])
-    expect(await changes.list('org-1')).toMatchObject([
-      { customerId: listed.items[0]?.id, action: 'created', actor: { kind: 'visitor' } }
+    expect(await audit.list('org-1', { limit: 10 })).toMatchObject([
+      { resourceId: listed.items[0]?.id, action: 'created', actor: { kind: 'visitor' } }
     ])
-    expect(await changes.list('org-2')).toEqual([])
+    expect(await audit.list('org-2', { limit: 10 })).toEqual([])
   })
 
   it('answers the same when the email is already a customer, and adds nothing', async () => {
