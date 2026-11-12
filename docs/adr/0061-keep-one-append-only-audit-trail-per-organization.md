@@ -157,7 +157,9 @@ keeps the table bounded at a size the index serves.
 - **Paging by keyset**, newest first, 25 a page, as ADR 0044 said a feed would: the cursor is the
   last entry's `(at, id)`, opaque to the web; there is no total, since counting a table that grows
   without end costs more than the page. The web keeps the cursors of the pages it has seen, so the
-  same `Pager` moves back and forward and says "Page 2" instead of "Page 2 of 9".
+  same `Pager` moves back and forward and says "Page 2" instead of "Page 2 of 9". Entries of the
+  same millisecond follow their ids, which are random: their order among themselves means nothing,
+  and a test must not rely on it.
 - **Names.** The tenant role cannot read the `auth` schema, so the read runs in the unit of work and
   then, after `run` returns, asks identity's `Membership.namesOf(organizationId, ids)` on the pool for
   the names of the actors who are members now. One extra query per page. A member who left, or

@@ -9,6 +9,8 @@ import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
 import type { Clock } from '#libs/ports/clock.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
+import { kyselyAuditUnitOfWork } from '#modules/audit/database/kysely-audit-unit-of-work'
+import { registerAuditRoutes } from '#modules/audit/index'
 import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomerRoutes } from '#modules/customers/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
@@ -101,6 +103,8 @@ export function createApp({
     clock,
     ids: new UuidGenerator()
   })
+  // The organization's audit trail, read only: every module writes its entries in its own unit of work (ADR 0061).
+  registerAuditRoutes(router, { session, membership, unitOfWork: kyselyAuditUnitOfWork(db) })
   return createHttpServer({
     router,
     logger,

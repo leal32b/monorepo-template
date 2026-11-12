@@ -1,4 +1,16 @@
-export { type AuditAction, type AuditResourceType, auditActions } from './audit'
+export {
+  type AuditAction,
+  type AuditActor,
+  type AuditEntry,
+  type AuditEntryPage,
+  type AuditResourceType,
+  auditActions,
+  auditActorSchema,
+  auditEntryPageSchema,
+  auditEntrySchema,
+  auditPageSize,
+  listAuditEntriesQuerySchema
+} from './audit'
 export {
   type Customer,
   type CustomerInput,
