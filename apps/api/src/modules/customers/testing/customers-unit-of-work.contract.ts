@@ -25,7 +25,7 @@ export function describeCustomersUnitOfWork(label: string, make: () => Promise<C
     })
 
     it('keeps both writes when the work ends, and returns what it returns', async () => {
-      const result = await under.unitOfWork.run(async ({ customers, changes }) => {
+      const result = await under.unitOfWork.run('org-1', async ({ customers, changes }) => {
         await customers.remove(aCustomer('c1'))
         await changes.append(aChange('ch1'))
         return 'done'
@@ -39,7 +39,7 @@ export function describeCustomersUnitOfWork(label: string, make: () => Promise<C
     it('rolls the first write back when the second fails', async () => {
       await under.changes.append(aChange('ch1', { customerId: 'another' }))
 
-      const work = under.unitOfWork.run(async ({ customers, changes }) => {
+      const work = under.unitOfWork.run('org-1', async ({ customers, changes }) => {
         await customers.remove(aCustomer('c1'))
         await changes.append(aChange('ch1'))
       })
@@ -50,7 +50,7 @@ export function describeCustomersUnitOfWork(label: string, make: () => Promise<C
     })
 
     it('rolls both writes back when the work throws after them', async () => {
-      const work = under.unitOfWork.run(async ({ customers, changes }) => {
+      const work = under.unitOfWork.run('org-1', async ({ customers, changes }) => {
         await customers.remove(aCustomer('c1'))
         await changes.append(aChange('ch1'))
         throw new Error('changed my mind')
@@ -62,7 +62,7 @@ export function describeCustomersUnitOfWork(label: string, make: () => Promise<C
     })
 
     it('reads its own writes inside the work', async () => {
-      await under.unitOfWork.run(async ({ customers }) => {
+      await under.unitOfWork.run('org-1', async ({ customers }) => {
         await customers.insert(aCustomer('c2'))
         const saved = await customers.save(aCustomer('c2', { name: 'Renamed' }))
 

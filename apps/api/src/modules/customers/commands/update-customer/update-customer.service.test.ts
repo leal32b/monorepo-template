@@ -9,11 +9,11 @@ import { UpdateCustomerService } from './update-customer.service'
 
 describe('UpdateCustomerService', () => {
   const setup = async () => {
-    const { repository, clock, ids } = testCustomers()
-    const create = new CreateCustomerService(repository, clock, ids)
+    const { unitOfWork, clock, ids } = testCustomers()
+    const create = new CreateCustomerService(unitOfWork, clock, ids)
     await create.execute('org-1', { name: 'Ada', email: 'ada@example.com' })
     await create.execute('org-1', { name: 'Bob' })
-    return { service: new UpdateCustomerService(repository, clock), clock }
+    return { service: new UpdateCustomerService(unitOfWork, clock), clock }
   }
 
   it('replaces the details and keeps the rest, so a field left out is cleared', async () => {

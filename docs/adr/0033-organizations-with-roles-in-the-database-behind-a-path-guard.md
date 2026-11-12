@@ -1,6 +1,6 @@
 # 0033. Run organizations on Better Auth, with roles in the database, behind a guard on the path
 
-- Status: accepted
+- Status: accepted; tenant queries backed by row-level security in [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)
 - Date: 2026-11-04
 
 ## Context and problem statement

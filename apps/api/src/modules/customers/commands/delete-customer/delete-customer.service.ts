@@ -16,7 +16,7 @@ export class DeleteCustomerService {
   ) {}
 
   async execute(organizationId: string, id: string, actorId: string): Promise<void> {
-    await this.unitOfWork.run(async ({ customers, changes }) => {
+    await this.unitOfWork.run(organizationId, async ({ customers, changes }) => {
       const customer = await findCustomer(customers, organizationId, id)
       const deleted = deleteCustomer(customer, { changeId: this.ids.generate(), actorId, now: this.clock.now() })
       await customers.remove(customer)

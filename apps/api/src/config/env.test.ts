@@ -23,7 +23,8 @@ describe('loadEnv', () => {
       authSecret,
       email: { kind: 'log' },
       google: undefined,
-      databaseUrl: required.DATABASE_URL
+      databaseUrl: required.DATABASE_URL,
+      databasePoolSize: undefined
     })
   })
 
@@ -33,6 +34,17 @@ describe('loadEnv', () => {
       port: 8080,
       logLevel: 'debug'
     })
+  })
+
+  it('reads DATABASE_POOL_SIZE, one for a local PGlite (ADR 0055)', () => {
+    expect(loadEnv({ ...required, DATABASE_POOL_SIZE: '1' }).databasePoolSize).toBe(1)
+    expect(loadEnv({ ...required, DATABASE_POOL_SIZE: '' }).databasePoolSize).toBeUndefined()
+  })
+
+  it.each(['0', '101', '2.5', 'many'])('rejects the pool size %j', (size) => {
+    expect(() => loadEnv({ ...required, DATABASE_POOL_SIZE: size })).toThrow(
+      expect.objectContaining({ variables: ['DATABASE_POOL_SIZE'] })
+    )
   })
 
   it('reads RELEASE, the version the deploy built', () => {

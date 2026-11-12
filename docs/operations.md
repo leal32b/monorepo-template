@@ -54,8 +54,10 @@ No reference on the screen means the browser could not reach the API: look at th
   triggered the run).
 - If the host's log retention is too short, a log drain to a log service; the lines are already JSON.
 - The API and the database in the same region. A signed-in request makes at least two sequential
-  database round trips (the session, then the membership with its roles), so each millisecond
-  between them counts at least twice on every tenant route.
+  database round trips (the session, then the membership with its roles), and a tenant route then
+  opens a transaction for its own work (`begin`, the statement that sets the tenant, the query,
+  `commit`: [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), so each millisecond between them counts about six times on every
+  tenant route.
 
 ## When something breaks
 
@@ -63,6 +65,8 @@ No reference on the screen means the browser could not reach the API: look at th
 | --- | --- |
 | `/api/health` answers 503 | The database: Neon's status page and the project's compute; the API log's `idle database connection lost` |
 | Calls answer 503 `service_unavailable` after up to about 25 s | API log: `dependency unavailable` and its `reason`. `timeout exceeded when trying to connect` means every connection was busy (a slow query holding them, or more traffic than five connections serve); `Query read timeout`, a code `57014` or a connection error point at the database: `/api/health`, then the provider's status and the project's compute. The API recovers on its own once the database answers; a restart does not help |
+| A deploy fails in its migrations with `permission denied to create role` | Migration `0009_tenant_row_security` creates the role `app_tenant` ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), and the database user of `DATABASE_URL` lacks `CREATEROLE` (Neon's and most hosts' default users have it). As the host's administrator, run `create role app_tenant nologin; grant app_tenant to "<that user>" with admin option;`, then redeploy: the migration finds the role and carries on |
+| A tenant route answers 500 with `permission denied for table …` or `new row violates row-level security policy` in the log | The first: the table's migration lacks its three lines (policy and grant to `app_tenant`), see [using-the-template.md](using-the-template.md) step 5.3. The second: a use case passed one organization to `run` and wrote a row of another |
 | The `Purge` workflow fails, or stopped running | Its log: `purge failed` with the error, or `Invalid environment: DATABASE_URL`. A runner that cannot connect means the database refuses GitHub's addresses: allow them, or run `node dist/purge.js` from the API image on the host's cron. GitHub pauses a schedule after 60 days without activity: enable it again on the workflow's page. A missed day only lets rows wait |
 | `/api/health` does not answer | Render: the service's events and log; a crash leaves a `fatal` line |
 | Pages load, every call fails | Worker log: an exception there means the Worker cannot reach `API_ORIGIN`; a 403 from the API means `PROXY_SECRET` differs between the Worker and the API |

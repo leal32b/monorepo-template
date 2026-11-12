@@ -5,8 +5,8 @@ import { CreateCustomerService } from './create-customer.service'
 
 describe('CreateCustomerService', () => {
   const setup = () => {
-    const { repository, clock, ids } = testCustomers()
-    return { repository, service: new CreateCustomerService(repository, clock, ids) }
+    const { repository, unitOfWork, clock, ids } = testCustomers()
+    return { repository, service: new CreateCustomerService(unitOfWork, clock, ids) }
   }
 
   it('creates an active customer in the organization, with the id and the day it draws', async () => {

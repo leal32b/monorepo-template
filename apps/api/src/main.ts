@@ -16,7 +16,7 @@ try {
 }
 
 const logger = createLogger({ level: env.logLevel, service: 'api', release: env.release })
-const db = createDatabase(createPool(env.databaseUrl, logger))
+const db = createDatabase(createPool(env.databaseUrl, logger, { maxConnections: env.databasePoolSize }))
 const server = createApp({
   clock: new SystemClock(),
   logger,

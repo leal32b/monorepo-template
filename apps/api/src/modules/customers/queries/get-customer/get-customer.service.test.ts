@@ -5,9 +5,9 @@ import { GetCustomerService } from './get-customer.service'
 
 describe('GetCustomerService', () => {
   const setup = async () => {
-    const { repository, clock, ids } = testCustomers()
-    await new CreateCustomerService(repository, clock, ids).execute('org-1', { name: 'Ada' })
-    return new GetCustomerService(repository)
+    const { unitOfWork, clock, ids } = testCustomers()
+    await new CreateCustomerService(unitOfWork, clock, ids).execute('org-1', { name: 'Ada' })
+    return new GetCustomerService(unitOfWork)
   }
 
   it('answers the customer', async () => {

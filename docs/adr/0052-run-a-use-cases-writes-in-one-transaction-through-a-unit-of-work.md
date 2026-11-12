@@ -1,6 +1,6 @@
 # 0052. Run a use case's writes in one transaction through a unit of work
 
-- Status: accepted
+- Status: accepted; `run` takes the organization and every tenant use case opens one since [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)
 - Date: 2026-11-11
 
 ## Context and problem statement

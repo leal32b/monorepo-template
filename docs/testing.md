@@ -15,7 +15,7 @@ Coverage is 100% for every package (`pnpm test:coverage`); `index.ts`, ports and
 ## End to end
 
 `pnpm test:e2e` starts everything itself ([ADR 0045](adr/0045-run-the-end-to-end-suite-on-the-built-app-without-outside-services.md)):
-an in-memory PGlite on 5435, the API's end-to-end entry on 3005 (emails to a file, breached-password
+an in-memory PGlite on 5435, the API's end-to-end entry on 3005 (one database connection, which PGlite needs: [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md); emails to a file, breached-password
 check offline), and the production build of the web app through `vite preview` on 4173, with the
 production CSP. It never touches `apps/api/.data` or the dev servers, and needs no internet.
 

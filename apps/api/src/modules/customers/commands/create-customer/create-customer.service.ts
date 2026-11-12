@@ -1,13 +1,17 @@
 import type { Customer, CustomerValues } from '@repo/contracts'
 import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
-import type { CustomerRepository } from '../../customer-repository.port'
 import { toCustomerResponse, toDetails } from '../../customer-response'
+import type { CustomersUnitOfWork } from '../../customers-unit-of-work.port'
 import { createCustomer } from '../../domain/customer'
 
+/**
+ * The shape of a tenant use case (ADR 0055): even one write runs inside the unit of work, which
+ * confines the transaction to the organization the guard returned.
+ */
 export class CreateCustomerService {
   constructor(
-    private readonly repository: CustomerRepository,
+    private readonly unitOfWork: CustomersUnitOfWork,
     private readonly clock: Clock,
     private readonly ids: IdGenerator
   ) {}
@@ -19,7 +23,7 @@ export class CreateCustomerService {
       now: this.clock.now(),
       details: toDetails(values)
     })
-    await this.repository.insert(customer)
+    await this.unitOfWork.run(organizationId, ({ customers }) => customers.insert(customer))
     return toCustomerResponse(customer)
   }
 }
