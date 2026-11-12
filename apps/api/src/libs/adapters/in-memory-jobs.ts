@@ -80,8 +80,11 @@ export class InMemoryJobs implements JobQueue, JobStore, InMemoryStore {
   }
 }
 
-/** When a pending job can be taken: its time, or the end of the lease a worker holds on it. */
-const dueAt = (job: Job) => (job.lockedUntil !== null && job.lockedUntil > job.runAt ? job.lockedUntil : job.runAt)
+/**
+ * When a pending job can be taken: its time, or the end of the lease a worker holds on it (a lease
+ * always ends after the job's time, since only a due job is claimed).
+ */
+const dueAt = (job: Job) => job.lockedUntil ?? job.runAt
 
-/** Plain code-unit order, as the adapter's `collate "C"`; two jobs never share an id. */
-const byId = (a: string, b: string) => (a < b ? -1 : 1)
+/** Plain code-unit order, as the adapter's `collate "C"`. */
+const byId = (a: string, b: string) => Number(a > b) - Number(a < b)

@@ -9,8 +9,8 @@ Each layer tests what only it can show; a rule is proved once, at the lowest lay
 | HTTP | Each route through the real pipeline: status, problem format, permissions | `*.db.test.ts` in `apps/api/src/app` | `pnpm test` |
 | End to end | The layers fit: journeys in the browser, axe on every screen, the JavaScript budget | `apps/e2e/tests` | `pnpm test:e2e` |
 
-Coverage is 100% for every package (`pnpm test:coverage`); `index.ts`, ports and the two entries
-(`main.ts`, `main.e2e.ts`) are excluded.
+Coverage is 100% for every package (`pnpm test:coverage`); `index.ts`, ports and the entry points
+(`main.ts`, `main.e2e.ts`, `migrate.ts`, `purge.ts`, `worker.ts`) are excluded.
 
 ## End to end
 

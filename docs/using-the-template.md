@@ -59,7 +59,12 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 3. Push to `main`. The first run publishes the API image and stops at the configuration check: make
    the image's package public on GHCR, create a Render web service from it (free plan, health check
    path `/api/health/live`), set `RENDER_SERVICE_ID` and `API_ORIGIN`, and re-run the failed jobs.
-4. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
+4. Background jobs run inside the API process, which is all a free tier's single container allows
+   ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)). On a paid plan they
+   can have a service of their own: the same image and variables with the command
+   `node --enable-source-maps dist/worker.js` and `JOB_IDLE_POLL_SECONDS=5`, and `JOB_WORKER=off` on
+   the API. The deploy workflow does not create that service or set those variables: add them to it.
+5. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
    answers `/api/health` ([ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md)).
 
 ## 4. Set up once
@@ -103,10 +108,55 @@ for a use case with two writes). Copy and rename it, in this order, each step te
    `testing/customers-unit-of-work.contract.ts`. Inside `run`: only the repositories it hands
    over, and nothing but database work
    ([ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)).
-5. The web: the entity's reads and writes, the feature's forms, the page and its route with
+5. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
+   fail, anything too slow for a request): a job
+   ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)), below.
+6. The web: the entity's reads and writes, the feature's forms, the page and its route with
    `preload`, the menu item, the texts in every language. Screens go through the `design-system`
    and `minimize-support` skills.
-6. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
+7. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
+
+### A job kind
+
+`modules/health/jobs/queue-check.ts` is the smallest example. A module with background work has
+three pieces:
+
+1. **The definition**, in the module (`jobs/<what-it-does>.ts`): a name and the schema of its
+   payload. The payload is stored as JSON and kept until the purge: carry ids, not records.
+
+   ```ts
+   export const sendReminder: JobDefinition<{ organizationId: string; appointmentId: string }> = {
+     kind: 'appointments.send-reminder',
+     schema: z.object({ organizationId: z.string(), appointmentId: z.string() })
+   }
+   ```
+
+2. **The handler**, registered by the module's `registerXJobs(registrar, deps)`, which
+   `app/create-jobs.ts` calls with the ports the handlers need, as `create-app.ts` does for routes:
+
+   ```ts
+   export function registerAppointmentJobs(registrar: JobRegistrar, deps: { reminders: SendReminderService }): void {
+     registrar.register(sendReminder, (payload, { signal }) => deps.reminders.execute(payload, signal))
+   }
+   ```
+
+   A handler may run more than once for the same job (a crash, a retry after the effect happened):
+   make it bear a repeat, by checking what it already did or writing with a key. Throwing asks for a
+   retry (five attempts over about 43 minutes, then the job stays as `failed`). It has 60 s: pass
+   `signal` to what it waits on, and split longer work into several jobs. Its database work goes
+   through the same ports as a request; tenant work opens the unit of work with the organization
+   from the payload.
+
+3. **The enqueue**, from a use case, through the `JobQueue` port:
+   `await jobs.enqueue(sendReminder, { organizationId, appointmentId }, { runAt })`. With the change
+   that causes it, add `jobs: JobQueue` to the module's unit of work (`jobs: jobs.bind(transaction)`
+   in its Kysely factory, `createJobs(...).bind`): the job is then kept or dropped with the
+   transaction. Outside one, the use case takes `createJobs(...).queue`.
+
+Tests: a use case takes `InMemoryJobs` (`#libs/adapters/in-memory-jobs`), which a unit of work rolls
+back like any fake, and asserts on `jobs.all`; to run what was enqueued, build a `JobWorker` on it
+with `ManualTimer` and call `drain()`, as `queue-check.test.ts` does. What to look at in production:
+[operations.md](operations.md#background-jobs).
 
 A product that does not need customers removes the module whole, with an ADR that says why. The
 code goes the same way in both cases below:
