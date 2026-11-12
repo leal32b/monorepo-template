@@ -43,6 +43,14 @@ export default defineConfig({
     strictPort: true,
     proxy: { '/api': api }
   },
+  build: {
+    // What the entry imports statically, the first download, is one file (ADR 0060). Left to itself,
+    // Rolldown cuts every module the entry shares with a lazy screen into a common chunk of its own, and
+    // a cold load fetches a dozen small files, each a request and a gzip header more.
+    rolldownOptions: {
+      output: { codeSplitting: { groups: [{ name: 'index', tags: ['$initial'] }] } }
+    }
+  },
   preview: {
     proxy: { '/api': api },
     headers: headersForEveryPath()

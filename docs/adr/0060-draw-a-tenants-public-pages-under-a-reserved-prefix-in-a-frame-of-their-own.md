@@ -121,6 +121,16 @@ screen already. Its cold load is the first download, the language and its chunk;
 test gives it a budget of its own, measured when it was built plus 5 KB, like the others. The sign-in and
 signed-in budgets do not change.
 
+Making it lazy changed how the build cut the first download: Rolldown (Vite 8) gives every module the
+entry shares with a lazy chunk a common chunk of its own, and the new chunk's imports split the entry into
+about fifteen small files, which cost the sign-in and signed-in loads 2 to 3 KB gzipped in headers and
+repeated imports. The build now keeps what the entry imports statically in one file (`codeSplitting`
+with a group on the `$initial` tag, in `vite.config.ts`). Measured on the end-to-end build: sign-in
+75 KB before, 72 KB after; first signed-in screen 115 KB before, 112 KB after; the public page 76 KB.
+The sign-in budget comes down to 77 KB, the signed-in one stays at 117 KB, and the public page's is
+81 KB. The cost: a change to any module of the first download changes that one file's hash, so a deploy
+invalidates all of it in the browser's cache instead of a part.
+
 Option ii would put the public form into every sign-in's download. Option iii would duplicate the
 providers, the router and the build's configuration for a page that shares all of them; it is the way out
 if a product's public pages grow to need a different stack (server rendering for search engines).
@@ -151,12 +161,14 @@ visitors, and is the pattern to copy:
 
 - Good: a visitor's page asks only for its own data; no call is refused in their console.
 - Good: the entry family gains one prop and no second frame; the public page moves like an entry screen.
-- Good: the sign-in and signed-in downloads do not grow by the public page's code.
+- Good: the sign-in and signed-in downloads do not grow by the public page's code, and the first
+  download, now one file, is 3 KB smaller.
 - Good: a product adds a public page by copying one route, one query and one page.
 - Bad: the slug `p` is taken from every organization; a database with an organization already called `p`
   must rename it before this ships.
 - Bad: a visitor's cold load carries the first download, entry screens included; moving those behind
   `lazy` too would cut it, at the cost of one more request on the sign-in.
+- Bad: every deploy that touches the first download invalidates it whole in the browser's cache.
 - Bad: a public page is drawn by the browser, so a search engine that does not run scripts sees an empty
   page.
 - Bad: the public page has the app's language picker and theme, but no way to set the organization's own
