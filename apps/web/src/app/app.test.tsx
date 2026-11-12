@@ -494,6 +494,59 @@ describe('App', () => {
       expect(asked.filter((path) => path.includes('/customers'))).toEqual([])
     })
 
+    it('serves the activity of the organization, its newest page read as the address opens (ADR 0061)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/activity')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') {
+            return Response.json({ roles: ['owner'], permissions: { audit: ['read'] } })
+          }
+          return Response.json({
+            items: [
+              {
+                id: 'e1',
+                at: '2026-11-07T10:00:00.000Z',
+                actor: { kind: 'member', id: 'user-grace', name: 'Grace Hopper' },
+                resource: { type: 'customer', id: 'c1' },
+                action: 'created',
+                fields: ['name']
+              }
+            ],
+            next: null
+          })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Activity' })).toBeInTheDocument()
+      expect(await screen.findByText('Grace Hopper')).toBeInTheDocument()
+      expect(asked.filter((path) => path.includes('/audit-entries'))).toEqual([
+        '/api/organizations/org-1/audit-entries'
+      ])
+    })
+
+    it('asks for no activity at an address that names none of the user’s organizations', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/globex/settings/activity')
+      const asked: string[] = []
+      const { auth } = inAcme()
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          return Response.json(null)
+        }
+      })
+
+      render(() => <App client={client} auth={auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.includes('/audit-entries'))).toEqual([])
+    })
+
     it('serves the roles of the organization under its settings', async () => {
       window.history.replaceState(null, '', '/acme/settings/roles')
 
