@@ -9,7 +9,7 @@ export function aChange(id: string, overrides: Partial<CustomerChange> = {}): Cu
     organizationId: 'org-1',
     customerId: 'c1',
     action: 'deleted',
-    actorId: 'user-ada',
+    actor: { kind: 'member', id: 'user-ada' },
     at: day,
     ...overrides
   }
@@ -31,6 +31,13 @@ export function describeCustomerChangeLog(label: string, make: () => Promise<Cus
       await log.append(aChange('ch1'))
 
       expect(await log.list('org-1')).toEqual([aChange('ch1')])
+    })
+
+    it('keeps a customer a visitor created, who has no id (ADR 0059)', async () => {
+      const byVisitor = aChange('ch1', { action: 'created', actor: { kind: 'visitor' } })
+      await log.append(byVisitor)
+
+      expect(await log.list('org-1')).toEqual([byVisitor])
     })
 
     it('lists the oldest first, then by id', async () => {

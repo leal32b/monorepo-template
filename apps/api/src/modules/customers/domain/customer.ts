@@ -29,6 +29,9 @@ export type Customer = CustomerDetails & {
   version: number
 }
 
+/** Who did something to a customer: a member, by id, or a visitor of the public surface, who has none (ADR 0059). */
+export type ChangeActor = { kind: 'member'; id: string } | { kind: 'visitor' }
+
 /**
  * One line of the customer's history (ADR 0052): who did what to which customer, and when. Ids only,
  * so a deleted customer's personal data goes with it.
@@ -37,10 +40,12 @@ export type CustomerChange = {
   id: string
   organizationId: string
   customerId: string
-  /** Deleting is the one change the customer's own row cannot tell. */
-  action: 'deleted'
-  /** The member who did it. */
-  actorId: string
+  /**
+   * What the customer's own row cannot tell: that it was deleted, and that a visitor created it
+   * (ADR 0059). A member's create is not recorded here.
+   */
+  action: 'created' | 'deleted'
+  actor: ChangeActor
   at: Date
 }
 
@@ -99,7 +104,38 @@ export function deleteCustomer(
     organizationId: customer.organizationId,
     customerId: customer.id,
     action: 'deleted',
-    actorId: by.actorId,
+    actor: { kind: 'member', id: by.actorId },
     at: by.now
+  }
+}
+
+/**
+ * A visitor asks to be a customer, through the public surface (ADR 0059): an active customer from
+ * the three things a visitor may say, and the line that tells members a visitor created it, kept in
+ * the same transaction. Company and notes are the members' to fill.
+ */
+export function registerCustomer(input: {
+  id: string
+  changeId: string
+  organizationId: string
+  now: Date
+  details: Pick<CustomerDetails, 'name' | 'email' | 'phone'>
+}): { customer: Customer; change: CustomerChange } {
+  const customer = createCustomer({
+    id: input.id,
+    organizationId: input.organizationId,
+    now: input.now,
+    details: { ...input.details, company: null, notes: null }
+  })
+  return {
+    customer,
+    change: {
+      id: input.changeId,
+      organizationId: input.organizationId,
+      customerId: input.id,
+      action: 'created',
+      actor: { kind: 'visitor' },
+      at: input.now
+    }
   }
 }

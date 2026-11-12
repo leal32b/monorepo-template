@@ -96,6 +96,7 @@ export function createApp({
   registerCustomerRoutes(router, {
     session,
     membership,
+    publicSurface,
     unitOfWork: kyselyCustomersUnitOfWork(db),
     clock,
     ids: new UuidGenerator()

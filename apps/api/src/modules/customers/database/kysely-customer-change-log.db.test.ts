@@ -39,7 +39,7 @@ describe('KyselyCustomerChangeLog', () => {
       db
     )
     await log.append(aChange('ch1', { organizationId: 'org-gone' }))
-    await log.append(aChange('ch2', { actorId: 'an-account-deleted-since' }))
+    await log.append(aChange('ch2', { actor: { kind: 'member', id: 'an-account-deleted-since' } }))
 
     await sql`delete from auth.organization where id = 'org-gone'`.execute(db)
 

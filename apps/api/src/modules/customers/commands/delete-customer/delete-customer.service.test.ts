@@ -35,7 +35,7 @@ describe('DeleteCustomerService', () => {
         organizationId: 'org-1',
         customerId: 'id-1',
         action: 'deleted',
-        actorId: 'user-ada',
+        actor: { kind: 'member', id: 'user-ada' },
         at: new Date('2026-11-07T10:00:00.000Z')
       }
     ])

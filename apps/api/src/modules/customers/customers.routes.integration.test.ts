@@ -1,10 +1,12 @@
 import type { AddressInfo } from 'node:net'
-import { customerListSchema, customerSchema } from '@repo/contracts'
-import pino from 'pino'
+import { customerListSchema, customerSchema, publicCustomerRegistrationSchema } from '@repo/contracts'
+import { InMemoryRateLimiter } from '#libs/adapters/in-memory-rate-limiter'
 import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
+import { memoryLogger } from '#libs/jobs/testing/memory-logger'
 import { FakeCurrentSession } from '#modules/identity/testing/fake-current-session'
 import { FakeMembership } from '#modules/identity/testing/fake-membership'
+import { FakePublicOrganizations } from '#modules/identity/testing/fake-public-organizations'
 import { registerCustomerRoutes } from './customers.routes'
 import { testCustomers } from './testing/test-customers'
 
@@ -16,12 +18,22 @@ async function serve() {
   const session = new FakeCurrentSession()
   const membership = new FakeMembership()
   const { changes, unitOfWork, clock, ids } = testCustomers()
+  const { logger, lines } = memoryLogger()
+  const publicSurface = {
+    limiter: new InMemoryRateLimiter(clock),
+    organizations: new FakePublicOrganizations([
+      { id: 'org-1', name: 'Acme Barbers', slug: 'acme', timeZone: 'UTC', currency: 'USD' },
+      { id: 'org-2', name: 'Other', slug: 'other', timeZone: 'UTC', currency: 'USD' }
+    ]),
+    logger
+  }
   const router = new HttpRouter()
-  registerCustomerRoutes(router, { session, membership, unitOfWork, clock, ids })
-  const server = createHttpServer({ router, logger: pino({ level: 'silent' }) })
+  registerCustomerRoutes(router, { session, membership, publicSurface, unitOfWork, clock, ids })
+  const server = createHttpServer({ router, logger })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())))
-  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/organizations`
+  const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+  const url = `${origin}/api/organizations`
 
   /** Ada, signed in, with `customer` actions in `org-1`. */
   const signInWith = (actions: Array<'read' | 'create' | 'update' | 'delete'>) => {
@@ -44,7 +56,14 @@ async function serve() {
     status: response.status,
     code: ((await response.json()) as { code?: string }).code
   })
-  return { signInWith, call, code, changes }
+  /** A visitor, with no session, asks to be a customer of the organization with this slug. */
+  const register = (slug: string, body: unknown, address = '203.0.113.7') =>
+    fetch(`${origin}/api/public/organizations/${slug}/customer-registrations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Client-IP': address, 'X-Request-Id': 'req-1' },
+      body: JSON.stringify(body)
+    })
+  return { signInWith, call, code, changes, register, clock, lines }
 }
 
 afterEach(async () => {
@@ -113,7 +132,9 @@ describe('the customers routes (ADR 0044)', () => {
     expect(deleted.status).toBe(204)
     expect(await deleted.text()).toBe('')
     expect((await call('GET', 'org-1/customers/id-1')).status).toBe(404)
-    expect(await changes.list('org-1')).toMatchObject([{ customerId: 'id-1', action: 'deleted', actorId: ada.userId }])
+    expect(await changes.list('org-1')).toMatchObject([
+      { customerId: 'id-1', action: 'deleted', actor: { kind: 'member', id: ada.userId } }
+    ])
   })
 
   it('answers 409 to an edit from someone who read an older version, and keeps the newer one', async () => {
@@ -164,5 +185,101 @@ describe('the customers routes (ADR 0044)', () => {
       status: 409,
       code: 'customer_not_archived'
     })
+  })
+})
+
+describe('the public customer registration (ADR 0059)', () => {
+  const grace = { name: ' Grace Hopper ', email: 'Grace@Example.com' }
+  const received = async (response: Response) => ({
+    status: response.status,
+    body: publicCustomerRegistrationSchema.parse(await response.json())
+  })
+  const taken = { status: 202, body: { received: true } }
+
+  it('takes a visitor in without a session, as a customer the members see, created by a visitor', async () => {
+    const { signInWith, call, register, changes } = await serve()
+
+    const response = await register('acme', grace)
+
+    expect(await response.clone().json()).toEqual({ received: true })
+    expect(await received(response)).toEqual(taken)
+    signInWith(['read'])
+    const listed = customerListSchema.parse(await (await call('GET', 'org-1/customers')).json())
+    expect(listed.items).toMatchObject([
+      { name: 'Grace Hopper', email: 'grace@example.com', phone: null, company: null, notes: null, archivedAt: null }
+    ])
+    expect(await changes.list('org-1')).toMatchObject([
+      { customerId: listed.items[0]?.id, action: 'created', actor: { kind: 'visitor' } }
+    ])
+    expect(await changes.list('org-2')).toEqual([])
+  })
+
+  it('answers the same when the email is already a customer, and adds nothing', async () => {
+    const { signInWith, call, register } = await serve()
+    await register('acme', grace)
+
+    expect(await received(await register('acme', { name: 'Someone else', email: 'grace@example.com' }))).toEqual(taken)
+
+    signInWith(['read'])
+    const listed = customerListSchema.parse(await (await call('GET', 'org-1/customers')).json())
+    expect(listed.items.map((customer) => customer.name)).toEqual(['Grace Hopper'])
+  })
+
+  it('answers the same to a request that fills the honeypot, writes nothing and says so in the log', async () => {
+    const { signInWith, call, register, lines } = await serve()
+
+    expect(await received(await register('acme', { ...grace, referralCode: 'cheap loans' }))).toEqual(taken)
+
+    signInWith(['read'])
+    expect(customerListSchema.parse(await (await call('GET', 'org-1/customers')).json()).total).toBe(0)
+    expect(lines.find((line) => line.msg === 'public write ignored')).toEqual({
+      level: 30,
+      reqId: 'req-1',
+      reason: 'honeypot',
+      msg: 'public write ignored'
+    })
+  })
+
+  it('answers 404 for a slug no organization has, before reading the body', async () => {
+    const { register, code } = await serve()
+
+    expect(await code(await register('nobody', { not: 'even valid' }))).toEqual({
+      status: 404,
+      code: 'organization_not_found'
+    })
+  })
+
+  it('answers 400 with each field that is wrong, and asks for an email or a phone', async () => {
+    const { register } = await serve()
+
+    const response = await register('acme', { name: '', phone: '5'.repeat(41) })
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({
+      code: 'validation_failed',
+      errors: [{ path: 'name' }, { path: 'phone' }]
+    })
+    expect(await (await register('acme', { name: 'Grace' })).json()).toMatchObject({
+      code: 'validation_failed',
+      errors: [{ path: 'email', message: 'An email or a phone is required.' }]
+    })
+  })
+
+  it('answers 429 with Retry-After past 10 registrations in 10 minutes from one address, then recovers', async () => {
+    const { register, clock, signInWith, call } = await serve()
+    for (let i = 0; i < 10; i++) await register('acme', { name: 'Grace', email: `grace-${i}@example.com` })
+
+    clock.advance(60_000)
+    const refused = await register('acme', { name: 'Grace', email: 'grace-10@example.com' })
+
+    expect(refused.status).toBe(429)
+    expect(refused.headers.get('retry-after')).toBe('540')
+    expect(await refused.json()).toMatchObject({ code: 'rate_limited', retryAfter: 540 })
+    expect((await register('acme', { name: 'Ada', phone: '555 0100' }, '203.0.113.8')).status).toBe(202)
+
+    clock.advance(540_000)
+    expect((await register('acme', { name: 'Grace', email: 'grace-10@example.com' })).status).toBe(202)
+    signInWith(['read'])
+    expect(customerListSchema.parse(await (await call('GET', 'org-1/customers')).json()).total).toBe(12)
   })
 })

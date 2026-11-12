@@ -25,8 +25,10 @@ const optionalEmail = z.optional(
  * `POST` and `PUT` bodies: the whole customer, both times, so an edit is the form's values and
  * nothing else. The id, the organization and the dates are never the client's to choose.
  */
+const customerName = z.string().check(z.trim(), z.minLength(1), z.maxLength(customerLength.name))
+
 export const customerInputSchema = z.strictObject({
-  name: z.string().check(z.trim(), z.minLength(1), z.maxLength(customerLength.name)),
+  name: customerName,
   email: optionalEmail,
   phone: optionalText(customerLength.phone),
   company: optionalText(customerLength.company),
@@ -89,3 +91,37 @@ export const customerListSchema = z.object({
 })
 
 export type CustomerList = z.infer<typeof customerListSchema>
+
+/**
+ * `POST /api/public/organizations/:organizationSlug/customer-registrations`: what a visitor, with no
+ * session, may say to become a customer (ADR 0059): a name and a way to reach them. Company and
+ * notes stay the members' fields. `referralCode` is a honeypot: the web renders it where no person
+ * sees or reaches it, with autofill off, and a request that fills it is answered like any other and
+ * writes nothing. Its name means nothing to a browser's autofill, which would fill it for a person.
+ */
+export const publicCustomerRegistrationInputSchema = z
+  .strictObject({
+    name: customerName,
+    email: optionalEmail,
+    phone: optionalText(customerLength.phone),
+    referralCode: z.optional(z.string().check(z.maxLength(200)))
+  })
+  .check(
+    z.refine((values) => (values.email ?? null) !== null || (values.phone ?? null) !== null, {
+      path: ['email'],
+      error: 'An email or a phone is required.'
+    })
+  )
+
+export type PublicCustomerRegistrationInput = z.input<typeof publicCustomerRegistrationInputSchema>
+
+export type PublicCustomerRegistrationValues = z.output<typeof publicCustomerRegistrationInputSchema>
+
+/**
+ * The answer to a registration, 202: the request was taken in. The same whether a customer was
+ * created, the email was already a customer of the organization, or the honeypot was filled, so the
+ * form cannot be asked who is a customer (ADR 0059).
+ */
+export const publicCustomerRegistrationSchema = z.object({ received: z.literal(true) })
+
+export type PublicCustomerRegistration = z.infer<typeof publicCustomerRegistrationSchema>

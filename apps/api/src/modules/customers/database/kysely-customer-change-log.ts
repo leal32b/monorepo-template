@@ -7,7 +7,9 @@ type CustomerChangeRow = {
   organization_id: string
   customer_id: string
   action: CustomerChange['action']
-  actor_id: string
+  actor_kind: CustomerChange['actor']['kind']
+  /** The member's id; null for a visitor, who has none (ADR 0059). */
+  actor_id: string | null
   at: Date
 }
 
@@ -29,7 +31,8 @@ export class KyselyCustomerChangeLog implements CustomerChangeLog {
         organization_id: change.organizationId,
         customer_id: change.customerId,
         action: change.action,
-        actor_id: change.actorId,
+        actor_kind: change.actor.kind,
+        actor_id: change.actor.kind === 'member' ? change.actor.id : null,
         at: change.at
       })
       .execute()
@@ -48,7 +51,8 @@ export class KyselyCustomerChangeLog implements CustomerChangeLog {
       organizationId: row.organization_id,
       customerId: row.customer_id,
       action: row.action,
-      actorId: row.actor_id,
+      // The table's check keeps a member's id beside the kind `member`, and none beside `visitor`.
+      actor: row.actor_kind === 'member' ? { kind: 'member', id: row.actor_id as string } : { kind: 'visitor' },
       at: row.at
     }))
   }

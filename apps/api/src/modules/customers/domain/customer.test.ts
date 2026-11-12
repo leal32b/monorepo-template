@@ -3,6 +3,7 @@ import {
   type Customer,
   createCustomer,
   deleteCustomer,
+  registerCustomer,
   restoreCustomer,
   updateCustomer
 } from './customer'
@@ -86,12 +87,40 @@ describe('deleteCustomer', () => {
       organizationId: customer().organizationId,
       customerId: customer().id,
       action: 'deleted',
-      actorId: 'user-ada',
+      actor: { kind: 'member', id: 'user-ada' },
       at: later
     })
   })
 
   it('keeps an active customer: it is archived first', () => {
     expect(() => deleteCustomer(customer(), by)).toThrow(CustomerNotArchivedException)
+  })
+})
+
+describe('registerCustomer (ADR 0059)', () => {
+  const asked = { name: 'Grace Hopper', email: 'grace@example.com', phone: null }
+  const registered = () =>
+    registerCustomer({ id: 'c2', changeId: 'ch-2', organizationId: 'org-1', now: created, details: asked })
+
+  it("makes an active customer from what a visitor may say, and leaves the members' fields empty", () => {
+    expect(registered().customer).toEqual(
+      createCustomer({
+        id: 'c2',
+        organizationId: 'org-1',
+        now: created,
+        details: { ...asked, company: null, notes: null }
+      })
+    )
+  })
+
+  it('says a visitor created it, in the same organization, by ids only', () => {
+    expect(registered().change).toEqual({
+      id: 'ch-2',
+      organizationId: 'org-1',
+      customerId: 'c2',
+      action: 'created',
+      actor: { kind: 'visitor' },
+      at: created
+    })
   })
 })

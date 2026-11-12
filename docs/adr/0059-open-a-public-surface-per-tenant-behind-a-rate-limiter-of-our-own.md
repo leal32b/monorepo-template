@@ -114,7 +114,7 @@ to the organization and to `PublicOrganizations.bySlug`, the one place every pub
 ### The rate limiter
 
 A port, `RateLimiter.hit(limit, subject)`, with a Kysely adapter over a table of our own
-(migration `0011_rate_limit.sql`) and an in-memory fake under the same contract suite.
+(migration `0011_public_surface.sql`) and an in-memory fake under the same contract suite.
 
 - **One statement.** `insert … on conflict (key) do update … returning`: a fixed window per key,
   started by the first request, the count raised by every request. One round trip on the pool,
@@ -206,15 +206,18 @@ can send, the `Origin` check, the 1 MiB body limit
 ([ADR 0007](0007-http-pipeline-on-node-http.md)), and a strict schema with a length on every field.
 The limiter adds the count per address. On top:
 
-- **A honeypot field** (option a). The public input schema has `website`, a field the web renders
-  where no person sees or reaches it. A request that fills it gets the usual 202 and writes
-  nothing; the log gets `public write ignored` with the reason. It costs a real visitor nothing and
-  stops the crawlers that fill every field they find.
+- **A honeypot field** (option a). The public input schema has `referralCode`, a field the web
+  renders where no person sees or reaches it, with autofill off. A request that fills it gets the
+  usual 202 and writes nothing; the log gets `public write ignored` with the reason. It costs a
+  real visitor nothing and stops the crawlers that fill every field they find. The name is chosen
+  to mean nothing to a browser's autofill: a field called `website` or `url` can be filled for a
+  person by their browser, and their registration would vanish without a word.
 - **A public write sends nothing** to an address the visitor typed: no confirmation email, no SMS.
   The form cannot be used to reach a third party.
 - **What a visitor creates is marked.** The reference write records a line in `customer_change` with
-  the action `created` and the actor `visitor`, in the same transaction as the customer, so members
-  (and the audit trail to come) can tell those rows from their own and remove them.
+  the action `created` and the actor kind `visitor` (a visitor has no id), in the same transaction
+  as the customer, so members (and the audit trail to come) can tell those rows from their own and
+  remove them. The same migration adds `actor_kind` and lets `actor_id` be null for a visitor.
 
 Rejected:
 
