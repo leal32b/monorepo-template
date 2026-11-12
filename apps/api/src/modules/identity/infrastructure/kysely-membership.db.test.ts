@@ -42,6 +42,13 @@ describe('KyselyMembership (ADR 0033)', () => {
     })
   })
 
+  it('names the members of the organization among the ids asked for, and nobody else (ADR 0061)', async () => {
+    const names = await membership.namesOf('org-acme', ['user-ada', 'user-bob', 'user-gone'])
+
+    expect(names).toEqual(new Map([['user-ada', 'Ada']]))
+    expect(await membership.namesOf('org-acme', [])).toEqual(new Map())
+  })
+
   it('finds nobody in an organization the user is not in, nor in one that does not exist', async () => {
     expect(await membership.memberOf('org-other', 'user-ada')).toBeNull()
     expect(await membership.memberOf('org-missing', 'user-ada')).toBeNull()

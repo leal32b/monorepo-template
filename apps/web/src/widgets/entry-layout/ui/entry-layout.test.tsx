@@ -56,6 +56,20 @@ describe('EntryLayout', () => {
     expect(screen.getByRole('link', { name: 'Monorepo Template' })).toHaveAttribute('href', '/')
   })
 
+  it('names the page in the brand’s place, as plain text, when it belongs to someone else (ADR 0060)', () => {
+    renderScreen(() => (
+      <EntryLayout brand="Acme Barbershop" title="Become a customer">
+        <form aria-label="Registration form" />
+      </EntryLayout>
+    ))
+    const brand = screen.getByText('Acme Barbershop')
+
+    expect(screen.queryByRole('link', { name: 'Monorepo Template' })).not.toBeInTheDocument()
+    expect(brand.closest('a')).toBeNull()
+    expect(brand).toHaveClass('self-start', 'text-sm', 'font-semibold', 'break-words')
+    expect(follows(brand, screen.getByRole('heading', { level: 1 }))).toBe(true)
+  })
+
   it('moves focus to the heading when the screen opens, as after a route change', () => {
     renderSignIn()
 

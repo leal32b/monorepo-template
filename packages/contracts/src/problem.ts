@@ -12,6 +12,8 @@ export const apiProblemSchema = z.object({
   detail: z.optional(z.string()),
   /** One entry per invalid field of the request. */
   errors: z.optional(z.array(z.object({ path: z.string(), message: z.string() }))),
+  /** Seconds to wait before trying again, same as the `Retry-After` header: a 429 carries it (ADR 0059). */
+  retryAfter: z.optional(z.int().check(z.minimum(1))),
   /** Same as the `X-Request-Id` header, to find the request in the API log. */
   requestId: z.optional(z.string())
 })

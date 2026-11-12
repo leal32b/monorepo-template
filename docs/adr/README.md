@@ -37,7 +37,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0030](0030-add-a-scrim-colour-role.md) | Add a scrim colour role | accepted |
 | [0031](0031-animate-layers-with-short-transform-and-opacity-motion.md) | Animate layers with short transform and opacity motion | accepted |
 | [0032](0032-draw-icons-from-phosphor-generated-from-its-svgs.md) | Draw icons from Phosphor, generated from its SVGs | accepted |
-| [0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) | Run organizations on Better Auth, with roles in the database, behind a guard on the path | accepted; tenant queries backed by row-level security in [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) |
+| [0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) | Run organizations on Better Auth, with roles in the database, behind a guard on the path | accepted; tenant queries backed by row-level security in [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md); routes without a session added beside the guard by [0059](0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) |
 | [0034](0034-keep-the-organization-slug-in-the-web-url.md) | Keep the organization slug in the web URL | accepted |
 | [0035](0035-show-the-server-working-with-one-progress-bar.md) | Show the server working with one progress bar | accepted; what drives the bar superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) |
 | [0036](0036-keep-the-screen-until-the-next-one-is-ready.md) | Keep the screen until the next one is ready | superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) |
@@ -48,7 +48,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0041](0041-say-why-a-cold-start-takes-long-and-end-the-wait.md) | Say why a cold start takes long, and end the wait | accepted |
 | [0042](0042-ask-only-for-the-session-where-none-was-seen.md) | Ask only for the session where none was seen | accepted |
 | [0043](0043-remove-the-service-status-from-the-web.md) | Remove the service status from the web | accepted |
-| [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md) |
+| [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md); every write audited since [0061](0061-keep-one-append-only-audit-trail-per-organization.md) |
 | [0045](0045-run-the-end-to-end-suite-on-the-built-app-without-outside-services.md) | Run the end-to-end suite on the built app, without outside services | accepted |
 | [0046](0046-observe-through-structured-logs-tagged-with-the-release.md) | Observe through structured logs tagged with the release | accepted |
 | [0047](0047-put-time-limits-on-every-database-wait.md) | Put time limits on every database wait | accepted |
@@ -56,10 +56,13 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0049](0049-delete-an-account-from-an-emailed-link.md) | Delete an account from an emailed link | accepted |
 | [0050](0050-purge-expired-rows-daily-from-a-job-of-its-own.md) | Purge expired rows daily, from a job of its own | accepted |
 | [0051](0051-propose-dependency-updates-with-renovate.md) | Propose dependency updates with Renovate | accepted |
-| [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md) | Run a use case's writes in one transaction through a unit of work | accepted; `run` takes the organization and every tenant use case opens one since [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) |
+| [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md) | Run a use case's writes in one transaction through a unit of work | accepted; `run` takes the organization and every tenant use case opens one since [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md); `customer_change` replaced by [0061](0061-keep-one-append-only-audit-trail-per-organization.md) |
 | [0053](0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md) | Keep the time zone and the currency on the organization, and money in minor units | accepted |
 | [0054](0054-name-the-row-family-for-lists-not-for-settings.md) | Name the row family for lists, not for settings | accepted |
 | [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) | Keep tenants apart with row-level security, set by the unit of work | accepted |
 | [0056](0056-run-background-work-from-a-job-table-in-postgres.md) | Run background work from a job table in Postgres | accepted |
 | [0057](0057-send-identity-emails-through-the-job-queue.md) | Send identity emails through the job queue | accepted |
 | [0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md) | Split the i18n dictionaries by slice and merge them per language | accepted |
+| [0059](0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) | Open a public surface per tenant, behind a rate limiter of our own | accepted; `customer_change` replaced by [0061](0061-keep-one-append-only-audit-trail-per-organization.md) |
+| [0060](0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md) | Draw a tenant's public pages under a reserved prefix, in a frame of their own | accepted |
+| [0061](0061-keep-one-append-only-audit-trail-per-organization.md) | Keep one append-only audit trail per organization | accepted |

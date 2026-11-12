@@ -26,6 +26,18 @@ describe('AuthFailureAlert', () => {
     expect(alert).not.toHaveTextContent('req-1')
   })
 
+  it('says how long to wait when the API said it (ADR 0059)', () => {
+    expect(renderAlert({ status: 429, code: 'rate_limited', requestId: undefined, retryAfter: 45 })).toHaveTextContent(
+      'Too many attempts from this connection. Try again in 45 seconds.'
+    )
+  })
+
+  it('says the wait in minutes, rounded up, past a minute', () => {
+    expect(renderAlert({ status: 429, code: 'rate_limited', requestId: undefined, retryAfter: 61 })).toHaveTextContent(
+      'Try again in 2 minutes.'
+    )
+  })
+
   it('says anything else went wrong on our side, with what support needs to find it', () => {
     const alert = renderAlert({ status: 500, code: 'INTERNAL_SERVER_ERROR', requestId: 'req-1' })
 

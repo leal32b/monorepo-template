@@ -82,7 +82,10 @@ docs/                # using the template, operations, testing, security, adr
   draw them, through the formatters of `#shared/lib` ([ADR 0053](docs/adr/0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md)).
 - **Auth:** `better-auth` stays in `modules/identity/infrastructure/` (dependency-cruiser checks it).
   A route that needs a session calls `requireActor` from `#modules/identity/index` and gets an
-  `Actor` or a 401; it never refreshes the session.
+  `Actor` or a 401; it never refreshes the session. A route without a session lives under
+  `/api/public/organizations/:organizationSlug` and is built with `publicRoute`, which counts it against a
+  rate limit before resolving the slug; it returns a `public…` schema of its own
+  ([ADR 0059](docs/adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
 - **Database:** Postgres ([ADR 0003](docs/adr/0003-postgres-as-the-database.md)).
 - **Language:** code, comments and docs in English; conversation with the owner in pt-BR.
 

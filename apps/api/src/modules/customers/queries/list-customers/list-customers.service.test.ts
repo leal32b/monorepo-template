@@ -1,13 +1,13 @@
 import { customerListSchema, customerPageSize } from '@repo/contracts'
 import { CreateCustomerService } from '../../commands/create-customer/create-customer.service'
-import { testCustomers } from '../../testing/test-customers'
+import { byAda, testCustomers } from '../../testing/test-customers'
 import { ListCustomersService } from './list-customers.service'
 
 describe('ListCustomersService', () => {
   const setup = async (names: string[]) => {
     const { unitOfWork, clock, ids } = testCustomers()
     const create = new CreateCustomerService(unitOfWork, clock, ids)
-    for (const name of names) await create.execute('org-1', { name })
+    for (const name of names) await create.execute('org-1', { name }, byAda)
     return new ListCustomersService(unitOfWork)
   }
 

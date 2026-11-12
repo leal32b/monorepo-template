@@ -73,7 +73,7 @@ Use these first; a missing one is added where it belongs, with tests, not improv
 | Auth | Confirmed email, reset links that expire in 1 hour and work once, MFA with backup codes, the same answer for known and unknown emails, rate limits (429), `requireActor` → 401 | |
 | Email | Localized templates; sent from the job queue after the response, a provider's failure retried for about 40 minutes, then a `job failed` line (ADR 0057) | Telling the user an email failed for good |
 | Repetition | Rate limits; buttons wait while their request is on its way; one panel open at a time (`createPanels`), every other action waiting | Idempotency keys |
-| Recovery | | Soft delete with trash; an activity log the user can see |
+| Recovery | The organization's activity log (`/:orgSlug/settings/activity`, `audit:read`): who changed which kind of record, which fields and when, for a year, never the values ([ADR 0061](../../../docs/adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | Soft delete with trash; a record's own history |
 | Billing | | Self-service billing portal |
 | Invitations | `GET /api/invitations/:id` tells the invitee whether it is pending, expired, accepted, declined or withdrawn, each with what to do; resend renews the week; another account is told and offered to switch; sign-up and sign-in keep the way back (`next`) | |
 | Empty and loading | `EmptyState`; `ListSkeleton`, `EntrySkeleton`, `ShellSkeleton` and `PageSkeleton` (a screen in the frame that cannot be drawn yet) after 300 ms, timed once from boot (`createLate`), so a quick load shows nothing and a slow one does not jump; a screen read before draws its last value at once | |

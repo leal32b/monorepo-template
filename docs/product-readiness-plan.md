@@ -37,9 +37,9 @@ the rest.
 | [P0-2](#p0-2-tenant-isolation-with-a-safety-net) | Tenant isolation with a safety net | P0 | Fable | P0-1 | Done |
 | [P0-3](#p0-3-organization-settings-time-zone-currency-and-money) | Organization settings: time zone, currency and money | P0 | Opus | | Done |
 | [P0-4](#p0-4-background-work) | Background work | P0 | Fable, then Opus | P0-1 | Done |
-| [P0-5](#p0-5-public-tenant-surface) | Public tenant surface | P0 | Fable, then Opus | P0-2 | Todo |
+| [P0-5](#p0-5-public-tenant-surface) | Public tenant surface | P0 | Fable, then Opus | P0-2 | Done |
 | [P0-6](#p0-6-subscription-of-the-tenant) | Subscription of the tenant | P0 | Fable, then Opus | P0-1, P0-4 | Todo |
-| [P1-1](#p1-1-audit-trail) | Audit trail | P1 | Opus | P0-1 | Todo |
+| [P1-1](#p1-1-audit-trail) | Audit trail | P1 | Opus | P0-1 | Done |
 | [P1-2](#p1-2-design-system-for-product-screens) | Design system for product screens | P1 | Sonnet | | In progress |
 | [P1-3](#p1-3-a-cheaper-mould) | A cheaper mould | P1 | Opus, then Sonnet | P0-1, P0-2, P1-2 | Todo |
 | [P1-4](#p1-4-new-module-skill-and-product-mode) | `new-module` skill and product mode | P1 | Sonnet | P1-3 | Todo |
@@ -144,7 +144,7 @@ then P1 by need.
 ### P0-5. Public tenant surface
 
 - **Model:** Fable for the ADR, Opus for the build
-- **Status:** Todo
+- **Status:** Done ([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md), [ADR 0060](adr/0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md)). The end customer is anonymous: the one-time code is left as a seam, not built. Every organization has a public page at `/p/:orgSlug` and takes registrations, with no opt-out yet (an accepted risk in the threat model).
 - **Depends on:** P0-2
 - **Finding:** every route is either Better Auth's or behind `requireActor` / `requireMember`.
   Rate limiting exists only inside Better Auth. A B2B2C product needs people who are not members
@@ -188,7 +188,7 @@ then P1 by need.
 ### P1-1. Audit trail
 
 - **Model:** Opus
-- **Status:** Todo
+- **Status:** Done ([ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)). One `audit_entry` table for every module, replacing `customer_change`; an entry holds ids, codes and the names of changed fields, never values; kept 365 days.
 - **Depends on:** P0-1
 - **Finding:** nothing records who changed what. Multi-user tenants and money both need it, and
   support cannot answer "who deleted this" from the request log.

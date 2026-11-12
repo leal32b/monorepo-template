@@ -1,6 +1,6 @@
 # 0052. Run a use case's writes in one transaction through a unit of work
 
-- Status: accepted; `run` takes the organization and every tenant use case opens one since [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)
+- Status: accepted; `run` takes the organization and every tenant use case opens one since [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md); its `customer_change` table replaced by the audit trail of [0061](0061-keep-one-append-only-audit-trail-per-organization.md)
 - Date: 2026-11-11
 
 ## Context and problem statement

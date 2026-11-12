@@ -1,6 +1,6 @@
 export { type AuthClient, createAuthClient } from './auth-client'
 export { AuthProvider, useAuth } from './auth-context'
-export { callApi } from './call-api'
+export { callApi, failureOf } from './call-api'
 export { type AuthFailure, callAuth } from './call-auth'
 export { ApiError, createApiClient, noContent } from './client'
 export { type ApiClient, ApiProvider, useApi } from './context'

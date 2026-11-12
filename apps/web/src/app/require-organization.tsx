@@ -14,6 +14,7 @@ import {
 import {
   CurrentOrganizationProvider,
   getMembership,
+  membershipQuery,
   type Organization,
   ownOrganization,
   rememberOrganization,
@@ -91,8 +92,12 @@ function OrganizationScreens(props: ParentProps<{ id: string; organization: Acce
   const [held, setHeld] = createSignal(memberships.get(props.id))
   const [gone, setGone] = createSignal(false)
 
-  const ask = () =>
-    getMembership(api, props.id).then(
+  /**
+   * A first read goes through the router query, which a route's `preload` may have started already (one
+   * request for both); the check behind a membership known before asks anew, past the router's few seconds.
+   */
+  const ask = (behind: boolean) =>
+    (behind ? getMembership(api, props.id) : membershipQuery(api)(props.id)).then(
       (answer) => {
         memberships.set(props.id, answer)
         setHeld(answer)
@@ -104,9 +109,12 @@ function OrganizationScreens(props: ParentProps<{ id: string; organization: Acce
         throw failure
       }
     )
-  if (held() !== undefined) ask().catch(() => undefined)
+  if (held() !== undefined) ask(true).catch(() => undefined)
   // Read only when nothing is known; reading it below waits under the boundary, with the skeleton.
-  const [first, { refetch }] = createResource(() => held() === undefined && !gone(), ask)
+  const [first, { refetch }] = createResource(
+    () => held() === undefined && !gone(),
+    () => ask(false)
+  )
 
   createEffect(() => {
     if (held() !== undefined) rememberOrganization(shown().slug)

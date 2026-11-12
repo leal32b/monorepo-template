@@ -1,4 +1,17 @@
 export {
+  type AuditAction,
+  type AuditActor,
+  type AuditEntry,
+  type AuditEntryPage,
+  type AuditResourceType,
+  auditActions,
+  auditActorSchema,
+  auditEntryPageSchema,
+  auditEntrySchema,
+  auditPageSize,
+  listAuditEntriesQuerySchema
+} from './audit'
+export {
   type Customer,
   type CustomerInput,
   type CustomerList,
@@ -14,7 +27,12 @@ export {
   customerStatuses,
   customerUpdateSchema,
   type ListCustomersQuery,
-  listCustomersQuerySchema
+  listCustomersQuerySchema,
+  type PublicCustomerRegistration,
+  type PublicCustomerRegistrationInput,
+  type PublicCustomerRegistrationValues,
+  publicCustomerRegistrationInputSchema,
+  publicCustomerRegistrationSchema
 } from './customers'
 export { type HealthResponse, healthResponseSchema, type LivenessResponse, livenessResponseSchema } from './health'
 export {
@@ -45,7 +63,9 @@ export {
   organizationSlugSchema,
   ownerOnlyPermissions,
   type Permissions,
+  type PublicOrganization,
   permissionsSchema,
+  publicOrganizationSchema,
   type Resource,
   reservedSlugs,
   roleNameSchema,

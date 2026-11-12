@@ -16,7 +16,10 @@ export class DeleteCustomerController {
     const member = await requireMember({ session: this.session, membership: this.membership }, req, organizationId, {
       customer: ['delete']
     })
-    await this.service.execute(organizationId, params.customerId as string, member.userId)
+    await this.service.execute(organizationId, params.customerId as string, {
+      kind: 'member',
+      id: member.userId
+    })
     res.writeHead(204).end()
   }
 }

@@ -1,3 +1,4 @@
+import { can } from '@repo/contracts'
 import { Navigate, type RouteDefinition, type RoutePreloadFuncArgs, useParams } from '@solidjs/router'
 import { lazy } from 'solid-js'
 import { ForgotPasswordPage } from '#pages/forgot-password'
@@ -39,12 +40,19 @@ const OrganizationMembersPage = lazy(() =>
 const OrganizationRolesPage = lazy(() =>
   import('#pages/organization-roles').then((m) => ({ default: m.OrganizationRolesPage }))
 )
+const OrganizationActivityPage = lazy(() =>
+  import('#pages/organization-activity').then((m) => ({ default: m.OrganizationActivityPage }))
+)
 const InvitationPage = lazy(() => import('#pages/invitation').then((m) => ({ default: m.InvitationPage })))
 const OnboardingPage = lazy(() => import('#pages/onboarding').then((m) => ({ default: m.OnboardingPage })))
 const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: m.ProfilePage })))
 const DeleteAccountPage = lazy(() => import('#pages/delete-account').then((m) => ({ default: m.DeleteAccountPage })))
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
+/** A tenant's public page, a chunk of its own: neither the sign-in nor the signed-in screens download it (ADR 0060). */
+const PublicOrganizationPage = lazy(() =>
+  import('#pages/public-organization').then((m) => ({ default: m.PublicOrganizationPage }))
+)
 
 /**
  * A screen's reads start in its route, as soon as the router opens it (ADR 0038): the session and the
@@ -109,6 +117,23 @@ const preloadCustomers = onOpen(({ params }) => {
     await customersQuery(api)(organization.id, 'active', '', 1)
   })
 })
+/**
+ * The newest page of the organization's activity starts as soon as the organization is known (ADR 0061), and
+ * only for a role that holds `audit:read`: the preload waits for the membership the frame reads anyway (one
+ * request for both), so a plain member's console shows no refused call (ADR 0042), and the screen says why
+ * from the membership alone.
+ */
+const preloadActivity = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  preload(organizations, async (entity, { auth, api }) => {
+    const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
+    if (organization === undefined) return
+    const membership = await entity.membershipQuery(api)(organization.id)
+    if (!can(membership.permissions, 'audit', 'read')) return
+    const { auditEntriesQuery } = await import('#entities/audit-entries')
+    await auditEntriesQuery(api)(organization.id, '')
+  })
+})
 const identityOptions = () => import('#entities/identity-options')
 /** The security screen reads the ways to sign in, and whether the API has Google for the Google row. */
 const preloadSecurity = onOpen(() => {
@@ -124,6 +149,19 @@ const preloadUserInvitations = onOpen(() =>
 const preloadInvitation = onOpen(({ params }) => {
   const id = params.id as string
   preload(organizations, (entity, { api }) => entity.invitationQuery(api)(id))
+})
+
+/**
+ * The read of a tenant's public page, started as it opens with the slug read now (ADR 0038). Not through
+ * `preload`: a visitor's page never asks for the session, nor reads the device's hint of one (ADR 0060).
+ */
+const preloadPublic = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  const api = useApi()
+  import('#entities/public-organizations')
+    .then((entity) => entity.publicOrganizationQuery(api)(slug))
+    // A read that fails is said by the page, which reads it again.
+    .catch(() => undefined)
 })
 
 /** `/:orgSlug/settings` opens on General, as `/settings` opens on the profile. */
@@ -153,8 +191,14 @@ export const opensOnEntryScreen = (pathname: string) =>
 export const tenantPath = '/:orgSlug'
 
 /**
- * Every screen of the app. Tenant screens sit under `/:orgSlug`; entry, account, onboarding and
- * invitation screens stay outside it, and the words they use are reserved, so no slug can shadow
+ * A tenant's public pages, for a visitor with no account, sit under `/p/:orgSlug` (ADR 0060): outside the
+ * session guard, in the entry screens' frame with the organization's name. `p` is a reserved slug.
+ */
+export const publicPath = '/p/:orgSlug'
+
+/**
+ * Every screen of the app. Tenant screens sit under `/:orgSlug`; entry, account, onboarding,
+ * invitation and public screens stay outside it, and the words they use are reserved, so no slug can shadow
  * them (`reservedSlugs` in `@repo/contracts`, checked by the routes' test).
  */
 export const routes: RouteDefinition[] = [
@@ -204,7 +248,8 @@ export const routes: RouteDefinition[] = [
                       { path: '/', component: SettingsOfOrganization },
                       { path: '/general', component: OrganizationGeneralPage },
                       { path: '/members', component: OrganizationMembersPage, preload: preloadTeam },
-                      { path: '/roles', component: OrganizationRolesPage, preload: preloadTeam }
+                      { path: '/roles', component: OrganizationRolesPage, preload: preloadTeam },
+                      { path: '/activity', component: OrganizationActivityPage, preload: preloadActivity }
                     ]
                   }
                 ]
@@ -215,6 +260,7 @@ export const routes: RouteDefinition[] = [
       }
     ]
   },
+  { path: publicPath, component: PublicOrganizationPage, preload: preloadPublic },
   { path: '/account', component: AccountRedirect },
   ...entryScreens,
   { path: '*404', component: NotFoundPage }

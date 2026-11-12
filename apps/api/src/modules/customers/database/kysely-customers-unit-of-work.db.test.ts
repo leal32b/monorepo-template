@@ -3,11 +3,11 @@ import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
 import { createDatabase, createPool } from '#libs/database/database'
+import { KyselyAuditTrail } from '#libs/database/kysely-audit-trail'
 import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../../../test/reset-database'
 import { contractOrganizations } from '../testing/customer-repository.contract'
 import { describeCustomersUnitOfWork } from '../testing/customers-unit-of-work.contract'
-import { KyselyCustomerChangeLog } from './kysely-customer-change-log'
 import { KyselyCustomerRepository } from './kysely-customer-repository'
 import { kyselyCustomersUnitOfWork } from './kysely-customers-unit-of-work'
 
@@ -29,10 +29,10 @@ afterAll(async () => {
 })
 
 describeCustomersUnitOfWork('kyselyCustomersUnitOfWork', async () => {
-  await sql`truncate customer, customer_change`.execute(db)
+  await sql`truncate customer, audit_entry`.execute(db)
   return {
     unitOfWork: kyselyCustomersUnitOfWork(db),
     customers: new KyselyCustomerRepository(db),
-    changes: new KyselyCustomerChangeLog(db)
+    audit: new KyselyAuditTrail(db)
   }
 })

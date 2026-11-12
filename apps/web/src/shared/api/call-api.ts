@@ -11,9 +11,24 @@ export async function callApi(call: () => Promise<unknown>): Promise<AuthFailure
     await call()
     return undefined
   } catch (error) {
-    if (error instanceof ApiError && error.kind === 'http') {
-      return { status: error.status, code: error.problem?.code, requestId: error.problem?.requestId }
-    }
-    return { status: undefined, code: undefined, requestId: undefined }
+    return failureOf(error)
   }
+}
+
+/**
+ * What a failed call to our API says, in the shape `AuthFailureAlert` takes: the status, the problem's code
+ * and request id, and how long to wait after a 429 (ADR 0059). A read that failed under `ReadFailure` is told
+ * the same way.
+ */
+export function failureOf(error: unknown): AuthFailure {
+  if (error instanceof ApiError && error.kind === 'http') {
+    const retryAfter = error.problem?.retryAfter
+    return {
+      status: error.status,
+      code: error.problem?.code,
+      requestId: error.problem?.requestId,
+      ...(retryAfter !== undefined && { retryAfter })
+    }
+  }
+  return { status: undefined, code: undefined, requestId: undefined }
 }

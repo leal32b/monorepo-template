@@ -5,7 +5,9 @@ import {
   customerPageSize,
   customerSchema,
   customerUpdateSchema,
-  listCustomersQuerySchema
+  listCustomersQuerySchema,
+  publicCustomerRegistrationInputSchema,
+  publicCustomerRegistrationSchema
 } from './customers'
 
 describe('customerInputSchema', () => {
@@ -118,5 +120,62 @@ describe('customerListSchema', () => {
   it('carries the page, its size and the total, so the web can draw the pager', () => {
     const list = { items: [], total: 0, page: 1, pageSize: customerPageSize }
     expect(customerListSchema.safeParse(list).success).toBe(true)
+  })
+})
+
+describe('publicCustomerRegistrationInputSchema (ADR 0059)', () => {
+  it("takes a name with an email, a phone or both, trimmed like a member's", () => {
+    expect(publicCustomerRegistrationInputSchema.parse({ name: ' Grace ', email: ' Grace@Example.com ' })).toEqual({
+      name: 'Grace',
+      email: 'grace@example.com'
+    })
+    expect(publicCustomerRegistrationInputSchema.parse({ name: 'Grace', email: '', phone: ' 555 0100 ' })).toEqual({
+      name: 'Grace',
+      email: null,
+      phone: '555 0100'
+    })
+  })
+
+  it.each([
+    ['neither', { name: 'Grace' }],
+    ['both blank', { name: 'Grace', email: ' ', phone: '' }]
+  ])('asks for a way to reach the visitor when it has %s, at the email field', (_case, body) => {
+    const result = publicCustomerRegistrationInputSchema.safeParse(body)
+
+    expect(result.error?.issues.map((issue) => issue.path)).toEqual([['email']])
+  })
+
+  it('refuses what only a member may say', () => {
+    const body = { name: 'Grace', email: 'grace@example.com' }
+
+    expect(publicCustomerRegistrationInputSchema.safeParse({ ...body, notes: 'VIP' }).success).toBe(false)
+    expect(publicCustomerRegistrationInputSchema.safeParse({ ...body, company: 'Navy' }).success).toBe(false)
+  })
+
+  it("holds each field to the customer's lengths", () => {
+    const long = { name: 'a'.repeat(customerLength.name + 1), phone: '5'.repeat(customerLength.phone + 1) }
+
+    expect(publicCustomerRegistrationInputSchema.safeParse(long).error?.issues.map((issue) => issue.path)).toEqual([
+      ['name'],
+      ['phone']
+    ])
+  })
+
+  it('carries the honeypot, a field no person fills, short enough to cost nothing', () => {
+    const body = { name: 'Grace', phone: '555 0100' }
+
+    expect(publicCustomerRegistrationInputSchema.parse({ ...body, referralCode: 'buy now' }).referralCode).toBe(
+      'buy now'
+    )
+    expect(publicCustomerRegistrationInputSchema.safeParse({ ...body, referralCode: 'x'.repeat(201) }).success).toBe(
+      false
+    )
+  })
+})
+
+describe('publicCustomerRegistrationSchema (ADR 0059)', () => {
+  it('says the request was taken in, and nothing about the customer', () => {
+    expect(publicCustomerRegistrationSchema.parse({ received: true, id: 'c1' })).toEqual({ received: true })
+    expect(publicCustomerRegistrationSchema.safeParse({ received: false }).success).toBe(false)
   })
 })

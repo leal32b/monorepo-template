@@ -18,6 +18,8 @@ export class HttpProblem extends Error {
   readonly detail: string | undefined
   readonly errors: ProblemFieldError[] | undefined
   readonly headers: Record<string, string>
+  /** Seconds to wait before trying again: sent as `Retry-After` and in the body (ADR 0059). */
+  readonly retryAfter: number | undefined
 
   constructor(
     status: number,
@@ -26,6 +28,7 @@ export class HttpProblem extends Error {
       detail?: string
       errors?: ProblemFieldError[]
       headers?: Record<string, string>
+      retryAfter?: number
     } = {}
   ) {
     super(options.detail ?? code)
@@ -33,7 +36,11 @@ export class HttpProblem extends Error {
     this.code = code
     this.detail = options.detail
     this.errors = options.errors
-    this.headers = options.headers ?? {}
+    this.retryAfter = options.retryAfter
+    this.headers = {
+      ...options.headers,
+      ...(options.retryAfter === undefined ? {} : { 'Retry-After': String(options.retryAfter) })
+    }
   }
 
   toJSON(requestId?: string): ApiProblem {
@@ -44,6 +51,7 @@ export class HttpProblem extends Error {
       code: this.code,
       ...(this.detail ? { detail: this.detail } : {}),
       ...(this.errors ? { errors: this.errors } : {}),
+      ...(this.retryAfter === undefined ? {} : { retryAfter: this.retryAfter }),
       ...(requestId ? { requestId } : {})
     }
   }

@@ -9,6 +9,19 @@ export type {
   Member,
   Membership
 } from './membership.port'
+export type {
+  /** @public */
+  PublicOrganization,
+  /** @public */
+  PublicOrganizations
+} from './public-organizations.port'
+export {
+  /** @public */
+  type PublicHandler,
+  type PublicSurface,
+  publicLimits,
+  publicRoute
+} from './public-route'
 /** @public */
 export { requireActor } from './require-actor'
 export { requireMember } from './require-member'

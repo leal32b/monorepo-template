@@ -14,9 +14,13 @@ export class ArchiveCustomerController {
 
   readonly handle: HttpHandler = async (req, res, { params }) => {
     const organizationId = params.organizationId as string
-    await requireMember({ session: this.session, membership: this.membership }, req, organizationId, {
+    const member = await requireMember({ session: this.session, membership: this.membership }, req, organizationId, {
       customer: ['update']
     })
-    sendJson(res, 200, await this.service.execute(organizationId, params.customerId as string))
+    sendJson(
+      res,
+      200,
+      await this.service.execute(organizationId, params.customerId as string, { kind: 'member', id: member.userId })
+    )
   }
 }

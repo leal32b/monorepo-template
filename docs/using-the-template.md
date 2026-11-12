@@ -126,13 +126,46 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
    ([ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)).
    Repository methods keep their own `where organization_id`: the fakes and any code on the pool
    (a job, a back office) have nothing else.
-5. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
+   Every write also records who did it, in the same `run`: see "Recording who changed what" below.
+5. A route for people who are not members, if the feature has one (a client booking online): a
+   public route ([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md))
+   and its public screen ([ADR 0060](adr/0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md)), below.
+6. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
    fail, anything too slow for a request): a job
    ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)), below.
-6. The web: the entity's reads and writes, the feature's forms, the page and its route with
+7. The web: the entity's reads and writes, the feature's forms, the page and its route with
    `preload`, the menu item, the texts in every language. Screens go through the `design-system`
    and `minimize-support` skills.
-7. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
+8. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
+
+### Recording who changed what
+
+Every write of a module leaves one entry in the organization's audit trail, the table `audit_entry`
+that all modules share ([ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)).
+A module has no history table of its own.
+
+1. Add the resource and the actions it records to `auditActions` in `packages/contracts/src/audit.ts`
+   (`appointment: ['created', 'rescheduled', 'cancelled']`), and their texts to
+   `apps/web/src/shared/config/i18n/dictionaries/audit/` in every language: `entries.<resource>.<action>`
+   and `fields.<resource>.<field>`, and the field list in `pages/organization-activity`.
+2. Add `audit: AuditTrail` (`#libs/ports/audit-trail.port`) to the module's unit of work, bound to
+   `new KyselyAuditTrail(transaction)` in `database/` and to an `InMemoryAuditTrail` in the module's
+   test setup.
+3. Each command takes the actor as an argument (`AuditActor`): a member's controller passes
+   `{ kind: 'member', id: member.userId }` from `requireMember`, a public route `{ kind: 'visitor' }`,
+   a job `{ kind: 'system' }`. The command draws the entry's id with the record's, and records the
+   entry inside the same `run` as the change, after it succeeded (copy `customer-audit.ts` and
+   `UpdateCustomerService`).
+4. What an entry may hold: the record's own id, the codes, and the names of the fields the change set
+   (for a create, those filled; for an edit, those that differ; none for a change of state). Never a
+   value, never free text, never what identifies a person: a record deleted for good must leave no
+   personal data in the trail. A pure `changedFields` in the domain says which fields.
+5. Tests: the service test reads the in-memory trail; the module's unit-of-work contract shows the
+   change rolled back when its entry cannot be recorded.
+
+The tenant role may only insert and select entries, so nothing in a request can change one. The
+daily purge deletes them after `auditRetention.days` (365, in `libs/database/kysely-audit-trail.ts`);
+a product with a legal retention duty changes it there.
 
 ### A job kind
 
@@ -180,32 +213,114 @@ enqueues builds `createJobs` with `ManualTimer`, does not start it, and drains i
 as the tests that read identity's emails do. What to look at in production:
 [operations.md](operations.md#background-jobs).
 
+### A public route
+
+A route a visitor reaches with no session names its tenant by slug and is built with `publicRoute`
+([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
+`modules/customers/commands/register-customer/` is the worked write, and
+`modules/identity/queries/get-public-organization/` the read. Four pieces:
+
+1. **A schema of its own** in `packages/contracts`, named `public…`: what a visitor may send, and
+   what they may see. Never the member's schema: write the public one field by field, with no id.
+   A form's input carries a honeypot field, as `publicCustomerRegistrationInputSchema` does.
+2. **A use case** that takes the organization's id and does its database work inside
+   `unitOfWork.run(organizationId, …)`, like a member's: row-level security confines it to that
+   organization. It has no actor; if it creates a row, it records that a visitor did.
+3. **A controller** wrapped in `publicRoute(surface, publicLimits.read | publicLimits.write, handler)`
+   from `#modules/identity/index`. It counts the request for the client address, resolves the slug,
+   and hands the handler `organization`; there is no other way to get the id, so the limit cannot
+   be forgotten. A route with a different need passes a limit of its own
+   (`{ name: 'public-book', max: 5, windowSeconds: 600 }`).
+
+   ```ts
+   this.handle = publicRoute(surface, publicLimits.write, async (req, res, { organization, requestId }) => {
+     const { referralCode, ...values } = await readValidJson(req, publicBookingInputSchema)
+     if (referralCode) surface.logger.info({ reqId: requestId, reason: 'honeypot' }, 'public write ignored')
+     else await service.execute(organization.id, values)
+     sendJson(res, 202, { received: true })
+   })
+   ```
+
+4. **The route**, registered by the module under `/api/public/organizations/:organizationSlug/...`,
+   with `publicSurface` among the ports `create-app.ts` passes it.
+
+Rules that keep a public route safe: answer the same whatever the write found (a `409` that says
+"this email is already a customer" tells a stranger who the tenant's customers are); send nothing
+to an address the visitor typed until a limit of its own covers it; and return only what the
+tenant shows the world. A visitor is anonymous: when a product lets them see or change what they
+created, the one-time code is built on the seam ADR 0059 describes. Tests: the route on the real
+pipeline with `InMemoryRateLimiter` and `FakePublicOrganizations`, as
+`customers.routes.integration.test.ts` does, with a case for the limit and one for an unknown slug.
+What to look at in production: [operations.md](operations.md#public-routes-and-rate-limits).
+
+### A public screen
+
+The web side of a public route: a page a visitor opens with no account, under `/p/:orgSlug`
+([ADR 0060](adr/0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md)).
+The reference is `pages/public-organization/` with `features/customers/register-as-customer/`. Five
+pieces:
+
+1. **The read**, a router query in the entity's `api` segment over the `public…` schema, never the
+   member's: `publicOrganizationQuery` in `entities/public-organizations/` is the one every public
+   page starts from. A write goes beside the module's other calls (`registerAsCustomer` in
+   `entities/customers/`).
+2. **The form**, in a feature: checked with the contract's own schema before the request, its rules
+   said before anyone trips on them (a field's or a `Fieldset`'s `description`), the visitor's own
+   fields with autofill on (`name`, `email`, `tel`), and the honeypot rendered as
+   `RegistrationForm` does (off screen, `aria-hidden`, `tabIndex={-1}`, `autocomplete="off"`, sent
+   as it is). Its success says only what the API's uniform answer allows ("received"); a failure goes
+   to `AuthFailureAlert`, which says how long to wait after a `429`.
+3. **The page**, in `EntryLayout` with `brand` set to the organization's name, its read under
+   `ReadFailure` with the page's own words for `404`, and `EntrySkeleton brand="pending"` while it
+   waits.
+4. **The route**, under `publicPath` in `app/routes.tsx`: `lazy`, so neither the sign-in nor the
+   signed-in screens download it, with a `preload` like `preloadPublic`, never the `preload` helper:
+   a public page asks nothing of the session. A new first segment (a product that prefers `/book/`)
+   joins `reservedSlugs`; the routes' test asks for it.
+5. **The texts** in a dictionary group of the module, in every language, and the end-to-end journey
+   as a visitor (`newPerson`), with the page in `accessibility.spec.ts` and, when it is a page people
+   land on, a budget in `bundle-budget.spec.ts`.
+
 A product that does not need customers removes the module whole, with an ADR that says why. The
 code goes the same way in both cases below:
 
-1. `packages/contracts/src/customers.ts` and its export; the `customer` statement and each role's
-   share of it in `packages/contracts/src/organizations.ts`.
+1. `packages/contracts/src/customers.ts` and its exports (the public registration's among them);
+   the `customer` statement and each role's
+   share of it in `packages/contracts/src/organizations.ts`; the `customer` line of `auditActions` in
+   `packages/contracts/src/audit.ts` (it needs at least one resource: add the product's own first).
 2. `apps/api/src/modules/customers/` and its line in `app/create-app.ts`.
 3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
-   `app/routes.tsx`, the menu and palette items in `widgets/app-shell/`, and the `customers` texts
-   and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`).
+   `app/routes.tsx`, the registration form on `pages/public-organization/` and its `registration`
+   texts (`dictionaries/public/`), the menu and palette items in `widgets/app-shell/`, and the `customers` texts
+   and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`), and
+   the `customer` texts of the activity (`entries.customer` and `fields.customer` in `dictionaries/audit/`,
+   and its field list in `pages/organization-activity/`). The audit trail and its screen stay: they
+   belong to every module.
 4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
-   organization), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
+   organization), `public-registration.spec.ts`, `activity.spec.ts` (or point it at the product's own module), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
    used.
 
 The database differs:
 
 - **Never deployed** (no production database has run the migrations yet): delete
   `apps/api/migrations/0004_customers.sql`, `0006_customer_version.sql` and
-  `0007_customer_change.sql`, and their tables in `apps/api/test/reset-database.ts`. Migrations are forward
+  `0007_customer_change.sql`, the lines about `customer_change` at the end of `0011_public_surface.sql`
+  and of `0012_audit_entry.sql` (the move into the trail), the test of that move
+  (`libs/database/audit-trail-migration.db.test.ts`), and their tables in `apps/api/test/reset-database.ts`. Migrations are forward
   only once applied somewhere ([ADR 0013](adr/0013-kysely-and-plain-sql-migrations.md)); before
   that, the files are just code. Reset the local database: stop `pnpm db`, delete `apps/api/.data`, start it again.
 - **Already in production**: keep the files, which databases have already applied, and add a new
-  migration that drops the tables (`drop table if exists customer_change; drop table if exists customer;`). Back up the rows first if anyone might want them.
+  migration that drops the table (`drop table if exists customer;`); `customer_change` is already gone,
+  folded into the audit trail by `0012_audit_entry.sql`. The module's audit entries stay as history until
+  the purge takes them; to remove them at once, the same migration deletes them
+  (`delete from audit_entry where resource_type = 'customer';`). Back up the rows first if anyone might want them.
 
 In both cases keep the first half of `0009_tenant_row_security.sql` (the `app_tenant` role and its
-grants), which every later tenant table needs; when deleting the customers migrations, delete only
-its lines about `customer` and `customer_change`.
+grants), which every later tenant table needs, and the `rate_limit` table of
+`0011_public_surface.sql`, which every public route counts in; when deleting the customers
+migrations, delete only their lines about `customer` and `customer_change`. Keep `audit_entry`, which every
+module records into. The public profile
+(`GET /api/public/organizations/:organizationSlug`) belongs to identity and stays.
 
 ### Texts and languages
 

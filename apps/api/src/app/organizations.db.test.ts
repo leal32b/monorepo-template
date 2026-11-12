@@ -1,7 +1,7 @@
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
-import { invitationSchema, organizationMembershipSchema } from '@repo/contracts'
+import { auditEntryPageSchema, invitationSchema, organizationMembershipSchema } from '@repo/contracts'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
@@ -797,6 +797,35 @@ describe('organizations through Better Auth (ADR 0033)', () => {
 
       const other = await organization({})
       expect((await send('GET', customers(other.id), member)).status).toBe(404)
+    })
+
+    it('leaves an entry of each write that the owner reads with names, and the member may not (ADR 0061)', async () => {
+      const { id, people } = await organization({ member: 'member' })
+      const member = person(people, 'member')
+      const owner = person(people, 'owner').cookie
+      const created = await send('POST', customers(id), member.cookie, { name: 'Ada' })
+      const { id: customerId } = (await created.json()) as { id: string }
+      await send('PUT', `${customers(id)}/${customerId}`, member.cookie, { name: 'Ada King', phone: '1', version: 1 })
+      const trail = async () =>
+        auditEntryPageSchema.parse(await (await send('GET', `/api/organizations/${id}/audit-entries`, owner)).json())
+
+      // Two writes of one test may share a millisecond, and then their order is the ids': compare as a set.
+      const entries = (await trail()).items
+      expect(
+        entries
+          .map(({ action, fields, resource }) => ({ action, fields, resource }))
+          .sort((a, b) => (a.action < b.action ? -1 : 1))
+      ).toEqual([
+        { action: 'created', fields: ['name'], resource: { type: 'customer', id: customerId } },
+        { action: 'updated', fields: ['name', 'phone'], resource: { type: 'customer', id: customerId } }
+      ])
+      for (const entry of entries)
+        expect(entry.actor).toMatchObject({ kind: 'member', name: expect.stringMatching(/^Person /) })
+      expect((await send('GET', `/api/organizations/${id}/audit-entries`, member.cookie)).status).toBe(403)
+
+      await post('/organization/remove-member', { memberIdOrEmail: member.memberId, organizationId: id }, owner)
+
+      for (const entry of (await trail()).items) expect(entry.actor).toMatchObject({ kind: 'member', name: null })
     })
 
     it('goes with the organization when the owner deletes it', async () => {

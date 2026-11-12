@@ -173,7 +173,8 @@ export const organizationsPtBR: typeof organizationsEn = {
       member: 'Membros',
       invitation: 'Convites',
       ac: 'Papéis',
-      customer: 'Clientes'
+      customer: 'Clientes',
+      audit: 'Atividade'
     },
     permissions: {
       organization: {
@@ -200,6 +201,9 @@ export const organizationsPtBR: typeof organizationsEn = {
         create: 'Adicionar clientes',
         update: 'Editar clientes',
         delete: 'Excluir clientes'
+      },
+      audit: {
+        read: 'Ver o registro de atividades'
       }
     },
     form: {

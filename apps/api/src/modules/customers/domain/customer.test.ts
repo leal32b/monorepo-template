@@ -1,8 +1,10 @@
 import {
   archiveCustomer,
   type Customer,
+  changedFields,
   createCustomer,
   deleteCustomer,
+  registerCustomer,
   restoreCustomer,
   updateCustomer
 } from './customer'
@@ -78,20 +80,37 @@ describe('restoreCustomer', () => {
 })
 
 describe('deleteCustomer', () => {
-  const by = { changeId: 'ch-1', actorId: 'user-ada', now: later }
-
-  it('lets an archived customer go, and says who deleted it and when, by ids only', () => {
-    expect(deleteCustomer(archiveCustomer(customer(), later), by)).toEqual({
-      id: 'ch-1',
-      organizationId: customer().organizationId,
-      customerId: customer().id,
-      action: 'deleted',
-      actorId: 'user-ada',
-      at: later
-    })
+  it('lets an archived customer go', () => {
+    expect(() => deleteCustomer(archiveCustomer(customer(), later))).not.toThrow()
   })
 
   it('keeps an active customer: it is archived first', () => {
-    expect(() => deleteCustomer(customer(), by)).toThrow(CustomerNotArchivedException)
+    expect(() => deleteCustomer(customer())).toThrow(CustomerNotArchivedException)
+  })
+})
+
+describe('registerCustomer (ADR 0059)', () => {
+  const asked = { name: 'Grace Hopper', email: 'grace@example.com', phone: null }
+
+  it("makes an active customer from what a visitor may say, and leaves the members' fields empty", () => {
+    expect(registerCustomer({ id: 'c2', organizationId: 'org-1', now: created, details: asked })).toEqual(
+      createCustomer({
+        id: 'c2',
+        organizationId: 'org-1',
+        now: created,
+        details: { ...asked, company: null, notes: null }
+      })
+    )
+  })
+})
+
+describe('changedFields (ADR 0061)', () => {
+  it('names the fields a new customer has filled, in the order of the details', () => {
+    expect(changedFields(null, { ...details, notes: 'Met at the fair' })).toEqual(['name', 'email', 'notes'])
+  })
+
+  it('names the fields whose value differs, and none when nothing does', () => {
+    expect(changedFields(details, { ...details, email: null, company: 'Analytical' })).toEqual(['email', 'company'])
+    expect(changedFields(details, { ...details })).toEqual([])
   })
 })

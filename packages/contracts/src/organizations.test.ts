@@ -7,6 +7,7 @@ import {
   organizationSlugSchema,
   ownerOnlyPermissions,
   permissionsSchema,
+  publicOrganizationSchema,
   reservedSlugs,
   roleNameSchema,
   statements
@@ -19,7 +20,8 @@ describe('statements', () => {
       member: ['create', 'update', 'delete'],
       invitation: ['create', 'cancel'],
       ac: ['create', 'read', 'update', 'delete'],
-      customer: ['read', 'create', 'update', 'delete']
+      customer: ['read', 'create', 'update', 'delete'],
+      audit: ['read']
     })
   })
 })
@@ -40,6 +42,12 @@ describe('builtInRoles', () => {
     expect(can(builtInRoles.admin, 'organization', 'update')).toBe(true)
     expect(can(builtInRoles.admin, 'member', 'delete')).toBe(true)
     expect(can(builtInRoles.admin, 'ac', 'create')).toBe(true)
+  })
+
+  it('lets the owner and the admin read the audit trail, and not the member (ADR 0061)', () => {
+    expect(can(builtInRoles.owner, 'audit', 'read')).toBe(true)
+    expect(can(builtInRoles.admin, 'audit', 'read')).toBe(true)
+    expect(can(builtInRoles.member, 'audit', 'read')).toBe(false)
   })
 
   it('lets the admin do everything with customers', () => {
@@ -173,5 +181,18 @@ describe('organizationMembershipSchema', () => {
     ['an unknown permission', { roles: ['member'], permissions: { project: ['read'] } }]
   ])('rejects %s', (_case, value) => {
     expect(organizationMembershipSchema.safeParse(value).success).toBe(false)
+  })
+})
+
+describe('publicOrganizationSchema (ADR 0059)', () => {
+  const acme = { name: 'Acme Barbers', slug: 'acme', timeZone: 'America/Sao_Paulo', currency: 'BRL' }
+
+  it('accepts a public profile, and drops anything else a response carried', () => {
+    expect(publicOrganizationSchema.parse({ ...acme, id: 'org-acme' })).toEqual(acme)
+  })
+
+  it('refuses a time zone or a currency nobody can draw with', () => {
+    expect(publicOrganizationSchema.safeParse({ ...acme, timeZone: 'Mars/Olympus' }).success).toBe(false)
+    expect(publicOrganizationSchema.safeParse({ ...acme, currency: 'XXX' }).success).toBe(false)
   })
 })

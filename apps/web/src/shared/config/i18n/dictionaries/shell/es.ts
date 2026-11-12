@@ -51,6 +51,7 @@ export const shellEs: typeof shellEn = {
         general: 'organización nombre dirección eliminar',
         members: 'personas equipo invitar quitar rol',
         roles: 'permisos acceso',
+        activity: 'auditoría registro historial cambios quién',
         customers: 'clientes contactos personas empresas',
         create: 'organización nueva equipo',
         profile: 'cuenta nombre correo',
@@ -77,6 +78,7 @@ export const shellEs: typeof shellEn = {
       general: 'General',
       members: 'Miembros',
       roles: 'Roles',
+      activity: 'Actividad',
       customers: 'Clientes'
     },
     account: {
@@ -97,6 +99,7 @@ export const shellEs: typeof shellEn = {
   failure: {
     network: 'No pudimos conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.',
     rateLimited: 'Demasiados intentos. Espera un minuto y vuelve a intentarlo.',
+    rateLimitedFor: 'Demasiados intentos desde esta conexión. Vuelve a intentarlo en {{wait}}.',
     unexpected: 'Algo salió mal de nuestro lado. Vuelve a intentarlo en un momento.',
     reference: 'Si sigue pasando, avisa a soporte: {{reference}}'
   }

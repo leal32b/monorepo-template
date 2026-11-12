@@ -16,6 +16,16 @@ describe('callApi', () => {
     expect(failure).toEqual({ status: 409, code: 'customer_email_taken', requestId: 'req-1' })
   })
 
+  it('keeps the seconds a 429 says to wait (ADR 0059)', async () => {
+    const problem = { type: 'x', title: 'Too many', status: 429, code: 'rate_limited', retryAfter: 45 }
+
+    const failure = await callApi(async () => {
+      throw new ApiError('http', 'The API answered 429.', { status: 429, problem })
+    })
+
+    expect(failure).toEqual({ status: 429, code: 'rate_limited', requestId: undefined, retryAfter: 45 })
+  })
+
   it('returns the status alone when the answer was not a problem', async () => {
     const failure = await callApi(async () => {
       throw new ApiError('http', 'The API answered 502.', { status: 502 })

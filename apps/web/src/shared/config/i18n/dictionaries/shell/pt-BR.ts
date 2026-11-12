@@ -51,6 +51,7 @@ export const shellPtBR: typeof shellEn = {
         general: 'organização nome endereço excluir',
         members: 'pessoas equipe convidar remover papel',
         roles: 'permissões acesso',
+        activity: 'auditoria registro histórico mudanças quem',
         customers: 'clientes contatos pessoas empresas',
         create: 'organização nova equipe',
         profile: 'conta nome e-mail',
@@ -77,6 +78,7 @@ export const shellPtBR: typeof shellEn = {
       general: 'Geral',
       members: 'Membros',
       roles: 'Papéis',
+      activity: 'Atividade',
       customers: 'Clientes'
     },
     account: {
@@ -97,6 +99,7 @@ export const shellPtBR: typeof shellEn = {
   failure: {
     network: 'Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.',
     rateLimited: 'Muitas tentativas. Espere um minuto e tente de novo.',
+    rateLimitedFor: 'Muitas tentativas desta conexão. Tente de novo em {{wait}}.',
     unexpected: 'Algo deu errado do nosso lado. Tente de novo em instantes.',
     reference: 'Se continuar, informe ao suporte: {{reference}}'
   }

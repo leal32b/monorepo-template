@@ -170,7 +170,8 @@ export const organizationsEn = {
       member: 'Members',
       invitation: 'Invitations',
       ac: 'Roles',
-      customer: 'Customers'
+      customer: 'Customers',
+      audit: 'Activity'
     },
     permissions: {
       organization: {
@@ -197,6 +198,9 @@ export const organizationsEn = {
         create: 'Add customers',
         update: 'Edit customers',
         delete: 'Delete customers'
+      },
+      audit: {
+        read: 'See the activity log'
       }
     },
     form: {

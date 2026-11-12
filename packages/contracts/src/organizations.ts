@@ -1,5 +1,6 @@
 import * as z from 'zod/mini'
-import { instantSchema } from './time'
+import { currencySchema } from './money'
+import { instantSchema, timeZoneSchema } from './time'
 
 /**
  * What can be done in an organization: resources and their actions (ADR 0033). They stay in code;
@@ -12,7 +13,9 @@ export const statements = {
   invitation: ['create', 'cancel'],
   ac: ['create', 'read', 'update', 'delete'],
   /** The reference module of Phase 7; a product renames it or adds its own beside it. */
-  customer: ['read', 'create', 'update', 'delete']
+  customer: ['read', 'create', 'update', 'delete'],
+  /** The organization's audit trail (ADR 0061): read only, since no one may change it. */
+  audit: ['read']
 } as const
 
 export type Resource = keyof typeof statements
@@ -31,7 +34,8 @@ export const permissionsSchema = z.strictObject({
   member: actionsOf(statements.member),
   invitation: actionsOf(statements.invitation),
   ac: actionsOf(statements.ac),
-  customer: actionsOf(statements.customer)
+  customer: actionsOf(statements.customer),
+  audit: actionsOf(statements.audit)
 })
 
 /**
@@ -81,7 +85,8 @@ export const builtInRoles = {
     member: ['create', 'update', 'delete'],
     invitation: ['create', 'cancel'],
     ac: ['create', 'read', 'update', 'delete'],
-    customer: ['read', 'create', 'update', 'delete']
+    customer: ['read', 'create', 'update', 'delete'],
+    audit: ['read']
   },
   member: { ac: ['read'], customer: ['read', 'create', 'update'] }
 } as const satisfies Record<string, Permissions>
@@ -118,6 +123,8 @@ export const reservedSlugs = [
   'new',
   'onboarding',
   'organizations',
+  /** A tenant's public pages, `/p/:orgSlug` (ADR 0060). */
+  'p',
   'reset-password',
   'settings',
   'signup'
@@ -145,3 +152,18 @@ export const roleNameSchema = z.string().check(
   z.regex(kebab),
   z.refine((name) => !Object.hasOwn(builtInRoles, name))
 )
+
+/**
+ * `GET /api/public/organizations/:organizationSlug`: an organization as anyone may see it, with no
+ * session (ADR 0059). What a public page needs to say whose it is and to draw times and prices
+ * (ADR 0053); never an id, a member or a count. A public route returns a schema of its own, named
+ * `public…`, never the member's.
+ */
+export const publicOrganizationSchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+  timeZone: timeZoneSchema,
+  currency: currencySchema
+})
+
+export type PublicOrganization = z.infer<typeof publicOrganizationSchema>

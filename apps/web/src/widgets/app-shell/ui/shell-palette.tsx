@@ -11,7 +11,7 @@ const themeIcons: Record<Theme, IconName> = { system: 'monitor', light: 'sun', d
  * out). The keys that open it live in the app; here is what it holds and what each item does.
  */
 /** The icons of the organization's screens, as the side menu draws them. */
-const organizationIcons = { general: 'organization', members: 'users', roles: 'role' } as const
+const organizationIcons = { general: 'organization', members: 'users', roles: 'role', activity: 'activity' } as const
 
 export function ShellPalette(props: { signOut: () => void }) {
   const { t } = useI18n()
@@ -59,7 +59,7 @@ export function ShellPalette(props: { signOut: () => void }) {
     },
     // The organization's own screens, when the screen is one of its: the same as the side menu offers.
     ...(organization
-      ? (['general', 'members', 'roles'] as const).map((screen) => ({
+      ? (['general', 'members', 'roles', 'activity'] as const).map((screen) => ({
           id: `go:${homeOf(organization)}/settings/${screen}`,
           label: t(`appShell.nav.${screen}`),
           group: go,
