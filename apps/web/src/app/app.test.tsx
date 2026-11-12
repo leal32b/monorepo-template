@@ -814,6 +814,53 @@ describe('App', () => {
     })
   })
 
+  describe('a tenant’s public page (ADR 0060)', () => {
+    const acme = { name: 'Acme Barbershop', slug: 'acme', timeZone: 'UTC', currency: 'USD' }
+
+    /** Both clients, recording every path asked; the public profile answers, anything else is refused. */
+    function clientsAsked() {
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          return path === '/api/public/organizations/acme'
+            ? Response.json(acme)
+            : Response.json({ code: 'unauthorized' }, { status: 401 })
+        }
+      })
+      const auth = createAuthClient({
+        fetch: async (input) => {
+          asked.push(new URL(String(input), 'http://localhost').pathname)
+          return Response.json(null)
+        }
+      })
+      return { asked, client, auth }
+    }
+
+    it('serves /p/:orgSlug in its organization’s name, asking for nothing but that organization', async () => {
+      const { asked, client, auth } = clientsAsked()
+      window.history.replaceState(null, '', '/p/acme')
+
+      render(() => <App client={client} auth={auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Become a customer' })).toBeInTheDocument()
+      expect(screen.getByText('Acme Barbershop')).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Monorepo Template' })).not.toBeInTheDocument()
+      expect(asked).toEqual(['/api/public/organizations/acme'])
+    })
+
+    it('asks nothing of the session even on a device where one was seen (ADR 0042)', async () => {
+      rememberSession()
+      const { asked, client, auth } = clientsAsked()
+      window.history.replaceState(null, '', '/p/acme')
+
+      render(() => <App client={client} auth={auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Become a customer' })).toBeInTheDocument()
+      expect(asked).toEqual(['/api/public/organizations/acme'])
+    })
+  })
+
   it('answers an address that does not exist with a page that says so', () => {
     const client = createApiClient({ fetch: async () => Response.json(null) })
     const auth = createAuthClient({ fetch: async () => Response.json(null) })

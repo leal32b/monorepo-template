@@ -7,7 +7,7 @@ export const publicEn = {
       title: 'There is no page at this address',
       description: 'Check the link with whoever gave it to you: a letter may be missing, or the page may have moved.'
     },
-    unavailable: 'This page could not be opened.'
+    unavailable: 'This page could not be opened'
   },
   registration: {
     name: 'Your name',

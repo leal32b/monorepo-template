@@ -45,6 +45,10 @@ const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: 
 const DeleteAccountPage = lazy(() => import('#pages/delete-account').then((m) => ({ default: m.DeleteAccountPage })))
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
+/** A tenant's public page, a chunk of its own: neither the sign-in nor the signed-in screens download it (ADR 0060). */
+const PublicOrganizationPage = lazy(() =>
+  import('#pages/public-organization').then((m) => ({ default: m.PublicOrganizationPage }))
+)
 
 /**
  * A screen's reads start in its route, as soon as the router opens it (ADR 0038): the session and the
@@ -126,6 +130,19 @@ const preloadInvitation = onOpen(({ params }) => {
   preload(organizations, (entity, { api }) => entity.invitationQuery(api)(id))
 })
 
+/**
+ * The read of a tenant's public page, started as it opens with the slug read now (ADR 0038). Not through
+ * `preload`: a visitor's page never asks for the session, nor reads the device's hint of one (ADR 0060).
+ */
+const preloadPublic = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  const api = useApi()
+  import('#entities/public-organizations')
+    .then((entity) => entity.publicOrganizationQuery(api)(slug))
+    // A read that fails is said by the page, which reads it again.
+    .catch(() => undefined)
+})
+
 /** `/:orgSlug/settings` opens on General, as `/settings` opens on the profile. */
 function SettingsOfOrganization() {
   const params = useParams<{ orgSlug: string }>()
@@ -153,8 +170,14 @@ export const opensOnEntryScreen = (pathname: string) =>
 export const tenantPath = '/:orgSlug'
 
 /**
- * Every screen of the app. Tenant screens sit under `/:orgSlug`; entry, account, onboarding and
- * invitation screens stay outside it, and the words they use are reserved, so no slug can shadow
+ * A tenant's public pages, for a visitor with no account, sit under `/p/:orgSlug` (ADR 0060): outside the
+ * session guard, in the entry screens' frame with the organization's name. `p` is a reserved slug.
+ */
+export const publicPath = '/p/:orgSlug'
+
+/**
+ * Every screen of the app. Tenant screens sit under `/:orgSlug`; entry, account, onboarding,
+ * invitation and public screens stay outside it, and the words they use are reserved, so no slug can shadow
  * them (`reservedSlugs` in `@repo/contracts`, checked by the routes' test).
  */
 export const routes: RouteDefinition[] = [
@@ -215,6 +238,7 @@ export const routes: RouteDefinition[] = [
       }
     ]
   },
+  { path: publicPath, component: PublicOrganizationPage, preload: preloadPublic },
   { path: '/account', component: AccountRedirect },
   ...entryScreens,
   { path: '*404', component: NotFoundPage }

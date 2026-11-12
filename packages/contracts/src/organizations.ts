@@ -119,6 +119,8 @@ export const reservedSlugs = [
   'new',
   'onboarding',
   'organizations',
+  /** A tenant's public pages, `/p/:orgSlug` (ADR 0060). */
+  'p',
   'reset-password',
   'settings',
   'signup'

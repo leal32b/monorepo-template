@@ -8,7 +8,7 @@ export const publicPtBR: typeof publicEn = {
       title: 'Não há página neste endereço',
       description: 'Confira o link com quem o passou para você: pode faltar uma letra, ou a página pode ter mudado.'
     },
-    unavailable: 'Não foi possível abrir esta página.'
+    unavailable: 'Não foi possível abrir esta página'
   },
   registration: {
     name: 'Seu nome',

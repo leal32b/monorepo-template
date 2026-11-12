@@ -8,7 +8,7 @@ export const publicEs: typeof publicEn = {
       title: 'No hay ninguna página en esta dirección',
       description: 'Revisa el enlace con quien te lo dio: puede faltar una letra, o la página puede haberse movido.'
     },
-    unavailable: 'No se pudo abrir esta página.'
+    unavailable: 'No se pudo abrir esta página'
   },
   registration: {
     name: 'Tu nombre',
