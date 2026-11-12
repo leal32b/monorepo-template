@@ -7,6 +7,7 @@ import {
   organizationSlugSchema,
   ownerOnlyPermissions,
   permissionsSchema,
+  publicOrganizationSchema,
   reservedSlugs,
   roleNameSchema,
   statements
@@ -173,5 +174,18 @@ describe('organizationMembershipSchema', () => {
     ['an unknown permission', { roles: ['member'], permissions: { project: ['read'] } }]
   ])('rejects %s', (_case, value) => {
     expect(organizationMembershipSchema.safeParse(value).success).toBe(false)
+  })
+})
+
+describe('publicOrganizationSchema (ADR 0059)', () => {
+  const acme = { name: 'Acme Barbers', slug: 'acme', timeZone: 'America/Sao_Paulo', currency: 'BRL' }
+
+  it('accepts a public profile, and drops anything else a response carried', () => {
+    expect(publicOrganizationSchema.parse({ ...acme, id: 'org-acme' })).toEqual(acme)
+  })
+
+  it('refuses a time zone or a currency nobody can draw with', () => {
+    expect(publicOrganizationSchema.safeParse({ ...acme, timeZone: 'Mars/Olympus' }).success).toBe(false)
+    expect(publicOrganizationSchema.safeParse({ ...acme, currency: 'XXX' }).success).toBe(false)
   })
 })

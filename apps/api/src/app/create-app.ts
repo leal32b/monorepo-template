@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { isDatabaseUnavailable } from '#libs/database/database'
+import { KyselyRateLimiter } from '#libs/database/kysely-rate-limiter'
 import { fromFetchHandler } from '#libs/http/fetch-handler'
 import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
@@ -19,11 +20,13 @@ import { BetterAuthCurrentSession } from '#modules/identity/infrastructure/bette
 import { KyselyAccountDeletion } from '#modules/identity/infrastructure/kysely-account-deletion'
 import { KyselyInvitations } from '#modules/identity/infrastructure/kysely-invitations'
 import { KyselyMembership } from '#modules/identity/infrastructure/kysely-membership'
+import { KyselyPublicOrganizations } from '#modules/identity/infrastructure/kysely-public-organizations'
 import { GetAccountDeletionController } from '#modules/identity/queries/get-account-deletion/get-account-deletion.http-controller'
 import { GetIdentityOptionsController } from '#modules/identity/queries/get-identity-options/get-identity-options.http-controller'
 import { GetInvitationController } from '#modules/identity/queries/get-invitation/get-invitation.http-controller'
 import { GetMeController } from '#modules/identity/queries/get-me/get-me.http-controller'
 import { GetMembershipController } from '#modules/identity/queries/get-membership/get-membership.http-controller'
+import { GetPublicOrganizationController } from '#modules/identity/queries/get-public-organization/get-public-organization.http-controller'
 import { PUBLIC_PATHS, registerRoutes } from './http-routes'
 
 /** Long enough for Neon to wake from suspension, short enough for a status page to wait. */
@@ -73,6 +76,12 @@ export function createApp({
   const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google })
   const session = new BetterAuthCurrentSession(auth)
   const membership = new KyselyMembership(db)
+  // What routes without a session are built from (ADR 0059): the limiter first, then the slug.
+  const publicSurface = {
+    limiter: new KyselyRateLimiter(db, clock),
+    organizations: new KyselyPublicOrganizations(db),
+    logger
+  }
   registerRoutes(router, {
     getHealth: new GetHealthController(new GetHealthService(clock, { name: serviceName, release }, databaseProbe)),
     getLiveness: new GetLivenessController(),
@@ -81,7 +90,8 @@ export function createApp({
     getAccountDeletion: new GetAccountDeletionController(session, new KyselyAccountDeletion(db)),
     getMembership: new GetMembershipController(session, membership),
     getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
-    getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined })
+    getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined }),
+    getPublicOrganization: new GetPublicOrganizationController(publicSurface)
   })
   registerCustomerRoutes(router, {
     session,

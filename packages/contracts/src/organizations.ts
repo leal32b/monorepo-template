@@ -1,5 +1,6 @@
 import * as z from 'zod/mini'
-import { instantSchema } from './time'
+import { currencySchema } from './money'
+import { instantSchema, timeZoneSchema } from './time'
 
 /**
  * What can be done in an organization: resources and their actions (ADR 0033). They stay in code;
@@ -145,3 +146,18 @@ export const roleNameSchema = z.string().check(
   z.regex(kebab),
   z.refine((name) => !Object.hasOwn(builtInRoles, name))
 )
+
+/**
+ * `GET /api/public/organizations/:organizationSlug`: an organization as anyone may see it, with no
+ * session (ADR 0059). What a public page needs to say whose it is and to draw times and prices
+ * (ADR 0053); never an id, a member or a count. A public route returns a schema of its own, named
+ * `public…`, never the member's.
+ */
+export const publicOrganizationSchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+  timeZone: timeZoneSchema,
+  currency: currencySchema
+})
+
+export type PublicOrganization = z.infer<typeof publicOrganizationSchema>
