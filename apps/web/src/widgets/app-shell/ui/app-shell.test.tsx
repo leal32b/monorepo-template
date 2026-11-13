@@ -5,6 +5,7 @@ import { CurrentOrganizationProvider, type Organization, OrganizationsProvider }
 import { hasSession, rememberSession, SessionProvider } from '#entities/sessions'
 import { AuthProvider, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { membershipOf } from '../../../test-membership'
 import { AppFrame } from './app-frame'
 import { AppShell } from './app-shell'
 
@@ -38,7 +39,7 @@ function renderShell({
   organization,
   members = async () => 'The members'
 }: Options = {}) {
-  const membership = { roles: ['owner'], permissions: {} }
+  const membership = membershipOf(['owner'], {})
   const authFetch: Fetch =
     auth ??
     (async (input) =>

@@ -2,6 +2,7 @@ import { builtInRoles } from '@repo/contracts'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { rememberSession } from '#entities/sessions'
 import { createApiClient, createAuthClient, createRequests } from '#shared/api'
+import { membershipOf } from '../test-membership'
 import { App } from './app'
 
 /** Follows a link the way the router takes one, as a link elsewhere on the page or the palette does. */
@@ -20,7 +21,7 @@ describe('App', () => {
 
   it('opens the signed-in user’s organization at the root, with its home in the app frame', async () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
-    const membership = { roles: ['owner'], permissions: { organization: ['update', 'delete'] } }
+    const membership = membershipOf(['owner'], { organization: ['update', 'delete'] })
     const client = createApiClient({
       fetch: async (path) => Response.json(path === '/api/organizations/org-1/me' ? membership : null)
     })
@@ -378,7 +379,7 @@ describe('App', () => {
 
   describe('the settings of the organization', () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
-    const owner = { roles: ['owner'], permissions: { organization: ['update', 'delete'] } }
+    const owner = membershipOf(['owner'], { organization: ['update', 'delete'] })
 
     /** Ada in Acme, which she owns; every answer of the organization plugin is `true`. */
     const inAcme = () => {
@@ -443,7 +444,7 @@ describe('App', () => {
         fetch: async (path) => {
           asked.push(path)
           if (path === '/api/organizations/org-1/me') {
-            return Response.json({ roles: ['owner'], permissions: { customer: ['read', 'create'] } })
+            return Response.json(membershipOf(['owner'], { customer: ['read', 'create'] }))
           }
           return Response.json({
             items: [
@@ -502,7 +503,7 @@ describe('App', () => {
         fetch: async (path) => {
           asked.push(path)
           if (path === '/api/organizations/org-1/me') {
-            return Response.json({ roles: ['owner'], permissions: { audit: ['read'] } })
+            return Response.json(membershipOf(['owner'], { audit: ['read'] }))
           }
           return Response.json({
             items: [
@@ -539,7 +540,7 @@ describe('App', () => {
         fetch: async (path) => {
           asked.push(path)
           if (path === '/api/organizations/org-1/me') {
-            return Response.json({ roles: ['member'], permissions: builtInRoles.member })
+            return Response.json(membershipOf(['member'], builtInRoles.member))
           }
           return new Response(null, { status: 403 })
         }
@@ -723,7 +724,7 @@ describe('App', () => {
     /** Ada owns Acme and Globex, so the home offers her the way to invite people. */
     const inTwo = () => {
       const client = createApiClient({
-        fetch: (path) => later(path.endsWith('/me') ? { roles: ['owner'], permissions: builtInRoles.owner } : null)
+        fetch: (path) => later(path.endsWith('/me') ? membershipOf(['owner'], builtInRoles.owner) : null)
       })
       const auth = createAuthClient({
         fetch: (input) => {
@@ -778,7 +779,7 @@ describe('App', () => {
       let joined = false
       const client = createApiClient({
         fetch: async (path) => {
-          if (path.endsWith('/me')) return Response.json({ roles: ['owner'], permissions: builtInRoles.owner })
+          if (path.endsWith('/me')) return Response.json(membershipOf(['owner'], builtInRoles.owner))
           if (path === '/api/invitations/inv-1') return Response.json(invitation)
           return Response.json(null)
         }

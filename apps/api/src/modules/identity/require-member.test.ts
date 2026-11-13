@@ -53,14 +53,16 @@ describe('requireMember (ADR 0033)', () => {
     session.actor = ada
     membership.add(member)
 
-    expect(await requireMember({ session, membership }, req, 'org-acme')).toEqual(member)
+    expect(await requireMember({ session, membership }, req, 'org-acme')).toMatchObject(member)
   })
 
   it('returns the member when its roles hold every permission asked for', async () => {
     session.actor = ada
     membership.add(member)
 
-    expect(await requireMember({ session, membership }, req, 'org-acme', { invitation: ['create'] })).toEqual(member)
+    expect(await requireMember({ session, membership }, req, 'org-acme', { invitation: ['create'] })).toMatchObject(
+      member
+    )
   })
 
   it('answers 403 to a member who lacks a permission asked for', async () => {

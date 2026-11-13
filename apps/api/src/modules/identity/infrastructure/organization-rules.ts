@@ -1,14 +1,20 @@
 import {
   builtInRoles,
+  type CheckoutKind,
   covers,
   currencySchema,
   organizationNameSchema,
   organizationSlugSchema,
   ownerOnlyPermissions,
   type Permissions,
+  type PlanKey,
   permissionsSchema,
+  plans,
   roleNameSchema,
-  timeZoneSchema
+  type SubscriptionState,
+  type SubscriptionStatus,
+  timeZoneSchema,
+  trialFrom
 } from '@repo/contracts'
 import { APIError } from 'better-auth/api'
 import { type Kysely, sql } from 'kysely'
@@ -27,6 +33,57 @@ type OrganizationTables = {
     createdAt: Date
   }
   user: { id: string; email: string }
+  organization: { id: string; createdAt: Date }
+  /** Billing's table (`migrations/0013_subscription.sql`), as far as the membership read joins it (ADR 0063). */
+  'public.subscription': {
+    organization_id: string
+    status: SubscriptionStatus
+    plan: PlanKey | null
+    next_plan: PlanKey | null
+    trial_ends_at: Date
+    period_starts_at: Date | null
+    paid_through: Date | null
+    past_due_since: Date | null
+    cancel_at_period_end: boolean
+    checkout_kind: CheckoutKind | null
+    checkout_plan: PlanKey | null
+    checkout_amount: number | null
+  }
+}
+
+/** The subscription's columns as the left join reads them: all null when the organization has no row. */
+type SubscriptionColumns = {
+  [C in Exclude<keyof OrganizationTables['public.subscription'], 'organization_id'>]:
+    | OrganizationTables['public.subscription'][C]
+    | null
+}
+
+/**
+ * The subscription a membership read found (ADR 0063): no row is the trial, from the organization's
+ * creation. The checkout's columns are set together (`subscription_checkout_check`), and its amount is
+ * in the currency of the plans.
+ */
+function subscriptionOf(row: SubscriptionColumns, createdAt: Date): SubscriptionState {
+  if (row.status === null) return trialFrom(createdAt)
+  const checkoutPlan = row.checkout_plan as PlanKey
+  return {
+    status: row.status,
+    plan: row.plan,
+    nextPlan: row.next_plan,
+    trialEndsAt: row.trial_ends_at as Date,
+    periodStartsAt: row.period_starts_at,
+    paidThrough: row.paid_through,
+    pastDueSince: row.past_due_since,
+    cancelAtPeriodEnd: row.cancel_at_period_end as boolean,
+    checkout:
+      row.checkout_kind === null
+        ? null
+        : {
+            kind: row.checkout_kind,
+            plan: checkoutPlan,
+            amount: { amount: row.checkout_amount as number, currency: plans[checkoutPlan].price.currency }
+          }
+  }
 }
 
 /**
@@ -94,15 +151,19 @@ export class OrganizationReader {
   }
 
   /**
-   * A member's roles and what they hold, in one round trip: the organization's custom roles come with
-   * the member row, so a non-member costs the same single query and no permission work.
+   * A member's roles and what they hold, and the organization's subscription, in one round trip: the
+   * custom roles, the organization's creation and its subscription row come with the member row
+   * (ADR 0063), so a non-member costs the same single query and no permission work. It runs on the
+   * pool as the tables' owner, and the row it joins is the organization's whose member row matched.
    */
   async memberOf(
     organizationId: string,
     userId: string
-  ): Promise<{ roles: string; permissions: Permissions } | undefined> {
+  ): Promise<{ roles: string; permissions: Permissions; subscription: SubscriptionState } | undefined> {
     const row = await this.#db
       .selectFrom('member')
+      .innerJoin('organization', 'organization.id', 'member.organizationId')
+      .leftJoin('public.subscription as row', 'row.organization_id', 'member.organizationId')
       .select((eb) => [
         'member.role',
         jsonArrayFrom(
@@ -110,14 +171,31 @@ export class OrganizationReader {
             .selectFrom('organizationRole')
             .select(['organizationRole.role', 'organizationRole.permission'])
             .whereRef('organizationRole.organizationId', '=', 'member.organizationId')
-        ).as('customRoles')
+        ).as('customRoles'),
+        'organization.createdAt',
+        'row.status',
+        'row.plan',
+        'row.next_plan',
+        'row.trial_ends_at',
+        'row.period_starts_at',
+        'row.paid_through',
+        'row.past_due_since',
+        'row.cancel_at_period_end',
+        'row.checkout_kind',
+        'row.checkout_plan',
+        'row.checkout_amount'
       ])
       .where('member.organizationId', '=', organizationId)
       .where('member.userId', '=', userId)
       .executeTakeFirst()
     if (row === undefined) return undefined
-    const custom = new Map(row.customRoles.map((custom) => [custom.role, parseRolePermission(custom.permission)]))
-    return { roles: row.role, permissions: permissionsOfRoles(row.role, custom) }
+    const { role, customRoles, createdAt, ...subscription } = row
+    const custom = new Map(customRoles.map((custom) => [custom.role, parseRolePermission(custom.permission)]))
+    return {
+      roles: role,
+      permissions: permissionsOfRoles(role, custom),
+      subscription: subscriptionOf(subscription, createdAt)
+    }
   }
 
   /** The roles of a member of `organizationId`, found by user id, member id or email; undefined if none. */

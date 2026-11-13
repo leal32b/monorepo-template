@@ -77,7 +77,7 @@ export function createApp({
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
   const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google })
   const session = new BetterAuthCurrentSession(auth)
-  const membership = new KyselyMembership(db)
+  const membership = new KyselyMembership(db, clock)
   // What routes without a session are built from (ADR 0059): the limiter first, then the slug.
   const publicSurface = {
     limiter: new KyselyRateLimiter(db, clock),

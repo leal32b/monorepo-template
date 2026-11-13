@@ -12,6 +12,7 @@ import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/or
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { membershipOf } from '../../../test-membership'
 import { OrganizationActivityPage } from './organization-activity-page'
 
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
@@ -68,7 +69,7 @@ function renderPage({
                       component={(props: ParentProps) => (
                         <CurrentOrganizationProvider
                           organization={acme}
-                          membership={{ roles: ['owner'], permissions: held as OrganizationMembership['permissions'] }}
+                          membership={membershipOf(['owner'], held as OrganizationMembership['permissions'])}
                         >
                           {props.children}
                         </CurrentOrganizationProvider>

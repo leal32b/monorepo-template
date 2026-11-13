@@ -4,12 +4,13 @@ import { type Component, createResource, type ParentProps, Show, Suspense } from
 import { OrganizationsProvider, useOrganization, useOrganizations } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider } from '#shared/config'
+import { membershipOf } from '../test-membership'
 import { RequireOrganization } from './require-organization'
 
 type ApiFetch = (input: string, init?: RequestInit) => Promise<Response>
 
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
-const admin = { roles: ['admin'], permissions: { member: ['create'] } }
+const admin = membershipOf(['admin'], { member: ['create'] })
 
 function Rights() {
   const { organization, can } = useOrganization()
@@ -277,7 +278,7 @@ describe('RequireOrganization', () => {
 
   describe('coming from another screen', () => {
     const globex = { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' as const }
-    const member = { roles: ['member'], permissions: {} }
+    const member = membershipOf(['member'], {})
 
     /** A screen outside the organizations, with links into them once they are read, as the account settings have. */
     function Elsewhere() {

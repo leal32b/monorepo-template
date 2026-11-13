@@ -1,9 +1,10 @@
 import { createApiClient } from '#shared/api'
+import { membershipOf } from '../../../test-membership'
 import { getMembership } from './get-membership'
 
 describe('getMembership', () => {
   it('asks the tenant guard of the organization for the caller’s roles and permissions', async () => {
-    const membership = { roles: ['admin'], permissions: { member: ['create'] } }
+    const membership = membershipOf(['admin'], { member: ['create'] })
     const fetch = vi.fn(async (_path: string) => Response.json(membership))
 
     expect(await getMembership(createApiClient({ fetch }), 'org/1')).toEqual(membership)

@@ -1,4 +1,5 @@
 import { render, screen } from '@solidjs/testing-library'
+import { membershipOf } from '../../../test-membership'
 import { CurrentOrganizationProvider, homeOf, useCurrentOrganization, useOrganization } from './current-organization'
 
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
@@ -15,7 +16,7 @@ function Rights() {
 
 describe('CurrentOrganizationProvider', () => {
   it('gives the screens the organization and what the caller may do, as the API resolved it', () => {
-    const membership = { roles: ['recruiter'], permissions: { invitation: ['create' as const] } }
+    const membership = membershipOf(['recruiter'], { invitation: ['create'] })
 
     render(() => (
       <CurrentOrganizationProvider organization={acme} membership={membership}>

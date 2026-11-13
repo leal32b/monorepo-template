@@ -170,15 +170,34 @@ describe('organizationSlugSchema', () => {
 })
 
 describe('organizationMembershipSchema', () => {
-  it('accepts the roles and the permissions they resolve to', () => {
-    const membership = { roles: ['member', 'editor'], permissions: { ac: ['read'], invitation: ['create'] } }
+  const subscription = {
+    status: 'trialing',
+    access: 'full',
+    plan: null,
+    nextPlan: null,
+    trialEndsAt: '2026-11-15T09:00:00.000Z',
+    periodStartsAt: null,
+    paidThrough: null,
+    pastDueSince: null,
+    cancelAtPeriodEnd: false,
+    checkout: null
+  }
+  const membership = {
+    roles: ['member', 'editor'],
+    permissions: { ac: ['read'], invitation: ['create'] },
+    subscription,
+    entitlements: { capabilities: ['activity-log'], limits: { 'customers.max': null } }
+  }
 
+  it('accepts the roles, the permissions they resolve to, and the subscription with what it grants (ADR 0063)', () => {
     expect(organizationMembershipSchema.parse(membership)).toEqual(membership)
   })
 
   it.each([
-    ['no role', { roles: [], permissions: {} }],
-    ['an unknown permission', { roles: ['member'], permissions: { project: ['read'] } }]
+    ['no role', { ...membership, roles: [] }],
+    ['an unknown permission', { ...membership, permissions: { project: ['read'] } }],
+    ['no subscription', { roles: ['member'], permissions: {}, entitlements: membership.entitlements }],
+    ['no entitlements', { roles: ['member'], permissions: {}, subscription }]
   ])('rejects %s', (_case, value) => {
     expect(organizationMembershipSchema.safeParse(value).success).toBe(false)
   })

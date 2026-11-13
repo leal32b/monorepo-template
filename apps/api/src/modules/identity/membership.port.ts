@@ -1,19 +1,27 @@
-import type { Permissions } from '@repo/contracts'
+import type { Entitlements, Permissions, SubscriptionAccess, SubscriptionState } from '@repo/contracts'
 
 /**
  * A user's place in one organization (ADR 0033): their roles and what those roles hold, built-in and
- * custom roles resolved. Product modules see this, never Better Auth's types.
+ * custom roles resolved, and the organization's subscription with what it grants (ADR 0063). Product
+ * modules see this, never Better Auth's types.
  */
 export type Member = {
   userId: string
   organizationId: string
   roles: string[]
   permissions: Permissions
+  /** The organization's subscription, and what it lets members do now by the API's clock. */
+  subscription: SubscriptionState & { access: SubscriptionAccess }
+  /** What the subscription grants; code reads it through `entitlement` from `@repo/contracts`. */
+  entitlements: Entitlements
 }
 
 /** Who belongs to which organization. */
 export interface Membership {
-  /** `userId` in `organizationId`, or `null` when they are not a member or the organization does not exist. */
+  /**
+   * `userId` in `organizationId`, or `null` when they are not a member or the organization does not
+   * exist: one round trip, the subscription included.
+   */
   memberOf(organizationId: string, userId: string): Promise<Member | null>
   /**
    * The names of those of `userIds` who are members of `organizationId` now, by user id: someone who
