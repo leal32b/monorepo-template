@@ -554,6 +554,69 @@ describe('App', () => {
       expect(asked.filter((path) => path === '/api/organizations/org-1/me')).toHaveLength(1)
     })
 
+    it('serves the plan page, the owner’s billing read as the address opens (ADR 0063)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/billing')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') return Response.json(membershipOf(['owner'], builtInRoles.owner))
+          return Response.json({
+            subscription: membershipOf([], {}).subscription,
+            version: 0,
+            reference: null,
+            checkoutUrl: null,
+            checkoutExpiresAt: null,
+            minimumCharge: { amount: 500, currency: 'BRL' }
+          })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Plan and billing' })).toBeInTheDocument()
+      expect(await screen.findByRole('region', { name: 'Your plan' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.endsWith('/billing'))).toEqual(['/api/organizations/org-1/billing'])
+      expect(asked.filter((path) => path === '/api/organizations/org-1/me')).toHaveLength(1)
+    })
+
+    it('asks a plain member for no billing, only who manages the plan (ADR 0042)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/billing')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me')
+            return Response.json(membershipOf(['member'], builtInRoles.member))
+          return new Response(null, { status: 403 })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByText('Ada Lovelace', { selector: 'p' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.includes('/billing'))).toEqual([])
+    })
+
+    it('asks for no billing at an address that names none of the user’s organizations', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/globex/settings/billing')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          return Response.json(null)
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.includes('/billing'))).toEqual([])
+    })
+
     it('asks for no activity at an address that names none of the user’s organizations', async () => {
       rememberSession()
       window.history.replaceState(null, '', '/globex/settings/activity')

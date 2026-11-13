@@ -24,6 +24,7 @@ export const billingEn = {
     },
     current: {
       title: 'Your plan',
+      memberTitle: "{{name}}'s plan",
       description: 'What {{name}} pays for, and until when.',
       memberDescription: 'Only an owner of {{name}} can choose, change or pay for the plan.',
       badges: { trial: 'Trial', active: 'Active', late: 'Payment late', readOnly: 'Read only' },
@@ -59,6 +60,8 @@ export const billingEn = {
     },
     late: {
       title: 'Payment late',
+      checkout:
+        'The provider has no page for the late payment, so a new subscription to {{plan}} replaces it: you pay {{price}} now, then every month.',
       pastDue: 'Pay by {{until}} to keep editing. Nothing is deleted.',
       readOnly: 'The organization is read only since {{until}}. Pay to edit again. Nothing was deleted.'
     },

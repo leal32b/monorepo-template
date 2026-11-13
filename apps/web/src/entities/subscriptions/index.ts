@@ -7,5 +7,7 @@ export {
   startCheckout
 } from './api/billing-api'
 export { billingQuery } from './api/billing-query'
-export { type Notice, noticeOf } from './model/subscription-notice'
+export { choiceOf, type PlanChoice } from './model/plan-choice'
+export { usePlanWords } from './model/plan-words'
+export { standingOf } from './model/standing'
 export { SubscriptionNotice } from './ui/subscription-notice'

@@ -56,6 +56,47 @@ describe('RequireOrganization', () => {
     expect(window.localStorage.getItem('organization')).toBe('acme')
   })
 
+  it('reads what the caller may do again when a screen asks, after a change of the plan (ADR 0063)', async () => {
+    let calls = 0
+    const api = vi.fn<ApiFetch>(async () => Response.json(++calls === 1 ? admin : membershipOf(['admin'], {})))
+    function Refreshing() {
+      const current = useOrganization()
+      return (
+        <>
+          <Rights />
+          <button type="button" onClick={() => void current.refresh()}>
+            Read again
+          </button>
+        </>
+      )
+    }
+    const history = createMemoryHistory()
+    history.set({ value: '/acme' })
+    render(() => (
+      <I18nProvider locale="en">
+        <PaletteProvider>
+          <ApiProvider client={createApiClient({ fetch: api })}>
+            <AuthProvider client={createAuthClient({ fetch: async () => Response.json([acme]) })}>
+              <MemoryRouter history={history}>
+                <Route path="/" component={OrganizationsProvider}>
+                  <Route path="/:orgSlug" component={RequireOrganization}>
+                    <Route path="/" component={Refreshing} />
+                  </Route>
+                </Route>
+              </MemoryRouter>
+            </AuthProvider>
+          </ApiProvider>
+        </PaletteProvider>
+      </I18nProvider>
+    ))
+    expect(await screen.findByText('Acme: add members true')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Read again' }))
+
+    expect(await screen.findByText('Acme: add members false')).toBeInTheDocument()
+    expect(api).toHaveBeenCalledTimes(2)
+  })
+
   it('shows "not found" for a slug that is not one of the user’s organizations, without asking the API', async () => {
     const api = vi.fn<ApiFetch>(async () => Response.json(admin))
 

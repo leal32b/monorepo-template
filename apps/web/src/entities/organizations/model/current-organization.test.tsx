@@ -27,6 +27,41 @@ describe('CurrentOrganizationProvider', () => {
     expect(screen.getByText('Acme as recruiter: invite true, delete false')).toBeInTheDocument()
   })
 
+  it('hands a screen the way to read what the caller may do again', () => {
+    const refresh = vi.fn(async () => undefined)
+    function Again() {
+      const current = useOrganization()
+      return (
+        <button type="button" onClick={() => void current.refresh()}>
+          Read again
+        </button>
+      )
+    }
+
+    render(() => (
+      <CurrentOrganizationProvider organization={acme} membership={membershipOf([], {})} refresh={refresh}>
+        <Again />
+      </CurrentOrganizationProvider>
+    ))
+    screen.getByRole('button', { name: 'Read again' }).click()
+
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it('reads nothing again where nothing put up a way to (a screen drawn on its own)', async () => {
+    let current: ReturnType<typeof useOrganization> | undefined
+    render(() => (
+      <CurrentOrganizationProvider organization={acme} membership={membershipOf([], {})}>
+        {(() => {
+          current = useOrganization()
+          return null
+        })()}
+      </CurrentOrganizationProvider>
+    ))
+
+    await expect(current?.refresh()).resolves.toBeUndefined()
+  })
+
   it('is only for tenant screens', () => {
     expect(() => render(() => <Rights />)).toThrow('useOrganization must be used inside a CurrentOrganizationProvider')
   })

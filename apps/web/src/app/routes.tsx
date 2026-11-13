@@ -43,6 +43,9 @@ const OrganizationRolesPage = lazy(() =>
 const OrganizationActivityPage = lazy(() =>
   import('#pages/organization-activity').then((m) => ({ default: m.OrganizationActivityPage }))
 )
+const OrganizationBillingPage = lazy(() =>
+  import('#pages/organization-billing').then((m) => ({ default: m.OrganizationBillingPage }))
+)
 const InvitationPage = lazy(() => import('#pages/invitation').then((m) => ({ default: m.InvitationPage })))
 const OnboardingPage = lazy(() => import('#pages/onboarding').then((m) => ({ default: m.OnboardingPage })))
 const ProfilePage = lazy(() => import('#pages/profile').then((m) => ({ default: m.ProfilePage })))
@@ -132,6 +135,22 @@ const preloadActivity = onOpen(({ params }) => {
     if (!can(membership.permissions, 'audit', 'read')) return
     const { auditEntriesQuery } = await import('#entities/audit-entries')
     await auditEntriesQuery(api)(organization.id, '')
+  })
+})
+/**
+ * The plan page's read starts as soon as the organization is known (ADR 0063): the billing read for the
+ * owner, who alone holds `billing:manage`, and the members, whose owners the page names, for anyone else. It
+ * waits for the membership the frame reads anyway, so no member's console shows a refused call (ADR 0042).
+ */
+const preloadBilling = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  preload(organizations, async (entity, { auth, api }) => {
+    const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
+    if (organization === undefined) return
+    const membership = await entity.membershipQuery(api)(organization.id)
+    if (!can(membership.permissions, 'billing', 'manage')) return entity.membersQuery(auth)(organization.id)
+    const { billingQuery } = await import('#entities/subscriptions')
+    return billingQuery(api)(organization.id)
   })
 })
 const identityOptions = () => import('#entities/identity-options')
@@ -249,7 +268,8 @@ export const routes: RouteDefinition[] = [
                       { path: '/general', component: OrganizationGeneralPage },
                       { path: '/members', component: OrganizationMembersPage, preload: preloadTeam },
                       { path: '/roles', component: OrganizationRolesPage, preload: preloadTeam },
-                      { path: '/activity', component: OrganizationActivityPage, preload: preloadActivity }
+                      { path: '/activity', component: OrganizationActivityPage, preload: preloadActivity },
+                      { path: '/billing', component: OrganizationBillingPage, preload: preloadBilling }
                     ]
                   }
                 ]

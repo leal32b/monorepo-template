@@ -20,6 +20,7 @@ export const billingPtBR: typeof billingEn = {
     },
     current: {
       title: 'Seu plano',
+      memberTitle: 'Plano de {{name}}',
       description: 'O que {{name}} paga, e até quando.',
       memberDescription: 'Só um proprietário de {{name}} pode escolher, mudar ou pagar o plano.',
       badges: { trial: 'Teste', active: 'Ativo', late: 'Pagamento atrasado', readOnly: 'Somente leitura' },
@@ -55,6 +56,8 @@ export const billingPtBR: typeof billingEn = {
     },
     late: {
       title: 'Pagamento atrasado',
+      checkout:
+        'O provedor não tem uma página para o pagamento atrasado, então uma nova assinatura do {{plan}} o substitui: você paga {{price}} agora e depois todo mês.',
       pastDue: 'Pague até {{until}} para continuar editando. Nada é apagado.',
       readOnly: 'A organização está somente leitura desde {{until}}. Pague para editar de novo. Nada foi apagado.'
     },
