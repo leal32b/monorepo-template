@@ -136,12 +136,14 @@ describe('OrganizationActivityPage (ADR 0061)', () => {
           actor: { kind: 'system' },
           resource: { type: 'subscription', id: 'org-1' },
           action: 'payment-recovered',
-          fields: ['status']
+          fields: ['status', 'pastDueSince', 'paidThrough']
         })
       ])
     })
 
-    expect(await screen.findByText('Received the late payment: status · Nov 7, 2026, 10:00 AM UTC')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Received the late payment: status, late since, paid until · Nov 7, 2026, 10:00 AM UTC')
+    ).toBeInTheDocument()
   })
 
   it('says nothing has changed yet, and draws no pager', async () => {

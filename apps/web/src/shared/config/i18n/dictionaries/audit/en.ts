@@ -30,7 +30,9 @@ export const auditEn = {
       },
       subscription: {
         'checkout-started': 'Started subscribing to a plan',
+        'checkout-abandoned': 'Dropped a subscription that was not paid',
         activated: 'Started the paid plan',
+        renewed: 'Received the payment of a new period',
         'upgrade-started': 'Started a change to a larger plan, waiting for its payment',
         'upgrade-abandoned': 'Dropped a change of plan that was not paid',
         'plan-changed': 'Changed the plan',
@@ -45,7 +47,17 @@ export const auditEn = {
     },
     changed: '{{what}}: {{fields}}',
     fields: {
-      customer: { name: 'name', email: 'email', phone: 'phone', company: 'company', notes: 'notes' }
+      customer: { name: 'name', email: 'email', phone: 'phone', company: 'company', notes: 'notes' },
+      subscription: {
+        status: 'status',
+        plan: 'plan',
+        nextPlan: 'next plan',
+        periodStartsAt: 'start of the period',
+        paidThrough: 'paid until',
+        pastDueSince: 'late since',
+        cancelAtPeriodEnd: 'end of the plan',
+        checkout: 'payment in progress'
+      }
     },
     pager: {
       label: 'Activity pages',

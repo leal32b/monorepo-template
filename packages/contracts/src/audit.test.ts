@@ -17,7 +17,9 @@ describe('auditActions', () => {
   it('lists every change of a subscription that billing records (ADR 0063)', () => {
     expect(auditActions.subscription).toEqual([
       'checkout-started',
+      'checkout-abandoned',
       'activated',
+      'renewed',
       'upgrade-started',
       'upgrade-abandoned',
       'plan-changed',

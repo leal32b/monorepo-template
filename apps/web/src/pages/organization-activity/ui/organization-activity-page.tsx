@@ -39,7 +39,19 @@ export function OrganizationActivityPage() {
 }
 
 /** The fields each kind of record has words for; another field is shown by its code. */
-const fieldsWithWords = { customer: ['name', 'email', 'phone', 'company', 'notes'], subscription: [] } as const
+const fieldsWithWords = {
+  customer: ['name', 'email', 'phone', 'company', 'notes'],
+  subscription: [
+    'status',
+    'plan',
+    'nextPlan',
+    'periodStartsAt',
+    'paidThrough',
+    'pastDueSince',
+    'cancelAtPeriodEnd',
+    'checkout'
+  ]
+} as const
 
 /** What an entry did, as a key: each kind of record with its own actions. */
 type EntryKey = { [R in AuditResourceType]: `activity.entries.${R}.${AuditAction<R>}` }[AuditResourceType]

@@ -1,5 +1,11 @@
 import {
   accessOf,
+  billingCheckoutInputSchema,
+  billingPageSchema,
+  billingPlanInputSchema,
+  billingProblems,
+  billingSchema,
+  billingVersionInputSchema,
   capabilities,
   entitlement,
   entitlementKeySchema,
@@ -7,6 +13,7 @@ import {
   entitlementsSchema,
   gracePeriod,
   limits,
+  paymentMethods,
   planKeySchema,
   plans,
   prorateUpgrade,
@@ -14,7 +21,8 @@ import {
   subscriptionProblems,
   subscriptionSchema,
   trial,
-  trialFrom
+  trialFrom,
+  webhookReceiptSchema
 } from './billing'
 
 const day = 24 * 60 * 60 * 1000
@@ -257,5 +265,83 @@ describe('subscriptionProblems', () => {
       planRequired: 'plan_required',
       readOnly: 'subscription_read_only'
     })
+  })
+})
+
+describe('the billing routes (ADR 0063)', () => {
+  it('names how the owner pays: the provider opens a different page for each (ADR 0064)', () => {
+    expect(paymentMethods).toEqual(['card', 'pix', 'boleto'])
+  })
+
+  it('takes a plan, a method, the version read and a path of the web to come back to', () => {
+    const input = { plan: 'pro', method: 'pix', version: 0, returnTo: '/acme/settings/billing' }
+
+    expect(billingCheckoutInputSchema.parse(input)).toEqual(input)
+    expect(billingPlanInputSchema.parse({ plan: 'basic', version: 3 })).toEqual({ plan: 'basic', version: 3 })
+    expect(billingVersionInputSchema.parse({ version: 3 })).toEqual({ version: 3 })
+  })
+
+  it.each([
+    ['an unknown plan', { plan: 'enterprise' }],
+    ['an unknown method', { method: 'cash' }],
+    ['a version below zero', { version: -1 }],
+    ['a whole URL, which could send the owner to another site', { returnTo: 'https://evil.example/' }],
+    ['a path to another host', { returnTo: '//evil.example/' }],
+    ['a path with a query of its own', { returnTo: '/acme/settings/billing?checkout=x' }],
+    ['a path with a backslash', { returnTo: '/\\evil.example' }]
+  ])('refuses a checkout with %s', (_, change) => {
+    const input = { plan: 'pro', method: 'card', version: 1, returnTo: '/acme/settings/billing' }
+
+    expect(billingCheckoutInputSchema.safeParse({ ...input, ...change }).success).toBe(false)
+  })
+
+  it('answers with the page to send the owner to, or none when nothing is to be paid', () => {
+    expect(billingPageSchema.parse({ url: 'https://pay.example/c/1' })).toEqual({ url: 'https://pay.example/c/1' })
+    expect(billingPageSchema.parse({ url: null })).toEqual({ url: null })
+    expect(billingPageSchema.safeParse({ url: 'not a url' }).success).toBe(false)
+  })
+
+  it("reads the plan page: the state, the version, the provider's reference and minimum, the open page", () => {
+    const answer = {
+      subscription: {
+        status: 'active',
+        access: 'full',
+        plan: 'basic',
+        nextPlan: null,
+        trialEndsAt: '2026-10-15T12:00:00.000Z',
+        periodStartsAt: '2026-11-01T12:00:00.000Z',
+        paidThrough: '2026-12-01T12:00:00.000Z',
+        pastDueSince: null,
+        cancelAtPeriodEnd: false,
+        checkout: { kind: 'upgrade', plan: 'pro', amount: { amount: 2000, currency: 'BRL' } }
+      },
+      version: 4,
+      reference: 'sub_1',
+      checkoutUrl: 'https://pay.example/c/1',
+      checkoutExpiresAt: '2026-11-19T12:30:00.000Z',
+      minimumCharge: { amount: 500, currency: 'BRL' }
+    }
+
+    expect(billingSchema.parse(answer)).toEqual(answer)
+    expect(
+      billingSchema.parse({ ...answer, reference: null, checkoutUrl: null, checkoutExpiresAt: null })
+    ).toMatchObject({ reference: null, checkoutUrl: null, checkoutExpiresAt: null })
+  })
+
+  it('names the codes of the refusals the billing routes answer with', () => {
+    expect(billingProblems).toEqual({
+      changed: 'subscription_changed',
+      checkoutOpen: 'checkout_open',
+      checkoutPaid: 'checkout_paid',
+      notActive: 'subscription_not_active',
+      cancellationScheduled: 'cancellation_scheduled',
+      paymentOverdue: 'payment_overdue',
+      wrongDirection: 'plan_change_not_allowed'
+    })
+  })
+
+  it("answers a provider's notice with the same receipt, new, repeated or ignored", () => {
+    expect(webhookReceiptSchema.parse({ received: true })).toEqual({ received: true })
+    expect(webhookReceiptSchema.safeParse({ received: false }).success).toBe(false)
   })
 })

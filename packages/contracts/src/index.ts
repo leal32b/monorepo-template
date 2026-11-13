@@ -13,6 +13,17 @@ export {
 } from './audit'
 export {
   accessOf,
+  type Billing,
+  type BillingCheckoutInput,
+  type BillingPage,
+  type BillingPlanInput,
+  type BillingVersionInput,
+  billingCheckoutInputSchema,
+  billingPageSchema,
+  billingPlanInputSchema,
+  billingProblems,
+  billingSchema,
+  billingVersionInputSchema,
   type Capability,
   type CheckoutKind,
   capabilities,
@@ -26,8 +37,10 @@ export {
   gracePeriod,
   type Limit,
   limits,
+  type PaymentMethod,
   type Plan,
   type PlanKey,
+  paymentMethods,
   planKeySchema,
   plans,
   prorateUpgrade,
@@ -40,7 +53,9 @@ export {
   subscriptionSchema,
   subscriptionStatuses,
   trial,
-  trialFrom
+  trialFrom,
+  type WebhookReceipt,
+  webhookReceiptSchema
 } from './billing'
 export {
   type Customer,

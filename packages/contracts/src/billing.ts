@@ -212,3 +212,98 @@ export const subscriptionProblems = {
   /** The organization is read only: a write waits until a plan is paid for. */
   readOnly: 'subscription_read_only'
 } as const
+
+/**
+ * How the owner pays (ADR 0064). The provider opens a different page for each: a card subscribes on
+ * its hosted checkout, a Pix or a boleto is paid on the charge's own invoice.
+ */
+export const paymentMethods = ['card', 'pix', 'boleto'] as const
+
+export type PaymentMethod = (typeof paymentMethods)[number]
+
+/** The version of the subscription row the owner read (ADR 0048): 0 while the organization has none, on trial. */
+const versionSchema = z.int().check(z.gte(0))
+
+/**
+ * A path of the web app, which the API joins to the web origin for the provider to send the owner back
+ * to: never a whole URL, so a checkout cannot be made to land on another site.
+ */
+const webPathSchema = z.string().check(z.regex(/^\/(?![/\\])[^?#\\]*$/), z.maxLength(200))
+
+/**
+ * `POST /api/organizations/:organizationId/billing/checkout` (ADR 0063): a first subscription, a new one
+ * that replaces it (to pay what is overdue, or to change how to pay), or an upgrade. The owner comes back
+ * to `returnTo` with `?checkout=returned`, or `?checkout=cancelled` when they leave the provider's page.
+ */
+export const billingCheckoutInputSchema = z.object({
+  plan: planKeySchema,
+  method: z.enum(paymentMethods),
+  version: versionSchema,
+  returnTo: webPathSchema
+})
+
+export type BillingCheckoutInput = z.infer<typeof billingCheckoutInputSchema>
+
+/**
+ * `PUT /api/organizations/:organizationId/billing/plan`: a cheaper plan from the end of the paid period,
+ * or the current plan again, which withdraws a scheduled change (ADR 0063).
+ */
+export const billingPlanInputSchema = z.object({ plan: planKeySchema, version: versionSchema })
+
+export type BillingPlanInput = z.infer<typeof billingPlanInputSchema>
+
+/** `POST …/billing/cancel` and `POST …/billing/resume`: the end of the plan at the end of the period, or its withdrawal. */
+export const billingVersionInputSchema = z.object({ version: versionSchema })
+
+export type BillingVersionInput = z.infer<typeof billingVersionInputSchema>
+
+/**
+ * A page of the provider to send the owner to, or `null`: the answer of a checkout (`null` when the plan
+ * changed at once, as an upgrade below the provider's minimum charge does) and of
+ * `GET …/billing/payment-page` (`null` when the provider has no page for what is overdue: offer a checkout).
+ */
+export const billingPageSchema = z.object({ url: z.nullable(z.url({ protocol: /^https?$/ })) })
+
+export type BillingPage = z.infer<typeof billingPageSchema>
+
+/**
+ * `GET /api/organizations/:organizationId/billing`, for the plan page of whoever holds `billing:manage`:
+ * the subscription as the membership read says it, and what only that page needs.
+ */
+export const billingSchema = z.object({
+  subscription: subscriptionSchema,
+  /** What a change of plan, a cancellation and a resumption send back (ADR 0048). */
+  version: versionSchema,
+  /** The provider's id of the subscription, in small text for a support request; null before the first. */
+  reference: z.nullable(z.string()),
+  /** The open checkout's page and until when it takes a payment: "Open the payment". */
+  checkoutUrl: z.nullable(z.url({ protocol: /^https?$/ })),
+  checkoutExpiresAt: z.nullable(instantSchema),
+  /** The smallest charge the provider takes: an upgrade that would cost less is free (ADR 0063). */
+  minimumCharge: moneySchema
+})
+
+export type Billing = z.infer<typeof billingSchema>
+
+/** The codes of the refusals the billing routes answer with, all 409 (ADR 0063); the web says each one. */
+export const billingProblems = {
+  /** The subscription changed after the owner read it: read it again, then decide (ADR 0048). */
+  changed: 'subscription_changed',
+  /** Another checkout is open: pay it or cancel it first. */
+  checkoutOpen: 'checkout_open',
+  /** The open checkout was paid: the plan changes as soon as the provider confirms it. */
+  checkoutPaid: 'checkout_paid',
+  /** A change of plan, a cancellation or a resumption needs a plan paid for: choose one first. */
+  notActive: 'subscription_not_active',
+  /** The plan ends at the end of the period: keep it first. */
+  cancellationScheduled: 'cancellation_scheduled',
+  /** A payment is overdue: pay it first. */
+  paymentOverdue: 'payment_overdue',
+  /** A dearer plan goes through the checkout, a cheaper one through the plan. */
+  wrongDirection: 'plan_change_not_allowed'
+} as const
+
+/** What `POST /api/webhooks/<provider>` answers a notice, new, repeated or of a kind not used alike (ADR 0063). */
+export const webhookReceiptSchema = z.object({ received: z.literal(true) })
+
+export type WebhookReceipt = z.infer<typeof webhookReceiptSchema>

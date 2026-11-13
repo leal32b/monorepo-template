@@ -31,7 +31,9 @@ export const auditEs: typeof auditEn = {
       },
       subscription: {
         'checkout-started': 'Empezó a suscribirse a un plan',
+        'checkout-abandoned': 'Abandonó una suscripción que no se pagó',
         activated: 'Empezó el plan de pago',
+        renewed: 'Recibió el pago de un nuevo período',
         'upgrade-started': 'Empezó el cambio a un plan mayor, a la espera del pago',
         'upgrade-abandoned': 'Abandonó un cambio de plan que no se pagó',
         'plan-changed': 'Cambió el plan',
@@ -46,7 +48,17 @@ export const auditEs: typeof auditEn = {
     },
     changed: '{{what}}: {{fields}}',
     fields: {
-      customer: { name: 'nombre', email: 'correo', phone: 'teléfono', company: 'empresa', notes: 'notas' }
+      customer: { name: 'nombre', email: 'correo', phone: 'teléfono', company: 'empresa', notes: 'notas' },
+      subscription: {
+        status: 'estado',
+        plan: 'plan',
+        nextPlan: 'próximo plan',
+        periodStartsAt: 'inicio del período',
+        paidThrough: 'pagado hasta',
+        pastDueSince: 'atrasado desde',
+        cancelAtPeriodEnd: 'fin del plan',
+        checkout: 'pago en curso'
+      }
     },
     pager: {
       label: 'Páginas de la actividad',

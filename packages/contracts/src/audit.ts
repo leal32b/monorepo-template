@@ -15,7 +15,9 @@ export const auditActions = {
    */
   subscription: [
     'checkout-started',
+    'checkout-abandoned',
     'activated',
+    'renewed',
     'upgrade-started',
     'upgrade-abandoned',
     'plan-changed',
