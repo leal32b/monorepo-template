@@ -117,6 +117,20 @@ describe('StartCheckoutService (ADR 0063)', () => {
       expect(await checkout({ plan: 'pro', version: 2 })).toMatchObject({ url: expect.any(String) })
     })
 
+    it('leaves the row alone when the claim is already gone as the provider fails', async () => {
+      const { service, provider, subscriptions } = setUp()
+      vi.spyOn(provider, 'startCheckout').mockImplementationOnce(async () => {
+        const row = (await subscriptions.find('org-1')) as Subscription
+        await subscriptions.save({ ...row, checkout: null })
+        throw new BillingProviderUnavailableException('timed out')
+      })
+
+      await expect(
+        service.execute('org-1', { plan: 'pro', method: 'card', version: 0, returnTo }, owner, trialEndsAt)
+      ).rejects.toThrow(BillingProviderUnavailableException)
+      expect(await subscriptions.find('org-1')).toMatchObject({ checkout: null, version: 2 })
+    })
+
     it('withdraws the page it opened when the owner dropped the claim meanwhile', async () => {
       const { service, provider, subscriptions } = setUp()
       const cancelCheckout = vi.spyOn(provider, 'cancelCheckout')
@@ -187,6 +201,31 @@ describe('StartCheckoutService (ADR 0063)', () => {
       })
       expect(await subscriptions.find('org-1')).toMatchObject({ plan: 'pro', checkout: null })
       expect(await entries()).toEqual([expect.objectContaining({ action: 'plan-changed', fields: ['plan'] })])
+    })
+
+    it("drops an upgrade's payment whose page expired, and opens a new one", async () => {
+      const { checkout, entries, clock, subscribed } = setUp()
+      const row = await subscribed()
+      await checkout({ plan: 'pro', version: row.version })
+      clock.advance(30 * 60 * 1000)
+
+      await checkout({ plan: 'pro', version: row.version + 2 })
+
+      expect((await entries()).map((entry) => entry.action)).toEqual([
+        'upgrade-started',
+        'upgrade-abandoned',
+        'upgrade-started'
+      ])
+    })
+
+    it('refuses the change when the row moved while the provider was called', async () => {
+      const { checkout, provider, subscriptions, subscribed } = setUp(new Date('2026-11-29T12:00:00.000Z'))
+      const row = await subscribed()
+      vi.spyOn(provider, 'changePlan').mockImplementationOnce(async () => {
+        await subscriptions.save(row)
+      })
+
+      await expect(checkout({ plan: 'pro', version: row.version })).rejects.toThrow(SubscriptionChangedException)
     })
 
     it('refuses a cheaper plan, which waits for the end of the period', async () => {

@@ -32,7 +32,7 @@ const billing = createBillingProvider(env.billing, {
   autoComplete: { afterMs: 3_000, timer: new SystemTimer() }
 })
 // Background work (ADR 0056): this process runs the jobs unless a worker of its own does.
-const jobs = createJobs({ db, clock, logger, emailSender, idlePollMs: env.jobs.idlePollMs })
+const jobs = createJobs({ db, clock, logger, emailSender, billing, idlePollMs: env.jobs.idlePollMs })
 const server = createApp({
   clock,
   logger,
@@ -43,6 +43,7 @@ const server = createApp({
   proxySecret: env.proxySecret,
   db,
   jobs: jobs.queue,
+  jobsOn: jobs.bind,
   authSecret: env.authSecret,
   google: env.google,
   billing

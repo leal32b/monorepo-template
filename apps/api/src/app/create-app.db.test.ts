@@ -28,6 +28,7 @@ describe('API', () => {
     proxySecret,
     db,
     jobs,
+    jobsOn: () => jobs,
     authSecret,
     google: undefined,
     billing: new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
@@ -113,6 +114,7 @@ describe('API without its database', () => {
     proxySecret: undefined,
     db,
     jobs,
+    jobsOn: () => jobs,
     authSecret,
     google: undefined,
     billing: new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })

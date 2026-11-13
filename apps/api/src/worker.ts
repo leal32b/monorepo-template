@@ -1,7 +1,9 @@
+import { createBillingProvider } from '#app/create-billing-provider'
 import { createEmailSender } from '#app/create-email-sender'
 import { createJobs } from '#app/create-jobs'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { createLogger } from '#libs/logging/create-logger'
 
@@ -21,11 +23,15 @@ try {
 
 const logger = createLogger({ level: env.logLevel, service: 'worker', release: env.release })
 const db = createDatabase(createPool(env.databaseUrl, logger))
+const clock = new SystemClock()
 const jobs = createJobs({
   db,
-  clock: new SystemClock(),
+  clock,
   logger,
   emailSender: createEmailSender(env.email, logger),
+  // A real provider holds its state itself. The billing fake keeps it in the API's process, so its
+  // notices are synced only by the API's own worker: run the fake with JOB_WORKER on (ADR 0063).
+  billing: createBillingProvider(env.billing, { clock, ids: new UuidGenerator() }),
   idlePollMs: env.jobs.idlePollMs
 })
 

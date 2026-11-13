@@ -32,7 +32,9 @@ describe('organizations through Better Auth (ADR 0033)', () => {
    * Not started: a test runs the jobs with `drain()` before it reads what was sent (ADR 0057). On the
    * system clock, so emails asked for one request after another are sent in that order.
    */
+  const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    billing,
     db,
     clock: new SystemClock(),
     logger,
@@ -63,9 +65,10 @@ describe('organizations through Better Auth (ADR 0033)', () => {
       proxySecret: undefined,
       db,
       jobs: jobs.queue,
+      jobsOn: jobs.bind,
       authSecret: 'fedcba9876543210'.repeat(2),
       google: undefined,
-      billing: new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
+      billing
     })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`

@@ -4,4 +4,5 @@
  * before it writes.
  */
 export { registerBillingRoutes } from './billing.routes'
+export { registerBillingJobs, syncPayloadOf, syncSubscription } from './jobs/billing-jobs'
 export { assertWithinLimit } from './plan-limits'

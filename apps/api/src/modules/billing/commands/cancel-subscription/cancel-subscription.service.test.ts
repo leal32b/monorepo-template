@@ -40,6 +40,17 @@ describe('CancelSubscriptionService (ADR 0063)', () => {
     expect(cancel).not.toHaveBeenCalled()
   })
 
+  it("writes nothing when the provider's state did not change", async () => {
+    const kit = setUp()
+    const row = await subscribed(kit)
+    vi.spyOn(kit.provider, 'cancel').mockResolvedValueOnce()
+
+    await kit.cancel(row.version)
+
+    expect(await kit.subscriptions.find('org-1')).toMatchObject({ version: row.version, cancelAtPeriodEnd: false })
+    expect(await kit.entries()).toEqual([])
+  })
+
   it('refuses a stale version, and an organization with no plan', async () => {
     const kit = setUp()
 

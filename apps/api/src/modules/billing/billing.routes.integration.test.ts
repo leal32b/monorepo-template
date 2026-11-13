@@ -1,7 +1,14 @@
-import { apiProblemSchema, billingPageSchema, billingSchema, type Permissions } from '@repo/contracts'
+import {
+  apiProblemSchema,
+  billingPageSchema,
+  billingSchema,
+  type Permissions,
+  webhookReceiptSchema
+} from '@repo/contracts'
+import type { BillingNotice } from '#libs/ports/billing-provider.port'
 import { serveRoutes } from '#modules/identity/testing/serve-routes'
 import { registerBillingRoutes } from './billing.routes'
-import { billingKit } from './testing/billing-kit'
+import { billingKit, kitToken } from './testing/billing-kit'
 import { subscribed } from './testing/subscribed'
 
 const owner: Permissions = { billing: ['manage'] }
@@ -11,7 +18,15 @@ const returnTo = '/acme/settings/billing'
 /** The routes behind the real pipeline, with the tenant guard on fakes and billing on the kit. */
 async function serve() {
   const kit = billingKit()
-  const { signInAs, call, code } = await serveRoutes((router, { session, membership }) =>
+  /** The notices taken in, as the webhook inbox would record them. */
+  const received: BillingNotice[] = []
+  const inbox = {
+    receive: async (_source: string, notice: BillingNotice) => {
+      received.push(notice)
+      return true
+    }
+  }
+  const { signInAs, call, code, origin } = await serveRoutes((router, { session, membership, logger }) =>
     registerBillingRoutes(router, {
       session,
       membership,
@@ -19,10 +34,18 @@ async function serve() {
       provider: kit.provider,
       clock: kit.clock,
       ids: kit.ids,
-      webOrigin: 'http://localhost:5173'
+      webOrigin: 'http://localhost:5173',
+      inbox,
+      logger
     })
   )
-  return { ...kit, signInAs, call, code }
+  const deliver = (provider: string, body: unknown, token: string | null = kitToken) =>
+    fetch(`${origin}/api/webhooks/${provider}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token === null ? {} : { 'fake-billing-token': token }) },
+      body: JSON.stringify(body)
+    })
+  return { ...kit, signInAs, call, code, received, deliver }
 }
 
 describe('the billing routes (ADR 0063)', () => {
@@ -148,5 +171,36 @@ describe('the billing routes (ADR 0063)', () => {
 
     expect(await code(await call(method, path, body))).toEqual({ status: 403, code: 'permission_denied' })
     expect(await subscriptions.find('org-1')).toBeNull()
+  })
+
+  describe("the provider's webhook", () => {
+    it('takes a command to the fake in, with no session, and answers the receipt', async () => {
+      const kit = await serve()
+      await subscribed(kit)
+
+      const response = await kit.deliver('fake', { command: 'payment.fail', organizationId: 'org-1' })
+
+      expect(response.status).toBe(200)
+      expect(webhookReceiptSchema.parse(await response.json())).toEqual({ received: true })
+      expect(kit.received).toEqual([
+        expect.objectContaining({ eventId: expect.any(String), subscriptionId: expect.any(String) })
+      ])
+    })
+
+    it('refuses a forged or missing token with a 401, taking nothing in', async () => {
+      const kit = await serve()
+
+      expect((await kit.deliver('fake', { command: 'payment.fail', organizationId: 'org-1' }, 'guess')).status).toBe(
+        401
+      )
+      expect((await kit.deliver('fake', { command: 'payment.fail', organizationId: 'org-1' }, null)).status).toBe(401)
+      expect(kit.received).toEqual([])
+    })
+
+    it('answers 404 for a provider that is not the one configured', async () => {
+      const kit = await serve()
+
+      expect((await kit.deliver('asaas', { event: 'PAYMENT_CONFIRMED' })).status).toBe(404)
+    })
   })
 })

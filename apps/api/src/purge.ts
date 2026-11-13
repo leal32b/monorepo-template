@@ -4,6 +4,7 @@ import { createDatabase, createPool } from '#libs/database/database'
 import { purgeAuditEntries } from '#libs/database/kysely-audit-trail'
 import { purgeFinishedJobs } from '#libs/database/kysely-jobs'
 import { purgeRateLimits } from '#libs/database/kysely-rate-limiter'
+import { purgeWebhookEvents } from '#libs/database/kysely-webhook-inbox'
 import { createLogger } from '#libs/logging/create-logger'
 import { purgeExpiredIdentityRows } from '#modules/identity/infrastructure/purge-expired'
 
@@ -33,7 +34,9 @@ try {
   const rateLimits = await purgeRateLimits(db, now)
   // Audit entries past their retention (ADR 0061): a year.
   const audit = await purgeAuditEntries(db, now)
-  logger.info({ removed: { identity, jobs, rateLimits, audit } }, 'expired rows purged')
+  // Event ids of providers' notices (ADR 0063), after 30 days.
+  const webhookEvents = await purgeWebhookEvents(db, now)
+  logger.info({ removed: { identity, jobs, rateLimits, audit, webhookEvents } }, 'expired rows purged')
 } catch (error) {
   logger.fatal({ err: error }, 'purge failed')
   process.exitCode = 1

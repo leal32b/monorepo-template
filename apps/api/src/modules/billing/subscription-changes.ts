@@ -38,8 +38,8 @@ export async function writeChange(
 ): Promise<void> {
   const { organizationId } = read
   await unitOfWork.run(organizationId, async ({ subscriptions, audit }) => {
-    const current = (await subscriptions.find(organizationId)) ?? read
-    if (current.version !== read.version) throw new SubscriptionChangedException()
+    const current = await subscriptions.find(organizationId)
+    if (current === null || current.version !== read.version) throw new SubscriptionChangedException()
     const after = change.next(current)
     const fields = changedFields(current, after)
     if (fields.length === 0) return

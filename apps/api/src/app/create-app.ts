@@ -4,6 +4,7 @@ import type { Logger } from 'pino'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { isDatabaseUnavailable } from '#libs/database/database'
 import { KyselyRateLimiter } from '#libs/database/kysely-rate-limiter'
+import { KyselyWebhookInbox } from '#libs/database/kysely-webhook-inbox'
 import { fromFetchHandler } from '#libs/http/fetch-handler'
 import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
@@ -13,7 +14,7 @@ import type { JobQueue } from '#libs/ports/job-queue.port'
 import { kyselyAuditUnitOfWork } from '#modules/audit/database/kysely-audit-unit-of-work'
 import { registerAuditRoutes } from '#modules/audit/index'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
-import { registerBillingRoutes } from '#modules/billing/index'
+import { registerBillingRoutes, syncPayloadOf, syncSubscription } from '#modules/billing/index'
 import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomerRoutes } from '#modules/customers/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
@@ -53,6 +54,8 @@ export type AppDeps = {
   db: Kysely<unknown>
   /** The job queue on the pool (ADR 0056): identity's emails are enqueued on it (ADR 0057). */
   jobs: JobQueue
+  /** The queue on a transaction (`createJobs().bind`): a provider's notice and its job are kept together. */
+  jobsOn: (transaction: Kysely<unknown>) => JobQueue
   /** Better Auth's secret (ADR 0020). */
   authSecret: string
   /** Google sign-in credentials; `undefined` keeps Google off. */
@@ -75,6 +78,7 @@ export function createApp({
   proxySecret,
   db,
   jobs,
+  jobsOn,
   authSecret,
   google,
   billing
@@ -112,7 +116,10 @@ export function createApp({
   })
   // The organization's audit trail, read only: every module writes its entries in its own unit of work (ADR 0061).
   registerAuditRoutes(router, { session, membership, unitOfWork: kyselyAuditUnitOfWork(db) })
-  // The owner's plan page (ADR 0063): the subscription row in billing's unit of work, the provider outside it.
+  // The owner's plan page and the provider's webhook (ADR 0063): the subscription row in billing's unit
+  // of work, the provider called outside it, and each notice's event id recorded with its sync job.
+  const inbox = new KyselyWebhookInbox({ db, clock, jobsOn, job: syncSubscription, payloadOf: syncPayloadOf })
+  billing.listen?.((notice) => inbox.receive(billing.name, notice).then(() => undefined))
   registerBillingRoutes(router, {
     session,
     membership,
@@ -120,7 +127,9 @@ export function createApp({
     provider: billing,
     clock,
     ids,
-    webOrigin
+    webOrigin,
+    inbox,
+    logger
   })
   return createHttpServer({
     router,
