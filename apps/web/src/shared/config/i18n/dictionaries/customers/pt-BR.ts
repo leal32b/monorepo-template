@@ -14,8 +14,7 @@ export const customersPtBR: typeof customersEn = {
       readOnly: 'As pessoas e empresas com quem {{name}} trabalha. Você pode ver, mas não alterar.'
     },
     search: {
-      label: 'Buscar clientes',
-      submit: 'Procurar'
+      label: 'Buscar clientes'
     },
     filter: {
       label: 'Mostrar',

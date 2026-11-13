@@ -23,7 +23,8 @@ export const shellEs: typeof shellEn = {
   /** Words that buttons share across screens. */
   actions: {
     cancel: 'Cancelar',
-    retry: 'Intentar de nuevo'
+    retry: 'Intentar de nuevo',
+    find: 'Filtrar'
   },
   notFound: {
     title: 'Página no encontrada',

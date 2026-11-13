@@ -12,8 +12,7 @@ export const customersEn = {
       readOnly: 'The people and companies {{name}} works with. You can see them, not change them.'
     },
     search: {
-      label: 'Search customers',
-      submit: 'Find'
+      label: 'Search customers'
     },
     filter: {
       label: 'Show',

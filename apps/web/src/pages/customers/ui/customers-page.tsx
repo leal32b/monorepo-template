@@ -2,13 +2,12 @@ import type { Customer, CustomerStatus } from '@repo/contracts'
 import {
   Avatar,
   Badge,
-  Button,
   createPanels,
   EmptyState,
-  Field,
   ListPanel,
   ListRow,
   ListSection,
+  ListToolbar,
   Pager,
   PanelButton,
   SegmentedControl
@@ -189,28 +188,13 @@ function Customers() {
     <Show when={list.loaded()}>
       {(loaded) => (
         <div class="flex flex-col gap-6">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <form
-              noValidate
-              onSubmit={(event) => {
-                event.preventDefault()
-                list.find()
-              }}
-              class="flex items-end gap-2 sm:flex-1"
-            >
-              <Field
-                class="flex-1"
-                label={t('customers.search.label')}
-                name="search"
-                type="search"
-                autocomplete="off"
-                value={list.typed()}
-                onChange={list.setTyped}
-              />
-              <Button type="submit" variant="secondary">
-                {t('customers.search.submit')}
-              </Button>
-            </form>
+          <ListToolbar
+            searchLabel={t('customers.search.label')}
+            searchButton={t('actions.find')}
+            searchValue={list.typed()}
+            onSearchInput={list.setTyped}
+            onSearch={list.find}
+          >
             <SegmentedControl
               label={t('customers.filter.label')}
               value={list.filter()}
@@ -220,7 +204,7 @@ function Customers() {
                 { value: 'archived', label: t('customers.filter.archived') }
               ]}
             />
-          </div>
+          </ListToolbar>
           <ListSection
             title={t('customers.section.title')}
             description={t(

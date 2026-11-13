@@ -14,8 +14,7 @@ export const customersEs: typeof customersEn = {
       readOnly: 'Las personas y empresas con las que trabaja {{name}}. Puedes verlas, no cambiarlas.'
     },
     search: {
-      label: 'Buscar clientes',
-      submit: 'Filtrar'
+      label: 'Buscar clientes'
     },
     filter: {
       label: 'Mostrar',

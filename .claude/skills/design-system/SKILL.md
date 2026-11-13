@@ -88,6 +88,9 @@ The same idea looks and behaves the same everywhere. Before building, find it he
 | Idea | Use | Not |
 | --- | --- | --- |
 | A list of things you act on: a page of settings, or records such as customers, members, roles ([ADR 0054](../../../docs/adr/0054-name-the-row-family-for-lists-not-for-settings.md)) | `ListSection` of `ListRow`s | cards or lists of one's own, a second family for records |
+| Finding things in a list: a search and a filter | `ListToolbar` above the `ListSection`, the filter a `SegmentedControl` inside it: the search applies when asked, not on every keystroke | a search form and a layout of one's own |
+| What a list screen holds: the filter, the search, the page and the read of that page | `createList` (`#shared/lib`), from the entity's query; a list with no filter leaves it out | a signal per choice, the key and an effect in the page |
+| What a list says about what the user just did | `createListStatus` (`#shared/lib`): a line in the row acted on (`ListRow`'s `status`) and one below the section (`ListSection`'s) | a pair of signals and a `forget` in the page |
 | A row's form, opened inline | `PanelButton` + `ListPanel`, one `createPanels()` per screen | a signal per section, a `panel.tsx` per page |
 | The buttons that end a form | `FormActions` | `div.flex` with `w-full sm:w-auto` on each button |
 | Asking before removing (remove, leave, delete, revoke with consequences) | `ConfirmForm` in the row's panel, a field in it when the action cannot be undone | a dialog, a bespoke warning + buttons |

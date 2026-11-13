@@ -21,7 +21,8 @@ export const shellEn = {
   /** Words that buttons share across screens. */
   actions: {
     cancel: 'Cancel',
-    retry: 'Try again'
+    retry: 'Try again',
+    find: 'Find'
   },
   notFound: {
     title: 'Page not found',
