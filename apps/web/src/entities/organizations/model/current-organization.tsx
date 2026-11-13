@@ -9,7 +9,7 @@ export type CurrentOrganization = {
   can: <R extends Resource>(resource: R, action: Action<R>) => boolean
   /**
    * Asks the API what the caller may do again, behind the screen, after a change the membership carries,
-   * such as the plan (ADR 0063): the frame and every screen draw the answer. It never fails: an answer that
+   * such as the plan (ADR 0063, ADR 0068): the frame and every screen draw the answer. It never fails: an answer that
    * does not come keeps what is known, as the guard's check behind does.
    */
   refresh: () => Promise<void>

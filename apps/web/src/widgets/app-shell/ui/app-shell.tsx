@@ -21,7 +21,7 @@ export type AppShellProps = ParentProps<{
  * (`AppFrame`, ADR 0037), which it tells its title and organization while it is on view. Focus moves to
  * the title when the screen opens; below it, on an organization's screen, the subscription's state (ADR
  * 0063), drawn from the membership the screen already has, so it arrives with the screen and moves nothing
- * (the plan page says it in its own rows);
+ * (the plan page says it in its own rows, ADR 0068);
  * then a failed sign-out. A screen with no frame around it, such as one drawn on its own in a test, draws one.
  *
  * What the screen reads waits under a boundary of its own (ADR 0038): moving to a screen never waits on its

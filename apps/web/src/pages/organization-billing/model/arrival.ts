@@ -22,7 +22,7 @@ export const waitForMs = 60_000
  * The way back from the provider (ADR 0063): once returned, while a payment is open, the plan is read
  * again every 3 seconds for up to a minute, until the provider's notice clears it; the membership the
  * frame draws from is read once it did. The billing read is asked rather than the membership, since it is
- * what the page draws. A payment confirmed before the page was read is said at once.
+ * what the page draws (ADR 0068). A payment confirmed before the page was read is said at once.
  */
 export function createArrival(
   came: Came,

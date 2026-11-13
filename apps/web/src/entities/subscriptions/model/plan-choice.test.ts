@@ -74,10 +74,12 @@ describe('choiceOf (ADR 0063, "Changing plan")', () => {
 
     expect(choose(upgrading, 'pro')).toEqual({ kind: 'pending' })
     expect(choose(upgrading, 'basic')).toEqual({ kind: 'current' })
-    expect(choose({ ...upgrading, plan: 'pro', checkout: { ...upgrading.checkout!, plan: 'pro' } }, 'basic')).toEqual({
-      kind: 'blocked',
-      reason: 'open'
-    })
+    const subscribing: Subscription = {
+      ...basic,
+      status: 'cancelled',
+      checkout: { kind: 'subscription', plan: 'pro', amount: { amount: 9900, currency: 'BRL' } }
+    }
+    expect(choose(subscribing, 'basic')).toEqual({ kind: 'blocked', reason: 'open' })
   })
 
   it('asks to pay what is late first, and to keep a plan set to end before changing it', () => {

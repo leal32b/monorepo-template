@@ -1,6 +1,6 @@
 # 0063. Subscribe each organization through a billing port, and check entitlements, not plans
 
-- Status: accepted; its route checks land in the tenant route helper of [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md); a downgrade's price is set when it is scheduled, and the port, routes and audit actions completed, by [0067](0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md)
+- Status: accepted; its route checks land in the tenant route helper of [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md); a downgrade's price is set when it is scheduled, and the port, routes and audit actions completed, by [0067](0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md); the plan page is every member's, the frame's notice stays off it, and its wait reads the plan page's read, by [0068](0068-say-the-subscription-once-per-screen-and-open-the-plan-page-to-every-member.md)
 - Date: 2026-11-12
 
 Amends [ADR 0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) (the tenant

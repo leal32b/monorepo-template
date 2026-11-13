@@ -258,7 +258,13 @@ what it grants, in the statement it already makes.
    `#modules/billing/index` before it writes (`403 plan_limit_reached`, naming the limit and its
    number). With `null` it counts nothing. Copy `CreateCustomerService` and its route.
 4. The web reads the same `entitlement(membership, key)` from the membership it holds, to draw the
-   action disabled with the reason before the member tries, and says the two codes in every language.
+   action disabled with the reason before the member tries. The words live in the billing dictionary:
+   what the plan includes (`billing.limits.<limit>`, `billing.capabilities.<capability>`, shown on the
+   plan page) and what a refusal means (`billing.refusals.limits.<limit>` for the owner, an owner whose
+   upgrade waits, and another member; `billing.refusals.capabilities.<capability>`). `usePlanRefusal`
+   (`#entities/subscriptions`) says them in the row's note before and in the alert after a refusal, and
+   `SeePlansLink` gives the owner the way to the plans; copy the customers screen and the activity
+   screen ([ADR 0068](adr/0068-say-the-subscription-once-per-screen-and-open-the-plan-page-to-every-member.md)).
    The API decides; the web only draws.
 5. Tests: `serveRoutes().signInAs(permissions, { entitlements })` gives the member a plan without
    the capability or with a small limit; the service test passes the limit as a number.
