@@ -9,7 +9,7 @@ export {
   formatTime,
   formatWait
 } from './format'
-export { createListStatus } from './list'
+export { createList, createListStatus } from './list'
 export {
   type CurrentPasswordProblem,
   currentPasswordProblem,

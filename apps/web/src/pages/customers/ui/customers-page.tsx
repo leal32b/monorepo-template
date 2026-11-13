@@ -1,4 +1,4 @@
-import { type Customer, type CustomerList, type CustomerStatus, customerPageSize } from '@repo/contracts'
+import type { Customer, CustomerStatus } from '@repo/contracts'
 import {
   Avatar,
   Badge,
@@ -13,13 +13,13 @@ import {
   PanelButton,
   SegmentedControl
 } from '@repo/ui'
-import { createEffect, createSignal, For, Match, Show, Switch } from 'solid-js'
+import { For, Match, Show, Switch } from 'solid-js'
 import { customersQuery } from '#entities/customers'
 import { useOrganization } from '#entities/organizations'
 import { ArchiveCustomerButton, CustomerForm, DeleteCustomerForm } from '#features/customers/manage-customers'
-import { createRead, readAgain, updateRead, useApi } from '#shared/api'
+import { useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
-import { createListStatus, formatDate } from '#shared/lib'
+import { createList, createListStatus, formatDate } from '#shared/lib'
 import { ReadFailure } from '#shared/ui'
 import { AppShell } from '#widgets/app-shell'
 
@@ -59,45 +59,26 @@ function Customers() {
   const api = useApi()
   const current = useOrganization()
   const id = current.organization.id
-  const customers = customersQuery(api)
   const panels = createPanels()
-  const [filter, setFilter] = createSignal<CustomerStatus>('active')
-  const [search, setSearch] = createSignal('')
-  const [typed, setTyped] = createSignal('')
-  const [page, setPage] = createSignal(1)
   const status = createListStatus(panels)
-
-  const key = () => customers.keyFor(id, filter(), search(), page())
-  const list = createRead(() => customers(id, filter(), search(), page()), key)
-  const pages = (loaded: CustomerList) => Math.max(1, Math.ceil(loaded.total / customerPageSize))
+  const list = createList({
+    query: customersQuery(api),
+    args: ({ filter, search, page }) => [id, filter, search, page],
+    filter: 'active' as CustomerStatus,
+    onChange: () => {
+      panels.dismiss()
+      status.forget()
+    }
+  })
 
   const canAdd = () => current.can('customer', 'create')
   const canEdit = () => current.can('customer', 'update')
   const canDelete = () => current.can('customer', 'delete')
 
-  // A page that emptied because its last customer left (deleted, archived) gives way to the one before it.
-  createEffect(() => {
-    const loaded = list()
-    if (loaded && loaded.items.length === 0 && page() > 1) setPage(page() - 1)
-  })
-
-  const show = (next: CustomerStatus) => {
-    panels.dismiss()
-    status.forget()
-    setFilter(next)
-    setPage(1)
-  }
-  const searchFor = (event: SubmitEvent) => {
-    event.preventDefault()
-    panels.dismiss()
-    status.forget()
-    setSearch(typed().trim())
-    setPage(1)
-  }
   /** The customer left this list (archived, restored, deleted, or already gone): said below the section. */
   const left = (text: string) => {
     status.left(text)
-    readAgain(key())
+    list.again()
   }
   const changed = (text: string) => () => left(t(text as 'customers.errors.gone'))
   const stale = (kind: 'gone' | 'changed') => left(t(`customers.errors.${kind}`))
@@ -157,7 +138,7 @@ function Customers() {
                 organizationId={id}
                 customer={customer}
                 onSaved={(saved) => {
-                  updateRead<CustomerList>(key(), (loaded) => ({
+                  list.draw((loaded) => ({
                     ...loaded,
                     items: loaded.items.map((item) => (item.id === saved.id ? saved : item))
                   }))
@@ -186,13 +167,13 @@ function Customers() {
   )
 
   const emptyOf = () =>
-    search() !== ''
+    list.search() !== ''
       ? {
           icon: 'search' as const,
           title: t('customers.empty.noResultsTitle'),
-          description: t('customers.empty.noResults', { search: search() })
+          description: t('customers.empty.noResults', { search: list.search() })
         }
-      : filter() === 'archived'
+      : list.filter() === 'archived'
         ? {
             icon: 'customers' as const,
             title: t('customers.empty.archivedTitle'),
@@ -205,19 +186,26 @@ function Customers() {
           }
 
   return (
-    <Show when={list()}>
+    <Show when={list.loaded()}>
       {(loaded) => (
         <div class="flex flex-col gap-6">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <form noValidate onSubmit={searchFor} class="flex items-end gap-2 sm:flex-1">
+            <form
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault()
+                list.find()
+              }}
+              class="flex items-end gap-2 sm:flex-1"
+            >
               <Field
                 class="flex-1"
                 label={t('customers.search.label')}
                 name="search"
                 type="search"
                 autocomplete="off"
-                value={typed()}
-                onChange={setTyped}
+                value={list.typed()}
+                onChange={list.setTyped}
               />
               <Button type="submit" variant="secondary">
                 {t('customers.search.submit')}
@@ -225,8 +213,8 @@ function Customers() {
             </form>
             <SegmentedControl
               label={t('customers.filter.label')}
-              value={filter()}
-              onChange={(value) => show(value as CustomerStatus)}
+              value={list.filter()}
+              onChange={(value) => list.show(value as CustomerStatus)}
               options={[
                 { value: 'active', label: t('customers.filter.active') },
                 { value: 'archived', label: t('customers.filter.archived') }
@@ -243,7 +231,7 @@ function Customers() {
             )}
             status={status.section()}
           >
-            <Show when={canAdd() && filter() === 'active'}>
+            <Show when={canAdd() && list.filter() === 'active'}>
               <ListRow
                 icon="plus"
                 title={t('customers.add.title')}
@@ -261,7 +249,7 @@ function Customers() {
                         onSaved={(saved) => {
                           panels.close()
                           status.saySection(t('customers.saved', { name: saved.name }))
-                          readAgain(key())
+                          list.again()
                         }}
                         onStale={stale}
                         onCancel={panels.close}
@@ -280,16 +268,16 @@ function Customers() {
               <For each={loaded().items}>{rowOf}</For>
             </Show>
           </ListSection>
-          <Show when={pages(loaded()) > 1}>
+          <Show when={list.pages() > 1}>
             <Pager
               label={t('customers.section.title')}
               previousLabel={t('customers.pager.previous')}
               nextLabel={t('customers.pager.next')}
-              summary={t('customers.pager.page', { page: loaded().page, pages: pages(loaded()) })}
-              hasPrevious={page() > 1}
-              hasNext={page() < pages(loaded())}
-              onPrevious={() => setPage(page() - 1)}
-              onNext={() => setPage(page() + 1)}
+              summary={t('customers.pager.page', { page: loaded().page, pages: list.pages() })}
+              hasPrevious={list.hasPrevious()}
+              hasNext={list.hasNext()}
+              onPrevious={list.previous}
+              onNext={list.next}
             />
           </Show>
         </div>
