@@ -1,5 +1,5 @@
 export { AuthFailureAlert } from './auth-failure-alert'
 export { ConfirmPasswordForm } from './confirm-password-form'
-export { ListPager, type ListPagerProps } from './list-pager'
+export { ListPager } from './list-pager'
 export { OpenMail } from './open-mail'
 export { ReadFailure } from './read-failure'

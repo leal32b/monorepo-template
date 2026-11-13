@@ -5,12 +5,12 @@ import { createRead, readAgain, updateRead } from '#shared/api'
 type Paged = { items: unknown[]; total: number; page: number; pageSize: number }
 
 /** What a list is asked for now: the filter chosen, the words searched (none is `''`) and the page. */
-export type ListRequest<F> = { filter: F; search: string; page: number }
+type ListRequest<F> = { filter: F; search: string; page: number }
 
 /** A router query (`createQuery`) that reads one page of a list. */
 type PageQuery<A extends unknown[], P> = ((...args: A) => Promise<P>) & { keyFor: (...args: A) => string }
 
-export type ListOptions<F, A extends unknown[], P> = {
+type ListOptions<F, A extends unknown[], P> = {
   /** The entity's query for one page, keyed by its arguments (ADR 0038). */
   query: PageQuery<A, P>
   /** The query's arguments for what the list is asked now: the organization, then what the query takes. */
