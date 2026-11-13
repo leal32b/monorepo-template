@@ -162,6 +162,16 @@ describe('createList', () => {
       expect(list().page()).toBe(1)
     })
 
+    it('is one while no page has been read yet, with nowhere to move', async () => {
+      const { people } = fakePeople()
+      const list = drawList(() => staffList(people))
+
+      expect(list().pages()).toBe(1)
+      expect(list().hasNext()).toBe(false)
+      expect(list().hasPrevious()).toBe(false)
+      await screen.findByText('Person 01')
+    })
+
     it('is one for a list with nothing in it', async () => {
       const { people } = fakePeople()
       const list = drawList(() => staffList(people))
