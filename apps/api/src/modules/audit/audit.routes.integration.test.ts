@@ -13,8 +13,9 @@ async function serve() {
   )
   return {
     audit,
-    /** Ada, signed in to `org-1`, holding `permissions`. */
-    signInWith: (permissions: { audit?: 'read'[] }) => signInAs(permissions, { name: 'Ada Lovelace' }),
+    /** Ada, signed in to `org-1`, holding `permissions`, on a plan with every capability unless `plan` says otherwise. */
+    signInWith: (permissions: { audit?: 'read'[] }, plan: Parameters<typeof signInAs>[1] = {}) =>
+      signInAs(permissions, { name: 'Ada Lovelace', ...plan }),
     get: (query = '') => call('GET', `/api/organizations/org-1/audit-entries${query}`)
   }
 }
@@ -54,6 +55,26 @@ describe('the audit trail route (ADR 0061)', () => {
     const refused = await get()
     expect(refused.status).toBe(403)
     expect(apiProblemSchema.parse(await refused.json()).code).toBe('permission_denied')
+  })
+
+  it('refuses the trail to a plan without the activity log, naming the capability (ADR 0063)', async () => {
+    const { signInWith, get } = await serve()
+    signInWith({ audit: ['read'] }, { entitlements: { capabilities: [], limits: { 'customers.max': 100 } } })
+
+    const refused = await get()
+
+    expect(refused.status).toBe(403)
+    expect(apiProblemSchema.parse(await refused.json())).toMatchObject({
+      code: 'plan_required',
+      entitlement: 'activity-log'
+    })
+  })
+
+  it('keeps the trail readable while the organization is read only', async () => {
+    const { signInWith, get } = await serve()
+    signInWith({ audit: ['read'] }, { subscription: { status: 'cancelled', access: 'read-only' } })
+
+    expect((await get()).status).toBe(200)
   })
 
   it('refuses a cursor it did not write, and an unknown parameter', async () => {

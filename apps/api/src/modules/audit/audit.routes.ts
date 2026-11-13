@@ -24,13 +24,14 @@ function cursorOf(before: string | undefined): AuditCursor | undefined {
 
 /**
  * The trail's one route, read only (ADR 0061): every module writes entries through its own unit of
- * work; this module only reads them, a page at a time, for `audit:read` (ADR 0065).
+ * work; this module only reads them, a page at a time, for `audit:read` (ADR 0065). The trail is
+ * recorded on every plan; reading it is the template's reference capability, `activity-log` (ADR 0063).
  */
 export function registerAuditRoutes(router: HttpRouter, deps: AuditRoutesDeps): void {
   const list = new ListAuditEntriesService(deps.unitOfWork, deps.membership)
   tenantRoutes(router, deps).get(
     '/api/organizations/:organizationId/audit-entries',
-    { permission: { audit: ['read'] }, input: listAuditEntriesQuerySchema },
+    { permission: { audit: ['read'] }, entitlement: 'activity-log', input: listAuditEntriesQuerySchema },
     ({ organizationId, input }) => list.execute(organizationId, cursorOf(input.before))
   )
 }
