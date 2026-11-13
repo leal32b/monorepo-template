@@ -1,4 +1,5 @@
 import * as z from 'zod/mini'
+import { entitlementKeySchema } from './billing'
 
 /**
  * Every error response (`application/problem+json`, RFC 9457). Clients switch on `code`,
@@ -14,6 +15,10 @@ export const apiProblemSchema = z.object({
   errors: z.optional(z.array(z.object({ path: z.string(), message: z.string() }))),
   /** Seconds to wait before trying again, same as the `Retry-After` header: a 429 carries it (ADR 0059). */
   retryAfter: z.optional(z.int().check(z.minimum(1))),
+  /** The capability or limit that refused: `plan_required` and `plan_limit_reached` carry it (ADR 0063). */
+  entitlement: z.optional(entitlementKeySchema),
+  /** The plan's number for the limit that `plan_limit_reached` names. */
+  limit: z.optional(z.int().check(z.gte(0))),
   /** Same as the `X-Request-Id` header, to find the request in the API log. */
   requestId: z.optional(z.string())
 })

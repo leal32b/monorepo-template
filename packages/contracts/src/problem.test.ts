@@ -32,6 +32,17 @@ describe('apiProblemSchema', () => {
     expect(apiProblemSchema.safeParse({ ...limited, retryAfter: 0 }).success).toBe(false)
   })
 
+  it('accepts the entitlement and the limit a plan refuses with, and only an entitlement of the catalogue (ADR 0063)', () => {
+    const refused = { ...valid, status: 403, code: 'plan_limit_reached' }
+
+    expect(apiProblemSchema.parse({ ...refused, entitlement: 'customers.max', limit: 100 })).toMatchObject({
+      entitlement: 'customers.max',
+      limit: 100
+    })
+    expect(apiProblemSchema.safeParse({ ...refused, entitlement: 'pro' }).success).toBe(false)
+    expect(apiProblemSchema.safeParse({ ...refused, entitlement: 'customers.max', limit: -1 }).success).toBe(false)
+  })
+
   it.each([200, 399, 600])('rejects the status %i (not an error status)', (status) => {
     expect(apiProblemSchema.safeParse({ ...valid, status }).success).toBe(false)
   })
