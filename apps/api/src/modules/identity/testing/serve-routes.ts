@@ -6,7 +6,7 @@ import { createHttpServer } from '#libs/http/server'
 import { memoryLogger } from '#libs/jobs/testing/memory-logger'
 import type { TenantGuard } from '../tenant-route'
 import { FakeCurrentSession } from './fake-current-session'
-import { FakeMembership } from './fake-membership'
+import { FakeMembership, type GivenMember } from './fake-membership'
 
 /** Who a route test signs in as. */
 export const ada = { userId: 'user-ada', email: 'ada@example.com', name: 'Ada' }
@@ -29,10 +29,21 @@ export async function serveRoutes(register: (router: HttpRouter, ports: TenantGu
   return {
     origin,
     lines,
-    /** Ada signs in, a member of `organizationId` whose roles hold `permissions`, named `name` to the audit trail. */
-    signInAs(permissions: Permissions, { organizationId = 'org-1', name = ada.userId } = {}): void {
+    /**
+     * Ada signs in, a member of `organizationId` whose roles hold `permissions`, named `name` to the
+     * audit trail. The organization pays for a plan that grants everything, with full access, unless
+     * `subscription` or `entitlements` say otherwise (ADR 0063).
+     */
+    signInAs(
+      permissions: Permissions,
+      {
+        organizationId = 'org-1',
+        name = ada.userId,
+        ...plan
+      }: { organizationId?: string; name?: string } & Pick<GivenMember, 'subscription' | 'entitlements'> = {}
+    ): void {
       session.actor = ada
-      membership.add({ userId: ada.userId, organizationId, roles: ['custom'], permissions }, name)
+      membership.add({ userId: ada.userId, organizationId, roles: ['custom'], permissions, ...plan }, name)
     },
     /** A request to `path`, with `body` sent as JSON when there is one. */
     call(method: string, path: string, body?: unknown): Promise<Response> {

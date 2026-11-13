@@ -31,14 +31,33 @@ async function serve() {
       input: input ?? 'none'
     }))
     tenant.delete(`${base}/:thingId`, { permission: { customer: ['delete'] } }, async () => undefined)
+    // A capability of the plan, on a read and on a write (ADR 0063).
+    tenant.get(`${base}/report`, { permission: { customer: ['read'] }, entitlement: 'activity-log' }, async () => ({
+      report: true
+    }))
+    tenant.post(
+      `${base}/report`,
+      { permission: { customer: ['create'] }, entitlement: 'activity-log', input: thing },
+      async ({ input }) => input
+    )
+    // A route that serves billing, so the owner can pay while the organization is read only.
+    tenant.post(
+      '/api/organizations/:organizationId/billing/checkout',
+      { permission: {}, duringReadOnly: true },
+      async ({ member }) => ({ paying: member.userId })
+    )
   })
   return {
-    /** Ada, signed in, with `customer` actions in `org-1`. */
-    signInWith: (actions: Array<'read' | 'create' | 'update' | 'delete'>) => signInAs({ customer: actions }),
+    /** Ada, signed in, with `customer` actions in `org-1`, in an organization that pays unless `plan` says otherwise. */
+    signInWith: (actions: Array<'read' | 'create' | 'update' | 'delete'>, plan: Parameters<typeof signInAs>[1] = {}) =>
+      signInAs({ customer: actions }, plan),
     call: (method: string, path: string, body?: unknown) => call(method, `/api/organizations/${path}`, body),
     code
   }
 }
+
+const readOnly = { subscription: { status: 'cancelled' as const, access: 'read-only' as const } }
+const withoutActivityLog = { entitlements: { capabilities: [], limits: { 'customers.max': 100 } } }
 
 describe('tenantRoutes (ADR 0065)', () => {
   it('answers 401 without a session, 404 outside the organization and 403 without the permission, before reading the input', async () => {
@@ -59,18 +78,26 @@ describe('tenantRoutes (ADR 0065)', () => {
     })
   })
 
-  it('hands the use case the organization, the body parsed by its schema, the path and the member as the actor', async () => {
+  it('hands the use case the organization, the body parsed by its schema, the path, the member as the actor, and the member', async () => {
     const { signInWith, call } = await serve()
     signInWith(['create'])
 
     const response = await call('POST', 'org-1/things', { name: 'Lamp' })
 
     expect(response.status).toBe(201)
-    expect(await response.json()).toEqual({
+    const { member, ...request } = (await response.json()) as { member: unknown }
+    expect(request).toEqual({
       organizationId: 'org-1',
       input: { name: 'Lamp' },
       params: { organizationId: 'org-1' },
       actor: { kind: 'member', id: ada.userId }
+    })
+    // The member, with what the subscription grants, so a use case can enforce a limit (ADR 0063).
+    expect(member).toMatchObject({
+      userId: ada.userId,
+      organizationId: 'org-1',
+      subscription: { access: 'full' },
+      entitlements: { limits: { 'customers.max': null } }
     })
   })
 
@@ -128,5 +155,75 @@ describe('tenantRoutes (ADR 0065)', () => {
 
     expect(response.status).toBe(204)
     expect(await response.text()).toBe('')
+  })
+
+  describe('the subscription (ADR 0063)', () => {
+    it('refuses a POST and a PUT with 403 subscription_read_only while the organization is read only, after the permission and before the input', async () => {
+      const { signInWith, call, code } = await serve()
+      signInWith(['create', 'update'], readOnly)
+
+      const refused = { status: 403, code: 'subscription_read_only' }
+      expect(await code(await call('POST', 'org-1/things', { name: '' }))).toEqual(refused)
+      expect(await code(await call('PUT', 'org-1/things/t-1', { name: '' }))).toEqual(refused)
+      expect(await code(await call('POST', 'org-1/things/t-1/archive'))).toEqual(refused)
+    })
+
+    it('answers a missing permission first, while read only', async () => {
+      const { signInWith, call, code } = await serve()
+      signInWith(['read'], readOnly)
+
+      expect(await code(await call('POST', 'org-1/things', { name: 'Lamp' }))).toEqual({
+        status: 403,
+        code: 'permission_denied'
+      })
+    })
+
+    it('lets a GET and a DELETE through while read only: everything stays readable, and a record can still be deleted', async () => {
+      const { signInWith, call } = await serve()
+      signInWith(['read', 'delete'], readOnly)
+
+      expect((await call('GET', 'org-1/things?page=1')).status).toBe(200)
+      expect((await call('DELETE', 'org-1/things/t-1')).status).toBe(204)
+    })
+
+    it('lets a route declared to serve billing write while read only', async () => {
+      const { signInWith, call } = await serve()
+      signInWith([], readOnly)
+
+      const response = await call('POST', 'org-1/billing/checkout')
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ paying: ada.userId })
+    })
+
+    it('refuses a route whose capability the plan lacks with 403 plan_required, naming it, after the permission and before the input', async () => {
+      const { signInWith, call } = await serve()
+      signInWith(['read', 'create'], withoutActivityLog)
+
+      for (const response of [
+        await call('GET', 'org-1/things/report'),
+        await call('POST', 'org-1/things/report', {})
+      ]) {
+        expect(response.status).toBe(403)
+        expect(await response.json()).toMatchObject({ code: 'plan_required', entitlement: 'activity-log' })
+      }
+    })
+
+    it('runs a route whose capability the plan holds', async () => {
+      const { signInWith, call } = await serve()
+      signInWith(['read'])
+
+      expect(await (await call('GET', 'org-1/things/report')).json()).toEqual({ report: true })
+    })
+
+    it('says plan_required rather than read only when both refuse a write, since choosing a plan answers both', async () => {
+      const { signInWith, call, code } = await serve()
+      signInWith(['create'], { ...readOnly, ...withoutActivityLog })
+
+      expect(await code(await call('POST', 'org-1/things/report', { name: 'Lamp' }))).toEqual({
+        status: 403,
+        code: 'plan_required'
+      })
+    })
   })
 })

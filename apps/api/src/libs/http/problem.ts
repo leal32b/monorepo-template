@@ -1,5 +1,5 @@
 import { type ServerResponse, STATUS_CODES } from 'node:http'
-import type { ApiProblem } from '@repo/contracts'
+import type { ApiProblem, EntitlementKey } from '@repo/contracts'
 import {
   ArgumentInvalidException,
   ConflictException,
@@ -20,6 +20,9 @@ export class HttpProblem extends Error {
   readonly headers: Record<string, string>
   /** Seconds to wait before trying again: sent as `Retry-After` and in the body (ADR 0059). */
   readonly retryAfter: number | undefined
+  /** The capability or limit of the plan that refused, and the limit's number (ADR 0063). */
+  readonly entitlement: EntitlementKey | undefined
+  readonly limit: number | undefined
 
   constructor(
     status: number,
@@ -29,6 +32,8 @@ export class HttpProblem extends Error {
       errors?: ProblemFieldError[]
       headers?: Record<string, string>
       retryAfter?: number
+      entitlement?: EntitlementKey
+      limit?: number
     } = {}
   ) {
     super(options.detail ?? code)
@@ -37,6 +42,8 @@ export class HttpProblem extends Error {
     this.detail = options.detail
     this.errors = options.errors
     this.retryAfter = options.retryAfter
+    this.entitlement = options.entitlement
+    this.limit = options.limit
     this.headers = {
       ...options.headers,
       ...(options.retryAfter === undefined ? {} : { 'Retry-After': String(options.retryAfter) })
@@ -52,6 +59,8 @@ export class HttpProblem extends Error {
       ...(this.detail ? { detail: this.detail } : {}),
       ...(this.errors ? { errors: this.errors } : {}),
       ...(this.retryAfter === undefined ? {} : { retryAfter: this.retryAfter }),
+      ...(this.entitlement === undefined ? {} : { entitlement: this.entitlement }),
+      ...(this.limit === undefined ? {} : { limit: this.limit }),
       ...(requestId ? { requestId } : {})
     }
   }

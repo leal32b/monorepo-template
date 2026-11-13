@@ -1,9 +1,11 @@
 import { plans } from '@repo/contracts'
 import type { Member, Membership } from '../membership.port'
 
-/** A member as a test gives it: the subscription and what it grants may be left out. */
-type GivenMember = Omit<Member, 'subscription' | 'entitlements'> &
-  Partial<Pick<Member, 'subscription' | 'entitlements'>>
+/** A member as a test gives it: only what the test cares about of the subscription, and what it grants if not everything. */
+export type GivenMember = Omit<Member, 'subscription' | 'entitlements'> & {
+  subscription?: Partial<Member['subscription']>
+  entitlements?: Member['entitlements']
+}
 
 /** Unless a test says otherwise, the organization pays for a plan that grants everything, with full access. */
 const paid: Pick<Member, 'subscription' | 'entitlements'> = {
@@ -27,8 +29,11 @@ export class FakeMembership implements Membership {
   readonly #members: { member: Member; name: string }[] = []
 
   /** A member, named by their user id unless a name is given, of an organization that pays unless the test says otherwise. */
-  add(member: GivenMember, name = member.userId): void {
-    this.#members.push({ member: { ...paid, ...member }, name })
+  add({ subscription, entitlements = paid.entitlements, ...member }: GivenMember, name = member.userId): void {
+    this.#members.push({
+      member: { ...member, subscription: { ...paid.subscription, ...subscription }, entitlements },
+      name
+    })
   }
 
   async memberOf(organizationId: string, userId: string): Promise<Member | null> {

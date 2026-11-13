@@ -45,6 +45,14 @@ describe('HttpProblem', () => {
     expect(body).not.toHaveProperty('requestId')
   })
 
+  it('names the entitlement that refused, and the limit, when given (ADR 0063)', () => {
+    const body = new HttpProblem(403, 'plan_limit_reached', { entitlement: 'customers.max', limit: 100 }).toJSON()
+
+    expect(body).toMatchObject({ entitlement: 'customers.max', limit: 100 })
+    expect(apiProblemSchema.safeParse(body).success).toBe(true)
+    expect(new HttpProblem(403, 'plan_required', { entitlement: 'activity-log' }).toJSON()).not.toHaveProperty('limit')
+  })
+
   it('falls back to a generic title for an unknown status', () => {
     expect(new HttpProblem(499, 'odd').toJSON().title).toBe('Error')
   })
