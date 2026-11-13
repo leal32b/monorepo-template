@@ -153,9 +153,44 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
 6. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
    fail, anything too slow for a request): a job
    ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)), below.
-7. The web: the entity's reads and writes, the feature's forms, the page and its route with
-   `preload`, the menu item, the texts in every language. Screens go through the `design-system`
-   and `minimize-support` skills.
+7. The web, in four pieces ([ADR 0066](adr/0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md)).
+   Screens go through the `design-system` and `minimize-support` skills.
+   - `entities/<name>`: the list as a router query keyed by the organization, the filter, the search
+     and the page (`createQuery`), and the writes.
+   - `features/<name>/…`: the forms and buttons that write.
+   - `pages/<name>`: the list screen. It writes only what is the module's own: its rows, what each
+     role may do, its forms in the rows' panels, and its words. The rest comes from the mould:
+
+     | Part of a list screen | Comes from |
+     | --- | --- |
+     | filter, search, page, the read of the page, the page that empties | `createList` (`#shared/lib`) |
+     | the line in the row acted on and the one below the section | `createListStatus` (`#shared/lib`) |
+     | the search and the filter above the section | `ListToolbar` (`@repo/ui`) |
+     | the pager | `ListPager` (`#shared/ui`) |
+     | the rows, their panels and the empty state | `ListSection`, `ListRow`, `PanelButton`, `ListPanel`, `EmptyState` |
+
+     ```tsx
+     const panels = createPanels()
+     const status = createListStatus(panels)
+     const list = createList({
+       query: projectsQuery(api),
+       args: ({ filter, search, page }) => [organizationId, filter, search, page],
+       filter: 'active' as ProjectStatus, // a list with no filter leaves it out
+       onChange: () => {
+         panels.dismiss()
+         status.forget()
+       }
+     })
+     ```
+
+     After a write, `list.draw(change)` puts the change on the page at once, and `list.again()` asks
+     the API again when the data was found changed; a row that left the list is said with
+     `status.left(text)`. A list paged by a cursor, as the audit trail is, uses `Pager` with its own
+     state. Copy `pages/customers/` for the rows and the panels, and nothing else of its state.
+   - The route, with a `preload` that asks for the first page the list asks for (the same arguments, or
+     the key differs and the page is read twice), the menu item and the palette entry, and the texts in
+     every language: the search and filter labels, the empty states and the rows' words. The pager's
+     words and "Find" are shared, in `list` and `actions`.
 8. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
 
 ### Recording who changed what
@@ -318,7 +353,10 @@ code goes the same way in both cases below:
    and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`), and
    the `customer` texts of the activity (`entries.customer` and `fields.customer` in `dictionaries/audit/`,
    and its field list in `pages/organization-activity/`). The audit trail and its screen stay: they
-   belong to every module.
+   belong to every module. So do `createListStatus`, which the members and roles screens use too. The
+   paged list's helpers (`createList`, `ListToolbar`, `ListPager`, the `list.pager` texts and
+   `actions.find`) are the customers screen's only user until the product has a list screen of its
+   own: build that one first, or remove them with the module when `pnpm knip` names them.
 4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
    organization), `public-registration.spec.ts`, `activity.spec.ts` (or point it at the product's own module), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
    used.

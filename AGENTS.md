@@ -76,6 +76,10 @@ docs/                # using the template, operations, testing, security, adr
   a missing component is added there, with tests. Colours are roles only (`bg-primary`,
   `text-muted-foreground`), held to WCAG contrast ([ADR 0016](docs/adr/0016-design-system-on-kobalte-and-unocss.md));
   no Kobalte import and no literal colour in `apps/web`.
+- **List screens:** a list read a page at a time holds its filter, search and page in `createList` and its
+  statuses in `createListStatus` (`#shared/lib`), draws its search and filter in `ListToolbar` and its
+  pager in `ListPager`, and writes only its own rows, panels and words
+  ([ADR 0066](docs/adr/0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md)).
 - **i18n:** UI text lives in typed dictionaries, one file per language ([ADR 0011](docs/adr/0011-typed-i18n-dictionaries.md)).
 - **Contracts:** every request/response is a Zod schema in `@repo/contracts`, except `/api/auth/*`,
   which keeps Better Auth's shapes ([ADR 0020](docs/adr/0020-authenticate-with-better-auth.md)).

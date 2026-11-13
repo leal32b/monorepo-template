@@ -1,6 +1,6 @@
 # 0044. Build customers as the reference vertical module
 
-- Status: accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md); every write records an audit entry since [0061](0061-keep-one-append-only-audit-trail-per-organization.md); routes declared through a helper since [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md)
+- Status: accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md); every write records an audit entry since [0061](0061-keep-one-append-only-audit-trail-per-organization.md); routes declared through a helper since [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md); list screens built from shared helpers since [0066](0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md)
 - Date: 2026-11-07
 
 ## Context and problem statement
