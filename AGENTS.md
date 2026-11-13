@@ -89,8 +89,9 @@ docs/                # using the template, operations, testing, security, adr
 - **Auth:** `better-auth` stays in `modules/identity/infrastructure/` (dependency-cruiser checks it).
   A route that needs a session calls `requireActor` from `#modules/identity/index` and gets an
   `Actor` or a 401; it never refreshes the session. A tenant route is declared with `tenantRoutes`, which
-  runs the tenant guard with the route's permission and hands the use case the organization, the parsed
-  input and the actor; a module never calls `requireMember`. A route without a session lives under
+  runs the tenant guard with the route's permission, refuses a capability the plan lacks and a `post` or
+  `put` while the organization is read only, and hands the use case the organization, the parsed input,
+  the actor and the member; a module never calls `requireMember`. A route without a session lives under
   `/api/public/organizations/:organizationSlug` and is built with `publicRoute`, which counts it against a
   rate limit before resolving the slug; it returns a `public…` schema of its own
   ([ADR 0059](docs/adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).

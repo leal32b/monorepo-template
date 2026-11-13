@@ -165,10 +165,13 @@ group by organization_id order by count(*) desc;
   triggered the run).
 - If the host's log retention is too short, a log drain to a log service; the lines are already JSON.
 - The API and the database in the same region. A signed-in request makes at least two sequential
-  database round trips (the session, then the membership with its roles), and a tenant route then
+  database round trips (the session, then the membership with its roles and the organization's
+  subscription, in one statement: [ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)), and a tenant route then
   opens a transaction for its own work (`begin`, the statement that sets the tenant, the query,
   `commit`: [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), so each millisecond between them counts about six times on every
-  tenant route. A public route makes two before its own work: the rate-limit counter, then the slug.
+  tenant route. A write limited by the plan (creating or restoring a customer) counts first, one
+  more statement in its transaction while the plan has a limit: eight round trips instead of seven.
+  A public route makes two before its own work: the rate-limit counter, then the slug.
 
 ## When something breaks
 
@@ -184,6 +187,7 @@ group by organization_id order by count(*) desc;
 | Visitors of one place (an office, a shop's own Wi-Fi) say a public page tells them to wait | They share one address and passed a limit: `rate limited` lines with that `limit`, and the address's row in [Public routes and rate limits](#public-routes-and-rate-limits). Delete the row to let them through now; raise the limit in `publicLimits` if it is too low for the product |
 | Every visitor is told to wait, on every public page | The `…:unknown` counter is growing: requests reach the API with no `X-Client-IP`, so they all share one count. The Worker sets it from `CF-Connecting-IP` ([ADR 0022](adr/0022-accept-api-requests-only-from-the-web-worker.md)); on another proxy, set the header to the client's address there |
 | A tenant's list fills with customers nobody knows | [Public routes and rate limits](#public-routes-and-rate-limits): the visitor-made rows per organization, and `rate limited` lines. From few addresses, the limit is holding and can be lowered; from many, put the host's rate limiting or a CAPTCHA in front of `/api/public/` |
+| Members of one organization are refused every change with `subscription_read_only`, or a create with `plan_limit_reached` | Expected while its trial is over, its payment is past the grace period, or its plan has ended, or once it holds as many active customers as its plan allows ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)). Its state: `select o.slug, o."createdAt", s.* from auth.organization o left join subscription s on s.organization_id = o.id where o.slug = '<slug>'`; no row means a trial of 14 days from `createdAt`. Nothing is deleted, and reads and deletions still work |
 | `job failed` in the log, or something that should have happened later did not | [Background jobs](#background-jobs): the failed rows and their `last_error`; fix the cause, then put them back |
 | Jobs wait and nothing runs them | No `job queue working` line after the last start means no worker runs: `JOB_WORKER=off` on the API with no worker process beside it, or the worker process is down (its log, `service: worker`). `job poll failed` means the database is out of reach. A delayed job that ran late on a free tier waited for the container to wake |
 | Emails do not arrive | API log (or the worker's): `job attempt failed` or `job failed` with `kind: identity.send-email`, and `err` with the provider's status and error code; the failed rows in [Background jobs](#background-jobs). No such line and no `job done` for the kind means no worker runs (the row above). A refusal from Resend names the cause: the key, or the sender domain in Resend (until it is verified, only the provider account's own address receives) |

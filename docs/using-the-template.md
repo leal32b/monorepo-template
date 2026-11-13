@@ -121,7 +121,7 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
    one line in `app/create-app.ts`. A route says what it asks and which use case answers; the helper
    runs the tenant guard with the permission, parses the input with the schema (a `GET`'s query
    string, any other method's body), and hands the use case the organization, the input, the path's
-   parameters and the member as the audit actor:
+   parameters, the member as the audit actor, and the member:
 
    ```ts
    const tenant = tenantRoutes(router, deps)
@@ -133,7 +133,13 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
    ```
 
    The answer is what the use case returns, with the status (200 unless said); nothing returned is
-   a 204. The routes test serves the module with `serveRoutes` (`#modules/identity/testing/serve-routes`)
+   a 204. The organization's plan is checked there too
+   ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)):
+   while it is read only, a `post` or `put` is refused (`403 subscription_read_only`); a route that
+   needs a capability names it (`entitlement: 'group-sessions'`, else `403 plan_required`). A use
+   case with a limit takes `entitlement(member, 'appointments.max')` from its route, counts inside
+   its `run` and calls `assertWithinLimit` from `#modules/billing/index` before it writes, as
+   `CreateCustomerService` does. Add the capability or the limit to `billing.ts` in `@repo/contracts`. The routes test serves the module with `serveRoutes` (`#modules/identity/testing/serve-routes`)
    and covers the module's permissions and each route's main path; what the helper itself does is
    proven once. Every use case, a read included, takes the module's unit of work and does
    its database work inside `run(organizationId, …)`, with the id the guard returned: Postgres then

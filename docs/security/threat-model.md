@@ -10,7 +10,9 @@
   emails sent through the job queue (T37) added on 2026-11-11
   ([ADR 0057](../adr/0057-send-identity-emails-through-the-job-queue.md)); the public tenant surface
   (T38 to T43) added on 2026-11-12
-  ([ADR 0059](../adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
+  ([ADR 0059](../adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md));
+  the organization's plan and its entitlements (T47) added on 2026-11-13
+  ([ADR 0063](../adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -45,7 +47,7 @@ routes a visitor reaches without a session, and their rate limiter).
 | --- | --- | --- |
 | B1 | Browser ↔ web origin | Untrusted input, the session cookie, OAuth redirects |
 | B2 | Worker ↔ API | Every API request; the API is also public at `*.onrender.com` |
-| B3 | API ↔ Postgres | Users, accounts, sessions, verification tokens, rate-limit counters, organizations, members, roles, invitations, every tenant's records and its audit trail, and the emails waiting in the job queue with their links |
+| B3 | API ↔ Postgres | Users, accounts, sessions, verification tokens, rate-limit counters, organizations, members, roles, invitations, every tenant's records, its subscription and its audit trail, and the emails waiting in the job queue with their links |
 | B4 | API ↔ email provider, API ↔ Google | Links with tokens; OAuth codes and tokens |
 | B5 | GitHub Actions ↔ Render, Cloudflare | Deploy credentials and runtime secrets |
 | B6 | Organization ↔ organization | Every tenant's data, in the same tables and behind the same routes |
@@ -56,8 +58,8 @@ routes a visitor reaches without a session, and their rate limiter).
 - Credentials: password hashes, TOTP secrets, backup codes, OAuth tokens of linked accounts.
 - Session tokens, and email confirmation and password reset tokens.
 - Personal data: email address and name.
-- Tenant data: an organization's settings, members, roles, invitations and, from Phase 7, its
-  product records.
+- Tenant data: an organization's settings, members, roles, invitations, its subscription (the
+  plan, the state the provider reports, the dates) and, from Phase 7, its product records.
 - What a visitor typed into a public form (a name, an email or a phone), and the client addresses
   the rate limiter counts, kept for a day.
 - The audit trail: who did what to which record of an organization, and when, for a year; ids,
@@ -130,7 +132,8 @@ it).
 | T43 | Using a public form to send email or SMS to a third party from the product's domain | S, D | A public write sends nothing to an address the visitor typed; a confirmation or a one-time code is not built, and the ADR says what it must limit when a product adds it | in place |
 | T44 | A member erases or rewrites the trace of what they did, or makes the trail say someone else did it | R, T | Every write records an audit entry in the same transaction as the change, with the actor the tenant guard returned, never one from the body; under row-level security the tenant role may only insert and select the trail (no `update`, no `delete` grant), so no request path can change it, and a database test proves the refusal; only the purge, by retention, and the deletion of the organization remove entries ([ADR 0061](../adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | in place |
 | T45 | The trail as a second copy of a person's data, alive after the record was deleted | I | An entry holds ids, codes and the names of the fields a change set, never a value, a request body or an address; a deleted customer leaves a random id that points at nothing; entries go after 365 days and with their organization ([ADR 0061](../adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | in place |
-| T46 | Reading an organization's activity without the right, or exhausting the API with the read | I, D | The read needs `audit:read` (owner and admin by default), behind `requireMember` and row-level security; it pages by keyset, 25 entries a page, with no count; the daily purge bounds the table ([ADR 0061](../adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | in place |
+| T46 | Reading an organization's activity without the right, or exhausting the API with the read | I, D | The read needs `audit:read` (owner and admin by default) and a plan with the `activity-log` capability, behind `tenantRoutes` and row-level security; it pages by keyset, 25 entries a page, with no count; the daily purge bounds the table ([ADR 0061](../adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | in place |
+| T47 | A member uses more than the plan allows: a capability it lacks, more than a limit, or a write while the organization is read only, through a route that forgot the check or a body that names a plan | E, T | Entitlements come only from the subscription row the membership read joins, in the same statement, never from a request, and read only is computed with the API's clock; `tenantRoutes` refuses a capability the route declares and the plan lacks (`403 plan_required`), then a `post` or `put` while the organization is read only (`403 subscription_read_only`), after the permission and before the input, in one place no module can skip; only a route declared `duringReadOnly` writes then; a limited use case counts inside its own transaction before it writes (`403 plan_limit_reached`); no request schema carries a plan, and the tenant role may not delete the subscription row ([ADR 0063](../adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)) | in place |
 
 ## Accepted risks
 
@@ -152,5 +155,8 @@ it).
 | Every member can list the organization's members and their emails | That is how the plugin's `list-members` works, and teams expect to see each other | A product needs members hidden from one another |
 | Code that runs on the pool as the tables' owner (migrations, the purge job, a future job worker or back office) is not confined by row-level security, and the owner role bypasses it on the default host | The API keeps one connection string and no role is created by hand; tenant routes reach tenant tables only through the unit of work ([ADR 0055](../adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)) | A product adds code that reads tenant tables outside a unit of work, or its threat model includes SQL injection: then connect the API as a second login role that is a member of `app_tenant` and owns nothing |
 | An organization deleted is gone at once, with no grace period | The owner types the name first; Phase 7 decides what its records need | A product holds data that a mistaken deletion would make costly |
+| Two creates at the same instant can both pass a plan's limit and leave the organization one over it | A limit is a commercial line, not a safety one; serializing every create of an organization costs more than one extra record ([ADR 0063](../adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)) | A limit passed under concurrency starts to matter: lock the subscription row in the limited use cases |
+| A user can start another trial by creating another organization | A trial needs no card; the five organizations per user of ADR 0033 bound it | Trials are abused: tie the trial to the user, or ask for a card |
+| An organization in read only keeps its public surface, and a visitor's registration is never refused by the plan's limit, though it counts toward it | A visitor is no party to the subscription, and a shop's clients should not meet its late payment; the public writes are rate limited (T40) | A product's public flow is a capability (online booking): join the subscription into `PublicOrganizations.bySlug` and decide what a visitor sees |
 | An account deleted is gone at once, with no grace period; expired verification rows of its address stay until they expire | The emailed link and the last screen's button are two deliberate acts; the rows hold no secret that works without the account | A product holds data that a mistaken deletion would make costly, or must keep records after an account goes |
 | Expired invitations stay in the table as `pending` for 30 days | They cannot be accepted, and the web hides them; the daily purge deletes them after 30 days, so support can still see why one failed ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)) | A product must keep them longer for an audit |
