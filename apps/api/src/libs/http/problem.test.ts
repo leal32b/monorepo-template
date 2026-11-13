@@ -4,7 +4,8 @@ import {
   ConflictException,
   EntitlementException,
   ExceptionBase,
-  NotFoundException
+  NotFoundException,
+  UnavailableException
 } from '#libs/exceptions/exception.base'
 import { HttpProblem, toProblem } from './problem'
 
@@ -16,6 +17,9 @@ class Invalid extends ArgumentInvalidException {
 }
 class Clash extends ConflictException {
   readonly code = 'clash'
+}
+class ProviderDown extends UnavailableException {
+  readonly code = 'provider_down'
 }
 class Unmapped extends ExceptionBase {
   readonly code = 'unmapped'
@@ -128,6 +132,15 @@ describe('toProblem', () => {
     expect(problem.code).toBe('service_unavailable')
     expect(problem.headers).toEqual({ 'Retry-After': '5' })
     expect(JSON.stringify(problem.toJSON())).not.toContain('10.0.0.1')
+  })
+
+  it('answers a dependency a use case found out of reach as the same 503, without its message', () => {
+    const { problem, expected } = toProblem(new ProviderDown('provider at 10.0.0.2 timed out'))
+
+    expect(expected).toBe(true)
+    expect(problem.status).toBe(503)
+    expect(problem.code).toBe('service_unavailable')
+    expect(JSON.stringify(problem.toJSON())).not.toContain('10.0.0.2')
   })
 
   it('answers any other error as an opaque 500', () => {

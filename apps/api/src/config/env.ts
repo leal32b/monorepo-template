@@ -57,6 +57,7 @@ const envSchema = z
     EMAIL_FROM: optional(z.string().check(z.regex(SENDER))),
     GOOGLE_CLIENT_ID: optional(z.string()),
     GOOGLE_CLIENT_SECRET: optional(z.string()),
+    FAKE_BILLING_TOKEN: optional(z.string().check(z.minLength(16))),
     JOB_WORKER: optional(z.enum(['on', 'off'])),
     JOB_IDLE_POLL_SECONDS: optional(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(86_400))))
   })
@@ -78,8 +79,17 @@ const envSchema = z
     }),
     z.refine((env) => env.GOOGLE_CLIENT_SECRET !== undefined || env.GOOGLE_CLIENT_ID === undefined, {
       path: ['GOOGLE_CLIENT_SECRET']
-    })
+    }),
+    // Deployed, payments must be real: the fake marks an organization paid on a command (ADR 0063). A
+    // provider's key selects its adapter (ADR 0064); with none configured, the fake is all there is.
+    z.refine((env) => !env.WEB_ORIGIN.startsWith('https:'), { path: ['ASAAS_API_KEY'] })
   )
+
+/**
+ * Who takes the payments (ADR 0063): the provider whose key is set, or the fake with none, driven by
+ * commands that carry `FAKE_BILLING_TOKEN` (every command is refused while it is unset).
+ */
+export type BillingConfig = { kind: 'fake'; token: string | undefined }
 
 /** How email leaves the API (ADR 0021): logged in development, or sent through Resend. */
 export type EmailTransport = { kind: 'log' } | { kind: 'resend'; apiKey: string; from: string }
@@ -105,6 +115,7 @@ export type ApiEnv = {
   email: EmailTransport
   /** Google sign-in (ADR 0020): off unless both credentials are set. */
   google: { clientId: string; clientSecret: string } | undefined
+  billing: BillingConfig
   /**
    * Background work (ADR 0056). `worker`: whether this process runs the jobs; off when a process of
    * its own does (`dist/worker.js`). `idlePollMs`: the longest an idle worker sleeps before it looks
@@ -161,6 +172,7 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
       env.GOOGLE_CLIENT_ID === undefined
         ? undefined
         : { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET as string },
+    billing: { kind: 'fake', token: env.FAKE_BILLING_TOKEN },
     jobs: { worker: env.JOB_WORKER !== 'off', idlePollMs: (env.JOB_IDLE_POLL_SECONDS ?? 3_600) * 1000 }
   }
 }

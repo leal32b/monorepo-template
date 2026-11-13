@@ -28,6 +28,12 @@ export abstract class ArgumentInvalidException extends ExceptionBase {}
 export abstract class ConflictException extends ExceptionBase {}
 
 /**
+ * A service the use case depends on, such as the payment provider (ADR 0063), is out of reach, too
+ * slow or refused the call (HTTP 503, ADR 0047): nothing changed, and the client may try again.
+ */
+export abstract class UnavailableException extends ExceptionBase {}
+
+/**
  * The organization's plan does not allow it (HTTP 403, ADR 0063): the problem names the capability
  * or limit that refused, and a limit's number, so the web can say which plan allows more.
  */

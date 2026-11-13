@@ -128,7 +128,7 @@ export function createHttpServer({
     dispatch(req, res, request).catch((err: unknown) => {
       const { problem, expected } = toProblem(err, isUnavailable)
       if (!expected) logger.error({ reqId: request.id, err }, 'unhandled error in request handler')
-      else if (isUnavailable(err))
+      else if (problem.status === 503)
         logger.warn({ reqId: request.id, reason: (err as Error).message }, 'dependency unavailable')
       if (res.headersSent) {
         res.destroy() // too late for a clean error: cut the connection

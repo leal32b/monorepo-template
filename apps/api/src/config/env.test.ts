@@ -23,6 +23,7 @@ describe('loadEnv', () => {
       authSecret,
       email: { kind: 'log' },
       google: undefined,
+      billing: { kind: 'fake', token: undefined },
       jobs: { worker: true, idlePollMs: 3_600_000 },
       databaseUrl: required.DATABASE_URL,
       databasePoolSize: undefined
@@ -135,9 +136,12 @@ describe('loadEnv', () => {
     const deployed = { ...required, ...resend, WEB_ORIGIN: 'https://app.example.com' }
 
     expect(() => loadEnv({ ...deployed, PROXY_SECRET: '' })).toThrow(
-      expect.objectContaining({ variables: ['PROXY_SECRET'] })
+      expect.objectContaining({ variables: expect.arrayContaining(['PROXY_SECRET']) })
     )
-    expect(loadEnv({ ...deployed, PROXY_SECRET: proxySecret }).webOrigin).toBe('https://app.example.com')
+    // Until a real provider is configured, only the billing fake is left to refuse (ADR 0063).
+    expect(() => loadEnv({ ...deployed, PROXY_SECRET: proxySecret })).toThrow(
+      expect.objectContaining({ variables: ['ASAAS_API_KEY'] })
+    )
   })
 
   it('rejects a BETTER_AUTH_SECRET shorter than 32 characters', () => {
@@ -178,8 +182,30 @@ describe('loadEnv', () => {
   it('refuses the log transport when the web origin is https, as when deployed (ADR 0021)', () => {
     const deployed = { ...required, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
 
-    expect(() => loadEnv(deployed)).toThrow(expect.objectContaining({ variables: ['RESEND_API_KEY'] }))
-    expect(loadEnv({ ...deployed, ...resend }).email.kind).toBe('resend')
+    expect(() => loadEnv(deployed)).toThrow(
+      expect.objectContaining({ variables: expect.arrayContaining(['RESEND_API_KEY']) })
+    )
+    expect(() => loadEnv({ ...deployed, ...resend })).toThrow(expect.objectContaining({ variables: ['ASAAS_API_KEY'] }))
+  })
+
+  it('bills through the fake when no provider key is set, with the token its commands carry (ADR 0063)', () => {
+    expect(loadEnv({ ...required, FAKE_BILLING_TOKEN: 'e2e-fake-billing-token' }).billing).toEqual({
+      kind: 'fake',
+      token: 'e2e-fake-billing-token'
+    })
+    expect(loadEnv({ ...required, FAKE_BILLING_TOKEN: '' }).billing).toEqual({ kind: 'fake', token: undefined })
+  })
+
+  it('rejects a FAKE_BILLING_TOKEN shorter than 16 characters', () => {
+    expect(() => loadEnv({ ...required, FAKE_BILLING_TOKEN: 'short' })).toThrow(
+      expect.objectContaining({ variables: ['FAKE_BILLING_TOKEN'] })
+    )
+  })
+
+  it('refuses the billing fake when the web origin is https: deployed, payments must be real (ADR 0063)', () => {
+    const deployed = { ...required, ...resend, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
+
+    expect(() => loadEnv(deployed)).toThrow(expect.objectContaining({ variables: ['ASAAS_API_KEY'] }))
   })
 
   it('turns Google sign-in on when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (ADR 0020)', () => {

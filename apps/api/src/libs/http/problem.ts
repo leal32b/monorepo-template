@@ -5,7 +5,8 @@ import {
   ConflictException,
   EntitlementException,
   ExceptionBase,
-  NotFoundException
+  NotFoundException,
+  UnavailableException
 } from '#libs/exceptions/exception.base'
 
 export type ProblemFieldError = { path: string; message: string }
@@ -93,16 +94,16 @@ const entitlementOf = (error: ExceptionBase) =>
 
 /**
  * The problem an error answers with: HTTP problems as they are, use-case exceptions by family (a
- * refusal of the plan with its entitlement), an error `isUnavailable` recognises as a 503, anything
- * else as an opaque 500. `expected` is false for the last case, which is a bug worth logging with its
- * stack.
+ * refusal of the plan with its entitlement), an error `isUnavailable` recognises or a use case's
+ * `UnavailableException` as a 503, anything else as an opaque 500. `expected` is false for the last
+ * case, which is a bug worth logging with its stack.
  */
 export function toProblem(
   error: unknown,
   isUnavailable: (error: unknown) => boolean = () => false
 ): { problem: HttpProblem; expected: boolean } {
   if (error instanceof HttpProblem) return { problem: error, expected: true }
-  if (isUnavailable(error)) return { problem: unavailable(), expected: true }
+  if (isUnavailable(error) || error instanceof UnavailableException) return { problem: unavailable(), expected: true }
   if (!(error instanceof ExceptionBase)) return { problem: internalError(), expected: false }
   const status = statusOf(error)
   if (status === null) return { problem: internalError(), expected: false }

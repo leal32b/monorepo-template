@@ -2,7 +2,7 @@ import type { AddressInfo } from 'node:net'
 import { apiProblemSchema } from '@repo/contracts'
 import pino, { type Logger } from 'pino'
 import * as z from 'zod/mini'
-import { ConflictException } from '#libs/exceptions/exception.base'
+import { ConflictException, UnavailableException } from '#libs/exceptions/exception.base'
 import { BODY_LIMIT_BYTES, readValidJson } from './body'
 import { sendJson } from './json'
 import { type HttpHandler, HttpRouter } from './router'
@@ -200,6 +200,26 @@ describe('HTTP server', () => {
     expect(body.code).toBe('service_unavailable')
     expect(warn).toHaveBeenCalledWith({ reqId: body.requestId, reason: 'Query read timeout' }, 'dependency unavailable')
     expect(error).not.toHaveBeenCalledWith(expect.anything(), 'unhandled error in request handler')
+  })
+
+  it('answers a use case that found a service out of reach as a 503, with its reason in one warning', async () => {
+    const logger = pino({ level: 'silent' })
+    const warn = vi.spyOn(logger, 'warn')
+    const url = await start(
+      (router) =>
+        router.get('/hello', async () => {
+          throw new (class extends UnavailableException {
+            readonly code = 'provider_down'
+          })('provider timed out')
+        }),
+      { logger }
+    )
+
+    const response = await fetch(`${url}/hello`)
+    const body = apiProblemSchema.parse(await response.json())
+
+    expect(response.status).toBe(503)
+    expect(warn).toHaveBeenCalledWith({ reqId: body.requestId, reason: 'provider timed out' }, 'dependency unavailable')
   })
 
   it('writes one access-log line per request, without headers or bodies', async () => {
