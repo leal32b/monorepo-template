@@ -26,6 +26,14 @@ export const shellPtBR: typeof shellEn = {
     retry: 'Tentar de novo',
     find: 'Procurar'
   },
+  /** What every list read a page at a time says (`ListPager`). */
+  list: {
+    pager: {
+      previous: 'Anterior',
+      next: 'Próxima',
+      page: 'Página {{page}} de {{pages}}'
+    }
+  },
   notFound: {
     title: 'Página não encontrada',
     description: 'O endereço pode estar errado, ou a página pode ter mudado.',

@@ -71,11 +71,6 @@ export const customersEs: typeof customersEn = {
       warning: '¿Eliminar a {{name}} para siempre? Sus datos y notas no se pueden recuperar.',
       submit: 'Eliminar cliente',
       removed: 'Se eliminó {{name}}.'
-    },
-    pager: {
-      previous: 'Anterior',
-      next: 'Siguiente',
-      page: 'Página {{page}} de {{pages}}'
     }
   }
 }

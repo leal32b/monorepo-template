@@ -71,11 +71,6 @@ export const customersPtBR: typeof customersEn = {
       warning: 'Excluir {{name}} para sempre? Os dados e as anotações não podem ser recuperados.',
       submit: 'Excluir cliente',
       removed: '{{name}} foi excluído.'
-    },
-    pager: {
-      previous: 'Anterior',
-      next: 'Próxima',
-      page: 'Página {{page}} de {{pages}}'
     }
   }
 }

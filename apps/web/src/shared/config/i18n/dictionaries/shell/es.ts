@@ -26,6 +26,14 @@ export const shellEs: typeof shellEn = {
     retry: 'Intentar de nuevo',
     find: 'Filtrar'
   },
+  /** What every list read a page at a time says (`ListPager`). */
+  list: {
+    pager: {
+      previous: 'Anterior',
+      next: 'Siguiente',
+      page: 'Página {{page}} de {{pages}}'
+    }
+  },
   notFound: {
     title: 'Página no encontrada',
     description: 'Puede que la dirección esté mal, o que la página se haya movido.',

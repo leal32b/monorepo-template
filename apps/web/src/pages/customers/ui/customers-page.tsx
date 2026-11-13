@@ -8,7 +8,6 @@ import {
   ListRow,
   ListSection,
   ListToolbar,
-  Pager,
   PanelButton,
   SegmentedControl
 } from '@repo/ui'
@@ -19,7 +18,7 @@ import { ArchiveCustomerButton, CustomerForm, DeleteCustomerForm } from '#featur
 import { useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { createList, createListStatus, formatDate } from '#shared/lib'
-import { ReadFailure } from '#shared/ui'
+import { ListPager, ReadFailure } from '#shared/ui'
 import { AppShell } from '#widgets/app-shell'
 
 /**
@@ -252,18 +251,7 @@ function Customers() {
               <For each={loaded().items}>{rowOf}</For>
             </Show>
           </ListSection>
-          <Show when={list.pages() > 1}>
-            <Pager
-              label={t('customers.section.title')}
-              previousLabel={t('customers.pager.previous')}
-              nextLabel={t('customers.pager.next')}
-              summary={t('customers.pager.page', { page: loaded().page, pages: list.pages() })}
-              hasPrevious={list.hasPrevious()}
-              hasNext={list.hasNext()}
-              onPrevious={list.previous}
-              onNext={list.next}
-            />
-          </Show>
+          <ListPager label={t('customers.section.title')} list={list} />
         </div>
       )}
     </Show>

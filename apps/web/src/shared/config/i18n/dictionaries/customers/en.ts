@@ -69,11 +69,6 @@ export const customersEn = {
       warning: 'Delete {{name}} for good? Their details and notes cannot be recovered.',
       submit: 'Delete customer',
       removed: '{{name}} was deleted.'
-    },
-    pager: {
-      previous: 'Previous',
-      next: 'Next',
-      page: 'Page {{page}} of {{pages}}'
     }
   }
 }

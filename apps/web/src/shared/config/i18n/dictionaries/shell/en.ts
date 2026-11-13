@@ -24,6 +24,14 @@ export const shellEn = {
     retry: 'Try again',
     find: 'Find'
   },
+  /** What every list read a page at a time says (`ListPager`). */
+  list: {
+    pager: {
+      previous: 'Previous',
+      next: 'Next',
+      page: 'Page {{page}} of {{pages}}'
+    }
+  },
   notFound: {
     title: 'Page not found',
     description: 'The address may be wrong, or the page may have moved.',
