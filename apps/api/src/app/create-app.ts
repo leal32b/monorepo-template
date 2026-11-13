@@ -7,10 +7,13 @@ import { KyselyRateLimiter } from '#libs/database/kysely-rate-limiter'
 import { fromFetchHandler } from '#libs/http/fetch-handler'
 import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
+import type { BillingProvider, NoticeSource } from '#libs/ports/billing-provider.port'
 import type { Clock } from '#libs/ports/clock.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import { kyselyAuditUnitOfWork } from '#modules/audit/database/kysely-audit-unit-of-work'
 import { registerAuditRoutes } from '#modules/audit/index'
+import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
+import { registerBillingRoutes } from '#modules/billing/index'
 import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomerRoutes } from '#modules/customers/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
@@ -54,6 +57,8 @@ export type AppDeps = {
   authSecret: string
   /** Google sign-in credentials; `undefined` keeps Google off. */
   google: { clientId: string; clientSecret: string } | undefined
+  /** The payment provider the configuration picked (ADR 0063); the job worker holds the same one. */
+  billing: BillingProvider & Partial<NoticeSource>
 }
 
 /**
@@ -71,13 +76,15 @@ export function createApp({
   db,
   jobs,
   authSecret,
-  google
+  google,
+  billing
 }: AppDeps): Server {
   const router = new HttpRouter()
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
   const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google })
   const session = new BetterAuthCurrentSession(auth)
   const membership = new KyselyMembership(db, clock)
+  const ids = new UuidGenerator()
   // What routes without a session are built from (ADR 0059): the limiter first, then the slug.
   const publicSurface = {
     limiter: new KyselyRateLimiter(db, clock),
@@ -101,10 +108,20 @@ export function createApp({
     publicSurface,
     unitOfWork: kyselyCustomersUnitOfWork(db),
     clock,
-    ids: new UuidGenerator()
+    ids
   })
   // The organization's audit trail, read only: every module writes its entries in its own unit of work (ADR 0061).
   registerAuditRoutes(router, { session, membership, unitOfWork: kyselyAuditUnitOfWork(db) })
+  // The owner's plan page (ADR 0063): the subscription row in billing's unit of work, the provider outside it.
+  registerBillingRoutes(router, {
+    session,
+    membership,
+    unitOfWork: kyselyBillingUnitOfWork(db),
+    provider: billing,
+    clock,
+    ids,
+    webOrigin
+  })
   return createHttpServer({
     router,
     logger,

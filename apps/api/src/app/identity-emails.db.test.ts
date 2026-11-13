@@ -4,8 +4,10 @@ import { fileURLToPath } from 'node:url'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
+import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { ManualTimer } from '#libs/adapters/manual-timer'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { retryDelayMs } from '#libs/jobs/job-limits'
@@ -56,7 +58,8 @@ describe('identity emails through the job queue (ADR 0057)', () => {
       db,
       jobs: jobs.queue,
       authSecret: 'fedcba9876543210'.repeat(2),
-      google: undefined
+      google: undefined,
+      billing: new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
     })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`

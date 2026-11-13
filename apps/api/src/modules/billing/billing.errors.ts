@@ -19,6 +19,15 @@ export class CheckoutOpenException extends ConflictException {
   }
 }
 
+/** The open checkout was paid: the plan changes as soon as the provider confirms it. */
+export class CheckoutPaidException extends ConflictException {
+  readonly code = billingProblems.checkoutPaid
+
+  constructor() {
+    super('This payment was already made. The plan changes as soon as the provider confirms it.')
+  }
+}
+
 /** A change of plan, a cancellation or a resumption needs a plan paid for. */
 export class SubscriptionNotActiveException extends ConflictException {
   readonly code = billingProblems.notActive

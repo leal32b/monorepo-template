@@ -1,16 +1,19 @@
 import { createApp } from '#app/create-app'
+import { createBillingProvider } from '#app/create-billing-provider'
 import { createJobs } from '#app/create-jobs'
 import { loadEnv } from '#config/env'
 import { FileEmailSender } from '#libs/adapters/file-email-sender'
 import { SystemClock } from '#libs/adapters/system-clock'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { createLogger } from '#libs/logging/create-logger'
 import { enqueueQueueCheck } from '#modules/health/jobs/queue-check'
 
 /**
  * The API as the end-to-end suite runs it (ADR 0045): the production wiring, except that emails go
- * to a file the tests read (E2E_OUTBOX) and the breached-password check answers offline, so the
- * suite needs no provider and no internet. Never bundled, never deployed.
+ * to a file the tests read (E2E_OUTBOX), the breached-password check answers offline, and billing is
+ * the fake the suite drives with commands (ADR 0063), so the suite needs no provider and no internet.
+ * Never bundled, never deployed.
  */
 const outbox = process.env.E2E_OUTBOX
 if (!outbox) throw new Error('E2E_OUTBOX names the file the emails go to')
@@ -28,6 +31,8 @@ const logger = createLogger({ level: env.logLevel, service: 'api', release: env.
 const db = createDatabase(createPool(env.databaseUrl, logger, { maxConnections: 1 }))
 const clock = new SystemClock()
 const emailSender = new FileEmailSender(outbox)
+// The billing fake, with no completion of its own: the suite sends its commands (ADR 0063).
+const billing = createBillingProvider(env.billing, { clock, ids: new UuidGenerator() })
 const jobs = createJobs({ db, clock, logger, emailSender, idlePollMs: env.jobs.idlePollMs })
 const server = createApp({
   clock,
@@ -40,7 +45,8 @@ const server = createApp({
   db,
   jobs: jobs.queue,
   authSecret: env.authSecret,
-  google: env.google
+  google: env.google,
+  billing
 })
 
 server.listen(env.port, env.host, () => {
