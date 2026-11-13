@@ -27,8 +27,9 @@ async function serve() {
       body: JSON.stringify(body)
     })
   return {
-    /** Ada, signed in, with `customer` actions in `org-1`. */
-    signInWith: (actions: Array<'read' | 'create' | 'update' | 'delete'>) => signInAs({ customer: actions }),
+    /** Ada, signed in, with `customer` actions in `org-1`, on a plan with no limit unless `plan` says otherwise. */
+    signInWith: (actions: Array<'read' | 'create' | 'update' | 'delete'>, plan: Parameters<typeof signInAs>[1] = {}) =>
+      signInAs({ customer: actions }, plan),
     call: (method: string, path: string, body?: unknown) => call(method, `/api/organizations/${path}`, body),
     code,
     audit,
@@ -259,5 +260,38 @@ describe('the public customer registration (ADR 0059)', () => {
     expect((await register('acme', { name: 'Grace', email: 'grace-10@example.com' })).status).toBe(202)
     signInWith(['read'])
     expect(customerListSchema.parse(await (await call('GET', 'org-1/customers')).json()).total).toBe(12)
+  })
+
+  describe("the plan's limit of active customers (ADR 0063)", () => {
+    const oneCustomer = { entitlements: { capabilities: [], limits: { 'customers.max': 1 } } }
+
+    it('refuses creating and restoring past customers.max with 403 plan_limit_reached, naming the limit; archiving frees room', async () => {
+      const { signInWith, call } = await serve()
+      signInWith(['read', 'create', 'update'], oneCustomer)
+      const first = customerSchema.parse(await (await call('POST', 'org-1/customers', { name: 'Ada' })).json())
+
+      const refused = await call('POST', 'org-1/customers', { name: 'Bob' })
+      expect(refused.status).toBe(403)
+      expect(await refused.json()).toMatchObject({ code: 'plan_limit_reached', entitlement: 'customers.max', limit: 1 })
+
+      await call('POST', `org-1/customers/${first.id}/archive`)
+      const second = await call('POST', 'org-1/customers', { name: 'Bob' })
+      expect(second.status).toBe(201)
+      const restore = await call('POST', `org-1/customers/${first.id}/restore`)
+      expect(restore.status).toBe(403)
+      expect(await restore.json()).toMatchObject({ code: 'plan_limit_reached', limit: 1 })
+    })
+
+    it('never refuses a visitor’s registration, whose customer counts toward the limit', async () => {
+      const { signInWith, call, register } = await serve()
+      signInWith(['read', 'create'], oneCustomer)
+
+      expect((await register('acme', { name: 'Ada Visitor', email: 'ada@example.com' })).status).toBe(202)
+      expect((await register('acme', { name: 'Bob Visitor', phone: '555 0100' })).status).toBe(202)
+
+      const list = customerListSchema.parse(await (await call('GET', 'org-1/customers')).json())
+      expect(list.total).toBe(2)
+      expect((await call('POST', 'org-1/customers', { name: 'Cy' })).status).toBe(403)
+    })
   })
 })

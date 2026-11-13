@@ -56,6 +56,12 @@ export class InMemoryCustomerRepository implements CustomerRepository, InMemoryS
     return { items: matching.slice(from, from + filter.pageSize), total: matching.length }
   }
 
+  async countActive(organizationId: string): Promise<number> {
+    return [...this.#customers.values()].filter(
+      (customer) => customer.organizationId === organizationId && customer.archivedAt === null
+    ).length
+  }
+
   async remove(customer: Customer): Promise<void> {
     this.#assertUnchanged(customer)
     this.#customers.delete(customer.id)

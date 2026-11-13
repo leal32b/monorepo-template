@@ -2,6 +2,7 @@ import { apiProblemSchema } from '@repo/contracts'
 import {
   ArgumentInvalidException,
   ConflictException,
+  EntitlementException,
   ExceptionBase,
   NotFoundException
 } from '#libs/exceptions/exception.base'
@@ -18,6 +19,16 @@ class Clash extends ConflictException {
 }
 class Unmapped extends ExceptionBase {
   readonly code = 'unmapped'
+}
+class OverTheLimit extends EntitlementException {
+  readonly code = 'plan_limit_reached'
+  readonly entitlement = 'customers.max'
+  readonly limit = 100
+}
+class WithoutCapability extends EntitlementException {
+  readonly code = 'plan_required'
+  readonly entitlement = 'activity-log'
+  readonly limit = undefined
 }
 
 describe('HttpProblem', () => {
@@ -76,6 +87,22 @@ describe('toProblem', () => {
     expect(problem.status).toBe(status)
     expect(problem.code).toBe(code)
     expect(problem.detail).toBe(error.message)
+  })
+
+  it("maps a refusal of the organization's plan to 403, naming the entitlement and the limit (ADR 0063)", () => {
+    const { problem, expected } = toProblem(new OverTheLimit('The plan allows 100.'))
+
+    expect(expected).toBe(true)
+    expect(problem.toJSON()).toEqual({
+      type: 'urn:problem:plan_limit_reached',
+      title: 'Forbidden',
+      status: 403,
+      code: 'plan_limit_reached',
+      detail: 'The plan allows 100.',
+      entitlement: 'customers.max',
+      limit: 100
+    })
+    expect(toProblem(new WithoutCapability('Not on this plan.')).problem.toJSON()).not.toHaveProperty('limit')
   })
 
   it('reports the field of an invalid argument in errors[]', () => {

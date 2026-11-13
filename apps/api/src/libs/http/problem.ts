@@ -3,6 +3,7 @@ import type { ApiProblem, EntitlementKey } from '@repo/contracts'
 import {
   ArgumentInvalidException,
   ConflictException,
+  EntitlementException,
   ExceptionBase,
   NotFoundException
 } from '#libs/exceptions/exception.base'
@@ -80,13 +81,21 @@ function statusOf(error: ExceptionBase): number | null {
   if (error instanceof NotFoundException) return 404
   if (error instanceof ArgumentInvalidException) return 400
   if (error instanceof ConflictException) return 409
+  if (error instanceof EntitlementException) return 403
   return null
 }
 
+/** What a refusal of the plan adds to its problem: the entitlement, and a limit's number. */
+const entitlementOf = (error: ExceptionBase) =>
+  error instanceof EntitlementException
+    ? { entitlement: error.entitlement, ...(error.limit === undefined ? {} : { limit: error.limit }) }
+    : {}
+
 /**
- * The problem an error answers with: HTTP problems as they are, use-case exceptions by family, an
- * error `isUnavailable` recognises as a 503, anything else as an opaque 500. `expected` is false for
- * the last case, which is a bug worth logging with its stack.
+ * The problem an error answers with: HTTP problems as they are, use-case exceptions by family (a
+ * refusal of the plan with its entitlement), an error `isUnavailable` recognises as a 503, anything
+ * else as an opaque 500. `expected` is false for the last case, which is a bug worth logging with its
+ * stack.
  */
 export function toProblem(
   error: unknown,
@@ -100,7 +109,8 @@ export function toProblem(
   return {
     problem: new HttpProblem(status, error.code, {
       detail: error.message,
-      ...(error.field ? { errors: [{ path: error.field, message: error.message }] } : {})
+      ...(error.field ? { errors: [{ path: error.field, message: error.message }] } : {}),
+      ...entitlementOf(error)
     }),
     expected: true
   }

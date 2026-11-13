@@ -1,6 +1,7 @@
 import {
   customerInputSchema,
   customerUpdateSchema,
+  entitlement,
   listCustomersQuerySchema,
   type PublicCustomerRegistration,
   publicCustomerRegistrationInputSchema
@@ -63,7 +64,8 @@ export function registerCustomerRoutes(router: HttpRouter, deps: CustomerRoutesD
   tenant.post(
     base,
     { permission: { customer: ['create'] }, input: customerInputSchema, status: 201 },
-    ({ organizationId, input, actor }) => create.execute(organizationId, input, actor)
+    ({ organizationId, input, actor, member }) =>
+      create.execute(organizationId, input, actor, entitlement(member, 'customers.max'))
   )
   tenant.get(`${base}/:customerId`, { permission: { customer: ['read'] } }, ({ organizationId, params }) =>
     get.execute(organizationId, params.customerId)
@@ -82,7 +84,8 @@ export function registerCustomerRoutes(router: HttpRouter, deps: CustomerRoutesD
   tenant.post(
     `${base}/:customerId/restore`,
     { permission: { customer: ['update'] } },
-    ({ organizationId, params, actor }) => restore.execute(organizationId, params.customerId, actor)
+    ({ organizationId, params, actor, member }) =>
+      restore.execute(organizationId, params.customerId, actor, entitlement(member, 'customers.max'))
   )
   // Once archived; its audit entry stays as the record of who deleted it (ADR 0061).
   tenant.delete(`${base}/:customerId`, { permission: { customer: ['delete'] } }, ({ organizationId, params, actor }) =>
@@ -92,7 +95,9 @@ export function registerCustomerRoutes(router: HttpRouter, deps: CustomerRoutesD
   /**
    * 202, the request was taken in (ADR 0059). The shape of a public write: `publicRoute` counts the
    * request and resolves the slug before the body is read; the answer is the same whatever the use
-   * case found; a filled honeypot writes nothing, and only the log says so.
+   * case found; a filled honeypot writes nothing, and only the log says so. The plan does not gate
+   * it (ADR 0063): a visitor is no party to the subscription, so neither read only nor the limit
+   * refuses a registration, though the customer it creates counts toward `customers.max`.
    */
   router.post(
     `${publicBase}/customer-registrations`,

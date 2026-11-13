@@ -7,7 +7,7 @@ describe('ListCustomersService', () => {
   const setup = async (names: string[]) => {
     const { unitOfWork, clock, ids } = testCustomers()
     const create = new CreateCustomerService(unitOfWork, clock, ids)
-    for (const name of names) await create.execute('org-1', { name }, byAda)
+    for (const name of names) await create.execute('org-1', { name }, byAda, null)
     return new ListCustomersService(unitOfWork)
   }
 
