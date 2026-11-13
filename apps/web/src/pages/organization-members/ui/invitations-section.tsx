@@ -16,7 +16,7 @@ import {
 } from '#features/organizations/invite-people'
 import { type AuthFailure, createRead, readAgain, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
-import { formatDate } from '#shared/lib'
+import { createListStatus, formatDate } from '#shared/lib'
 import { ReadFailure } from '#shared/ui'
 
 export type InvitationsSectionProps = {
@@ -72,16 +72,14 @@ function Invitations(props: InvitationsSectionProps) {
   /** After a change, the list is read again: the screen keeps it until the answer comes. */
   const reread = () => readAgain(pending.keyFor(id))
   const [inviteStatus, setInviteStatus] = createSignal<string>()
-  const [sectionStatus, setSectionStatus] = createSignal<string>()
-  const [rowStatus, setRowStatus] = createSignal<{ id: string; text: string }>()
+  const status = createListStatus(props.panels)
   const [rowFailure, setRowFailure] = createSignal<{ id: string; failure: AuthFailure }>()
   const [busy, setBusy] = createSignal(false)
 
   const waiting = () => busy() || props.panels.busy()
   const forget = () => {
     setInviteStatus(undefined)
-    setSectionStatus(undefined)
-    setRowStatus(undefined)
+    status.forget()
     setRowFailure(undefined)
   }
 
@@ -91,7 +89,7 @@ function Invitations(props: InvitationsSectionProps) {
       title={invitation.email}
       badge={<For each={invitation.roles}>{(role) => <Badge>{roleLabel(role)}</Badge>}</For>}
       description={t('invitations.expires', { date: formatDate(invitation.expiresAt, locale()) })}
-      status={rowStatus()?.id === invitation.id ? rowStatus()?.text : undefined}
+      status={status.row(invitation.id)}
       action={
         <>
           <Show when={canInvite()}>
@@ -102,10 +100,7 @@ function Invitations(props: InvitationsSectionProps) {
               onPending={setBusy}
               onSent={() => {
                 forget()
-                setRowStatus({
-                  id: invitation.id,
-                  text: t('organizationInvitations.row.resent', { email: invitation.email })
-                })
+                status.sayRow(invitation.id, t('organizationInvitations.row.resent', { email: invitation.email }))
                 reread()
               }}
               onFailure={(failure) => {
@@ -121,7 +116,7 @@ function Invitations(props: InvitationsSectionProps) {
               onPending={setBusy}
               onRevoked={() => {
                 forget()
-                setSectionStatus(t('organizationInvitations.row.revoked', { email: invitation.email }))
+                status.saySection(t('organizationInvitations.row.revoked', { email: invitation.email }))
                 reread()
               }}
               onFailure={(failure) => {
@@ -146,7 +141,7 @@ function Invitations(props: InvitationsSectionProps) {
         <ListSection
           title={t('organizationInvitations.section.title')}
           description={t('organizationInvitations.section.description', { name: current.organization.name })}
-          status={sectionStatus()}
+          status={status.section()}
         >
           <Show when={canInvite()}>
             <ListRow
