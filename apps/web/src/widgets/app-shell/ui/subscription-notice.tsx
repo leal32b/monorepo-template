@@ -20,7 +20,8 @@ export type SubscriptionNoticeProps = {
  * The subscription's state in one `Alert` (ADR 0063): a trial ending or ended, a scheduled end, a late
  * payment, a plan that ended, in the words for the owner or for another member, its dates in the
  * organization's time zone. The owner's action leads to the plan page; nothing is drawn for a state with
- * nothing to say.
+ * nothing to say. It is the frame's, drawn by `AppShell` on every screen of an organization, and lives with
+ * the frame rather than the subscriptions entity, so the first screen does not load the plan page's code.
  */
 export function SubscriptionNotice(props: SubscriptionNoticeProps) {
   const { t, locale } = useI18n()

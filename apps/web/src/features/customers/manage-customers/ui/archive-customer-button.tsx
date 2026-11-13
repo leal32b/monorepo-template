@@ -54,7 +54,7 @@ export function ArchiveCustomerButton(props: ArchiveCustomerButtonProps) {
           })
         : undefined
     if (plan !== undefined) {
-      current?.refresh().catch(() => undefined)
+      void current?.refresh()
       return props.onRefused(plan.message)
     }
     const kind = failed && customerFailureKind(failed)

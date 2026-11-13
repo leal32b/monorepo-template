@@ -1,13 +1,13 @@
 import { ListSkeleton } from '@repo/ui'
 import { useLocation } from '@solidjs/router'
 import { createMemo, onCleanup, onMount, type ParentProps, Show, Suspense } from 'solid-js'
-import { useCurrentOrganization } from '#entities/organizations'
-import { plansPath, SubscriptionNotice } from '#entities/subscriptions'
+import { homeOf, useCurrentOrganization } from '#entities/organizations'
 import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
 import { useShell } from '../model/shell'
 import { AppFrame } from './app-frame'
 import { screenClass } from './screen-class'
+import { SubscriptionNotice } from './subscription-notice'
 
 export type AppShellProps = ParentProps<{
   /** The screen's only heading, also the last step of the top bar's trail. */
@@ -46,7 +46,8 @@ export function AppShell(props: AppShellProps) {
   onCleanup(shell.enter({ title: () => props.title, organization }))
   /** The plan page, where the notice's action leads: none on that page itself. */
   const plansHref = (here: NonNullable<typeof current>) => {
-    const href = plansPath(here.organization.slug)
+    // As the side menu writes it; the subscriptions entity's `plansPath` would load the plan page's code here.
+    const href = `${homeOf(here.organization)}/settings/billing`
     return location.pathname === href ? undefined : href
   }
 

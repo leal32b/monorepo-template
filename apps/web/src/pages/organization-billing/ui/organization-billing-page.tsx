@@ -75,7 +75,7 @@ function OwnerPlan() {
   /** The subscription changed: the page reads it again, and so does the frame, whose notice draws from the membership. */
   const again = () => {
     readAgain(read.keyFor(id))
-    current.refresh().catch(() => undefined)
+    void current.refresh()
   }
   /** Something changed: said in the section, the panel closed, and everything read again. */
   const changed = (say: (text: string) => void, text: string) => {
@@ -89,6 +89,8 @@ function OwnerPlan() {
     say(failure)
     again()
   }
+  const planStale = stale(setPlanFailure)
+  const catalogueStale = stale(setCatalogueFailure)
 
   // Read once: the address loses it at once, so a reload or a link shared starts clean.
   const [search, setSearch] = useSearchParams<{ checkout?: string }>()
@@ -146,7 +148,7 @@ function OwnerPlan() {
                           onDone={() =>
                             changed(setPlanStatus, abandonedText(checkout().kind, checkout().plan, subscription().plan))
                           }
-                          onFailed={(failure) => failed(failure)}
+                          onFailed={failed}
                         />
                       </>
                     }
@@ -168,7 +170,7 @@ function OwnerPlan() {
                         onDone={() =>
                           changed(setPlanStatus, t('billing.downgrade.kept', { plan: name(subscription().plan) }))
                         }
-                        onFailed={(failure) => failed(failure)}
+                        onFailed={failed}
                       />
                     }
                   />
@@ -192,7 +194,7 @@ function OwnerPlan() {
                       version={loaded().version}
                       disabled={panels.busy()}
                       onDone={() => changed(setPlanStatus, t('billing.end.kept'))}
-                      onFailed={(failure) => failed(failure)}
+                      onFailed={failed}
                     />
                   }
                 />
@@ -218,7 +220,7 @@ function OwnerPlan() {
                               forget()
                               panels.show('pay')
                             }}
-                            onFailed={(failure) => failed(failure)}
+                            onFailed={failed}
                           />
                         </Show>
                       }
@@ -235,7 +237,7 @@ function OwnerPlan() {
                                 price: words.money(plans[subscription().plan as PlanKey].price)
                               })}
                               onChanged={again}
-                              onStale={stale(setPlanFailure)}
+                              onStale={planStale}
                               onCancel={panels.close}
                             />
                           </ListPanel>
@@ -267,7 +269,7 @@ function OwnerPlan() {
                               : t('billing.cancel.messageUndated')
                           }
                           onChanged={() => changed(setPlanStatus, t('billing.cancel.done'))}
-                          onStale={stale(setPlanFailure)}
+                          onStale={planStale}
                           onCancel={panels.close}
                         />
                       </ListPanel>
@@ -315,7 +317,7 @@ function OwnerPlan() {
                             billing={loaded()}
                             returnTo={returnTo()}
                             onChanged={(text) => changed(setCatalogueStatus, text)}
-                            onStale={stale(setCatalogueFailure)}
+                            onStale={catalogueStale}
                             onCancel={panels.close}
                           />
                         </ListPanel>

@@ -97,6 +97,51 @@ describe('RequireOrganization', () => {
     expect(api).toHaveBeenCalledTimes(2)
   })
 
+  it('keeps what it knows when reading it again fails, and the screen’s ask still ends', async () => {
+    let calls = 0
+    let ended = false
+    function Refreshing() {
+      const current = useOrganization()
+      return (
+        <>
+          <Rights />
+          <button type="button" onClick={() => current.refresh().then(() => (ended = true))}>
+            Read again
+          </button>
+        </>
+      )
+    }
+    const history = createMemoryHistory()
+    history.set({ value: '/acme' })
+    render(() => (
+      <I18nProvider locale="en">
+        <PaletteProvider>
+          <ApiProvider
+            client={createApiClient({
+              fetch: async () => (++calls === 1 ? Response.json(admin) : Response.json({}, { status: 500 }))
+            })}
+          >
+            <AuthProvider client={createAuthClient({ fetch: async () => Response.json([acme]) })}>
+              <MemoryRouter history={history}>
+                <Route path="/" component={OrganizationsProvider}>
+                  <Route path="/:orgSlug" component={RequireOrganization}>
+                    <Route path="/" component={Refreshing} />
+                  </Route>
+                </Route>
+              </MemoryRouter>
+            </AuthProvider>
+          </ApiProvider>
+        </PaletteProvider>
+      </I18nProvider>
+    ))
+    expect(await screen.findByText('Acme: add members true')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Read again' }))
+
+    await waitFor(() => expect(ended).toBe(true))
+    expect(screen.getByText('Acme: add members true')).toBeInTheDocument()
+  })
+
   it('shows "not found" for a slug that is not one of the user’s organizations, without asking the API', async () => {
     const api = vi.fn<ApiFetch>(async () => Response.json(admin))
 

@@ -28,11 +28,12 @@ The first time, install the browser: `pnpm --filter @repo/e2e exec playwright in
 | `owner.setup.ts` | Signs up an owner with an organization and saves the session for the specs that start inside the app |
 | `first-customer.spec.ts` | Sign-up, confirmation from the email, onboarding, the first customer |
 | `invitation.spec.ts` | An invitation by email, sign-up from it, the member's read-only view |
+| `billing.spec.ts` | On the billing fake (ADR 0067): a trial subscribes, a payment fails and recovers, each state said; Basic at its limit of customers refuses one more and says why; a plan that ended is read only until paid again |
 | `password-reset.spec.ts` | A reset from the email, then a sign-in with the new password |
 | `public-registration.spec.ts` | A visitor registers on a tenant's public page without any refused request, and a member sees the customer; an unknown address says so |
 | `two-factor.spec.ts` | Two-step verification turned on, then a sign-in with a code |
 | `accessibility.spec.ts` | No serious or critical axe violation on every screen, panel and the palette, light and dark; the phone menu's focus |
-| `bundle-budget.spec.ts` | The gzipped JavaScript of a cold load: 77 KB before sign-in, 117 KB before the first signed-in screen, 81 KB before a tenant's public page |
+| `bundle-budget.spec.ts` | The gzipped JavaScript of a cold load: 78 KB before sign-in, 118 KB before the first signed-in screen, 81 KB before a tenant's public page |
 | `security-headers.spec.ts` | The page carries HSTS, the permissions policy and COOP from `public/_headers` |
 
 Rules for a new test:

@@ -18,6 +18,7 @@ const APP = [
   { path: '/:org/settings/members', heading: 'Members' },
   { path: '/:org/settings/roles', heading: 'Roles' },
   { path: '/:org/settings/activity', heading: 'Activity' },
+  { path: '/:org/settings/billing', heading: 'Plan and billing' },
   { path: '/onboarding', heading: 'Create an organization' },
   { path: '/settings/profile', heading: 'Profile' },
   { path: '/settings/security', heading: 'Security' },
@@ -29,7 +30,8 @@ const APP = [
 const LAYERS = [
   { path: '/:org/customers', open: 'Add', shows: 'Add customer' },
   { path: '/:org/settings/members', open: 'Invite people', shows: 'Send invitation' },
-  { path: '/:org/settings/roles', open: 'Create role', shows: 'Role name' }
+  { path: '/:org/settings/roles', open: 'Create role', shows: 'Role name' },
+  { path: '/:org/settings/billing', open: 'Choose Pro', shows: 'Continue to payment' }
 ]
 
 for (const colorScheme of ['light', 'dark'] as const) {

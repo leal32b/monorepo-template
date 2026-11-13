@@ -9,9 +9,6 @@ import type { AuthFailure } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { usePlanWords } from './plan-words'
 
-/** The plan page of an organization, where the owner chooses a plan (ADR 0063). */
-export const plansPath = (slug: string) => `/${slug}/settings/billing`
-
 /** What a refusal by the plan says, and whether the reader is offered the plans: the owner, unless an upgrade is on its way. */
 export type PlanRefusal = { message: string; offerPlans: boolean }
 

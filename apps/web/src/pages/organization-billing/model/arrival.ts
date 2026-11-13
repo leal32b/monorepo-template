@@ -54,11 +54,13 @@ export function createArrival(
         if (plan !== null) setArrival({ kind: 'confirmed', plan })
         return
       }
-      setArrival({ kind: 'waiting', checkout: { kind: checkout.kind, plan: checkout.plan }, plan })
+      const waiting = { kind: 'waiting', checkout: { kind: checkout.kind, plan: checkout.plan }, plan } as const
+      setArrival(waiting)
       every = setInterval(readAgain, waitEveryMs)
+      // Cleared once the wait ends otherwise, so it fires only while still waiting.
       until = setTimeout(() => {
         stop()
-        setArrival((last) => (last?.kind === 'waiting' ? { ...last, kind: 'late' } : last))
+        setArrival({ ...waiting, kind: 'late' })
       }, waitForMs)
       return
     }

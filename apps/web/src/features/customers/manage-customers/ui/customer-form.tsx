@@ -102,7 +102,7 @@ export function CustomerForm(props: CustomerFormProps) {
       props.onStale(kind)
     } else {
       setFailure(failed)
-      if (failed !== undefined && byPlan(failed) !== undefined) current?.refresh().catch(() => undefined)
+      if (failed !== undefined && byPlan(failed) !== undefined) void current?.refresh()
     }
   }
 

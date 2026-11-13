@@ -134,7 +134,12 @@ function OrganizationScreens(props: ParentProps<{ id: string; organization: Acce
           <CurrentOrganizationProvider
             organization={shown()}
             membership={held() as OrganizationMembership}
-            refresh={() => ask(true).then(() => undefined)}
+            refresh={() =>
+              ask(true).then(
+                () => undefined,
+                () => undefined
+              )
+            }
           >
             {props.children}
           </CurrentOrganizationProvider>

@@ -440,6 +440,69 @@ describe('OrganizationBillingPage (ADR 0063, ADR 0067)', () => {
       expect(api.reads()).toBe(1)
     })
 
+    it('says a refusal of a cancellation below its section, and closes it', async () => {
+      const api = fakeApi(billingOf(basic), { 'POST /cancel': () => refused('subscription_changed') })
+      renderPage({ api })
+      await yourPlan()
+
+      press('Cancel plan')
+      press('Cancel plan')
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('The plan changed since this page was read.')
+      expect(screen.getByRole('button', { name: 'Cancel plan' })).toBeInTheDocument()
+      await waitFor(() => expect(api.reads()).toBe(2))
+    })
+
+    it('closes the cancellation when the owner keeps the plan', async () => {
+      renderPage({ api: fakeApi(billingOf(basic)) })
+      await yourPlan()
+
+      press('Cancel plan')
+      press('Keep the plan')
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Cancel plan' })).toHaveFocus())
+    })
+
+    it('says a refusal of a downgrade below the plans', async () => {
+      const api = fakeApi(billingOf({ ...basic, plan: 'pro' }), { 'PUT /plan': () => refused('checkout_open') })
+      renderPage({ api })
+      await yourPlan()
+
+      press('Choose Basic')
+      press('Change to Basic')
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('A payment is already open for another plan.')
+    })
+
+    it('says a refusal of paying what is late below its section', async () => {
+      const late = { ...basic, status: 'past_due' as const, pastDueSince: at(-3) }
+      const api = fakeApi(billingOf(late), {
+        'GET /payment-page': () => Response.json({ url: null }),
+        'POST /checkout': () => refused('subscription_changed')
+      })
+      renderPage({ api })
+      await yourPlan()
+
+      press('Pay now')
+      fireEvent.click(await screen.findByRole('button', { name: 'Continue to payment' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('The plan changed since this page was read.')
+      expect(screen.getByRole('button', { name: 'Pay now' })).toBeInTheDocument()
+    })
+
+    it('says the provider out of reach for a press, with nothing to read again', async () => {
+      const api = fakeApi(billingOf({ ...basic, nextPlan: 'basic', plan: 'pro' }), {
+        'PUT /plan': () => refused('service_unavailable', 503)
+      })
+      renderPage({ api })
+      await yourPlan()
+
+      press('Keep Pro')
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('The payment provider is not answering.')
+      expect(api.reads()).toBe(1)
+    })
+
     it('says what it could not read, with a way to try again', async () => {
       renderPage({ api: fakeApi(billingOf(trial), { 'GET ': () => refused('boom', 500) }) })
 
