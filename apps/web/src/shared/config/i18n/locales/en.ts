@@ -1,5 +1,6 @@
 import { accountEn } from '../dictionaries/account/en'
 import { auditEn } from '../dictionaries/audit/en'
+import { billingEn } from '../dictionaries/billing/en'
 import { customersEn } from '../dictionaries/customers/en'
 import { entryEn } from '../dictionaries/entry/en'
 import { organizationsEn } from '../dictionaries/organizations/en'
@@ -13,7 +14,8 @@ export const en = {
   ...organizationsEn,
   ...entryEn,
   ...publicEn,
-  ...auditEn
+  ...auditEn,
+  ...billingEn
 }
 
 /** The shape every language must have: the English dictionary. */

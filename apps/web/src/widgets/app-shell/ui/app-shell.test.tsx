@@ -1,3 +1,4 @@
+import type { OrganizationMembership } from '@repo/contracts'
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { createResource, Suspense } from 'solid-js'
@@ -19,6 +20,8 @@ type Options = {
   organization?: Organization
   /** What the members screen reads before it can be drawn: a navigation to it waits on this. */
   members?: () => Promise<string>
+  /** The caller's membership in the organization: an owner on trial unless said. */
+  membership?: OrganizationMembership
 }
 
 /** A screen that reads what it shows, so a navigation to it waits, as the app's screens do. */
@@ -37,9 +40,9 @@ function renderShell({
   locale = 'en',
   path = '/projects',
   organization,
-  members = async () => 'The members'
+  members = async () => 'The members',
+  membership = membershipOf(['owner'], {})
 }: Options = {}) {
-  const membership = membershipOf(['owner'], {})
   const authFetch: Fetch =
     auth ??
     (async (input) =>
@@ -96,6 +99,14 @@ function renderShell({
                   )}
                 />
                 <Route path="/acme/settings/members" component={() => <Members read={members} />} />
+                <Route
+                  path="/acme/settings/billing"
+                  component={() => (
+                    <AppShell title="Plan and billing">
+                      <p>The plans</p>
+                    </AppShell>
+                  )}
+                />
                 <Route
                   path="/invitation"
                   component={() => (
@@ -202,6 +213,60 @@ describe('AppShell', () => {
     fireEvent.click(dialog.getByRole('option', { name: 'Members' }))
 
     await waitFor(() => expect(history.get()).toBe('/acme/settings/members'))
+  })
+
+  describe('the subscription’s state (ADR 0063)', () => {
+    const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
+    const late = (roles: string[], permissions: OrganizationMembership['permissions']): OrganizationMembership => {
+      const membership = membershipOf(roles, permissions)
+      return {
+        ...membership,
+        subscription: {
+          ...membership.subscription,
+          status: 'past_due',
+          plan: 'pro',
+          periodStartsAt: '2026-10-03T00:00:00.000Z',
+          paidThrough: '2026-11-03T00:00:00.000Z',
+          pastDueSince: '2026-11-03T00:00:00.000Z'
+        }
+      }
+    }
+
+    it('is said below a tenant screen’s title, to the owner with the way to the plan page', () => {
+      renderShell({ organization: acme, membership: late(['owner'], { billing: ['manage'] }) })
+
+      const main = within(screen.getByRole('main'))
+      const notice = main.getByRole('status')
+      expect(notice).toHaveTextContent('We have not received the payment due on Nov 3, 2026.')
+      expect(within(notice).getByRole('link', { name: 'Pay now' })).toHaveAttribute('href', '/acme/settings/billing')
+      expect(main.getByRole('heading', { level: 1 }).parentElement?.nextElementSibling).toBe(notice)
+    })
+
+    it('tells another member who can act, with nothing to press', () => {
+      renderShell({ organization: acme, membership: late(['member'], { customer: ['read'] }) })
+
+      expect(within(screen.getByRole('main')).getByRole('status')).toHaveTextContent(
+        "This organization's payment is late."
+      )
+      expect(within(screen.getByRole('main')).queryByRole('link')).not.toBeInTheDocument()
+    })
+
+    it('leaves the action out on the plan page, where it would lead', () => {
+      renderShell({
+        path: '/acme/settings/billing',
+        organization: acme,
+        membership: late(['owner'], { billing: ['manage'] })
+      })
+
+      expect(within(screen.getByRole('main')).getByRole('status')).toBeInTheDocument()
+      expect(within(screen.getByRole('main')).queryByRole('link', { name: 'Pay now' })).not.toBeInTheDocument()
+    })
+
+    it('says nothing on a screen outside any organization', () => {
+      renderShell({ path: '/settings/profile', membership: late(['owner'], { billing: ['manage'] }) })
+
+      expect(within(screen.getByRole('main')).queryByRole('status')).not.toBeInTheDocument()
+    })
   })
 
   it('puts the organization you are in at the top of the side menu, in place of the app’s name', () => {

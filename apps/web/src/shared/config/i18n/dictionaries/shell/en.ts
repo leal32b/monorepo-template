@@ -59,6 +59,7 @@ export const shellEn = {
         members: 'people team invite remove role',
         roles: 'permissions access',
         activity: 'audit log history changes who',
+        billing: 'plan subscription payment pay upgrade trial invoice',
         customers: 'clients contacts people companies',
         create: 'organization new team',
         profile: 'account name email',
@@ -86,6 +87,7 @@ export const shellEn = {
       members: 'Members',
       roles: 'Roles',
       activity: 'Activity',
+      billing: 'Plan and billing',
       customers: 'Customers'
     },
     account: {

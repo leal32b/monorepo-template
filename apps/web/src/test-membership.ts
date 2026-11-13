@@ -2,7 +2,8 @@ import { type OrganizationMembership, type Permissions, trial } from '@repo/cont
 
 /**
  * A membership as `GET /api/organizations/:organizationId/me` answers it, for the tests: the roles and
- * permissions given, in an organization on trial with full access, as a new one is (ADR 0063).
+ * permissions given, in an organization on trial with full access, as a new one is (ADR 0063). The trial
+ * ends far from any day the tests run on, so no screen says it is ending unless a test says so.
  */
 export function membershipOf(roles: string[], permissions: Permissions): OrganizationMembership {
   return {
@@ -13,7 +14,7 @@ export function membershipOf(roles: string[], permissions: Permissions): Organiz
       access: 'full',
       plan: null,
       nextPlan: null,
-      trialEndsAt: '2026-11-15T00:00:00.000Z',
+      trialEndsAt: '2099-01-01T00:00:00.000Z',
       periodStartsAt: null,
       paidThrough: null,
       pastDueSince: null,

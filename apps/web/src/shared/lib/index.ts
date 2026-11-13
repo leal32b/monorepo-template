@@ -4,6 +4,7 @@ export { type Checked, createFormChecks } from './form-checks'
 export {
   formatDate,
   formatDateTime,
+  formatDays,
   formatMoney,
   /** @public */
   formatTime,

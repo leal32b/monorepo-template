@@ -61,6 +61,7 @@ export const shellPtBR: typeof shellEn = {
         members: 'pessoas equipe convidar remover papel',
         roles: 'permissões acesso',
         activity: 'auditoria registro histórico mudanças quem',
+        billing: 'plano assinatura pagamento pagar mudar teste cobrança',
         customers: 'clientes contatos pessoas empresas',
         create: 'organização nova equipe',
         profile: 'conta nome e-mail',
@@ -88,6 +89,7 @@ export const shellPtBR: typeof shellEn = {
       members: 'Membros',
       roles: 'Papéis',
       activity: 'Atividade',
+      billing: 'Plano e cobrança',
       customers: 'Clientes'
     },
     account: {
