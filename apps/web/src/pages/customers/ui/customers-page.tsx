@@ -19,7 +19,7 @@ import { useOrganization } from '#entities/organizations'
 import { ArchiveCustomerButton, CustomerForm, DeleteCustomerForm } from '#features/customers/manage-customers'
 import { createRead, readAgain, updateRead, useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
-import { formatDate } from '#shared/lib'
+import { createListStatus, formatDate } from '#shared/lib'
 import { ReadFailure } from '#shared/ui'
 import { AppShell } from '#widgets/app-shell'
 
@@ -61,15 +61,14 @@ function Customers() {
   const id = current.organization.id
   const customers = customersQuery(api)
   const panels = createPanels()
-  const [status, setStatus] = createSignal<CustomerStatus>('active')
+  const [filter, setFilter] = createSignal<CustomerStatus>('active')
   const [search, setSearch] = createSignal('')
   const [typed, setTyped] = createSignal('')
   const [page, setPage] = createSignal(1)
-  const [rowStatus, setRowStatus] = createSignal<{ customer: string; text: string }>()
-  const [sectionStatus, setSectionStatus] = createSignal<string>()
+  const status = createListStatus(panels)
 
-  const key = () => customers.keyFor(id, status(), search(), page())
-  const list = createRead(() => customers(id, status(), search(), page()), key)
+  const key = () => customers.keyFor(id, filter(), search(), page())
+  const list = createRead(() => customers(id, filter(), search(), page()), key)
   const pages = (loaded: CustomerList) => Math.max(1, Math.ceil(loaded.total / customerPageSize))
 
   const canAdd = () => current.can('customer', 'create')
@@ -82,27 +81,22 @@ function Customers() {
     if (loaded && loaded.items.length === 0 && page() > 1) setPage(page() - 1)
   })
 
-  const forget = () => {
-    setRowStatus(undefined)
-    setSectionStatus(undefined)
-  }
   const show = (next: CustomerStatus) => {
     panels.dismiss()
-    forget()
-    setStatus(next)
+    status.forget()
+    setFilter(next)
     setPage(1)
   }
   const searchFor = (event: SubmitEvent) => {
     event.preventDefault()
     panels.dismiss()
-    forget()
+    status.forget()
     setSearch(typed().trim())
     setPage(1)
   }
   /** The customer left this list (archived, restored, deleted, or already gone): said below the section. */
   const left = (text: string) => {
-    panels.dismiss()
-    setSectionStatus(text)
+    status.left(text)
     readAgain(key())
   }
   const changed = (text: string) => () => left(t(text as 'customers.errors.gone'))
@@ -125,11 +119,11 @@ function Customers() {
         </Show>
       }
       description={description(customer)}
-      status={rowStatus()?.customer === customer.id ? rowStatus()?.text : undefined}
+      status={status.row(customer.id)}
       action={
         <>
           <Show when={canEdit()}>
-            <PanelButton panels={panels} panel={`edit:${customer.id}`} onOpen={forget}>
+            <PanelButton panels={panels} panel={`edit:${customer.id}`} onOpen={status.forget}>
               {t('customers.actions.edit')}
             </PanelButton>
             <ArchiveCustomerButton
@@ -145,11 +139,11 @@ function Customers() {
                 )
               }
               onChanged={changed('customers.errors.changed')}
-              onRefused={(text) => setRowStatus({ customer: customer.id, text })}
+              onRefused={(text) => status.sayRow(customer.id, text)}
             />
           </Show>
           <Show when={canDelete() && customer.archivedAt !== null}>
-            <PanelButton panels={panels} panel={`delete:${customer.id}`} onOpen={forget}>
+            <PanelButton panels={panels} panel={`delete:${customer.id}`} onOpen={status.forget}>
               {t('customers.actions.delete')}
             </PanelButton>
           </Show>
@@ -167,7 +161,7 @@ function Customers() {
                     ...loaded,
                     items: loaded.items.map((item) => (item.id === saved.id ? saved : item))
                   }))
-                  setRowStatus({ customer: saved.id, text: t('customers.saved', { name: saved.name }) })
+                  status.sayRow(saved.id, t('customers.saved', { name: saved.name }))
                   panels.close()
                 }}
                 onStale={stale}
@@ -198,7 +192,7 @@ function Customers() {
           title: t('customers.empty.noResultsTitle'),
           description: t('customers.empty.noResults', { search: search() })
         }
-      : status() === 'archived'
+      : filter() === 'archived'
         ? {
             icon: 'customers' as const,
             title: t('customers.empty.archivedTitle'),
@@ -231,7 +225,7 @@ function Customers() {
             </form>
             <SegmentedControl
               label={t('customers.filter.label')}
-              value={status()}
+              value={filter()}
               onChange={(value) => show(value as CustomerStatus)}
               options={[
                 { value: 'active', label: t('customers.filter.active') },
@@ -247,15 +241,15 @@ function Customers() {
                 name: current.organization.name
               }
             )}
-            status={sectionStatus()}
+            status={status.section()}
           >
-            <Show when={canAdd() && status() === 'active'}>
+            <Show when={canAdd() && filter() === 'active'}>
               <ListRow
                 icon="plus"
                 title={t('customers.add.title')}
                 description={t('customers.add.description')}
                 action={
-                  <PanelButton panels={panels} panel="add" onOpen={forget}>
+                  <PanelButton panels={panels} panel="add" onOpen={status.forget}>
                     {t('customers.add.go')}
                   </PanelButton>
                 }
@@ -266,7 +260,7 @@ function Customers() {
                         organizationId={id}
                         onSaved={(saved) => {
                           panels.close()
-                          setSectionStatus(t('customers.saved', { name: saved.name }))
+                          status.saySection(t('customers.saved', { name: saved.name }))
                           readAgain(key())
                         }}
                         onStale={stale}
