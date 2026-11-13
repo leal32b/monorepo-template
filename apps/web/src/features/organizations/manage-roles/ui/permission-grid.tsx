@@ -1,4 +1,4 @@
-import { type Action, type Resource, statements } from '@repo/contracts'
+import { type Action, ownerOnlyPermissions, type Resource, statements } from '@repo/contracts'
 import { Checkbox, CheckboxGroup } from '@repo/ui'
 import { For } from 'solid-js'
 import { useI18n } from '#shared/config'
@@ -9,8 +9,9 @@ type PermissionKey = {
 
 const resources = Object.keys(statements) as Resource[]
 
-/** The permissions only the owner has: no role of an organization's own may hold them (ADR 0033, D3). */
-export const ownerOnly = (resource: Resource, action: string) => resource === 'organization' && action === 'delete'
+/** The permissions only the owner has: no role of an organization's own may hold them (ADR 0033, D3; ADR 0063). */
+export const ownerOnly = (resource: Resource, action: string) =>
+  ((ownerOnlyPermissions as Partial<Record<Resource, readonly string[]>>)[resource] ?? []).includes(action)
 
 export type PermissionGridProps = {
   /** Whether the role holds a permission. */

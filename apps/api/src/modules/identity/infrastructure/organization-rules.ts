@@ -358,7 +358,11 @@ export class OrganizationRules {
       throw refuse('BAD_REQUEST', 'INVALID_ROLE_NAME', 'Use lowercase letters, digits and hyphens')
     }
     if (permission !== undefined && holdsOwnerOnlyPermission(permission)) {
-      throw refuse('BAD_REQUEST', 'OWNER_ONLY_PERMISSION', 'Only the owner role can delete the organization')
+      throw refuse(
+        'BAD_REQUEST',
+        'OWNER_ONLY_PERMISSION',
+        'Only the owner role can delete the organization or manage its plan'
+      )
     }
   }
 

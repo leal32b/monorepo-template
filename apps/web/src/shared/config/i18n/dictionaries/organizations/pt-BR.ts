@@ -174,7 +174,8 @@ export const organizationsPtBR: typeof organizationsEn = {
       invitation: 'Convites',
       ac: 'Papéis',
       customer: 'Clientes',
-      audit: 'Atividade'
+      audit: 'Atividade',
+      billing: 'Plano e cobrança'
     },
     permissions: {
       organization: {
@@ -204,6 +205,9 @@ export const organizationsPtBR: typeof organizationsEn = {
       },
       audit: {
         read: 'Ver o registro de atividades'
+      },
+      billing: {
+        manage: 'Escolher, pagar e cancelar o plano'
       }
     },
     form: {

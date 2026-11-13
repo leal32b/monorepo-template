@@ -16,7 +16,9 @@ export const statements = {
   /** The reference module of Phase 7; a product renames it or adds its own beside it. */
   customer: ['read', 'create', 'update', 'delete'],
   /** The organization's audit trail (ADR 0061): read only, since no one may change it. */
-  audit: ['read']
+  audit: ['read'],
+  /** Choosing, paying for and cancelling the organization's plan (ADR 0063): the owner's alone. */
+  billing: ['manage']
 } as const
 
 export type Resource = keyof typeof statements
@@ -36,7 +38,8 @@ export const permissionsSchema = z.strictObject({
   invitation: actionsOf(statements.invitation),
   ac: actionsOf(statements.ac),
   customer: actionsOf(statements.customer),
-  audit: actionsOf(statements.audit)
+  audit: actionsOf(statements.audit),
+  billing: actionsOf(statements.billing)
 })
 
 /**
@@ -80,8 +83,11 @@ export const invitationSchema = z.object({
 
 export type Invitation = z.infer<typeof invitationSchema>
 
-/** Permissions only the owner holds; no custom role may include them (ADR 0033, D3). */
-export const ownerOnlyPermissions = { organization: ['delete'] } as const satisfies Permissions
+/**
+ * Permissions only the owner holds; no custom role may include them (ADR 0033, D3). Deleting the
+ * organization, and spending its money on a plan (ADR 0063), are the decisions of one person.
+ */
+export const ownerOnlyPermissions = { organization: ['delete'], billing: ['manage'] } as const satisfies Permissions
 
 /** `owner`, `admin` and `member`: built in, never edited. */
 export const builtInRoles = {

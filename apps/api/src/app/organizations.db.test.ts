@@ -591,6 +591,10 @@ describe('organizations through Better Auth (ADR 0033)', () => {
           )
         )
       ).toEqual({ status: 400, code: 'OWNER_ONLY_PERMISSION' })
+      expect(await outcome(createRole(people.owner.cookie, id, 'payer', { billing: ['manage'] }))).toEqual({
+        status: 400,
+        code: 'OWNER_ONLY_PERMISSION'
+      })
     })
 
     it('refuses a role name that is not a lowercase word', async () => {

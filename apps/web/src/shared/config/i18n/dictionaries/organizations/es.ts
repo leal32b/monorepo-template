@@ -176,7 +176,8 @@ export const organizationsEs: typeof organizationsEn = {
       invitation: 'Invitaciones',
       ac: 'Roles',
       customer: 'Clientes',
-      audit: 'Actividad'
+      audit: 'Actividad',
+      billing: 'Plan y facturación'
     },
     permissions: {
       organization: {
@@ -206,6 +207,9 @@ export const organizationsEs: typeof organizationsEn = {
       },
       audit: {
         read: 'Ver el registro de actividad'
+      },
+      billing: {
+        manage: 'Elegir, pagar y cancelar el plan'
       }
     },
     form: {

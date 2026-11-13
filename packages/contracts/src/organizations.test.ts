@@ -21,7 +21,8 @@ describe('statements', () => {
       invitation: ['create', 'cancel'],
       ac: ['create', 'read', 'update', 'delete'],
       customer: ['read', 'create', 'update', 'delete'],
-      audit: ['read']
+      audit: ['read'],
+      billing: ['manage']
     })
   })
 })
@@ -32,10 +33,18 @@ describe('builtInRoles', () => {
   })
 
   it('keeps organization:delete for the owner only', () => {
-    expect(ownerOnlyPermissions).toEqual({ organization: ['delete'] })
+    expect(ownerOnlyPermissions).toMatchObject({ organization: ['delete'] })
     expect(can(builtInRoles.owner, 'organization', 'delete')).toBe(true)
     expect(can(builtInRoles.admin, 'organization', 'delete')).toBe(false)
     expect(can(builtInRoles.member, 'organization', 'delete')).toBe(false)
+  })
+
+  it("keeps billing:manage for the owner only, since it spends the organization's money (ADR 0063)", () => {
+    expect(ownerOnlyPermissions).toEqual({ organization: ['delete'], billing: ['manage'] })
+    expect(can(builtInRoles.owner, 'billing', 'manage')).toBe(true)
+    expect(can(builtInRoles.admin, 'billing', 'manage')).toBe(false)
+    expect(can(builtInRoles.member, 'billing', 'manage')).toBe(false)
+    expect(permissionsSchema.parse({ billing: ['manage'] })).toEqual({ billing: ['manage'] })
   })
 
   it('lets the admin manage everything but the deletion', () => {

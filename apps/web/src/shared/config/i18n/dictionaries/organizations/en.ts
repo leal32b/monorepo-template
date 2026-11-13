@@ -171,7 +171,8 @@ export const organizationsEn = {
       invitation: 'Invitations',
       ac: 'Roles',
       customer: 'Customers',
-      audit: 'Activity'
+      audit: 'Activity',
+      billing: 'Plan and billing'
     },
     permissions: {
       organization: {
@@ -201,6 +202,9 @@ export const organizationsEn = {
       },
       audit: {
         read: 'See the activity log'
+      },
+      billing: {
+        manage: 'Choose, pay for and cancel the plan'
       }
     },
     form: {

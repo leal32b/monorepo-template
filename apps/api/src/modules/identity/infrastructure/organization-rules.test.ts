@@ -6,7 +6,7 @@ describe('parseRolePermission', () => {
   })
 
   it('grants nothing for a stored value that is not a valid set of permissions', () => {
-    expect(parseRolePermission('{"billing":["read"]}')).toEqual({})
+    expect(parseRolePermission('{"invoice":["read"]}')).toEqual({})
   })
 })
 
@@ -30,5 +30,9 @@ describe('holdsOwnerOnlyPermission', () => {
   it('spots the deletion of the organization', () => {
     expect(holdsOwnerOnlyPermission({ organization: ['update', 'delete'] })).toBe(true)
     expect(holdsOwnerOnlyPermission({ organization: ['update'], member: ['delete'] })).toBe(false)
+  })
+
+  it("spots the management of the plan, which spends the organization's money (ADR 0063)", () => {
+    expect(holdsOwnerOnlyPermission({ billing: ['manage'] })).toBe(true)
   })
 })
