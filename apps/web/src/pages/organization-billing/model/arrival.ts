@@ -28,18 +28,23 @@ export function createArrival(
   came: Came,
   billing: Accessor<Billing | undefined>,
   { readAgain, confirmed }: { readAgain: () => void; confirmed: () => void }
-): Accessor<Arrival | undefined> {
+): { arrival: Accessor<Arrival | undefined>; forget: () => void } {
   const [arrival, setArrival] = createSignal<Arrival | undefined>(
     came === 'cancelled' ? { kind: 'cancelled' } : undefined
   )
-  if (came !== 'returned') return arrival
+  /** The owner did something else: what they did is said instead, and the wait ends. */
+  const forget = () => {
+    stop()
+    setArrival(undefined)
+  }
 
   let every: ReturnType<typeof setInterval> | undefined
   let until: ReturnType<typeof setTimeout> | undefined
-  const stop = () => {
+  function stop() {
     clearInterval(every)
     clearTimeout(until)
   }
+  if (came !== 'returned') return { arrival, forget }
   onCleanup(stop)
   let started = false
 
@@ -70,5 +75,5 @@ export function createArrival(
     confirmed()
   })
 
-  return arrival
+  return { arrival, forget }
 }

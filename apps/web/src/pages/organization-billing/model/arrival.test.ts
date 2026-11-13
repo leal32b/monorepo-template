@@ -30,8 +30,8 @@ function arriving(came: 'returned' | 'cancelled' | undefined) {
     const [billing, setBilling] = createSignal<Billing | undefined>()
     const readAgain = vi.fn()
     const confirmed = vi.fn()
-    const arrival = createArrival(came, billing, { readAgain, confirmed })
-    return { arrival, setBilling, readAgain, confirmed, dispose }
+    const { arrival, forget } = createArrival(came, billing, { readAgain, confirmed })
+    return { arrival, forget, setBilling, readAgain, confirmed, dispose }
   })
 }
 
@@ -76,5 +76,16 @@ describe('createArrival (ADR 0063, "Coming back from the provider")', () => {
   it('says a page left at the provider, and nothing at all without a way back', () => {
     expect(arriving('cancelled').arrival()).toEqual({ kind: 'cancelled' })
     expect(arriving(undefined).arrival()).toBeUndefined()
+  })
+
+  it('stops waiting, and says nothing more, once the owner does something else', () => {
+    const way = arriving('returned')
+    way.setBilling(billingOf({ checkout: upgrade }))
+    way.forget()
+    vi.advanceTimersByTime(60_000)
+
+    expect(way.arrival()).toBeUndefined()
+    expect(way.readAgain).not.toHaveBeenCalled()
+    way.dispose()
   })
 })

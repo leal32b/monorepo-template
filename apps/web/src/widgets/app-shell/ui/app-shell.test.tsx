@@ -251,15 +251,15 @@ describe('AppShell', () => {
       expect(within(screen.getByRole('main')).queryByRole('link')).not.toBeInTheDocument()
     })
 
-    it('leaves the action out on the plan page, where it would lead', () => {
+    it('says nothing on the plan page, whose rows say where the subscription stands', () => {
       renderShell({
         path: '/acme/settings/billing',
         organization: acme,
         membership: late(['owner'], { billing: ['manage'] })
       })
 
-      expect(within(screen.getByRole('main')).getByRole('status')).toBeInTheDocument()
-      expect(within(screen.getByRole('main')).queryByRole('link', { name: 'Pay now' })).not.toBeInTheDocument()
+      expect(within(screen.getByRole('main')).getByText('The plans')).toBeInTheDocument()
+      expect(within(screen.getByRole('main')).queryByRole('status')).not.toBeInTheDocument()
     })
 
     it('says nothing on a screen outside any organization', () => {

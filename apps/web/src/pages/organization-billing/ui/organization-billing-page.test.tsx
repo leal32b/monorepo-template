@@ -160,7 +160,9 @@ describe('OrganizationBillingPage (ADR 0063, ADR 0067)', () => {
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Plan and billing' })).toBeInTheDocument()
       const plan = await yourPlan()
-      expect(plan.getByText('Trial', { selector: 'span' })).toBeInTheDocument()
+      expect(plan.getByText('Trial', { selector: 'div' })).toBeInTheDocument()
+      // The title says it is a trial: no badge says it again.
+      expect(plan.queryByText('Trial', { selector: 'span' })).not.toBeInTheDocument()
       expect(plan.getByText('Free trial until Dec 2, 2026 (12 days left).')).toBeInTheDocument()
       expect(screen.getByText('What Acme pays for, and until when.')).toBeInTheDocument()
       expect(catalogue().getByText('R$49.00 a month · Up to 100 active customers')).toBeInTheDocument()
@@ -296,6 +298,8 @@ describe('OrganizationBillingPage (ADR 0063, ADR 0067)', () => {
 
       expect(plan.getByText('Upgrade to Pro')).toBeInTheDocument()
       expect(plan.queryByRole('link', { name: 'Open the payment' })).not.toBeInTheDocument()
+      // The plan paid for is not to be chosen again, payment open or not.
+      expect(screen.queryByRole('button', { name: 'Choose Basic' })).not.toBeInTheDocument()
       api.set(billingOf(basic))
       press('Cancel the upgrade')
 
@@ -541,6 +545,10 @@ describe('OrganizationBillingPage (ADR 0063, ADR 0067)', () => {
       const reads = api.reads()
       await vi.advanceTimersByTimeAsync(9000)
       expect(api.reads()).toBe(reads)
+
+      // What the owner does next replaces it.
+      press('Cancel plan')
+      expect(screen.queryByText('Your payment was confirmed. You are on Pro.')).not.toBeInTheDocument()
     })
 
     it('says the payment was not made when the open payment went away unpaid', async () => {

@@ -20,7 +20,8 @@ export type AppShellProps = ParentProps<{
  * An app screen: its title and content in one column, mobile first, inside the frame the screens share
  * (`AppFrame`, ADR 0037), which it tells its title and organization while it is on view. Focus moves to
  * the title when the screen opens; below it, on an organization's screen, the subscription's state (ADR
- * 0063), drawn from the membership the screen already has, so it arrives with the screen and moves nothing;
+ * 0063), drawn from the membership the screen already has, so it arrives with the screen and moves nothing
+ * (the plan page says it in its own rows);
  * then a failed sign-out. A screen with no frame around it, such as one drawn on its own in a test, draws one.
  *
  * What the screen reads waits under a boundary of its own (ADR 0038): moving to a screen never waits on its
@@ -44,12 +45,10 @@ export function AppShell(props: AppShellProps) {
   // A memo keeps its last value once its screen has left, when the guard's context no longer can.
   const organization = createMemo(() => current?.organization)
   onCleanup(shell.enter({ title: () => props.title, organization }))
-  /** The plan page, where the notice's action leads: none on that page itself. */
-  const plansHref = (here: NonNullable<typeof current>) => {
+  /** The plan page, where the notice's action leads; that page says the state in its own rows, so it draws none. */
+  const plansHref = (here: NonNullable<typeof current>) =>
     // As the side menu writes it; the subscriptions entity's `plansPath` would load the plan page's code here.
-    const href = `${homeOf(here.organization)}/settings/billing`
-    return location.pathname === href ? undefined : href
-  }
+    `${homeOf(here.organization)}/settings/billing`
 
   return (
     <main class={screenClass}>
@@ -65,7 +64,7 @@ export function AppShell(props: AppShellProps) {
           <p class="text-muted-foreground">{props.description}</p>
         </Show>
       </div>
-      <Show when={current}>
+      <Show when={current !== undefined && location.pathname !== plansHref(current) ? current : undefined}>
         {(here) => (
           <SubscriptionNotice
             subscription={here().membership.subscription}

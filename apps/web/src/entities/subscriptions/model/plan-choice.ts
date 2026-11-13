@@ -38,12 +38,12 @@ export function choiceOf(
   plan: PlanKey,
   { now, minimumCharge }: { now: Date; minimumCharge: Money }
 ): PlanChoice {
-  if (subscription.checkout !== null) {
-    return subscription.checkout.plan === plan ? { kind: 'pending' } : { kind: 'blocked', reason: 'open' }
-  }
   const current = subscription.plan
   const paidFor = subscription.status === 'active' || subscription.status === 'past_due'
   if (paidFor && plan === current) return { kind: 'current' }
+  if (subscription.checkout !== null) {
+    return subscription.checkout.plan === plan ? { kind: 'pending' } : { kind: 'blocked', reason: 'open' }
+  }
   if (subscription.status === 'past_due') return { kind: 'blocked', reason: 'late' }
   if (subscription.status !== 'active' || current === null) return { kind: 'subscribe' }
   if (subscription.cancelAtPeriodEnd) return { kind: 'blocked', reason: 'ending' }

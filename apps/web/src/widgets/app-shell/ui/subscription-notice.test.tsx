@@ -36,7 +36,7 @@ function renderNotice(props: {
               subscription={props.subscription}
               manages={props.manages}
               timeZone={props.timeZone ?? 'America/Sao_Paulo'}
-              plansHref={props.plansHref}
+              plansHref={props.plansHref ?? '/acme/settings/billing'}
             />
           )}
         />
@@ -78,13 +78,6 @@ describe('SubscriptionNotice (ADR 0063)', () => {
     })
 
     expect(screen.getByRole('status')).toHaveTextContent('payment due on Nov 4, 2026. Pay by Nov 18, 2026')
-  })
-
-  it('draws no action where there is nowhere to go, such as the plan page itself', () => {
-    renderNotice({ subscription: late, manages: true })
-
-    expect(screen.getByRole('status').querySelector('.mt-2')).toBeNull()
-    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
   it('draws nothing for a state with nothing to say', () => {

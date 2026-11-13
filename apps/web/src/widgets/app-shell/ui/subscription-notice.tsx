@@ -12,8 +12,8 @@ export type SubscriptionNoticeProps = {
   manages: boolean
   /** The organization's time zone (ADR 0053): the dates are the days they are there. */
   timeZone: string
-  /** The plan page, where the owner's action leads; none where there is nowhere to go, as on that page. */
-  plansHref?: string | undefined
+  /** The plan page, where the owner's action leads. */
+  plansHref: string
 }
 
 /**
@@ -41,7 +41,7 @@ export function SubscriptionNotice(props: SubscriptionNoticeProps) {
           variant={said().variant}
           // The link itself or nothing: the alert keeps a place for whatever it is handed.
           action={
-            props.plansHref !== undefined && said().action !== undefined ? (
+            said().action !== undefined ? (
               <A href={props.plansHref} class={buttonVariants({ variant: 'secondary' })}>
                 {t(`billing.actions.${said().action as NoticeAction}`)}
               </A>

@@ -6,8 +6,8 @@ import { useI18n } from '#shared/config'
 /** The plans of the catalogue, in its order. */
 export const planKeys = Object.keys(plans) as PlanKey[]
 
-const badgeVariants: Record<ReturnType<typeof standingOf>['badge'], BadgeProps['variant']> = {
-  trial: 'neutral',
+/** A trial has no badge: its title already says it is one. */
+const badgeVariants: Record<Exclude<ReturnType<typeof standingOf>['badge'], 'trial'>, BadgeProps['variant']> = {
   active: 'success',
   late: 'warning',
   readOnly: 'warning'
@@ -23,11 +23,14 @@ export function CurrentPlanRow(props: { subscription: Subscription; timeZone: st
     <ListRow
       icon="billing"
       title={words.name(props.subscription.plan)}
-      badge={
-        <Badge variant={badgeVariants[badge()]} dot>
-          {t(`billing.current.badges.${badge()}`)}
-        </Badge>
-      }
+      badge={(() => {
+        const shown = badge()
+        return shown === 'trial' ? undefined : (
+          <Badge variant={badgeVariants[shown]} dot>
+            {t(`billing.current.badges.${shown}`)}
+          </Badge>
+        )
+      })()}
       description={words.standing(props.subscription, props.timeZone)}
     />
   )

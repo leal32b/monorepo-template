@@ -67,6 +67,7 @@ function OwnerPlan() {
   const day = (date: Date | string) => formatDate(new Date(date), locale(), current.organization.timeZone)
   const name = (plan: PlanKey | null) => words.name(plan)
   const forget = () => {
+    leftBehind()
     setPlanStatus(undefined)
     setCatalogueStatus(undefined)
     setPlanFailure(undefined)
@@ -79,6 +80,7 @@ function OwnerPlan() {
   }
   /** Something changed: said in the section, the panel closed, and everything read again. */
   const changed = (say: (text: string) => void, text: string) => {
+    leftBehind()
     say(text)
     panels.close()
     again()
@@ -96,7 +98,10 @@ function OwnerPlan() {
   const [search, setSearch] = useSearchParams<{ checkout?: string }>()
   const came = (search.checkout === 'returned' || search.checkout === 'cancelled' ? search.checkout : undefined) as Came
   if (search.checkout !== undefined) setSearch({ checkout: undefined }, { replace: true })
-  const arrival = createArrival(came, billing, { readAgain: () => readAgain(read.keyFor(id)), confirmed: again })
+  const { arrival, forget: leftBehind } = createArrival(came, billing, {
+    readAgain: () => readAgain(read.keyFor(id)),
+    confirmed: again
+  })
 
   return (
     <Show when={billing()}>
@@ -336,6 +341,7 @@ function OwnerPlan() {
 
   /** A one-press action refused: said below its section, and read again when the subscription is not as read. */
   function failed(failure: AuthFailure) {
+    leftBehind()
     setPlanStatus(undefined)
     setPlanFailure(failure)
     if (failure.status === 409) again()
