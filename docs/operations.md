@@ -21,6 +21,7 @@ Neon, Render and Cloudflare are the template's own hosts; on others, the same si
 | Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, how many finished jobs, how many of our own rate-limit counters, and how many audit entries older than a year ([ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)) |
 | Rate limits | API log; the `rate_limit` table | `rate limited` when an address passes a limit of a public route, with the limit's name; which addresses are counting now |
 | Jobs | API log (or the worker's, `service: worker`); the `job` table | `job queue working` after every start; `job attempt failed` and `job failed` when a handler fails; what is waiting, running or failed |
+| Billing | API log; the `webhook_event`, `job` and `subscription` tables | `webhook received` per notice (`repeat: true` for one already taken in), `webhook refused` (warn), `billing synced` with the audit action, `billing event ignored`, and at error `billing duplicate subscription` or `billing reference names another organization` |
 
 ## Reading the API log
 
@@ -156,6 +157,62 @@ where action = 'created' and actor_kind = 'visitor' and at > now() - interval '1
 group by organization_id order by count(*) desc;
 ```
 
+## Billing and the provider's webhook
+
+A provider's notice arrives at `POST <web origin>/api/webhooks/<provider>` through the Worker
+([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md),
+[ADR 0067](adr/0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md)). Only the
+configured provider's path exists. The route authenticates the notice, records its event id in
+`webhook_event` and enqueues one `billing.sync-subscription` job in the same transaction, then
+answers 200; a repeat answers 200 and enqueues nothing. The job reads the provider's current state
+and writes it into the organization's `subscription` row, with an audit entry by the system. With
+no provider key set the API bills through the fake, which takes commands at
+`/api/webhooks/fake` (`.env.example` lists them); env validation refuses it when `WEB_ORIGIN` is
+https.
+
+What arrived and what it did, in the database's SQL console:
+
+```sql
+-- The last notices taken in, per provider.
+select source, event_id, received_at from webhook_event order by received_at desc limit 20;
+
+-- Their jobs: done, waiting for a retry, or failed (the payload is the provider's ids, never personal data).
+select id, state, attempts, last_error, payload, created_at from job
+where kind in ('billing.sync-subscription', 'billing.cancel-at-provider') order by created_at desc limit 20;
+
+-- An organization's subscription and its last changes.
+select s.status, s.plan, s.next_plan, s.paid_through, s.past_due_since, s.cancel_at_period_end,
+       s.checkout_kind, s.checkout_plan, s.provider_subscription_id, s.version
+from subscription s join auth.organization o on o.id = s.organization_id where o.slug = '<slug>';
+select at, actor_kind, action, fields from audit_entry
+where resource_type = 'subscription' and resource_id = '<organization id>' order by at desc limit 20;
+```
+
+**A dead billing job.** `job failed` with `kind: billing.sync-subscription` means the provider could
+not be read for about 43 minutes (its five attempts), or the row kept moving under it. Nothing is
+lost: the next notice for that subscription reads the whole state again. To apply the state now,
+once the provider answers, put the job back as any other (the `update job …` of
+[Background jobs](#background-jobs)): it reads the provider again, so running it twice is safe. A
+failed `billing.cancel-at-provider` left a deleted organization's subscription live at the
+provider: put it back, or cancel the subscription in the provider's dashboard.
+
+**Replaying a notice** the API never took in (a webhook down for longer than the provider resends,
+or an event the dashboard lists but `webhook_event` does not): resend it from the provider's
+dashboard, or enqueue its sync by hand with the ids it names, which reads the current state:
+
+```sql
+insert into job (id, kind, payload, run_at, created_at)
+values (gen_random_uuid()::text, 'billing.sync-subscription',
+        '{"provider": "asaas", "eventId": "manual-<date>", "subscriptionId": "<provider subscription id>"}',
+        now(), now());
+```
+
+**A provider whose queue stopped.** Asaas interrupts its webhook queue after 15 failed deliveries in
+a row and keeps events for 14 days ([ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md)).
+Signs: no `webhook received` for a while, and owners whose page keeps saying the payment is being
+confirmed. Restart it in the dashboard, or with `PUT /v3/webhooks/{id}` and `{"interrupted": false}`;
+the stored events then arrive.
+
 ## Set up once per product
 
 - An uptime monitor (any free one) on `<web origin>/api/health` every 5 to 10 minutes, alerting on a
@@ -188,6 +245,9 @@ group by organization_id order by count(*) desc;
 | Every visitor is told to wait, on every public page | The `…:unknown` counter is growing: requests reach the API with no `X-Client-IP`, so they all share one count. The Worker sets it from `CF-Connecting-IP` ([ADR 0022](adr/0022-accept-api-requests-only-from-the-web-worker.md)); on another proxy, set the header to the client's address there |
 | A tenant's list fills with customers nobody knows | [Public routes and rate limits](#public-routes-and-rate-limits): the visitor-made rows per organization, and `rate limited` lines. From few addresses, the limit is holding and can be lowered; from many, put the host's rate limiting or a CAPTCHA in front of `/api/public/` |
 | Members of one organization are refused every change with `subscription_read_only`, or a create with `plan_limit_reached` | Expected while its trial is over, its payment is past the grace period, or its plan has ended, or once it holds as many active customers as its plan allows ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)). Its state: `select o.slug, o."createdAt", s.* from auth.organization o left join subscription s on s.organization_id = o.id where o.slug = '<slug>'`; no row means a trial of 14 days from `createdAt`. Nothing is deleted, and reads and deletions still work |
+| An owner paid, and the organization is still on trial, past due or on its old plan | [Billing and the provider's webhook](#billing-and-the-providers-webhook): the notice in `webhook_event`, its job's state, then the subscription row. No notice: the provider has not sent it (a boleto takes up to three business days to clear) or its queue stopped. A failed job: put it back. A notice ignored as `unknown customer`: the customer was created by hand at the provider, or belongs to a deleted organization |
+| `webhook refused` lines in the log | `reason: token does not match` from the provider's own addresses means its webhook secret differs from the API's: set the same value on both. From elsewhere, someone is probing the route: the refusal costs one hash and touches no table |
+| `billing duplicate subscription` or `billing reference names another organization` at error | Two live subscriptions for one organization (a retried checkout at a provider without idempotency keys): the job ended the one the row does not hold; refund it from the provider's dashboard if it was charged. A reference to another organization means a subscription was edited at the provider: nothing was applied; correct it there |
 | `job failed` in the log, or something that should have happened later did not | [Background jobs](#background-jobs): the failed rows and their `last_error`; fix the cause, then put them back |
 | Jobs wait and nothing runs them | No `job queue working` line after the last start means no worker runs: `JOB_WORKER=off` on the API with no worker process beside it, or the worker process is down (its log, `service: worker`). `job poll failed` means the database is out of reach. A delayed job that ran late on a free tier waited for the container to wake |
 | Emails do not arrive | API log (or the worker's): `job attempt failed` or `job failed` with `kind: identity.send-email`, and `err` with the provider's status and error code; the failed rows in [Background jobs](#background-jobs). No such line and no `job done` for the kind means no worker runs (the row above). A refusal from Resend names the cause: the key, or the sender domain in Resend (until it is verified, only the provider account's own address receives) |

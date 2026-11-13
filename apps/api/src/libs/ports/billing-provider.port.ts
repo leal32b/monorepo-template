@@ -46,7 +46,7 @@ export type BillingNotice = {
 type Return = { returnUrl: string; cancelUrl: string }
 
 /**
- * A payment provider, in the template's words, never its own (ADR 0063, ADR 0064). Every method that
+ * A payment provider, in the template's words, never its own (ADR 0063, ADR 0064, ADR 0067). Every method that
  * calls the provider throws `BillingProviderUnavailableException` when it is out of reach or answers
  * with an error of its own, so the route answers 503 and nothing local has changed. No method ever
  * takes card data: the payer types it only on the provider's pages.

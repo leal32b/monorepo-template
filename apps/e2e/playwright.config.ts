@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
-import { API_PORT, DB_PORT, WEB_ORIGIN, WEB_PORT } from './support/env'
+import { API_PORT, DB_PORT, FAKE_BILLING_TOKEN, WEB_ORIGIN, WEB_PORT } from './support/env'
 
 /**
  * The production build of the web app (`vite preview`, with the production CSP) on the API's
@@ -46,6 +46,8 @@ export default defineConfig({
         WEB_ORIGIN,
         BETTER_AUTH_SECRET: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         E2E_OUTBOX: process.env.E2E_OUTBOX,
+        // Billing is the fake, driven by the tests' commands (ADR 0063).
+        FAKE_BILLING_TOKEN,
         LOG_LEVEL: 'warn'
       }
     },

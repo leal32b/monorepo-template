@@ -66,7 +66,13 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
    can have a service of their own: the same image and variables with the command
    `node --enable-source-maps dist/worker.js` and `JOB_IDLE_POLL_SECONDS=5`, and `JOB_WORKER=off` on
    the API. The deploy workflow does not create that service or set those variables: add them to it.
-5. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
+5. A payment provider, before the first deploy: [ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md)
+   says what to create at Asaas (an account, an API key, a webhook to
+   `<web origin>/api/webhooks/asaas` with its token) and which variables to set. With no provider's
+   key the API bills through a fake that marks an organization paid on a command, so env validation
+   refuses to start it when `WEB_ORIGIN` is https
+   ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
+6. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
    answers `/api/health` ([ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md)).
 
 ## 4. Set up once
@@ -227,6 +233,38 @@ A module has no history table of its own.
 The tenant role may only insert and select entries, so nothing in a request can change one. The
 daily purge deletes them after `auditRetention.days` (365, in `libs/database/kysely-audit-trail.ts`);
 a product with a legal retention duty changes it there.
+
+### Checking an entitlement
+
+What an organization may do comes from its plan, as named capabilities and limits, never from the
+plan's name or the kind of business
+([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
+The membership read hands every tenant route the member with the organization's subscription and
+what it grants, in the statement it already makes.
+
+1. Name it in `packages/contracts/src/billing.ts`: a capability in `capabilities`
+   (`'group-sessions'`, for what it enables), or a limit in `limits` (`'appointments.max'`), and its
+   value in each plan's `entitlements` (a limit is a number, `null` for none). The trial grants what
+   the dearest plan does.
+2. A route that needs a capability declares it, and `tenantRoutes` refuses the request with
+   `403 plan_required`, naming it, before the input is read:
+
+   ```ts
+   tenant.post(base, { permission: { session: ['create'] }, entitlement: 'group-sessions', input }, run)
+   ```
+
+3. A use case with a limit takes the number from its route, `entitlement(member, 'appointments.max')`
+   from `@repo/contracts`, counts inside its own `run` and asks `assertWithinLimit` from
+   `#modules/billing/index` before it writes (`403 plan_limit_reached`, naming the limit and its
+   number). With `null` it counts nothing. Copy `CreateCustomerService` and its route.
+4. The web reads the same `entitlement(membership, key)` from the membership it holds, to draw the
+   action disabled with the reason before the member tries, and says the two codes in every language.
+   The API decides; the web only draws.
+5. Tests: `serveRoutes().signInAs(permissions, { entitlements })` gives the member a plan without
+   the capability or with a small limit; the service test passes the limit as a number.
+
+Nothing else checks a plan: read only (an organization whose trial ended, whose payment is past the
+grace period or whose plan ended) is refused for every `post` and `put` by `tenantRoutes` itself.
 
 ### A job kind
 

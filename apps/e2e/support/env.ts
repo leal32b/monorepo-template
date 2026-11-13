@@ -8,3 +8,9 @@ export const WEB_ORIGIN = `http://127.0.0.1:${WEB_PORT}`
 
 /** Where the sign-up session of the shared owner is saved by the setup project. */
 export const OWNER_STATE = 'test-results/.auth/owner.json'
+
+/**
+ * What the suite's commands to the billing fake carry in `fake-billing-token`, sent as JSON to
+ * `POST /api/webhooks/fake` with the organization they act on (ADR 0063, ADR 0067).
+ */
+export const FAKE_BILLING_TOKEN = 'e2e-fake-billing-token-0123'
