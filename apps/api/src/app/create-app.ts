@@ -14,7 +14,13 @@ import type { JobQueue } from '#libs/ports/job-queue.port'
 import { kyselyAuditUnitOfWork } from '#modules/audit/database/kysely-audit-unit-of-work'
 import { registerAuditRoutes } from '#modules/audit/index'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
-import { registerBillingRoutes, syncPayloadOf, syncSubscription } from '#modules/billing/index'
+import {
+  cancelAtProvider,
+  EnqueueCancellationService,
+  registerBillingRoutes,
+  syncPayloadOf,
+  syncSubscription
+} from '#modules/billing/index'
 import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomerRoutes } from '#modules/customers/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
@@ -85,7 +91,10 @@ export function createApp({
 }: AppDeps): Server {
   const router = new HttpRouter()
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
-  const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google })
+  const billingUnitOfWork = kyselyBillingUnitOfWork(db)
+  // Deleting an organization, alone or with its only member's account, ends its subscription (ADR 0063).
+  const organizationDeletion = new EnqueueCancellationService(billingUnitOfWork, jobs, clock, cancelAtProvider)
+  const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google, organizationDeletion })
   const session = new BetterAuthCurrentSession(auth)
   const membership = new KyselyMembership(db, clock)
   const ids = new UuidGenerator()
@@ -100,7 +109,7 @@ export function createApp({
     getLiveness: new GetLivenessController(),
     auth: fromFetchHandler(auth.handler, webOrigin),
     getMe: new GetMeController(session),
-    getAccountDeletion: new GetAccountDeletionController(session, new KyselyAccountDeletion(db)),
+    getAccountDeletion: new GetAccountDeletionController(session, new KyselyAccountDeletion(db, organizationDeletion)),
     getMembership: new GetMembershipController(session, membership),
     getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
     getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined }),
@@ -123,7 +132,7 @@ export function createApp({
   registerBillingRoutes(router, {
     session,
     membership,
-    unitOfWork: kyselyBillingUnitOfWork(db),
+    unitOfWork: billingUnitOfWork,
     provider: billing,
     clock,
     ids,

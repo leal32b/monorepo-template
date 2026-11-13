@@ -13,6 +13,7 @@ export type {
   Member,
   Membership
 } from './membership.port'
+export type { OrganizationDeletionListener } from './organization-deletion.port'
 export type {
   /** @public */
   PublicOrganization,

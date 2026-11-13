@@ -6,6 +6,10 @@ import type { IdGenerator } from '#libs/ports/id-generator.port'
 import type { JobDefinition, JobRegistrar } from '#libs/ports/job-queue.port'
 import type { BillingDirectory } from '../billing-directory.port'
 import type { BillingUnitOfWork } from '../billing-unit-of-work.port'
+import {
+  type CancelAtProvider,
+  CancelAtProviderService
+} from '../commands/cancel-at-provider/cancel-at-provider.service'
 import { type SyncSubscription, SyncSubscriptionService } from '../commands/sync-subscription/sync-subscription.service'
 
 const providerId = z.optional(z.string())
@@ -23,6 +27,16 @@ export const syncSubscription: JobDefinition<SyncSubscription> = {
     checkoutId: providerId,
     customerId: providerId
   })
+}
+
+/**
+ * The end of a deleted organization's subscription at the provider (ADR 0063), enqueued by the deletion's
+ * hook. Five attempts span about 43 minutes, for an outage of the provider or a deletion still running.
+ */
+export const cancelAtProvider: JobDefinition<CancelAtProvider> = {
+  kind: 'billing.cancel-at-provider',
+  schema: z.object({ provider: z.string(), organizationId: z.string(), subscriptionId: z.string() }),
+  maxAttempts: 5
 }
 
 /** The job a notice taken in by the webhook inbox enqueues: its ids, and nothing else of it. */
@@ -45,5 +59,9 @@ export type BillingJobsDeps = {
 /** Billing's job kinds, registered by the composition root with the ports they need. */
 export function registerBillingJobs(registrar: JobRegistrar, deps: BillingJobsDeps): void {
   const sync = new SyncSubscriptionService(deps)
+  const cancel = new CancelAtProviderService(deps)
   registrar.register(syncSubscription, (payload) => sync.execute(payload))
+  registrar.register(cancelAtProvider, (payload, { attempt }) =>
+    cancel.execute(payload, attempt >= (cancelAtProvider.maxAttempts as number))
+  )
 }

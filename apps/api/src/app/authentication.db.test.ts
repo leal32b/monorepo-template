@@ -560,7 +560,8 @@ describe('authentication through Better Auth (ADR 0020)', () => {
       jobs: jobs.queue,
       webOrigin,
       secret: 'fedcba9876543210'.repeat(2),
-      google: undefined
+      google: undefined,
+      organizationDeletion: { beforeDelete: async () => undefined }
     })
 
     const response = await auth.handler(

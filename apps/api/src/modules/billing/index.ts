@@ -4,5 +4,6 @@
  * before it writes.
  */
 export { registerBillingRoutes } from './billing.routes'
-export { registerBillingJobs, syncPayloadOf, syncSubscription } from './jobs/billing-jobs'
+export { EnqueueCancellationService } from './commands/enqueue-cancellation/enqueue-cancellation.service'
+export { cancelAtProvider, registerBillingJobs, syncPayloadOf, syncSubscription } from './jobs/billing-jobs'
 export { assertWithinLimit } from './plan-limits'

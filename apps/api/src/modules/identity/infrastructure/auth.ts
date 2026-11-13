@@ -9,6 +9,7 @@ import * as z from 'zod/mini'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import { type EmailKind, emailTexts, type Locale } from '../emails/email-texts'
 import { EMAIL_LINK_SECONDS, sendEmail } from '../jobs/send-email'
+import type { OrganizationDeletionListener } from '../organization-deletion.port'
 import { KyselyAccountDeletion } from './kysely-account-deletion'
 import { checkOrganization, OrganizationReader, OrganizationRules, organizationLimits } from './organization-rules'
 import { hashPassword, verifyPassword } from './password-hashing'
@@ -24,6 +25,8 @@ export type AuthDeps = {
   secret: string
   /** Google sign-in, on only when it is configured (ADR 0020). */
   google: { clientId: string; clientSecret: string } | undefined
+  /** Told of every organization about to be deleted (ADR 0063): billing ends its subscription at the provider. */
+  organizationDeletion: OrganizationDeletionListener
 }
 
 /** The languages emails are written in: a sign-up in any other is refused. */
@@ -38,7 +41,7 @@ const roles = {
 }
 
 /** Better Auth with the template's defaults (ADR 0020). */
-export function createAuth({ db, logger, jobs, webOrigin, secret, google }: AuthDeps) {
+export function createAuth({ db, logger, jobs, webOrigin, secret, google, organizationDeletion }: AuthDeps) {
   /**
    * Enqueued, not sent (ADR 0057): the response waits for one insert, never for the provider, and a
    * provider's failure is retried by the queue. A failed insert fails the request, so nothing is lost unseen.
@@ -48,7 +51,7 @@ export function createAuth({ db, logger, jobs, webOrigin, secret, google }: Auth
     await jobs.enqueue(sendEmail, { email: kind, to: email, locale, url, values })
   }
   const rules = new OrganizationRules(new OrganizationReader(db))
-  const accountDeletion = new KyselyAccountDeletion(db)
+  const accountDeletion = new KyselyAccountDeletion(db, organizationDeletion)
 
   return betterAuth({
     baseURL: webOrigin,
@@ -171,7 +174,11 @@ export function createAuth({ db, logger, jobs, webOrigin, secret, google }: Auth
           beforeCreateOrganization: async ({ organization }) => checkOrganization(organization),
           beforeUpdateOrganization: async ({ organization }) => checkOrganization(organization),
           beforeCreateInvitation: async ({ inviter }) => rules.beforeInvitation(inviter.id),
-          beforeDeleteOrganization: async ({ organization, user }) => rules.beforeDeletion(organization.id, user.id)
+          // Only an owner deletes (ADR 0033); then billing enqueues the end of its subscription (ADR 0063).
+          beforeDeleteOrganization: async ({ organization, user }) => {
+            await rules.beforeDeletion(organization.id, user.id)
+            await organizationDeletion.beforeDelete([organization.id])
+          }
         }
       })
     ]
