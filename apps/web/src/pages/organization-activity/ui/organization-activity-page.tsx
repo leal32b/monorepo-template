@@ -1,4 +1,4 @@
-import type { AuditEntry, AuditEntryPage } from '@repo/contracts'
+import type { AuditAction, AuditEntry, AuditEntryPage, AuditResourceType } from '@repo/contracts'
 import { Avatar, EmptyState, ListRow, ListSection, Pager } from '@repo/ui'
 import { createSignal, For, Show } from 'solid-js'
 import { auditEntriesQuery } from '#entities/audit-entries'
@@ -39,7 +39,15 @@ export function OrganizationActivityPage() {
 }
 
 /** The fields each kind of record has words for; another field is shown by its code. */
-const fieldsWithWords = { customer: ['name', 'email', 'phone', 'company', 'notes'] } as const
+const fieldsWithWords = { customer: ['name', 'email', 'phone', 'company', 'notes'], subscription: [] } as const
+
+/** What an entry did, as a key: each kind of record with its own actions. */
+type EntryKey = { [R in AuditResourceType]: `activity.entries.${R}.${AuditAction<R>}` }[AuditResourceType]
+
+/** A field's words, as a key, for the fields that have them. */
+type FieldKey = {
+  [R in AuditResourceType]: `activity.fields.${R}.${(typeof fieldsWithWords)[R][number]}`
+}[AuditResourceType]
 
 function Activity() {
   const { t, locale } = useI18n()
@@ -66,12 +74,10 @@ function Activity() {
   }
   const fieldName = (entry: AuditEntry, field: string) => {
     const known = fieldsWithWords[entry.resource.type] as readonly string[]
-    return known.includes(field)
-      ? t(`activity.fields.${entry.resource.type}.${field as (typeof fieldsWithWords)['customer'][number]}`)
-      : field
+    return known.includes(field) ? t(`activity.fields.${entry.resource.type}.${field}` as FieldKey) : field
   }
   const what = (entry: AuditEntry) => {
-    const done = t(`activity.entries.${entry.resource.type}.${entry.action}`)
+    const done = t(`activity.entries.${entry.resource.type}.${entry.action}` as EntryKey)
     if (entry.fields.length === 0) return done
     return t('activity.changed', {
       what: done,

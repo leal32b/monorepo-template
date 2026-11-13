@@ -28,6 +28,20 @@ export const auditEs: typeof auditEn = {
         archived: 'Archivó un cliente',
         restored: 'Restauró un cliente',
         deleted: 'Eliminó un cliente'
+      },
+      subscription: {
+        'checkout-started': 'Empezó a suscribirse a un plan',
+        activated: 'Empezó el plan de pago',
+        'upgrade-started': 'Empezó el cambio a un plan mayor, a la espera del pago',
+        'upgrade-abandoned': 'Abandonó un cambio de plan que no se pagó',
+        'plan-changed': 'Cambió el plan',
+        'downgrade-scheduled': 'Programó un plan menor para el próximo período',
+        'downgrade-withdrawn': 'Retiró el cambio a un plan menor',
+        'payment-failed': 'Registró un pago como atrasado',
+        'payment-recovered': 'Recibió el pago atrasado',
+        'cancellation-scheduled': 'Programó el fin del plan',
+        'cancellation-withdrawn': 'Retiró el fin del plan',
+        cancelled: 'Terminó el plan'
       }
     },
     changed: '{{what}}: {{fields}}',

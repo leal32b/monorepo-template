@@ -129,6 +129,21 @@ describe('OrganizationActivityPage (ADR 0061)', () => {
     expect(await screen.findByText('Edited a customer: nickname · Nov 7, 2026, 10:00 AM UTC')).toBeInTheDocument()
   })
 
+  it("says what a provider's notice changed in the subscription, by the system (ADR 0063)", async () => {
+    renderPage({
+      api: fakeApi([
+        entry('e1', {
+          actor: { kind: 'system' },
+          resource: { type: 'subscription', id: 'org-1' },
+          action: 'payment-recovered',
+          fields: ['status']
+        })
+      ])
+    })
+
+    expect(await screen.findByText('Received the late payment: status · Nov 7, 2026, 10:00 AM UTC')).toBeInTheDocument()
+  })
+
   it('says nothing has changed yet, and draws no pager', async () => {
     renderPage({ api: fakeApi([]) })
 

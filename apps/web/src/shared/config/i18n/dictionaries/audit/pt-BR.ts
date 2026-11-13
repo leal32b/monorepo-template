@@ -28,6 +28,20 @@ export const auditPtBR: typeof auditEn = {
         archived: 'Arquivou um cliente',
         restored: 'Restaurou um cliente',
         deleted: 'Excluiu um cliente'
+      },
+      subscription: {
+        'checkout-started': 'Começou a assinar um plano',
+        activated: 'Começou o plano pago',
+        'upgrade-started': 'Começou a mudança para um plano maior, aguardando o pagamento',
+        'upgrade-abandoned': 'Desistiu de uma mudança de plano que não foi paga',
+        'plan-changed': 'Mudou o plano',
+        'downgrade-scheduled': 'Agendou um plano menor para o próximo período',
+        'downgrade-withdrawn': 'Desfez a mudança para um plano menor',
+        'payment-failed': 'Registrou um pagamento como atrasado',
+        'payment-recovered': 'Recebeu o pagamento atrasado',
+        'cancellation-scheduled': 'Agendou o fim do plano',
+        'cancellation-withdrawn': 'Desfez o fim do plano',
+        cancelled: 'Encerrou o plano'
       }
     },
     changed: '{{what}}: {{fields}}',
