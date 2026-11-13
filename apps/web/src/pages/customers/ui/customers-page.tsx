@@ -1,4 +1,4 @@
-import type { Customer, CustomerStatus } from '@repo/contracts'
+import { type Customer, type CustomerStatus, entitlement } from '@repo/contracts'
 import {
   Avatar,
   Badge,
@@ -14,6 +14,7 @@ import {
 import { For, Match, Show, Switch } from 'solid-js'
 import { customersQuery } from '#entities/customers'
 import { useOrganization } from '#entities/organizations'
+import { usePlanRefusal } from '#entities/subscriptions'
 import { ArchiveCustomerButton, CustomerForm, DeleteCustomerForm } from '#features/customers/manage-customers'
 import { useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -26,7 +27,9 @@ import { AppShell } from '#widgets/app-shell'
  * product is copied from. Anyone with `customer:read` sees the list; what each row offers follows the rest
  * of what the caller holds. A customer who is archived leaves the Active list and waits in Archived, where
  * it can be restored or deleted for good. One form opens at a time on the whole screen, inline below its row;
- * a customer who leaves the list is said below the section, which takes focus.
+ * a customer who leaves the list is said below the section, which takes focus. The plan holds what it does
+ * not allow before it is tried (ADR 0063): adding waits once the active customers reach its limit, and while
+ * the organization is read only every write but deleting waits, each with the reason in its row's note.
  */
 export function CustomersPage() {
   const { t } = useI18n()
@@ -72,6 +75,21 @@ function Customers() {
   const canAdd = () => current.can('customer', 'create')
   const canEdit = () => current.can('customer', 'update')
   const canDelete = () => current.can('customer', 'delete')
+  const refusal = usePlanRefusal()
+  const readOnly = () => current.membership.subscription.access === 'read-only'
+  const reader = () => ({ membership: current.membership, manages: current.can('billing', 'manage') })
+  /**
+   * Why adding waits: read only, or the plan's limit reached by the active customers. Only the active list
+   * with no search counts them all; elsewhere the API says so if it happens.
+   */
+  const addWaits = (total: number) => {
+    if (readOnly()) return refusal.readOnlyNote()
+    const limit = entitlement(current.membership, 'customers.max')
+    const counted = list.filter() === 'active' && list.search() === ''
+    return limit !== null && counted && total >= limit
+      ? refusal.limitReached('customers.max', limit, reader())
+      : undefined
+  }
 
   /** The customer left this list (archived, restored, deleted, or already gone): said below the section. */
   const left = (text: string) => {
@@ -98,18 +116,19 @@ function Customers() {
         </Show>
       }
       description={description(customer)}
+      note={canEdit() && readOnly() ? refusal.readOnlyNote() : undefined}
       status={status.row(customer.id)}
       action={
         <>
           <Show when={canEdit()}>
-            <PanelButton panels={panels} panel={`edit:${customer.id}`} onOpen={status.forget}>
+            <PanelButton panels={panels} panel={`edit:${customer.id}`} onOpen={status.forget} disabled={readOnly()}>
               {t('customers.actions.edit')}
             </PanelButton>
             <ArchiveCustomerButton
               organizationId={id}
               customer={customer}
               mode={customer.archivedAt === null ? 'archive' : 'restore'}
-              disabled={panels.open() !== undefined}
+              disabled={panels.open() !== undefined || readOnly()}
               onDone={(done) =>
                 left(
                   t(done.archivedAt === null ? 'customers.archive.restored' : 'customers.archive.archived', {
@@ -219,8 +238,14 @@ function Customers() {
                 icon="plus"
                 title={t('customers.add.title')}
                 description={t('customers.add.description')}
+                note={addWaits(loaded().total)}
                 action={
-                  <PanelButton panels={panels} panel="add" onOpen={status.forget}>
+                  <PanelButton
+                    panels={panels}
+                    panel="add"
+                    onOpen={status.forget}
+                    disabled={addWaits(loaded().total) !== undefined}
+                  >
                     {t('customers.add.go')}
                   </PanelButton>
                 }

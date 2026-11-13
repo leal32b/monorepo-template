@@ -1,4 +1,4 @@
-import { can } from '@repo/contracts'
+import { can, entitlement } from '@repo/contracts'
 import { Navigate, type RouteDefinition, type RoutePreloadFuncArgs, useParams } from '@solidjs/router'
 import { lazy } from 'solid-js'
 import { ForgotPasswordPage } from '#pages/forgot-password'
@@ -122,9 +122,9 @@ const preloadCustomers = onOpen(({ params }) => {
 })
 /**
  * The newest page of the organization's activity starts as soon as the organization is known (ADR 0061), and
- * only for a role that holds `audit:read`: the preload waits for the membership the frame reads anyway (one
- * request for both), so a plain member's console shows no refused call (ADR 0042), and the screen says why
- * from the membership alone.
+ * only for a role that holds `audit:read` on a plan with the activity log (ADR 0063): the preload waits for the
+ * membership the frame reads anyway (one request for both), so no console shows a refused call (ADR 0042),
+ * and the screen says why from the membership alone.
  */
 const preloadActivity = onOpen(({ params }) => {
   const slug = params.orgSlug as string
@@ -132,7 +132,7 @@ const preloadActivity = onOpen(({ params }) => {
     const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
     if (organization === undefined) return
     const membership = await entity.membershipQuery(api)(organization.id)
-    if (!can(membership.permissions, 'audit', 'read')) return
+    if (!can(membership.permissions, 'audit', 'read') || !entitlement(membership, 'activity-log')) return
     const { auditEntriesQuery } = await import('#entities/audit-entries')
     await auditEntriesQuery(api)(organization.id, '')
   })

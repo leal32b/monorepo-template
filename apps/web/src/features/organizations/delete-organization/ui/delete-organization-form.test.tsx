@@ -26,11 +26,13 @@ const type = (value: string) => fireEvent.input(field(), { target: { value } })
 const remove = () => fireEvent.click(screen.getByRole('button', { name: 'Delete organization' }))
 
 describe('DeleteOrganizationForm', () => {
-  it('says what goes, for whom and that it cannot be undone, before asking for the name', () => {
+  it('says what goes, for whom, that its plan ends (ADR 0063) and that it cannot be undone, before asking for the name', () => {
     renderForm(vi.fn<Fetch>())
 
     expect(
-      screen.getByText('This removes Acme Inc and everything in it, for all its members. It cannot be undone.')
+      screen.getByText(
+        'This removes Acme Inc and everything in it, for all its members, and ends its plan at once, with nothing refunded. It cannot be undone.'
+      )
     ).toBeInTheDocument()
     expect(field()).toHaveValue('')
   })

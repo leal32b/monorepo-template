@@ -1,8 +1,15 @@
-import type { AuditAction, AuditEntry, AuditEntryPage, AuditResourceType } from '@repo/contracts'
+import {
+  type AuditAction,
+  type AuditEntry,
+  type AuditEntryPage,
+  type AuditResourceType,
+  entitlement
+} from '@repo/contracts'
 import { Avatar, EmptyState, ListRow, ListSection, Pager } from '@repo/ui'
 import { createSignal, For, Show } from 'solid-js'
 import { auditEntriesQuery } from '#entities/audit-entries'
 import { useOrganization } from '#entities/organizations'
+import { SeePlansLink, usePlanWords } from '#entities/subscriptions'
 import { createRead, useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { formatDateTime } from '#shared/lib'
@@ -13,10 +20,15 @@ import { AppShell } from '#widgets/app-shell'
  * `/:orgSlug/settings/activity`: the organization's audit trail (ADR 0061), read only, for whoever holds
  * `audit:read`. Newest first, a page at a time; each row says who, what and when, in the organization's
  * time zone. An entry keeps no value, so a row names the kind of record and the fields, never the record.
+ * The trail is recorded on every plan; reading it is the `activity-log` capability (ADR 0063), so a plan
+ * without it says which plans have it, with the way to the plans for the owner, and reads nothing.
  */
 export function OrganizationActivityPage() {
   const { t } = useI18n()
   const current = useOrganization()
+  const words = usePlanWords()
+  const inPlan = () =>
+    t('billing.refusals.capabilities.activity-log.description', { plans: words.plansWith('activity-log') })
 
   return (
     <AppShell title={t('activity.title')}>
@@ -30,9 +42,23 @@ export function OrganizationActivityPage() {
           />
         }
       >
-        <ReadFailure message={t('activity.unavailable')}>
-          <Activity />
-        </ReadFailure>
+        <Show
+          when={entitlement(current.membership, 'activity-log')}
+          fallback={
+            <EmptyState
+              icon="activity"
+              title={t('billing.refusals.capabilities.activity-log.title')}
+              description={
+                current.can('billing', 'manage') ? inPlan() : `${inPlan()} ${t('billing.refusals.capabilityMember')}`
+              }
+              action={current.can('billing', 'manage') ? <SeePlansLink slug={current.organization.slug} /> : undefined}
+            />
+          }
+        >
+          <ReadFailure message={t('activity.unavailable')}>
+            <Activity />
+          </ReadFailure>
+        </Show>
       </Show>
     </AppShell>
   )

@@ -1,8 +1,8 @@
 import { ListSkeleton } from '@repo/ui'
 import { useLocation } from '@solidjs/router'
 import { createMemo, onCleanup, onMount, type ParentProps, Show, Suspense } from 'solid-js'
-import { homeOf, useCurrentOrganization } from '#entities/organizations'
-import { SubscriptionNotice } from '#entities/subscriptions'
+import { useCurrentOrganization } from '#entities/organizations'
+import { plansPath, SubscriptionNotice } from '#entities/subscriptions'
 import { useI18n } from '#shared/config'
 import { AuthFailureAlert } from '#shared/ui'
 import { useShell } from '../model/shell'
@@ -46,7 +46,7 @@ export function AppShell(props: AppShellProps) {
   onCleanup(shell.enter({ title: () => props.title, organization }))
   /** The plan page, where the notice's action leads: none on that page itself. */
   const plansHref = (here: NonNullable<typeof current>) => {
-    const href = `${homeOf(here.organization)}/settings/billing`
+    const href = plansPath(here.organization.slug)
     return location.pathname === href ? undefined : href
   }
 

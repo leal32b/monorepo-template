@@ -617,6 +617,28 @@ describe('App', () => {
       expect(asked.filter((path) => path.includes('/billing'))).toEqual([])
     })
 
+    it('asks for no activity where the plan lacks it (ADR 0063)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/activity')
+      const asked: string[] = []
+      const membership = membershipOf(['owner'], { audit: ['read'] })
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') {
+            return Response.json({ ...membership, entitlements: { ...membership.entitlements, capabilities: [] } })
+          }
+          return new Response(null, { status: 403 })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByText('The activity log is not in your plan')).toBeInTheDocument()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(asked.filter((path) => path.includes('/audit-entries'))).toEqual([])
+    })
+
     it('asks for no activity at an address that names none of the user’s organizations', async () => {
       rememberSession()
       window.history.replaceState(null, '', '/globex/settings/activity')

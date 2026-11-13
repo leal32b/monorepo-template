@@ -2,8 +2,8 @@ import { type Billing, type CheckoutKind, gracePeriod, type PlanKey, plans, type
 import { Alert, buttonVariants, createPanels, ListPanel, ListRow, ListSection, PanelButton } from '@repo/ui'
 import { useSearchParams } from '@solidjs/router'
 import { createSignal, For, Show } from 'solid-js'
-import { holdersOf, homeOf, membersQuery, useOrganization } from '#entities/organizations'
-import { billingQuery, choiceOf, type PlanChoice, usePlanWords } from '#entities/subscriptions'
+import { holdersOf, membersQuery, useOrganization } from '#entities/organizations'
+import { billingQuery, choiceOf, type PlanChoice, plansPath, usePlanWords } from '#entities/subscriptions'
 import {
   BillingFailureAlert,
   CancelPlanForm,
@@ -63,7 +63,7 @@ function OwnerPlan() {
   const [planFailure, setPlanFailure] = createSignal<AuthFailure>()
   const [catalogueFailure, setCatalogueFailure] = createSignal<AuthFailure>()
 
-  const returnTo = () => `${homeOf(current.organization)}/settings/billing`
+  const returnTo = () => plansPath(current.organization.slug)
   const day = (date: Date | string) => formatDate(new Date(date), locale(), current.organization.timeZone)
   const name = (plan: PlanKey | null) => words.name(plan)
   const forget = () => {
