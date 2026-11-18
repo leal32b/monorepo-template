@@ -104,6 +104,21 @@ export const billingEn = {
       changed: 'You are on {{plan}} now.',
       scheduled: '{{plan}} starts on {{date}}.'
     },
+    payer: {
+      title: 'Who pays',
+      description: 'The charges are issued to this name and document.',
+      name: 'Name or company name',
+      taxId: 'CPF or CNPJ',
+      taxIdHint: 'As printed on the document, with or without dots and dashes.',
+      email: 'Email for charges',
+      emailHint: 'Due dates and late payments are sent here.',
+      errors: {
+        nameRequired: 'Enter the name the charges are issued to.',
+        nameTooLong: 'Use at most {{max}} characters.',
+        taxIdInvalid: 'Check the CPF or CNPJ: it is not valid.',
+        emailInvalid: 'Enter an email like ana@example.com.'
+      }
+    },
     returned: {
       waiting: 'Confirming your payment with the provider…',
       confirmed: 'Your payment was confirmed. You are on {{plan}}.',

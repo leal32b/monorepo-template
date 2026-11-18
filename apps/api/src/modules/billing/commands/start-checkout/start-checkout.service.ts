@@ -44,7 +44,7 @@ export class StartCheckoutService {
 
   async execute(
     organizationId: string,
-    { plan, method, version, returnTo }: BillingCheckoutInput,
+    { plan, method, version, returnTo, payer }: BillingCheckoutInput,
     actor: AuditActor,
     trialEndsAt: Date
   ): Promise<BillingPage> {
@@ -105,7 +105,14 @@ export class StartCheckoutService {
               method,
               ...back
             })
-          : await this.provider.startCheckout({ organizationId, plan, method, customerId: claimed.customerId, ...back })
+          : await this.provider.startCheckout({
+              organizationId,
+              plan,
+              method,
+              customerId: claimed.customerId,
+              payer,
+              ...back
+            })
     } catch (error) {
       await this.#release(organizationId, claimed, now)
       throw error

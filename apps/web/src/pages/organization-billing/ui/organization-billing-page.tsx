@@ -3,6 +3,7 @@ import { Alert, buttonVariants, createPanels, ListPanel, ListRow, ListSection, P
 import { useSearchParams } from '@solidjs/router'
 import { createSignal, For, Show } from 'solid-js'
 import { holdersOf, membersQuery, useOrganization } from '#entities/organizations'
+import { useSession } from '#entities/sessions'
 import { billingQuery, choiceOf, type PlanChoice, plansPath, usePlanWords } from '#entities/subscriptions'
 import {
   BillingFailureAlert,
@@ -53,6 +54,7 @@ function OwnerPlan() {
   const { t, locale } = useI18n()
   const api = useApi()
   const current = useOrganization()
+  const session = useSession()
   const words = usePlanWords()
   const id = current.organization.id
   const read = billingQuery(api)
@@ -237,6 +239,7 @@ function OwnerPlan() {
                               plan={subscription().plan as PlanKey}
                               version={loaded().version}
                               returnTo={returnTo()}
+                              payerEmail={session.email}
                               message={t('billing.late.checkout', {
                                 plan: name(subscription().plan),
                                 price: words.money(plans[subscription().plan as PlanKey].price)
@@ -397,14 +400,17 @@ function ChoosePlan(props: {
   const day = (date: Date) => formatDate(date, locale(), current.organization.timeZone)
   const plan = words.name(props.plan)
   const price = words.money(plans[props.plan].price)
-  const checkout = (message: string, free = false) => (
+  const session = useSession()
+  /** A subscription at the full price asks whom it charges; an upgrade's provider already charges someone. */
+  const checkout = (message: string, kind: 'subscription' | 'upgrade' | 'free' = 'upgrade') => (
     <CheckoutForm
       organizationId={current.organization.id}
       plan={props.plan}
       version={props.billing.version}
       returnTo={props.returnTo}
       message={message}
-      free={free}
+      free={kind === 'free'}
+      payerEmail={kind === 'subscription' ? session.email : undefined}
       onChanged={() => props.onChanged(t('billing.catalogue.changed', { plan }))}
       onStale={props.onStale}
       onCancel={props.onCancel}
@@ -430,7 +436,7 @@ function ChoosePlan(props: {
           date: day(choice.from),
           price
         }),
-        true
+        'free'
       )
     case 'downgrade':
       return (
@@ -449,7 +455,7 @@ function ChoosePlan(props: {
         />
       )
     default:
-      return checkout(t('billing.catalogue.subscribe', { price, plan }))
+      return checkout(t('billing.catalogue.subscribe', { price, plan }), 'subscription')
   }
 }
 

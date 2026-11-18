@@ -6,7 +6,7 @@ import {
   webhookReceiptSchema
 } from '@repo/contracts'
 import { AsaasBillingProvider } from '#libs/adapters/asaas-billing-provider'
-import type { BillingNotice, BillingProvider } from '#libs/ports/billing-provider.port'
+import { type BillingNotice, type BillingProvider, PayerRequiredException } from '#libs/ports/billing-provider.port'
 import { serveRoutes } from '#modules/identity/testing/serve-routes'
 import { registerBillingRoutes } from './billing.routes'
 import { billingKit, kitToken } from './testing/billing-kit'
@@ -73,6 +73,24 @@ describe('the billing routes (ADR 0063)', () => {
       checkoutUrl: expect.any(String),
       subscription: { checkout: { plan: 'pro' } }
     })
+  })
+
+  it('refuses a payer whose CPF or CNPJ fails its check digits, and says when the provider needs one (ADR 0069)', async () => {
+    const { signInAs, call, provider } = await serve()
+    signInAs(owner, { subscription: { status: 'trialing', plan: null } })
+    const input = { plan: 'basic', method: 'pix', version: 0, returnTo }
+
+    const invalid = await call('POST', `${base}/checkout`, {
+      ...input,
+      payer: { name: 'Ana', taxId: '52998224724', email: 'ana@example.com' }
+    })
+    vi.spyOn(provider, 'startCheckout').mockRejectedValueOnce(new PayerRequiredException())
+    const missing = await call('POST', `${base}/checkout`, input)
+
+    expect(invalid.status).toBe(400)
+    expect(apiProblemSchema.parse(await invalid.json())).toMatchObject({ code: 'validation_failed' })
+    expect(missing.status).toBe(400)
+    expect(apiProblemSchema.parse(await missing.json())).toMatchObject({ code: 'payer_required' })
   })
 
   it('lets the owner pay while the organization is read only', async () => {

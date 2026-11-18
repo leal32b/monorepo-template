@@ -100,6 +100,21 @@ export const billingEs: typeof billingEn = {
       changed: 'Ahora estás en {{plan}}.',
       scheduled: '{{plan}} empieza el {{date}}.'
     },
+    payer: {
+      title: 'Quién paga',
+      description: 'Los cobros se emiten a este nombre y documento.',
+      name: 'Nombre o razón social',
+      taxId: 'CPF o CNPJ',
+      taxIdHint: 'Como figura en el documento, con o sin puntos y guiones.',
+      email: 'Correo electrónico para cobros',
+      emailHint: 'Los vencimientos y atrasos se avisan aquí.',
+      errors: {
+        nameRequired: 'Escribe el nombre al que se emiten los cobros.',
+        nameTooLong: 'Usa hasta {{max}} caracteres.',
+        taxIdInvalid: 'Revisa el CPF o CNPJ: no es válido.',
+        emailInvalid: 'Escribe un correo como ana@example.com.'
+      }
+    },
     returned: {
       waiting: 'Confirmando tu pago con el proveedor…',
       confirmed: 'Tu pago se confirmó. Estás en {{plan}}.',

@@ -55,6 +55,44 @@ describe('CheckoutForm (ADR 0067)', () => {
     expect(screen.getByRole('button', { name: 'Continue to payment' })).toBeDisabled()
   })
 
+  it('asks whom a subscription charges, with the owner’s email filled in, and sends it (ADR 0069)', async () => {
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined)
+    const fetch = vi.fn<Fetch>(async () => Response.json({ url: 'https://pay.example/c/1' }))
+    renderForm(fetch, { payerEmail: 'owner@example.com' })
+
+    expect(screen.getByRole('group', { name: 'Who pays' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Email for charges' })).toHaveValue('owner@example.com')
+    fireEvent.input(screen.getByRole('textbox', { name: 'Name or company name' }), {
+      target: { value: 'Barbearia do Zé' }
+    })
+    fireEvent.input(screen.getByRole('textbox', { name: 'CPF or CNPJ' }), { target: { value: '11.222.333/0001-81' } })
+    press('Continue to payment')
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('https://pay.example/c/1'))
+    expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toMatchObject({
+      payer: { name: 'Barbearia do Zé', taxId: '11222333000181', email: 'owner@example.com' }
+    })
+  })
+
+  it('says what to fix in the payer before anything is sent, focusing the first field at fault', async () => {
+    const fetch = vi.fn<Fetch>(async () => Response.json({ url: 'https://pay.example/c/1' }))
+    renderForm(fetch, { payerEmail: 'owner@example.com' })
+
+    fireEvent.input(screen.getByRole('textbox', { name: 'CPF or CNPJ' }), { target: { value: '111.111.111-11' } })
+    press('Continue to payment')
+
+    expect(await screen.findByText('Enter the name the charges are issued to.')).toBeInTheDocument()
+    expect(screen.getByText('Check the CPF or CNPJ: it is not valid.')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Name or company name' })).toHaveFocus()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('asks no payer for an upgrade: the provider already charges someone', () => {
+    renderForm(async () => Response.json({ url: null }))
+
+    expect(screen.queryByRole('group', { name: 'Who pays' })).not.toBeInTheDocument()
+  })
+
   it('changes the plan at once below the provider’s minimum, asking no way to pay', async () => {
     const fetch = vi.fn<Fetch>(async () => Response.json({ url: null }))
     const { onChanged } = renderForm(fetch, { free: true, message: 'Pro starts now.' })

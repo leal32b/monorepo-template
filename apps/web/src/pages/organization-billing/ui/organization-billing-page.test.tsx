@@ -142,6 +142,14 @@ function renderPage({
 const yourPlan = async () => within(await screen.findByRole('region', { name: 'Your plan' }))
 const catalogue = () => within(screen.getByRole('region', { name: 'Plans' }))
 const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
+/** Names whom a subscription charges (ADR 0069); the owner's email is filled in. */
+const namePayer = async () => {
+  fireEvent.input(await screen.findByRole('textbox', { name: 'Name or company name' }), {
+    target: { value: 'Acme Ltda' }
+  })
+  fireEvent.input(screen.getByRole('textbox', { name: 'CPF or CNPJ' }), { target: { value: '11.222.333/0001-81' } })
+}
+const payer = '"payer":{"name":"Acme Ltda","taxId":"11222333000181","email":"o@example.com"}'
 
 describe('OrganizationBillingPage (ADR 0063, ADR 0067)', () => {
   beforeEach(() => {
@@ -185,11 +193,12 @@ describe('OrganizationBillingPage (ADR 0063, ADR 0067)', () => {
         screen.getByText('You pay R$99.00 now, then every month. Pro starts as soon as the payment is confirmed.')
       ).toBeInTheDocument()
       fireEvent.click(screen.getByRole('radio', { name: 'Boleto' }))
+      await namePayer()
       press('Continue to payment')
 
       await waitFor(() => expect(assign).toHaveBeenCalledWith('https://pay.example/c/1'))
       expect(api.calls).toContain(
-        'POST /checkout {"plan":"pro","method":"boleto","version":0,"returnTo":"/acme/settings/billing"}'
+        `POST /checkout {"plan":"pro","method":"boleto","version":0,"returnTo":"/acme/settings/billing",${payer}}`
       )
     })
 
@@ -347,11 +356,12 @@ describe('OrganizationBillingPage (ADR 0063, ADR 0067)', () => {
         )
       ).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Pay now' })).not.toBeInTheDocument()
+      await namePayer()
       press('Continue to payment')
 
       await waitFor(() => expect(assign).toHaveBeenCalledWith('https://pay.example/c/2'))
       expect(api.calls).toContain(
-        'POST /checkout {"plan":"basic","method":"card","version":3,"returnTo":"/acme/settings/billing"}'
+        `POST /checkout {"plan":"basic","method":"card","version":3,"returnTo":"/acme/settings/billing",${payer}}`
       )
     })
 
@@ -488,6 +498,7 @@ describe('OrganizationBillingPage (ADR 0063, ADR 0067)', () => {
       await yourPlan()
 
       press('Pay now')
+      await namePayer()
       fireEvent.click(await screen.findByRole('button', { name: 'Continue to payment' }))
 
       expect(await screen.findByRole('alert')).toHaveTextContent('The plan changed since this page was read.')

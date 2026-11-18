@@ -18,14 +18,28 @@ const returnTo = '/acme/settings/billing'
 function setUp(now?: Date) {
   const kit = billingKit(now)
   const service = new StartCheckoutService(kit.unitOfWork, kit.provider, kit.clock, kit.ids, webOrigin)
-  const checkout = (input: { plan: 'basic' | 'pro'; version: number; method?: 'card' | 'pix' | 'boleto' }) =>
-    service.execute('org-1', { method: 'card', returnTo, ...input }, owner, trialEndsAt)
+  const checkout = (input: {
+    plan: 'basic' | 'pro'
+    version: number
+    method?: 'card' | 'pix' | 'boleto'
+    payer?: { name: string; taxId: string; email: string }
+  }) => service.execute('org-1', { method: 'card', returnTo, ...input }, owner, trialEndsAt)
   const kitWithService = { ...kit, service, checkout }
   return { ...kitWithService, subscribed: (overrides: Partial<Subscription> = {}) => subscribed(kit, overrides) }
 }
 
 describe('StartCheckoutService (ADR 0063)', () => {
   describe('a first subscription', () => {
+    it('hands the provider whom the owner named to be charged, which Asaas needs for its customer (ADR 0069)', async () => {
+      const { checkout, provider } = setUp()
+      const start = vi.spyOn(provider, 'startCheckout')
+      const payer = { name: 'Barbearia do Zé', taxId: '11222333000181', email: 'ze@example.com' }
+
+      await checkout({ plan: 'pro', version: 0, method: 'boleto', payer })
+
+      expect(start).toHaveBeenCalledWith(expect.objectContaining({ method: 'boleto', payer }))
+    })
+
     it("opens the provider's page at the plan's full price, and records who started it", async () => {
       const { checkout, subscriptions, entries } = setUp()
 

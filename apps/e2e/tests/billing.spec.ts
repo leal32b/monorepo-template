@@ -39,11 +39,16 @@ async function newOwner(page: Page, name: string, organization: string) {
   return { home, id: await organizationIdOf(page, home.slice(1)) }
 }
 
-/** Chooses a plan on the plan page, pays on the fake's page (the way back itself), and waits for the provider. */
+/**
+ * Chooses a plan on the plan page, names whom it charges (ADR 0069), pays on the fake's page (the way back
+ * itself), and waits for the provider.
+ */
 async function subscribe(page: Page, home: string, id: string, plan: 'Basic' | 'Pro', method = 'Card') {
   await page.goto(`${home}/settings/billing`)
   await page.getByRole('button', { name: `Choose ${plan}` }).click()
   await page.getByText(method, { exact: true }).click()
+  await page.getByRole('textbox', { name: 'Name or company name' }).fill('Studio Ltda')
+  await page.getByRole('textbox', { name: 'CPF or CNPJ' }).fill('11.222.333/0001-81')
   await page.getByRole('button', { name: 'Continue to payment' }).click()
   await expect(page.getByText('Confirming your payment with the provider…')).toBeVisible()
   await expect(page).toHaveURL(new RegExp(`${home}/settings/billing$`))

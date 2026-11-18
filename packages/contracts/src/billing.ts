@@ -230,16 +230,61 @@ const versionSchema = z.int().check(z.gte(0))
  */
 const webPathSchema = z.string().check(z.regex(/^\/(?![/\\])[^?#\\]*$/), z.maxLength(200))
 
+/** The value of a CPF's or a CNPJ's character in its check digits: its code less 48, so `0`–`9` are 0–9 and `A` is 17. */
+const digitValue = (char: string) => (char.codePointAt(0) as number) - 48
+
+/** A check digit of Receita Federal's modulo 11: weights from `first` down to 2, then from 9 down to 2. */
+function checkDigit(body: string, first: number): number {
+  const sum = [...body].reduce((total, char, index) => {
+    const weight = first - index >= 2 ? first - index : first - index + 8
+    return total + digitValue(char) * weight
+  }, 0)
+  const rest = sum % 11
+  return rest < 2 ? 0 : 11 - rest
+}
+
+/**
+ * Whether `value` is a CPF (11 digits) or a CNPJ (14 characters: 12 digits or capital letters, the
+ * alphanumeric CNPJ of July 2026, then 2 digits), unpunctuated, with valid check digits and not one
+ * character repeated.
+ */
+export function isTaxId(value: string): boolean {
+  const shape = value.length === 11 ? /^\d{11}$/ : /^[\dA-Z]{12}\d{2}$/
+  if (!shape.test(value) || new Set(value).size === 1) return false
+  const first = value.length === 11 ? 10 : 5
+  const body = value.slice(0, -2)
+  return (
+    checkDigit(body, first) === digitValue(value.at(-2) as string) &&
+    checkDigit(value.slice(0, -1), first + 1) === digitValue(value.at(-1) as string)
+  )
+}
+
+/**
+ * Whom the provider charges (ADR 0069): the name and the CPF or CNPJ the owner types on the plan page,
+ * which Asaas needs to create its customer, and the email its notices of due and overdue charges go to.
+ * The web sends the document without punctuation.
+ */
+export const payerSchema = z.object({
+  name: z.string().check(z.trim(), z.minLength(1), z.maxLength(100)),
+  taxId: z.string().check(z.refine(isTaxId)),
+  email: z.pipe(z.string().check(z.trim(), z.toLowerCase(), z.maxLength(254)), z.email())
+})
+
+export type PayerInput = z.infer<typeof payerSchema>
+
 /**
  * `POST /api/organizations/:organizationId/billing/checkout` (ADR 0063): a first subscription, a new one
  * that replaces it (to pay what is overdue, or to change how to pay), or an upgrade. The owner comes back
  * to `returnTo` with `?checkout=returned`, or `?checkout=cancelled` when they leave the provider's page.
+ * `payer` names whom a subscription charges; a provider that must create a customer without one
+ * refuses with `payer_required` (ADR 0069).
  */
 export const billingCheckoutInputSchema = z.object({
   plan: planKeySchema,
   method: z.enum(paymentMethods),
   version: versionSchema,
-  returnTo: webPathSchema
+  returnTo: webPathSchema,
+  payer: z.optional(payerSchema)
 })
 
 export type BillingCheckoutInput = z.infer<typeof billingCheckoutInputSchema>

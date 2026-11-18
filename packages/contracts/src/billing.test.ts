@@ -12,7 +12,9 @@ import {
   entitlementsOf,
   entitlementsSchema,
   gracePeriod,
+  isTaxId,
   limits,
+  payerSchema,
   paymentMethods,
   planKeySchema,
   plans,
@@ -293,6 +295,57 @@ describe('the billing routes (ADR 0063)', () => {
     const input = { plan: 'pro', method: 'card', version: 1, returnTo: '/acme/settings/billing' }
 
     expect(billingCheckoutInputSchema.safeParse({ ...input, ...change }).success).toBe(false)
+  })
+
+  it("takes the payer's name and CPF or CNPJ, which Asaas needs to create its customer (ADR 0069)", () => {
+    const payer = { name: 'Barbearia do Zé', taxId: '11222333000181', email: 'ze@example.com' }
+    const input = { plan: 'pro', method: 'boleto', version: 0, returnTo: '/acme/settings/billing', payer }
+
+    expect(billingCheckoutInputSchema.parse(input)).toEqual(input)
+    expect(payerSchema.parse({ name: '  Ana Paula  ', taxId: '52998224725', email: ' Ana@Example.com ' })).toEqual({
+      name: 'Ana Paula',
+      taxId: '52998224725',
+      email: 'ana@example.com'
+    })
+  })
+
+  it.each([
+    ['a CPF', '52998224725'],
+    ['another CPF', '24971563792'],
+    ['a CPF whose check digits are 0', '98765432100'],
+    ['a CNPJ', '11222333000181'],
+    ['an alphanumeric CNPJ, issued since July 2026', '12ABC34501DE35']
+  ])('accepts %s with its check digits', (_, taxId) => {
+    expect(isTaxId(taxId)).toBe(true)
+  })
+
+  it.each([
+    ['a CPF whose first check digit is wrong', '52998224715'],
+    ['a CPF whose second check digit is wrong', '52998224724'],
+    ['a CNPJ whose first check digit is wrong', '11222333000191'],
+    ['a CNPJ whose second check digit is wrong', '11222333000182'],
+    ['a CPF of one repeated digit', '11111111111'],
+    ['a CNPJ of one repeated digit', '00000000000000'],
+    ['a CPF with its punctuation', '529.982.247-25'],
+    ['a CNPJ in lowercase', '12abc34501de35'],
+    ['a CPF with a letter', '5299822472A'],
+    ['a document of another length', '1234567890'],
+    ['nothing', '']
+  ])('refuses %s', (_, taxId) => {
+    expect(isTaxId(taxId)).toBe(false)
+    expect(payerSchema.safeParse({ name: 'Ana', taxId, email: 'ana@example.com' }).success).toBe(false)
+  })
+
+  it.each([
+    ['no name', { name: '' }],
+    ['a name of spaces', { name: '   ' }],
+    ['a name longer than 100 characters', { name: 'a'.repeat(101) }],
+    ['no email', { email: '' }],
+    ['an email without a domain', { email: 'ana@' }]
+  ])('refuses a payer with %s', (_, change) => {
+    const payer = { name: 'Ana', taxId: '52998224725', email: 'ana@example.com' }
+
+    expect(payerSchema.safeParse({ ...payer, ...change }).success).toBe(false)
   })
 
   it('answers with the page to send the owner to, or none when nothing is to be paid', () => {
