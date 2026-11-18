@@ -72,7 +72,8 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
    the account approved with Pix on, an API key in `ASAAS_API_KEY` (`$aact_prod_…`, or `$aact_hmlg_…`
    with the sandbox's URL), and a webhook to `<web origin>/api/webhooks/asaas` with the token of
    `ASAAS_WEBHOOK_TOKEN` and the events [operations](operations.md#asaas) lists, which also covers payer
-   notices, charges created 7 days ahead and card tokenization. The deploy checks that the three are set
+   notices, charges created 7 days ahead, card tokenization, and the site the payer is sent back to
+   ([ADR 0070](adr/0070-pay-every-asaas-method-on-an-invoice-made-by-the-api-not-on-its-checkout.md)). The deploy checks that the three are set
    and that the key belongs to the URL's environment, then pushes them to the API's host. With no
    provider's key the API bills through a fake that marks an organization paid on a command, so env
    validation refuses to start it when `WEB_ORIGIN` is https

@@ -216,7 +216,11 @@ the stored events then arrive.
 ## Asaas
 
 The first real provider ([ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md),
-[ADR 0069](adr/0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md)).
+[ADR 0069](adr/0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md),
+[ADR 0070](adr/0070-pay-every-asaas-method-on-an-invoice-made-by-the-api-not-on-its-checkout.md)). Every method
+subscribes on a subscription made by the API and is paid on its first charge's invoice, where the payer types a
+card, scans a Pix or prints a boleto; an upgrade is a one-off charge paid on its invoice. Asaas's Checkout is not
+used.
 `ASAAS_API_KEY` selects it; `ASAAS_API_URL` and `ASAAS_WEBHOOK_TOKEN` are then required, and env
 validation refuses a key whose prefix does not match the URL (`$aact_hmlg_` for
 `https://api-sandbox.asaas.com/v3`, `$aact_prod_` for `https://api.asaas.com/v3`) and a token that is
@@ -238,8 +242,8 @@ sandbox for staging, production for the product):
    email for Asaas's notices about the queue, and these events: `PAYMENT_CREATED`, `PAYMENT_CONFIRMED`,
    `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_REFUNDED`, `PAYMENT_CHARGEBACK_REQUESTED`,
    `PAYMENT_CREDIT_CARD_CAPTURE_REFUSED`, `PAYMENT_DELETED`, `SUBSCRIPTION_CREATED`,
-   `SUBSCRIPTION_UPDATED`, `SUBSCRIPTION_INACTIVATED`, `SUBSCRIPTION_DELETED`, `CHECKOUT_PAID`,
-   `CHECKOUT_CANCELED`, `CHECKOUT_EXPIRED`. Another event is answered 200 and ignored.
+   `SUBSCRIPTION_UPDATED`, `SUBSCRIPTION_INACTIVATED`, `SUBSCRIPTION_DELETED`. Another event (the
+   `CHECKOUT_*` ones of before ADR 0070 included) is answered 200 and ignored.
 4. **Payer notices** (Configurações → Notificações): keep the due-date warning and the overdue notice,
    the only billing emails until P1-6. The default overdue notice includes a phone call; turn it off
    if that is too much for the product's customers.
@@ -247,19 +251,25 @@ sandbox for staging, production for the product):
    does not see next month's boleto at the start of this one.
 6. **Card tokenization** in production: Asaas changes a card subscription's value (an upgrade, a
    downgrade) only with it, and enables it on request to its support. The sandbox has it.
+7. **The site** (Minha Conta → Informações → Site): the web origin. Until one is registered, Asaas
+   refuses to send the payer back to the plan page after paying, and the adapter creates the charge
+   without the way back: paying works, but the payer returns to the app by themselves.
 
 The plan page asks the owner whom the charges name (name, CPF or CNPJ, email) before a subscription's
-first payment: Asaas requires a customer's document. The template keeps none of it; Asaas holds the
-customer, whose `externalReference` is the organization's id.
+first payment: Asaas refuses a Pix or a boleto for a customer without a document. The template keeps
+none of it; Asaas holds the customer, whose `externalReference` is the organization's id, as it is on
+every subscription and charge the adapter creates.
 
 ### Trying it in the sandbox
 
 A local API cannot receive Asaas's notices (they need a public https URL): `pnpm dev` keeps the fake.
 Try Asaas on a staging environment on https with the sandbox's key and URL and a sandbox webhook to
-its origin. Pay a card Checkout with Asaas's test cards; confirm a Pix or boleto charge with
-`POST /v3/sandbox/payment/{id}/confirm` and make one late with `POST /v3/sandbox/payment/{id}/overdue`
-(both with the sandbox key in `access_token`). Each change arrives as a notice; `webhook_event` and
-the job show what it did.
+its origin. Pay a card on its invoice with Asaas's fictitious test cards (Visa `4539 6560 4839 2220`
+approves; the documented refusal card was approved too on 2026-11-18); pay a Pix by its QR code;
+confirm a boleto with `POST /v3/sandbox/payment/{id}/confirm`, which makes it `RECEIVED` at once (it
+fails for a Pix, and leaves the charge a boleto); make a charge late with
+`POST /v3/sandbox/payment/{id}/overdue` (both with the sandbox key in `access_token`). Each change
+arrives as a notice; `webhook_event` and the job show what it did.
 
 ### Rotating the webhook token
 
@@ -297,33 +307,42 @@ and answer the owner 503 until the deploy is live.
 - **`payer_required` (400)** means a subscription's checkout was sent without the payer while Asaas
   knows no customer for the organization; the plan page always sends it, so look for a client that
   does not.
+- **"Cancel the upgrade" answers 503 right after a boleto upgrade was opened.** For a few seconds
+  after it is created, Asaas answers 500 to deleting a boleto whose registration ends at its due date
+  (sandbox, 2026-11-18); trying again a moment later works, and the job retries by itself when it is
+  the one withdrawing it.
 
-### Not verified in the sandbox yet
+### What the sandbox showed
 
-No sandbox key was available when the adapter was built, so it follows Asaas's documentation as read
-on 2026-11-13, and each point below is open until someone runs it in the sandbox. A point that the
-sandbox answers differently changes the adapter (ADR 0069 says what to revisit).
+Run on 2026-11-18 against the sandbox, through the API and through the adapter itself (its
+`startCheckout`, `startPayment`, `payment`, `cancelCheckout`, `paymentPage`, `changePlan`, `cancel`,
+`resume` and `subscription`). A local machine receives no notices, so nothing below went through the
+webhook; the test data was deleted afterwards. A point the sandbox answers differently later changes
+the adapter.
 
-| Point | What the documentation says, and what the adapter does | How to verify |
+| Point | Result | How |
 | --- | --- | --- |
-| Pix through a recurring Checkout (ADR 0064, 1) | The recurring guide shows only card; Pix uses a subscription made by the API | Create a Checkout with `PIX` and `RECURRENT` |
-| Customer's CPF or CNPJ (2) | The reference requires `name` and `cpfCnpj`; the plan page asks for them | Create a customer without `cpfCnpj` |
-| An overdue card charge paid on its invoice with another card or method (3) | Not stated; "Pay now" opens the overdue charge's `invoiceUrl` | Force a card charge overdue, pay it on its invoice |
-| Cancelling at the period's end (4) | The adapter removes the next pending charge, sets `endDate` the day before `paid_through`, and clears it with `endDate: null` on resume, with `nextDueDate` back | Set and clear an end; check whether Asaas accepts `null`, whether it marks the subscription `EXPIRED` early, and that the next charge comes back |
-| A refused card tried again (5) | Not stated; a refusal shows as an overdue charge the next day | Subscribe with a test card that refuses |
-| Charges created ahead (6) | 40 days by default, 14 or 7 as options (subscriptions FAQ); set in the dashboard | Set 7 and watch `PAYMENT_CREATED` |
-| `PAYMENT_CONFIRMED` for a boleto (7) | The boleto flow shows `CONFIRMED`, then `RECEIVED` | Confirm a boleto in the sandbox |
-| Pix and boleto fees, card fee after three months (8) | Two values on the public price page | The account's own fee page |
-| A one-off charge beside the subscription, and a card `DETACHED` Checkout (9) | The reference lists card among Checkout's methods | Upgrade by card, by Pix and by boleto |
-| A new value on a charge already created (10, and ADR 0067) | Only with `updatePendingPayments: true`, which the adapter sends; card subscriptions need tokenization | Change a plan after the next charge exists |
-| The R$ 5.00 minimum per method (11) | The help centre's minimum; the API reference states none | Create charges of R$ 4.99 by each method |
-| A Checkout given `customer` creates the subscription under it, with our `externalReference` | Documented for `customer`; not for `externalReference`, so the adapter falls back to the customer's | Pay a card Checkout, read the subscription |
-| The Checkout's creation answers with `link` | The reference shows it, the guides only `id`; the adapter builds `…/checkoutSession/show?id=` otherwise | Create a Checkout |
-| Checkout items without `imageBase64` | The schema marks it required, every example omits it; the adapter omits it | Create a Checkout |
-| `callback.successUrl` on a subscription and a charge, to any domain | Documented field; a domain rule is not stated | Create both with the staging origin |
-| An API subscription's first charge exists at once | Charges due within the creation window are created ahead; the adapter answers 503 otherwise, and a retry reuses the subscription | Create a Pix subscription due today |
-| `GET /payments?checkoutSession=` lists a recurring Checkout's first charge | Documented filter | Pay a card Checkout, list its charges |
-| The job's reads, end to end | `subscription(id)` reads the subscription, its charges and, if needed, its customer | Point a staging API at the sandbox and replay a notice (the `insert into job` above) |
+| A card through a subscription made by the API (ADR 0070) | Verified: accepted with no card data; its first charge exists at once with an invoice; once paid by card, the subscription holds the card (brand, last digits, token) and each charge created after it carries it | Created one, paid its first charge with a test card through the invoice's own call (`payWithCreditCard`), read the subscription and the charges the sandbox then created |
+| Asaas charging the kept card on a later due date | Not verified: a charge moved to today was still pending 20 s later; Asaas charges cards in a daily run | Moved a pending charge's due date to today |
+| Pix through a recurring Checkout (ADR 0064, 1) | Verified, refused: `RECURRENT` takes only `CREDIT_CARD`, and Pix only `DETACHED`. The Checkout is no longer used | Created one |
+| A Checkout given our customer | Refused unless the customer has a phone and an address, hence ADR 0070 | The deployed app's first card subscription |
+| Customer's CPF or CNPJ (2) | Verified: a customer is created without one, but a Pix or a boleto subscription is refused for it ("é necessário preencher o CPF ou CNPJ"); a card one is accepted. The plan page keeps asking it | Created a customer without a document, then a subscription by each method |
+| An overdue card charge paid on its invoice (3) | Verified: listed as `OVERDUE` with its invoice; paid by card, it is confirmed and that card becomes the subscription's. Paying any of its charges with another card replaces the card. Another method on a card's invoice was not tried | Forced a card charge overdue, then paid it; paid a pending charge with a second test card |
+| Cancelling at the period's end (4) | Verified: `endDate` is accepted and the subscription stays `ACTIVE` (not `EXPIRED` early); `endDate: null` clears it; the method and `nextDueDate` stay. What Asaas does once the end passes was not watched: the template's period-end job reads it then | Set and cleared an end through the API and through the adapter |
+| A refused card tried again (5) | Not verifiable: the documented refusal card (`5184 0197 4037 3151`) was approved | Paid a first charge with it |
+| Charges created ahead (6) | Partly: only the first charge exists at creation, later ones come from Asaas's daily run (40 days ahead by default, a dashboard setting) | Watched a new subscription's charges |
+| `PAYMENT_CONFIRMED` for a boleto (7) | The sandbox's confirmation makes a boleto `RECEIVED` at once, with today's payment and credit dates; both count as paid | Confirmed a boleto |
+| Fees (8) | Verified on this account: Pix and boleto R$ 0.99 each, card 1.99% + R$ 0.49 (R$ 47.54 net of R$ 49.00); the card's rate after three months is not shown | Read `netValue` after each payment |
+| A one-off charge beside the subscription (9) | Verified for card, Pix and boleto; `daysAfterDueDateToRegistrationCancellation: 0` accepted on a boleto | Created one of each for a customer with live subscriptions |
+| A new value on a charge already created (10, ADR 0067) | `updatePendingPayments` works for Pix and card but answers 500 on a boleto subscription; the subscription's value and then each pending charge's work for all three, which the adapter does (ADR 0070) | Changed the value of a subscription of each method with its next charge created |
+| The R$ 5.00 minimum (11) | Verified for card, Pix and boleto: R$ 4.99 is refused | Created charges of R$ 5.00 and R$ 4.99 by each method |
+| `externalReference` on what the adapter creates | Verified: the subscription and each of its charges carry it | Read them |
+| `callback.successUrl` | Refused until the account has a site registered ("Cadastre um site em Minha Conta na aba Informações"); the adapter then creates the subscription or the charge without it. With a site registered, not verified (the owner's setting), nor whether the URL must be on that site | Created a subscription with and without it |
+| An API subscription's first charge exists at once | Verified for card and Pix (due today) and boleto (in three days), each with an invoice | Created one of each |
+| A deleted subscription | Read back as `deleted: true`, `INACTIVE`, not 404; its pending charges are deleted with it | Deleted one, read it and its charge |
+| Deleting a boleto right after it is created | Answers 500 for a few seconds when its registration ends at its due date, then works | Deleted one at once and 15 s later |
+| The job's reads, end to end | Verified: `subscription` read an active card subscription, a received boleto, an overdue card charge paid late, an unpaid Pix (`pending`), a deleted one (`cancelled`) and an unknown id (`null`), with the right periods; `payment` and `paymentPage` answered accordingly | Ran the adapter against the sandbox |
+| A Checkout's `link`, items without `imageBase64`, `GET /payments?checkoutSession=` | No longer used (ADR 0070); a Checkout without a customer did answer with `link`, without an image | Created one |
 
 ## Set up once per product
 
