@@ -105,9 +105,8 @@ export const billingEn = {
       scheduled: '{{plan}} starts on {{date}}.'
     },
     payer: {
-      title: 'Who pays',
-      description: 'The charges are issued to this name and document.',
       name: 'Name or company name',
+      nameHint: 'The charges are issued to this name.',
       taxId: 'CPF or CNPJ',
       taxIdHint: 'As printed on the document, with or without dots and dashes.',
       email: 'Email for charges',

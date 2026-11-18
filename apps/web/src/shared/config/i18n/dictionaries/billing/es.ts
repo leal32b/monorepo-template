@@ -101,9 +101,8 @@ export const billingEs: typeof billingEn = {
       scheduled: '{{plan}} empieza el {{date}}.'
     },
     payer: {
-      title: 'Quién paga',
-      description: 'Los cobros se emiten a este nombre y documento.',
       name: 'Nombre o razón social',
+      nameHint: 'Los cobros se emiten a este nombre.',
       taxId: 'CPF o CNPJ',
       taxIdHint: 'Como figura en el documento, con o sin puntos y guiones.',
       email: 'Correo electrónico para cobros',

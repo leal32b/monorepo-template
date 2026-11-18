@@ -92,42 +92,39 @@ export function CheckoutForm(props: CheckoutFormProps) {
         </Fieldset>
       </Show>
       <Show when={props.payerEmail !== undefined}>
-        <Fieldset label={t('billing.payer.title')} description={t('billing.payer.description')}>
-          <div class="flex flex-col gap-4">
-            <Field
-              label={t('billing.payer.name')}
-              name="name"
-              autocomplete="off"
-              value={payer().name}
-              onChange={set('name')}
-              error={error('name')}
-            />
-            <Field
-              label={t('billing.payer.taxId')}
-              description={t('billing.payer.taxIdHint')}
-              name="taxId"
-              autocomplete="off"
-              autocapitalize="characters"
-              spellcheck={false}
-              value={payer().taxId}
-              onChange={set('taxId')}
-              error={error('taxId')}
-            />
-            <Field
-              label={t('billing.payer.email')}
-              description={t('billing.payer.emailHint')}
-              name="email"
-              type="email"
-              inputmode="email"
-              autocomplete="off"
-              autocapitalize="none"
-              spellcheck={false}
-              value={payer().email}
-              onChange={set('email')}
-              error={error('email')}
-            />
-          </div>
-        </Fieldset>
+        <Field
+          label={t('billing.payer.name')}
+          description={t('billing.payer.nameHint')}
+          name="name"
+          autocomplete="off"
+          value={payer().name}
+          onChange={set('name')}
+          error={error('name')}
+        />
+        <Field
+          label={t('billing.payer.taxId')}
+          description={t('billing.payer.taxIdHint')}
+          name="taxId"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck={false}
+          value={payer().taxId}
+          onChange={set('taxId')}
+          error={error('taxId')}
+        />
+        <Field
+          label={t('billing.payer.email')}
+          description={t('billing.payer.emailHint')}
+          name="email"
+          type="email"
+          inputmode="email"
+          autocomplete="off"
+          autocapitalize="none"
+          spellcheck={false}
+          value={payer().email}
+          onChange={set('email')}
+          error={error('email')}
+        />
       </Show>
       <FormActions>
         <Button type="submit" variant="primary" disabled={pending()}>

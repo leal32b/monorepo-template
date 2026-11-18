@@ -101,9 +101,8 @@ export const billingPtBR: typeof billingEn = {
       scheduled: 'O {{plan}} começa em {{date}}.'
     },
     payer: {
-      title: 'Quem paga',
-      description: 'As cobranças são emitidas neste nome e documento.',
       name: 'Nome ou razão social',
+      nameHint: 'As cobranças são emitidas neste nome.',
       taxId: 'CPF ou CNPJ',
       taxIdHint: 'Como está no documento, com ou sem pontos e traços.',
       email: 'E-mail para cobranças',

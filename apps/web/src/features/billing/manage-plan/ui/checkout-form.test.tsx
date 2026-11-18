@@ -60,7 +60,6 @@ describe('CheckoutForm (ADR 0067)', () => {
     const fetch = vi.fn<Fetch>(async () => Response.json({ url: 'https://pay.example/c/1' }))
     renderForm(fetch, { payerEmail: 'owner@example.com' })
 
-    expect(screen.getByRole('group', { name: 'Who pays' })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Email for charges' })).toHaveValue('owner@example.com')
     fireEvent.input(screen.getByRole('textbox', { name: 'Name or company name' }), {
       target: { value: 'Barbearia do Zé' }
@@ -90,7 +89,7 @@ describe('CheckoutForm (ADR 0067)', () => {
   it('asks no payer for an upgrade: the provider already charges someone', () => {
     renderForm(async () => Response.json({ url: null }))
 
-    expect(screen.queryByRole('group', { name: 'Who pays' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Name or company name' })).not.toBeInTheDocument()
   })
 
   it('changes the plan at once below the provider’s minimum, asking no way to pay', async () => {
