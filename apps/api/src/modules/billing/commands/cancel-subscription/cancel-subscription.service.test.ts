@@ -30,6 +30,25 @@ describe('CancelSubscriptionService (ADR 0063)', () => {
     ])
   })
 
+  it('reads the subscription again the day the paid period ends, since a provider may announce no end (ADR 0069)', async () => {
+    const kit = setUp()
+    const row = await subscribed(kit)
+
+    await kit.cancel(row.version)
+
+    expect(kit.jobs.all).toEqual([
+      expect.objectContaining({
+        kind: 'billing.sync-subscription',
+        runAt: row.paidThrough,
+        payload: {
+          provider: 'fake',
+          eventId: `period-end:${row.providerSubscriptionId}:${row.paidThrough?.toISOString()}`,
+          subscriptionId: row.providerSubscriptionId
+        }
+      })
+    ])
+  })
+
   it('changes nothing when the end is already scheduled', async () => {
     const kit = setUp()
     const row = await subscribed(kit, { cancelAtPeriodEnd: true })
@@ -49,6 +68,7 @@ describe('CancelSubscriptionService (ADR 0063)', () => {
 
     expect(await kit.subscriptions.find('org-1')).toMatchObject({ version: row.version, cancelAtPeriodEnd: false })
     expect(await kit.entries()).toEqual([])
+    expect(kit.jobs.all).toEqual([])
   })
 
   it('refuses a stale version, and an organization with no plan', async () => {

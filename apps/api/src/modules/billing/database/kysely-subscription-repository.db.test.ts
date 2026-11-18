@@ -2,7 +2,10 @@ import { fileURLToPath } from 'node:url'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
+import { FixedClock } from '#libs/adapters/fixed-clock'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
+import { KyselyJobs } from '#libs/database/kysely-jobs'
 import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../../../test/reset-database'
 import { KyselyBillingDirectory } from '../infrastructure/kysely-billing-directory'
@@ -58,7 +61,11 @@ describe('KyselySubscriptionRepository', () => {
   })
 
   it("keeps one organization's row out of another's unit of work (ADR 0055)", async () => {
-    const unitOfWork = kyselyBillingUnitOfWork(db)
+    const clock = new FixedClock(new Date('2026-11-19T12:00:00.000Z'))
+    const unitOfWork = kyselyBillingUnitOfWork(
+      db,
+      (transaction) => new KyselyJobs(transaction, new UuidGenerator(), clock)
+    )
     await unitOfWork.run('org-1', ({ subscriptions }) => subscriptions.save(aSubscription('org-1')))
 
     const seen = await unitOfWork.run('org-2', ({ subscriptions }) => subscriptions.find('org-1'))

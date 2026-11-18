@@ -5,7 +5,7 @@ import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
 import { SubscriptionChangedException } from './billing.errors'
 import { subscriptionEntry } from './billing-audit'
-import type { BillingUnitOfWork } from './billing-unit-of-work.port'
+import type { BillingRepositories, BillingUnitOfWork } from './billing-unit-of-work.port'
 import { applyProviderState, changedFields, onTrial, type Subscription } from './subscription'
 
 /** The organization's row, or its trial while it has none (ADR 0063): `trialEndsAt` comes from the membership read. */
@@ -34,10 +34,13 @@ export async function writeChange(
     action: AuditAction<'subscription'>
     actor: AuditActor
     at: Date
+    /** What the change asks for in the same transaction, once the row is saved. */
+    alongside?: ((after: Subscription, repositories: BillingRepositories) => Promise<unknown>) | undefined
   }
 ): Promise<void> {
   const { organizationId } = read
-  await unitOfWork.run(organizationId, async ({ subscriptions, audit }) => {
+  await unitOfWork.run(organizationId, async (repositories) => {
+    const { subscriptions, audit } = repositories
     const current = await subscriptions.find(organizationId)
     if (current === null || current.version !== read.version) throw new SubscriptionChangedException()
     const after = change.next(current)
@@ -52,7 +55,8 @@ export async function writeChange(
         fields
       })
     )
-    await subscriptions.save(after)
+    const saved = await subscriptions.save(after)
+    await change.alongside?.(saved, repositories)
   })
 }
 
@@ -69,7 +73,11 @@ export async function changeEndAtProvider(
   }: { unitOfWork: BillingUnitOfWork; provider: BillingProvider; clock: Clock; ids: IdGenerator },
   read: Subscription,
   call: (subscriptionId: string) => Promise<void>,
-  change: { action: 'cancellation-scheduled' | 'cancellation-withdrawn'; actor: AuditActor }
+  change: {
+    action: 'cancellation-scheduled' | 'cancellation-withdrawn'
+    actor: AuditActor
+    alongside?: Parameters<typeof writeChange>[2]['alongside']
+  }
 ): Promise<void> {
   const subscriptionId = read.providerSubscriptionId as string
   await call(subscriptionId)

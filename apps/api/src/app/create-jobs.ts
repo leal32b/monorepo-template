@@ -59,11 +59,12 @@ export function createJobs({
   const registry = new JobRegistry()
   const worker = new JobWorker({ store, registry, clock, timer, logger, idlePollMs })
   const waking = (queue: JobQueue) => new WakingJobQueue(queue, () => worker.nudge())
+  const bind = (transaction: Kysely<unknown>) => waking(new KyselyJobs(transaction, ids, clock))
 
   registerHealthJobs(registry, { clock, logger })
   registerIdentityJobs(registry, { emailSender })
   registerBillingJobs(registry, {
-    unitOfWork: kyselyBillingUnitOfWork(db),
+    unitOfWork: kyselyBillingUnitOfWork(db, bind),
     directory: new KyselyBillingDirectory(db),
     provider: billing,
     clock,
@@ -73,7 +74,7 @@ export function createJobs({
 
   return {
     queue: waking(store),
-    bind: (transaction) => waking(new KyselyJobs(transaction, ids, clock)),
+    bind,
     worker
   }
 }

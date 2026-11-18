@@ -91,7 +91,7 @@ export function createApp({
 }: AppDeps): Server {
   const router = new HttpRouter()
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
-  const billingUnitOfWork = kyselyBillingUnitOfWork(db)
+  const billingUnitOfWork = kyselyBillingUnitOfWork(db, jobsOn)
   // Deleting an organization, alone or with its only member's account, ends its subscription (ADR 0063).
   const organizationDeletion = new EnqueueCancellationService(billingUnitOfWork, jobs, clock, cancelAtProvider)
   const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google, organizationDeletion })
