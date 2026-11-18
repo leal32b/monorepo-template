@@ -83,7 +83,8 @@ export const organizationsEn = {
       row: 'Delete this organization',
       rowDescription: 'This cannot be undone.',
       open: 'Delete organization',
-      warning: 'This removes {{name}} and everything in it, for all its members. It cannot be undone.',
+      warning:
+        'This removes {{name}} and everything in it, for all its members, and ends its plan at once, with nothing refunded. It cannot be undone.',
       label: 'Type the organization name to confirm',
       mismatch: 'The name does not match. Type it exactly as shown: {{name}}',
       submit: 'Delete organization',
@@ -171,7 +172,8 @@ export const organizationsEn = {
       invitation: 'Invitations',
       ac: 'Roles',
       customer: 'Customers',
-      audit: 'Activity'
+      audit: 'Activity',
+      billing: 'Plan and billing'
     },
     permissions: {
       organization: {
@@ -201,6 +203,9 @@ export const organizationsEn = {
       },
       audit: {
         read: 'See the activity log'
+      },
+      billing: {
+        manage: 'Choose, pay for and cancel the plan'
       }
     },
     form: {

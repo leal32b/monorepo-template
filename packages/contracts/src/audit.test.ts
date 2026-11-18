@@ -13,11 +13,42 @@ describe('auditActions', () => {
   it('lists what the customers module records, every write of it', () => {
     expect(auditActions.customer).toEqual(['created', 'updated', 'archived', 'restored', 'deleted'])
   })
+
+  it('lists every change of a subscription that billing records (ADR 0063)', () => {
+    expect(auditActions.subscription).toEqual([
+      'checkout-started',
+      'checkout-abandoned',
+      'activated',
+      'renewed',
+      'upgrade-started',
+      'upgrade-abandoned',
+      'plan-changed',
+      'downgrade-scheduled',
+      'downgrade-withdrawn',
+      'payment-failed',
+      'payment-recovered',
+      'cancellation-scheduled',
+      'cancellation-withdrawn',
+      'cancelled'
+    ])
+  })
 })
 
 describe('auditEntrySchema (ADR 0061)', () => {
   it('reads an entry by a member, with their name', () => {
     expect(auditEntrySchema.parse(entry)).toEqual(entry)
+  })
+
+  it("reads a subscription's change by the system, from a provider's notice", () => {
+    const paid = {
+      ...entry,
+      actor: { kind: 'system' },
+      resource: { type: 'subscription', id: 'org-1' },
+      action: 'activated',
+      fields: ['status', 'plan']
+    }
+
+    expect(auditEntrySchema.parse(paid)).toEqual(paid)
   })
 
   it('reads a member who left, with no name, a visitor and the system', () => {

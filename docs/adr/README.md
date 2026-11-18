@@ -10,7 +10,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0003](0003-postgres-as-the-database.md) | Postgres as the database | accepted |
 | [0004](0004-tooling-biome-vitest-and-git-hooks.md) | Tooling: TypeScript, Biome, Vitest and Git hooks | accepted |
 | [0005](0005-contracts-as-zod-schemas.md) | Contracts as Zod schemas in a shared package | accepted; schema API refined by [0024](0024-write-schemas-with-zod-mini.md) |
-| [0006](0006-api-architecture.md) | API architecture: use-case slices, ports and a composition root | accepted |
+| [0006](0006-api-architecture.md) | API architecture: use-case slices, ports and a composition root | accepted; a module's routes declared through a helper, without controllers, since [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md) |
 | [0007](0007-http-pipeline-on-node-http.md) | HTTP pipeline on plain `node:http` | accepted |
 | [0008](0008-architecture-boundaries-with-dependency-cruiser.md) | Architecture boundaries enforced by dependency-cruiser | accepted |
 | [0009](0009-subpath-imports-for-aliases.md) | Subpath imports (`#...`) for path aliases | accepted |
@@ -37,7 +37,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0030](0030-add-a-scrim-colour-role.md) | Add a scrim colour role | accepted |
 | [0031](0031-animate-layers-with-short-transform-and-opacity-motion.md) | Animate layers with short transform and opacity motion | accepted |
 | [0032](0032-draw-icons-from-phosphor-generated-from-its-svgs.md) | Draw icons from Phosphor, generated from its SVGs | accepted |
-| [0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) | Run organizations on Better Auth, with roles in the database, behind a guard on the path | accepted; tenant queries backed by row-level security in [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md); routes without a session added beside the guard by [0059](0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) |
+| [0033](0033-organizations-with-roles-in-the-database-behind-a-path-guard.md) | Run organizations on Better Auth, with roles in the database, behind a guard on the path | accepted; tenant queries backed by row-level security in [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md); routes without a session added beside the guard by [0059](0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md); modules reach the guard through `tenantRoutes` since [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md) |
 | [0034](0034-keep-the-organization-slug-in-the-web-url.md) | Keep the organization slug in the web URL | accepted |
 | [0035](0035-show-the-server-working-with-one-progress-bar.md) | Show the server working with one progress bar | accepted; what drives the bar superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) |
 | [0036](0036-keep-the-screen-until-the-next-one-is-ready.md) | Keep the screen until the next one is ready | superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md) |
@@ -48,7 +48,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0041](0041-say-why-a-cold-start-takes-long-and-end-the-wait.md) | Say why a cold start takes long, and end the wait | accepted |
 | [0042](0042-ask-only-for-the-session-where-none-was-seen.md) | Ask only for the session where none was seen | accepted |
 | [0043](0043-remove-the-service-status-from-the-web.md) | Remove the service status from the web | accepted |
-| [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md); every write audited since [0061](0061-keep-one-append-only-audit-trail-per-organization.md) |
+| [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md); every write audited since [0061](0061-keep-one-append-only-audit-trail-per-organization.md); routes declared through a helper since [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md); list screens built from shared helpers since [0066](0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md) |
 | [0045](0045-run-the-end-to-end-suite-on-the-built-app-without-outside-services.md) | Run the end-to-end suite on the built app, without outside services | accepted |
 | [0046](0046-observe-through-structured-logs-tagged-with-the-release.md) | Observe through structured logs tagged with the release | accepted |
 | [0047](0047-put-time-limits-on-every-database-wait.md) | Put time limits on every database wait | accepted |
@@ -67,3 +67,10 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0060](0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md) | Draw a tenant's public pages under a reserved prefix, in a frame of their own | accepted |
 | [0061](0061-keep-one-append-only-audit-trail-per-organization.md) | Keep one append-only audit trail per organization | accepted |
 | [0062](0062-wait-in-the-worker-while-the-host-wakes-the-api.md) | Wait in the Worker while the host wakes the API | accepted |
+| [0063](0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md) | Subscribe each organization through a billing port, and check entitlements, not plans | accepted; its route checks land in the tenant route helper of [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md); a downgrade's price set when it is scheduled by [0067](0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md); the plan page opened to every member and its wait by [0068](0068-say-the-subscription-once-per-screen-and-open-the-plan-page-to-every-member.md) |
+| [0064](0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md) | Start billing on Asaas, because Stripe cannot charge recurring Pix in Brazil | accepted |
+| [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md) | Declare a module's tenant routes through one helper, without controller classes | accepted |
+| [0066](0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md) | Hold a list screen's state in shared helpers, and its toolbar and pager in components | accepted |
+| [0067](0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md) | Settle what ADR 0063 left open in the billing port, routes and jobs | proposed |
+| [0068](0068-say-the-subscription-once-per-screen-and-open-the-plan-page-to-every-member.md) | Say the subscription once per screen, and open the plan page to every member | proposed |
+| [0069](0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md) | Build the Asaas adapter customer first, and read a scheduled end again on its date | proposed |

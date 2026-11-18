@@ -1,5 +1,6 @@
 import { customerSchema } from '@repo/contracts'
 import { CustomerEmailTakenException } from '../../domain/customers.errors'
+import { aCustomer } from '../../testing/customer-repository.contract'
 import { byAda, testCustomers } from '../../testing/test-customers'
 import { CreateCustomerService } from './create-customer.service'
 
@@ -12,7 +13,7 @@ describe('CreateCustomerService', () => {
   it('creates an active customer in the organization, with the id and the day it draws', async () => {
     const { repository, service } = setup()
 
-    const created = await service.execute('org-1', { name: 'Ada', email: 'ada@example.com' }, byAda)
+    const created = await service.execute('org-1', { name: 'Ada', email: 'ada@example.com' }, byAda, null)
 
     expect(created).toEqual({
       id: 'id-1',
@@ -34,7 +35,7 @@ describe('CreateCustomerService', () => {
   it('records who created it and which fields they filled, not their values (ADR 0061)', async () => {
     const { audit, service } = setup()
 
-    await service.execute('org-1', { name: 'Ada', email: 'ada@example.com' }, byAda)
+    await service.execute('org-1', { name: 'Ada', email: 'ada@example.com' }, byAda, null)
 
     expect(await audit.list('org-1', { limit: 10 })).toEqual([
       {
@@ -52,11 +53,44 @@ describe('CreateCustomerService', () => {
 
   it('refuses an email another customer of the organization has, and records nothing of it', async () => {
     const { audit, service } = setup()
-    await service.execute('org-1', { name: 'Ada', email: 'ada@example.com' }, byAda)
+    await service.execute('org-1', { name: 'Ada', email: 'ada@example.com' }, byAda, null)
 
-    await expect(service.execute('org-1', { name: 'Other', email: 'ada@example.com' }, byAda)).rejects.toThrow(
+    await expect(service.execute('org-1', { name: 'Other', email: 'ada@example.com' }, byAda, null)).rejects.toThrow(
       CustomerEmailTakenException
     )
     expect(await audit.list('org-1', { limit: 10 })).toHaveLength(1)
+  })
+
+  describe("the plan's limit (ADR 0063)", () => {
+    it('refuses one more active customer at the limit, naming it, and writes nothing', async () => {
+      const { repository, audit, service } = setup()
+      await service.execute('org-1', { name: 'Ada' }, byAda, 2)
+      await service.execute('org-1', { name: 'Bob' }, byAda, 2)
+
+      await expect(service.execute('org-1', { name: 'Cy' }, byAda, 2)).rejects.toMatchObject({
+        code: 'plan_limit_reached',
+        entitlement: 'customers.max',
+        limit: 2
+      })
+      expect(await repository.countActive('org-1')).toBe(2)
+      expect(await audit.list('org-1', { limit: 10 })).toHaveLength(2)
+    })
+
+    it('counts only the active customers of the organization', async () => {
+      const { repository, service } = setup()
+      await repository.insert(aCustomer('archived', { archivedAt: new Date('2026-11-07T10:00:00.000Z') }))
+      await repository.insert(aCustomer('elsewhere', { organizationId: 'org-2' }))
+
+      await expect(service.execute('org-1', { name: 'Ada' }, byAda, 1)).resolves.toMatchObject({ name: 'Ada' })
+    })
+
+    it('creates with no count at all when the plan has no limit', async () => {
+      const { repository, service } = setup()
+      const countActive = vi.spyOn(repository, 'countActive')
+
+      await service.execute('org-1', { name: 'Ada' }, byAda, null)
+
+      expect(countActive).not.toHaveBeenCalled()
+    })
   })
 })

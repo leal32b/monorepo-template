@@ -4,9 +4,11 @@ import { fileURLToPath } from 'node:url'
 import { apiProblemSchema, publicCustomerRegistrationSchema, publicOrganizationSchema } from '@repo/contracts'
 import { sql } from 'kysely'
 import { inject } from 'vitest'
+import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { memoryLogger } from '#libs/jobs/testing/memory-logger'
@@ -26,7 +28,9 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
   const { logger, lines } = memoryLogger()
   const db = createDatabase(createPool(inject('databaseUrl'), logger))
   const clock = new FixedClock(new Date('2026-11-12T10:00:00.000Z'))
+  const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    billing,
     db,
     clock,
     logger,
@@ -54,8 +58,10 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
       proxySecret,
       db,
       jobs: jobs.queue,
+      jobsOn: jobs.bind,
       authSecret: 'fedcba9876543210'.repeat(2),
-      google: undefined
+      google: undefined,
+      billing
     })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/public/organizations`

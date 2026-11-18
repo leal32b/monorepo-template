@@ -1,4 +1,5 @@
 import * as z from 'zod/mini'
+import { entitlementsSchema, subscriptionSchema } from './billing'
 import { currencySchema } from './money'
 import { instantSchema, timeZoneSchema } from './time'
 
@@ -15,7 +16,9 @@ export const statements = {
   /** The reference module of Phase 7; a product renames it or adds its own beside it. */
   customer: ['read', 'create', 'update', 'delete'],
   /** The organization's audit trail (ADR 0061): read only, since no one may change it. */
-  audit: ['read']
+  audit: ['read'],
+  /** Choosing, paying for and cancelling the organization's plan (ADR 0063): the owner's alone. */
+  billing: ['manage']
 } as const
 
 export type Resource = keyof typeof statements
@@ -35,16 +38,22 @@ export const permissionsSchema = z.strictObject({
   invitation: actionsOf(statements.invitation),
   ac: actionsOf(statements.ac),
   customer: actionsOf(statements.customer),
-  audit: actionsOf(statements.audit)
+  audit: actionsOf(statements.audit),
+  billing: actionsOf(statements.billing)
 })
 
 /**
  * `GET /api/organizations/:organizationId/me`: the caller's place in the organization. `permissions`
  * is what their roles resolve to, so the web never infers rights from a role name (ADR 0033).
+ * `subscription` and `entitlements` come from the same read, so the frame learns the organization's
+ * state and what its plan grants with no request of its own; it reads them through `entitlement`
+ * (ADR 0063).
  */
 export const organizationMembershipSchema = z.object({
   roles: z.array(z.string()).check(z.minLength(1)),
-  permissions: permissionsSchema
+  permissions: permissionsSchema,
+  subscription: subscriptionSchema,
+  entitlements: entitlementsSchema
 })
 
 export type OrganizationMembership = z.infer<typeof organizationMembershipSchema>
@@ -74,8 +83,11 @@ export const invitationSchema = z.object({
 
 export type Invitation = z.infer<typeof invitationSchema>
 
-/** Permissions only the owner holds; no custom role may include them (ADR 0033, D3). */
-export const ownerOnlyPermissions = { organization: ['delete'] } as const satisfies Permissions
+/**
+ * Permissions only the owner holds; no custom role may include them (ADR 0033, D3). Deleting the
+ * organization, and spending its money on a plan (ADR 0063), are the decisions of one person.
+ */
+export const ownerOnlyPermissions = { organization: ['delete'], billing: ['manage'] } as const satisfies Permissions
 
 /** `owner`, `admin` and `member`: built in, never edited. */
 export const builtInRoles = {

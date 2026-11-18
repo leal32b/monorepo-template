@@ -28,6 +28,8 @@ export interface CustomerRepository {
   findById(organizationId: string, id: string): Promise<Customer | null>
   /** Ordered by name (any case), then id, so a page never reshuffles. `total` counts the whole filter. */
   list(organizationId: string, filter: CustomerFilter): Promise<{ items: Customer[]; total: number }>
+  /** How many customers of the organization are active: what the plan's `customers.max` counts (ADR 0063). */
+  countActive(organizationId: string): Promise<number>
   /** Deletes the customer, only while it is still at `customer.version`. Same exceptions as `save`. */
   remove(customer: Customer): Promise<void>
 }

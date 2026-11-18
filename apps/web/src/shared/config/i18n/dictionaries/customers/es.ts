@@ -14,8 +14,7 @@ export const customersEs: typeof customersEn = {
       readOnly: 'Las personas y empresas con las que trabaja {{name}}. Puedes verlas, no cambiarlas.'
     },
     search: {
-      label: 'Buscar clientes',
-      submit: 'Filtrar'
+      label: 'Buscar clientes'
     },
     filter: {
       label: 'Mostrar',
@@ -72,11 +71,6 @@ export const customersEs: typeof customersEn = {
       warning: '¿Eliminar a {{name}} para siempre? Sus datos y notas no se pueden recuperar.',
       submit: 'Eliminar cliente',
       removed: 'Se eliminó {{name}}.'
-    },
-    pager: {
-      previous: 'Anterior',
-      next: 'Siguiente',
-      page: 'Página {{page}} de {{pages}}'
     }
   }
 }

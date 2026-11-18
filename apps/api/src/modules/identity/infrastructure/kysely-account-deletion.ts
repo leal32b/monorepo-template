@@ -2,6 +2,7 @@ import type { AccountDeletion } from '@repo/contracts'
 import { APIError } from 'better-auth/api'
 import type { Kysely } from 'kysely'
 import type { AccountDeletionPlan } from '../account-deletion.port'
+import type { OrganizationDeletionListener } from '../organization-deletion.port'
 
 /** The plugin's tables, as far as account deletion reads them (`migrations/0003_organizations.sql`). */
 type DeletionTables = {
@@ -19,9 +20,12 @@ const isOwner = (roles: string) => roles.split(',').some((role) => role.trim() =
  */
 export class KyselyAccountDeletion implements AccountDeletionPlan {
   readonly #db: Kysely<DeletionTables>
+  readonly #listener: OrganizationDeletionListener
 
-  constructor(db: Kysely<unknown>) {
+  /** `listener` hears of the organizations that go with the account, before they go (ADR 0063). */
+  constructor(db: Kysely<unknown>, listener: OrganizationDeletionListener) {
     this.#db = (db as unknown as Kysely<DeletionTables>).withSchema('auth')
+    this.#listener = listener
   }
 
   async organizationsOf(userId: string): Promise<AccountDeletion['organizations']> {
@@ -58,12 +62,14 @@ export class KyselyAccountDeletion implements AccountDeletionPlan {
 
   /**
    * Right before the user row goes: checks the rule again, since it may have changed since the link was
-   * sent, and deletes the organizations only they are in, with everything in them (`on delete cascade`).
+   * sent, tells the listener, and deletes the organizations only they are in, with everything in them
+   * (`on delete cascade`).
    */
   async beforeDelete(userId: string): Promise<void> {
     await this.assertCanDelete(userId)
     const alone = (await this.organizationsOf(userId)).filter((organization) => organization.outcome === 'deleted')
     if (alone.length === 0) return
+    await this.#listener.beforeDelete(alone.map((organization) => organization.id))
     await this.#db
       .deleteFrom('organization')
       .where(

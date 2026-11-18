@@ -12,8 +12,7 @@ export const customersEn = {
       readOnly: 'The people and companies {{name}} works with. You can see them, not change them.'
     },
     search: {
-      label: 'Search customers',
-      submit: 'Find'
+      label: 'Search customers'
     },
     filter: {
       label: 'Show',
@@ -70,11 +69,6 @@ export const customersEn = {
       warning: 'Delete {{name}} for good? Their details and notes cannot be recovered.',
       submit: 'Delete customer',
       removed: '{{name}} was deleted.'
-    },
-    pager: {
-      previous: 'Previous',
-      next: 'Next',
-      page: 'Page {{page}} of {{pages}}'
     }
   }
 }

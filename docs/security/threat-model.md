@@ -10,7 +10,11 @@
   emails sent through the job queue (T37) added on 2026-11-11
   ([ADR 0057](../adr/0057-send-identity-emails-through-the-job-queue.md)); the public tenant surface
   (T38 to T43) added on 2026-11-12
-  ([ADR 0059](../adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
+  ([ADR 0059](../adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md));
+  the organization's plan and its entitlements (T47) added on 2026-11-13
+  ([ADR 0063](../adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md));
+  the payment provider (boundary B8, T48 to T51) added the same day, with the billing routes and the
+  webhook ([ADR 0067](../adr/0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md)).
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -45,19 +49,20 @@ routes a visitor reaches without a session, and their rate limiter).
 | --- | --- | --- |
 | B1 | Browser ↔ web origin | Untrusted input, the session cookie, OAuth redirects |
 | B2 | Worker ↔ API | Every API request; the API is also public at `*.onrender.com` |
-| B3 | API ↔ Postgres | Users, accounts, sessions, verification tokens, rate-limit counters, organizations, members, roles, invitations, every tenant's records and its audit trail, and the emails waiting in the job queue with their links |
+| B3 | API ↔ Postgres | Users, accounts, sessions, verification tokens, rate-limit counters, organizations, members, roles, invitations, every tenant's records, its subscription and its audit trail, and the emails waiting in the job queue with their links |
 | B4 | API ↔ email provider, API ↔ Google | Links with tokens; OAuth codes and tokens |
 | B5 | GitHub Actions ↔ Render, Cloudflare | Deploy credentials and runtime secrets |
 | B6 | Organization ↔ organization | Every tenant's data, in the same tables and behind the same routes |
 | B7 | Visitor ↔ organization | What a person with no account reads of a tenant and writes into it, through `/api/public/organizations/:organizationSlug` |
+| B8 | API ↔ payment provider | The provider's API key and webhook secret; checkouts, payments and subscription state; the provider's notices, which arrive at `/api/webhooks/<provider>` through the Worker |
 
 ## Assets
 
 - Credentials: password hashes, TOTP secrets, backup codes, OAuth tokens of linked accounts.
 - Session tokens, and email confirmation and password reset tokens.
 - Personal data: email address and name.
-- Tenant data: an organization's settings, members, roles, invitations and, from Phase 7, its
-  product records.
+- Tenant data: an organization's settings, members, roles, invitations, its subscription (the
+  plan, the state the provider reports, the dates) and, from Phase 7, its product records.
 - What a visitor typed into a public form (a name, an email or a phone), and the client addresses
   the rate limiter counts, kept for a day.
 - The audit trail: who did what to which record of an organization, and when, for a year; ids,
@@ -65,7 +70,11 @@ routes a visitor reaches without a session, and their rate limiter).
 - Invitation links: their id is enough to find the invitation, though only the invited address
   can use it.
 - Secrets: `BETTER_AUTH_SECRET`, `PROXY_SECRET`, `DATABASE_URL`, `GOOGLE_CLIENT_SECRET`, the
-  email provider key, and the Render and Cloudflare tokens.
+  email provider key, the payment provider's API key and webhook secret (`ASAAS_API_KEY` and
+  `ASAAS_WEBHOOK_TOKEN`; `FAKE_BILLING_TOKEN` in development, where the fake takes the payments), and
+  the Render and Cloudflare tokens.
+- The payer's name, CPF or CNPJ and email, typed on the plan page and passed to the provider.
+- The organization's money: what its owner pays the SaaS, on the provider's pages.
 
 ## Attackers
 
@@ -77,6 +86,7 @@ routes a visitor reaches without a session, and their rate limiter).
 - A member of another organization, or a member of this one with a weaker role.
 - Someone who holds an invitation link or an address that was invited.
 - A visitor with no account, or a script posing as one, on a tenant's public routes.
+- A caller posing as the payment provider at its webhook, or replaying a notice it captured.
 
 ## Threats and mitigations
 
@@ -105,7 +115,7 @@ it).
 | T18 | A known vulnerability in a dependency | T, E | Weekly `pnpm audit --audit-level high` in CI (`.github/workflows/audit.yml`); a Better Auth advisory is fixed the same week | in place |
 | T19 | Phishing with look-alike email | S | Mail is sent from a domain the product verifies with its provider (SPF, DKIM, DMARC) | accepted until a product sets its domain |
 | T20 | Someone at a signed-in browser left open changes how the account signs in | E | Changing the password needs the current one; turning MFA on or off and getting new backup codes need the password; unlinking Google needs a session signed in within the last day; the only way left to sign in cannot be removed | in place |
-| T21 | Reaching another tenant's data by changing an id in the path or the body (IDOR) | I, T, E | Every tenant route is `/api/organizations/:organizationId/...` and calls `requireMember`, which reads membership from the database; tenant queries filter on the id the guard returned, never on one from the body, inside a transaction that row-level security confines to that organization (T36); the plugin's own endpoints check membership of the id they are given (tested through HTTP) | in place |
+| T21 | Reaching another tenant's data by changing an id in the path or the body (IDOR) | I, T, E | Every tenant route of a module is declared with `tenantRoutes`, which only accepts a path under `/api/organizations/:organizationId/` and runs `requireMember` before the input is read or the use case runs ([ADR 0065](../adr/0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md)); `requireMember` reads membership from the database; tenant queries filter on the id the guard returned, never on one from the body, inside a transaction that row-level security confines to that organization (T36); the plugin's own endpoints check membership of the id they are given (tested through HTTP) | in place |
 | T22 | A tab left on one organization writes to another | T | The API reads the tenant only from the path, never from the session's active organization; the web keeps the slug in the URL, per tab | in place |
 | T23 | Finding out which organizations exist through the API | I | `requireMember` answers 404 both for a missing organization and for one the caller is not in; ids are random 32-character strings; the web shows the same not-found for an unknown and a foreign slug | in place |
 | T24 | A member defines a role with more than they hold | E | The plugin refuses a permission the creator lacks on `create-role` and `update-role` (seen in the spike); `organization:delete` is the owner's only and no custom role can hold it; at most 20 custom roles | in place |
@@ -130,7 +140,13 @@ it).
 | T43 | Using a public form to send email or SMS to a third party from the product's domain | S, D | A public write sends nothing to an address the visitor typed; a confirmation or a one-time code is not built, and the ADR says what it must limit when a product adds it | in place |
 | T44 | A member erases or rewrites the trace of what they did, or makes the trail say someone else did it | R, T | Every write records an audit entry in the same transaction as the change, with the actor the tenant guard returned, never one from the body; under row-level security the tenant role may only insert and select the trail (no `update`, no `delete` grant), so no request path can change it, and a database test proves the refusal; only the purge, by retention, and the deletion of the organization remove entries ([ADR 0061](../adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | in place |
 | T45 | The trail as a second copy of a person's data, alive after the record was deleted | I | An entry holds ids, codes and the names of the fields a change set, never a value, a request body or an address; a deleted customer leaves a random id that points at nothing; entries go after 365 days and with their organization ([ADR 0061](../adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | in place |
-| T46 | Reading an organization's activity without the right, or exhausting the API with the read | I, D | The read needs `audit:read` (owner and admin by default), behind `requireMember` and row-level security; it pages by keyset, 25 entries a page, with no count; the daily purge bounds the table ([ADR 0061](../adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | in place |
+| T46 | Reading an organization's activity without the right, or exhausting the API with the read | I, D | The read needs `audit:read` (owner and admin by default) and a plan with the `activity-log` capability, behind `tenantRoutes` and row-level security; it pages by keyset, 25 entries a page, with no count; the daily purge bounds the table ([ADR 0061](../adr/0061-keep-one-append-only-audit-trail-per-organization.md)) | in place |
+| T47 | A member uses more than the plan allows: a capability it lacks, more than a limit, or a write while the organization is read only, through a route that forgot the check or a body that names a plan | E, T | Entitlements come only from the subscription row the membership read joins, in the same statement, never from a request, and read only is computed with the API's clock; `tenantRoutes` refuses a capability the route declares and the plan lacks (`403 plan_required`), then a `post` or `put` while the organization is read only (`403 subscription_read_only`), after the permission and before the input, in one place no module can skip; only a route declared `duringReadOnly` writes then; a limited use case counts inside its own transaction before it writes (`403 plan_limit_reached`); no request schema carries a plan, and the tenant role may not delete the subscription row; the plan changes only through the owner's billing routes after the provider accepted, or from the provider's state, and a dearer plan's entitlements wait for the provider to confirm its difference was paid ([ADR 0063](../adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)) | in place |
+| T48 | A forged notice marks an organization paid, or cancels one that pays | S, T | The provider's reader authenticates the raw body before anything is parsed or stored (a token compared in constant time after hashing, as the fake's `fake-billing-token` and Asaas's; an HMAC with a timestamp, as Stripe's), and a refusal is `401 webhook_unauthenticated` with no database statement, a database test proves it; the job never applies a notice's content: it reads the subscription's current state from the provider with the secret key, so a forged notice that passed authentication can at most cause a read; a notice about a customer no row holds is ignored ([ADR 0063](../adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md), [ADR 0067](../adr/0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md)) | in place |
+| T49 | A genuine notice replayed to roll a subscription back, or delivered twice or out of order | T | `webhook_event` keeps each provider and event id for 30 days, recorded in the same transaction as the one job it enqueues, so a repeat enqueues nothing; the job writes the provider's current state at the row's version, so neither order nor a late replay changes the result, and two syncs at once make the second read again | in place |
+| T50 | A tenant pays for another, or a payment lands on the wrong organization: a checkout opened for an organization the caller does not own, one provider customer shared by two organizations, or a reference changed at the provider | S, T, E | The organization comes from the path, behind `tenantRoutes` with `billing:manage`, which only owners hold; the reference sent to the provider is the organization id the server set; a provider customer and a provider subscription each belong to one row (unique indexes); the job finds the organization by our row and refuses, logged at error, a provider state whose reference names another one, or ids that point at two rows; the return URL is a path of the web origin, never a whole URL | in place |
+| T51 | Card data stolen from or through the template | I | The template draws no payment form; every card is typed on the provider's pages, and the port has no method that takes card data or calls a provider's card or card-token endpoints ([ADR 0064](../adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md)) | in place |
+| T52 | The payer's CPF or CNPJ, or the provider's key, read from the template | I | The payer's document is checked by the contract, sent only to the provider over TLS and stored nowhere in the template: the provider keeps the customer; the request log names the route, never the body; a provider's failure names the call, its status and the provider's error codes, never their descriptions, which may quote what was sent, nor the key, which travels only in its header; env validation names a wrong variable, never its value ([ADR 0069](../adr/0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md)) | in place |
 
 ## Accepted risks
 
@@ -152,5 +168,11 @@ it).
 | Every member can list the organization's members and their emails | That is how the plugin's `list-members` works, and teams expect to see each other | A product needs members hidden from one another |
 | Code that runs on the pool as the tables' owner (migrations, the purge job, a future job worker or back office) is not confined by row-level security, and the owner role bypasses it on the default host | The API keeps one connection string and no role is created by hand; tenant routes reach tenant tables only through the unit of work ([ADR 0055](../adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)) | A product adds code that reads tenant tables outside a unit of work, or its threat model includes SQL injection: then connect the API as a second login role that is a member of `app_tenant` and owns nothing |
 | An organization deleted is gone at once, with no grace period | The owner types the name first; Phase 7 decides what its records need | A product holds data that a mistaken deletion would make costly |
+| The billing fake marks an organization paid on a command that carries `FAKE_BILLING_TOKEN` | It is refused when the web origin is https, so it never runs where money is real; unset, every command is refused | A product deploys a staging environment on plain http: give it the provider's sandbox instead |
+| The plan page can lag the provider by the time a notice takes, and a notice lost for good leaves the row as it was until the next one | Each notice makes the job read the whole state, so the next heals it; the job retries for about 43 minutes, then `job failed` shows it and the operator requeues it ([operations](../operations.md)) | Notices are lost often enough that a daily reconciliation with the provider is worth its calls |
+| An upgrade whose difference falls below the provider's minimum is free, so upgrading in the last days of a period and downgrading at once gives those days of the higher plan | They are worth less than any charge the provider would take ([ADR 0063](../adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)) | The minimum or the prices change so that the free days are worth a charge |
+| Two creates at the same instant can both pass a plan's limit and leave the organization one over it | A limit is a commercial line, not a safety one; serializing every create of an organization costs more than one extra record ([ADR 0063](../adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)) | A limit passed under concurrency starts to matter: lock the subscription row in the limited use cases |
+| A user can start another trial by creating another organization | A trial needs no card; the five organizations per user of ADR 0033 bound it | Trials are abused: tie the trial to the user, or ask for a card |
+| An organization in read only keeps its public surface, and a visitor's registration is never refused by the plan's limit, though it counts toward it | A visitor is no party to the subscription, and a shop's clients should not meet its late payment; the public writes are rate limited (T40) | A product's public flow is a capability (online booking): join the subscription into `PublicOrganizations.bySlug` and decide what a visitor sees |
 | An account deleted is gone at once, with no grace period; expired verification rows of its address stay until they expire | The emailed link and the last screen's button are two deliberate acts; the rows hold no secret that works without the account | A product holds data that a mistaken deletion would make costly, or must keep records after an account goes |
 | Expired invitations stay in the table as `pending` for 30 days | They cannot be accepted, and the web hides them; the daily purge deletes them after 30 days, so support can still see why one failed ([ADR 0050](../adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md)) | A product must keep them longer for an audit |

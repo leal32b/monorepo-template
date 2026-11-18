@@ -4,8 +4,10 @@ import { fileURLToPath } from 'node:url'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
+import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { ManualTimer } from '#libs/adapters/manual-timer'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { retryDelayMs } from '#libs/jobs/job-limits'
@@ -37,7 +39,16 @@ describe('identity emails through the job queue (ADR 0057)', () => {
   const clock = new FixedClock(new Date('2026-11-11T12:00:00.000Z'))
   const { logger, lines } = memoryLogger()
   const email = new FlakyEmailSender()
-  const jobs = createJobs({ db, clock, logger, emailSender: email, timer: new ManualTimer(clock), idlePollMs: 1 })
+  const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
+  const jobs = createJobs({
+    billing,
+    db,
+    clock,
+    logger,
+    emailSender: email,
+    timer: new ManualTimer(clock),
+    idlePollMs: 1
+  })
   let server: Server
   let url: string
   let lastAccount = 0
@@ -55,8 +66,10 @@ describe('identity emails through the job queue (ADR 0057)', () => {
       proxySecret: undefined,
       db,
       jobs: jobs.queue,
+      jobsOn: jobs.bind,
       authSecret: 'fedcba9876543210'.repeat(2),
-      google: undefined
+      google: undefined,
+      billing
     })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`

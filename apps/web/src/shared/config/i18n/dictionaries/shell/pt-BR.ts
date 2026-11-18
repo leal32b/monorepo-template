@@ -23,7 +23,16 @@ export const shellPtBR: typeof shellEn = {
   /** Words that buttons share across screens. */
   actions: {
     cancel: 'Cancelar',
-    retry: 'Tentar de novo'
+    retry: 'Tentar de novo',
+    find: 'Procurar'
+  },
+  /** What every list read a page at a time says (`ListPager`). */
+  list: {
+    pager: {
+      previous: 'Anterior',
+      next: 'Próxima',
+      page: 'Página {{page}} de {{pages}}'
+    }
   },
   notFound: {
     title: 'Página não encontrada',
@@ -52,6 +61,7 @@ export const shellPtBR: typeof shellEn = {
         members: 'pessoas equipe convidar remover papel',
         roles: 'permissões acesso',
         activity: 'auditoria registro histórico mudanças quem',
+        billing: 'plano assinatura pagamento pagar mudar teste cobrança',
         customers: 'clientes contatos pessoas empresas',
         create: 'organização nova equipe',
         profile: 'conta nome e-mail',
@@ -79,6 +89,7 @@ export const shellPtBR: typeof shellEn = {
       members: 'Membros',
       roles: 'Papéis',
       activity: 'Atividade',
+      billing: 'Plano e cobrança',
       customers: 'Clientes'
     },
     account: {

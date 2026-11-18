@@ -1,7 +1,7 @@
 import { covers } from '@repo/contracts'
 import { Avatar, Badge, createPanels, ListPanel, ListRow, ListSection, PanelButton, type Panels } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
-import { createSignal, For, Match, Show, Switch } from 'solid-js'
+import { For, Match, Show, Switch } from 'solid-js'
 import {
   isLastOwner,
   type Member,
@@ -17,6 +17,7 @@ import { useSession } from '#entities/sessions'
 import { ChangeMemberRoleForm, LeaveOrganizationForm, RemoveMemberForm } from '#features/organizations/manage-members'
 import { createRead, readAgain, updateRead, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
+import { createListStatus } from '#shared/lib'
 import { ReadFailure } from '#shared/ui'
 import { AppShell } from '#widgets/app-shell'
 import { InvitationsSection } from './invitations-section'
@@ -69,20 +70,12 @@ function People(props: { panels: Panels }) {
   /** A change to the people, drawn on every screen that reads them. */
   const change = (edit: (people: Member[]) => Member[]) => updateRead(members.keyFor(id), edit)
   const panels = props.panels
-  const [rowStatus, setRowStatus] = createSignal<{ member: string; text: string }>()
-  const [sectionStatus, setSectionStatus] = createSignal<string>()
+  const status = createListStatus(panels)
 
   const canChange = () => current.can('member', 'update')
   const canRemove = () => current.can('member', 'delete')
-  const forget = () => {
-    setRowStatus(undefined)
-    setSectionStatus(undefined)
-  }
   /** The person left the list (removed here, or already gone): said below the section, which takes focus. */
-  const left = (text: string) => {
-    panels.dismiss()
-    setSectionStatus(text)
-  }
+  const left = status.left
 
   /** One person's row. What it offers is read as it is drawn, since one change can alter another row (who is the last owner). */
   const rowOf = (member: Member, data: () => Team) => {
@@ -115,23 +108,23 @@ function People(props: { panels: Panels }) {
         }
         description={member.email}
         note={note()}
-        status={rowStatus()?.member === member.id ? rowStatus()?.text : undefined}
+        status={status.row(member.id)}
         action={
           <Show
             when={!me}
             fallback={
-              <PanelButton panels={panels} panel={`leave:${member.id}`} onOpen={forget} disabled={lastOwner()}>
+              <PanelButton panels={panels} panel={`leave:${member.id}`} onOpen={status.forget} disabled={lastOwner()}>
                 {t('organizationMembers.actions.leave')}
               </PanelButton>
             }
           >
             <Show when={canChange()}>
-              <PanelButton panels={panels} panel={`role:${member.id}`} onOpen={forget} disabled={outranks()}>
+              <PanelButton panels={panels} panel={`role:${member.id}`} onOpen={status.forget} disabled={outranks()}>
                 {t('organizationMembers.actions.changeRole')}
               </PanelButton>
             </Show>
             <Show when={canRemove()}>
-              <PanelButton panels={panels} panel={`remove:${member.id}`} onOpen={forget} disabled={outranks()}>
+              <PanelButton panels={panels} panel={`remove:${member.id}`} onOpen={status.forget} disabled={outranks()}>
                 {t('organizationMembers.actions.remove')}
               </PanelButton>
             </Show>
@@ -152,10 +145,7 @@ function People(props: { panels: Panels }) {
                         candidate.id === member.id ? { ...candidate, roles: [role] } : candidate
                       )
                     )
-                    setRowStatus({
-                      member: member.id,
-                      text: t('organizationMembers.changeRole.saved', { role: roleLabel(role) })
-                    })
+                    status.sayRow(member.id, t('organizationMembers.changeRole.saved', { role: roleLabel(role) }))
                     panels.close()
                   }}
                   onGone={gone}
@@ -208,7 +198,7 @@ function People(props: { panels: Panels }) {
               : 'organizationMembers.section.readOnly',
             { name: current.organization.name }
           )}
-          status={sectionStatus()}
+          status={status.section()}
         >
           <For each={loaded().members}>{(member) => rowOf(member, loaded)}</For>
         </ListSection>

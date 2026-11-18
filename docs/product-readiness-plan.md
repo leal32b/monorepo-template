@@ -38,10 +38,10 @@ the rest.
 | [P0-3](#p0-3-organization-settings-time-zone-currency-and-money) | Organization settings: time zone, currency and money | P0 | Opus | | Done |
 | [P0-4](#p0-4-background-work) | Background work | P0 | Fable, then Opus | P0-1 | Done |
 | [P0-5](#p0-5-public-tenant-surface) | Public tenant surface | P0 | Fable, then Opus | P0-2 | Done |
-| [P0-6](#p0-6-subscription-of-the-tenant) | Subscription of the tenant | P0 | Fable, then Opus | P0-1, P0-4 | Todo |
+| [P0-6](#p0-6-subscription-of-the-tenant) | Subscription of the tenant | P0 | Fable, then Opus | P0-1, P0-4 | Done |
 | [P1-1](#p1-1-audit-trail) | Audit trail | P1 | Opus | P0-1 | Done |
 | [P1-2](#p1-2-design-system-for-product-screens) | Design system for product screens | P1 | Sonnet | | In progress |
-| [P1-3](#p1-3-a-cheaper-mould) | A cheaper mould | P1 | Opus, then Sonnet | P0-1, P0-2, P1-2 | Todo |
+| [P1-3](#p1-3-a-cheaper-mould) | A cheaper mould | P1 | Opus, then Sonnet | P0-1, P0-2, P1-2 | Done |
 | [P1-4](#p1-4-new-module-skill-and-product-mode) | `new-module` skill and product mode | P1 | Sonnet | P1-3 | Todo |
 | [P1-5](#p1-5-file-storage) | File storage | P1 | Opus | | Todo |
 | [P1-6](#p1-6-product-notifications) | Product notifications | P1 | Opus, then Sonnet | P0-4 | Todo |
@@ -163,7 +163,7 @@ then P1 by need.
 ### P0-6. Subscription of the tenant
 
 - **Model:** Fable for the ADR and the entitlements, Opus for the provider adapter
-- **Status:** Todo
+- **Status:** Done ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md), [ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md), [ADR 0067](adr/0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md), [ADR 0068](adr/0068-say-the-subscription-once-per-screen-and-open-the-plan-page-to-every-member.md), [ADR 0069](adr/0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md)). The first provider is Asaas: Stripe cannot charge recurring Pix for a business domiciled in Brazil. Every point ADR 0064 left to Asaas's sandbox is still unverified (listed in [operations.md](operations.md)). The budget of the first download is spent: ADR 0058's signal to load dictionaries with their routes has fired.
 - **Depends on:** P0-1, P0-4
 - **Finding:** there are no plans, trials, limits per plan or payment webhooks. The limits that
   exist (`organizationLimits`) are constants.
@@ -217,7 +217,7 @@ then P1 by need.
 ### P1-3. A cheaper mould
 
 - **Model:** Opus for the API helper, Sonnet for the web
-- **Status:** Todo
+- **Status:** Done ([ADR 0065](adr/0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md), [ADR 0066](adr/0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md)). `tenantRoutes` replaced the controller classes; `createList`, `createListStatus`, `ListToolbar` and `ListPager` hold a list screen. Left for P1-4: the screen's access guard and the page-test provider are still copied, and no test ties `statements` to `permissionsSchema`.
 - **Depends on:** P0-1, P0-2, P1-2
 - **Finding:** the reference module is 61 files and about 3,800 lines with tests. Each controller
   repeats the session, the membership and `requireMember`; the page holds about 300 lines of list

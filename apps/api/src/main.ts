@@ -1,9 +1,12 @@
 import { createApp } from '#app/create-app'
+import { createBillingProvider } from '#app/create-billing-provider'
 import { createEmailSender } from '#app/create-email-sender'
 import { createJobs } from '#app/create-jobs'
 import { createShutdown } from '#app/shutdown'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
+import { SystemTimer } from '#libs/adapters/system-timer'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { createLogger } from '#libs/logging/create-logger'
 import { enqueueQueueCheck } from '#modules/health/jobs/queue-check'
@@ -21,8 +24,15 @@ const logger = createLogger({ level: env.logLevel, service: 'api', release: env.
 const db = createDatabase(createPool(env.databaseUrl, logger, { maxConnections: env.databasePoolSize }))
 const clock = new SystemClock()
 const emailSender = createEmailSender(env.email, logger)
+// One provider for the requests and the jobs (ADR 0063). The fake, never deployed, completes each
+// checkout by itself after a few seconds, so the screens can be tried by hand.
+const billing = createBillingProvider(env.billing, {
+  clock,
+  ids: new UuidGenerator(),
+  autoComplete: { afterMs: 3_000, timer: new SystemTimer() }
+})
 // Background work (ADR 0056): this process runs the jobs unless a worker of its own does.
-const jobs = createJobs({ db, clock, logger, emailSender, idlePollMs: env.jobs.idlePollMs })
+const jobs = createJobs({ db, clock, logger, emailSender, billing, idlePollMs: env.jobs.idlePollMs })
 const server = createApp({
   clock,
   logger,
@@ -33,8 +43,10 @@ const server = createApp({
   proxySecret: env.proxySecret,
   db,
   jobs: jobs.queue,
+  jobsOn: jobs.bind,
   authSecret: env.authSecret,
-  google: env.google
+  google: env.google,
+  billing
 })
 const shutdown = createShutdown({
   server,

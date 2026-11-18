@@ -6,7 +6,7 @@ import { GetCustomerService } from './get-customer.service'
 describe('GetCustomerService', () => {
   const setup = async () => {
     const { unitOfWork, clock, ids } = testCustomers()
-    await new CreateCustomerService(unitOfWork, clock, ids).execute('org-1', { name: 'Ada' }, byAda)
+    await new CreateCustomerService(unitOfWork, clock, ids).execute('org-1', { name: 'Ada' }, byAda, null)
     return new GetCustomerService(unitOfWork)
   }
 

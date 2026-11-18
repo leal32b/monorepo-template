@@ -1,26 +1,25 @@
-import { type Customer, type CustomerList, type CustomerStatus, customerPageSize } from '@repo/contracts'
+import { type Customer, type CustomerStatus, entitlement } from '@repo/contracts'
 import {
   Avatar,
   Badge,
-  Button,
   createPanels,
   EmptyState,
-  Field,
   ListPanel,
   ListRow,
   ListSection,
-  Pager,
+  ListToolbar,
   PanelButton,
   SegmentedControl
 } from '@repo/ui'
-import { createEffect, createSignal, For, Match, Show, Switch } from 'solid-js'
+import { For, Match, Show, Switch } from 'solid-js'
 import { customersQuery } from '#entities/customers'
 import { useOrganization } from '#entities/organizations'
+import { usePlanRefusal } from '#entities/subscriptions'
 import { ArchiveCustomerButton, CustomerForm, DeleteCustomerForm } from '#features/customers/manage-customers'
-import { createRead, readAgain, updateRead, useApi } from '#shared/api'
+import { useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
-import { formatDate } from '#shared/lib'
-import { ReadFailure } from '#shared/ui'
+import { createList, createListStatus, formatDate } from '#shared/lib'
+import { ListPager, ReadFailure } from '#shared/ui'
 import { AppShell } from '#widgets/app-shell'
 
 /**
@@ -28,7 +27,9 @@ import { AppShell } from '#widgets/app-shell'
  * product is copied from. Anyone with `customer:read` sees the list; what each row offers follows the rest
  * of what the caller holds. A customer who is archived leaves the Active list and waits in Archived, where
  * it can be restored or deleted for good. One form opens at a time on the whole screen, inline below its row;
- * a customer who leaves the list is said below the section, which takes focus.
+ * a customer who leaves the list is said below the section, which takes focus. The plan holds what it does
+ * not allow before it is tried (ADR 0063): adding waits once the active customers reach its limit, and while
+ * the organization is read only every write but deleting waits, each with the reason in its row's note.
  */
 export function CustomersPage() {
   const { t } = useI18n()
@@ -59,51 +60,41 @@ function Customers() {
   const api = useApi()
   const current = useOrganization()
   const id = current.organization.id
-  const customers = customersQuery(api)
   const panels = createPanels()
-  const [status, setStatus] = createSignal<CustomerStatus>('active')
-  const [search, setSearch] = createSignal('')
-  const [typed, setTyped] = createSignal('')
-  const [page, setPage] = createSignal(1)
-  const [rowStatus, setRowStatus] = createSignal<{ customer: string; text: string }>()
-  const [sectionStatus, setSectionStatus] = createSignal<string>()
-
-  const key = () => customers.keyFor(id, status(), search(), page())
-  const list = createRead(() => customers(id, status(), search(), page()), key)
-  const pages = (loaded: CustomerList) => Math.max(1, Math.ceil(loaded.total / customerPageSize))
+  const status = createListStatus(panels)
+  const list = createList({
+    query: customersQuery(api),
+    args: ({ filter, search, page }) => [id, filter, search, page],
+    filter: 'active' as CustomerStatus,
+    onChange: () => {
+      panels.dismiss()
+      status.forget()
+    }
+  })
 
   const canAdd = () => current.can('customer', 'create')
   const canEdit = () => current.can('customer', 'update')
   const canDelete = () => current.can('customer', 'delete')
+  const refusal = usePlanRefusal()
+  const readOnly = () => current.membership.subscription.access === 'read-only'
+  const reader = () => ({ membership: current.membership, manages: current.can('billing', 'manage') })
+  /**
+   * Why adding waits: read only, or the plan's limit reached by the active customers. Only the active list
+   * with no search counts them all; elsewhere the API says so if it happens.
+   */
+  const addWaits = (total: number) => {
+    if (readOnly()) return refusal.readOnlyNote()
+    const limit = entitlement(current.membership, 'customers.max')
+    const counted = list.filter() === 'active' && list.search() === ''
+    return limit !== null && counted && total >= limit
+      ? refusal.limitReached('customers.max', limit, reader())
+      : undefined
+  }
 
-  // A page that emptied because its last customer left (deleted, archived) gives way to the one before it.
-  createEffect(() => {
-    const loaded = list()
-    if (loaded && loaded.items.length === 0 && page() > 1) setPage(page() - 1)
-  })
-
-  const forget = () => {
-    setRowStatus(undefined)
-    setSectionStatus(undefined)
-  }
-  const show = (next: CustomerStatus) => {
-    panels.dismiss()
-    forget()
-    setStatus(next)
-    setPage(1)
-  }
-  const searchFor = (event: SubmitEvent) => {
-    event.preventDefault()
-    panels.dismiss()
-    forget()
-    setSearch(typed().trim())
-    setPage(1)
-  }
   /** The customer left this list (archived, restored, deleted, or already gone): said below the section. */
   const left = (text: string) => {
-    panels.dismiss()
-    setSectionStatus(text)
-    readAgain(key())
+    status.left(text)
+    list.again()
   }
   const changed = (text: string) => () => left(t(text as 'customers.errors.gone'))
   const stale = (kind: 'gone' | 'changed') => left(t(`customers.errors.${kind}`))
@@ -125,18 +116,19 @@ function Customers() {
         </Show>
       }
       description={description(customer)}
-      status={rowStatus()?.customer === customer.id ? rowStatus()?.text : undefined}
+      note={canEdit() && readOnly() ? refusal.readOnlyNote() : undefined}
+      status={status.row(customer.id)}
       action={
         <>
           <Show when={canEdit()}>
-            <PanelButton panels={panels} panel={`edit:${customer.id}`} onOpen={forget}>
+            <PanelButton panels={panels} panel={`edit:${customer.id}`} onOpen={status.forget} disabled={readOnly()}>
               {t('customers.actions.edit')}
             </PanelButton>
             <ArchiveCustomerButton
               organizationId={id}
               customer={customer}
               mode={customer.archivedAt === null ? 'archive' : 'restore'}
-              disabled={panels.open() !== undefined}
+              disabled={panels.open() !== undefined || readOnly()}
               onDone={(done) =>
                 left(
                   t(done.archivedAt === null ? 'customers.archive.restored' : 'customers.archive.archived', {
@@ -145,11 +137,11 @@ function Customers() {
                 )
               }
               onChanged={changed('customers.errors.changed')}
-              onRefused={(text) => setRowStatus({ customer: customer.id, text })}
+              onRefused={(text) => status.sayRow(customer.id, text)}
             />
           </Show>
           <Show when={canDelete() && customer.archivedAt !== null}>
-            <PanelButton panels={panels} panel={`delete:${customer.id}`} onOpen={forget}>
+            <PanelButton panels={panels} panel={`delete:${customer.id}`} onOpen={status.forget}>
               {t('customers.actions.delete')}
             </PanelButton>
           </Show>
@@ -163,11 +155,11 @@ function Customers() {
                 organizationId={id}
                 customer={customer}
                 onSaved={(saved) => {
-                  updateRead<CustomerList>(key(), (loaded) => ({
+                  list.draw((loaded) => ({
                     ...loaded,
                     items: loaded.items.map((item) => (item.id === saved.id ? saved : item))
                   }))
-                  setRowStatus({ customer: saved.id, text: t('customers.saved', { name: saved.name }) })
+                  status.sayRow(saved.id, t('customers.saved', { name: saved.name }))
                   panels.close()
                 }}
                 onStale={stale}
@@ -192,13 +184,13 @@ function Customers() {
   )
 
   const emptyOf = () =>
-    search() !== ''
+    list.search() !== ''
       ? {
           icon: 'search' as const,
           title: t('customers.empty.noResultsTitle'),
-          description: t('customers.empty.noResults', { search: search() })
+          description: t('customers.empty.noResults', { search: list.search() })
         }
-      : status() === 'archived'
+      : list.filter() === 'archived'
         ? {
             icon: 'customers' as const,
             title: t('customers.empty.archivedTitle'),
@@ -211,34 +203,26 @@ function Customers() {
           }
 
   return (
-    <Show when={list()}>
+    <Show when={list.loaded()}>
       {(loaded) => (
         <div class="flex flex-col gap-6">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <form noValidate onSubmit={searchFor} class="flex items-end gap-2 sm:flex-1">
-              <Field
-                class="flex-1"
-                label={t('customers.search.label')}
-                name="search"
-                type="search"
-                autocomplete="off"
-                value={typed()}
-                onChange={setTyped}
-              />
-              <Button type="submit" variant="secondary">
-                {t('customers.search.submit')}
-              </Button>
-            </form>
+          <ListToolbar
+            searchLabel={t('customers.search.label')}
+            searchButton={t('actions.find')}
+            searchValue={list.typed()}
+            onSearchInput={list.setTyped}
+            onSearch={list.find}
+          >
             <SegmentedControl
               label={t('customers.filter.label')}
-              value={status()}
-              onChange={(value) => show(value as CustomerStatus)}
+              value={list.filter()}
+              onChange={(value) => list.show(value as CustomerStatus)}
               options={[
                 { value: 'active', label: t('customers.filter.active') },
                 { value: 'archived', label: t('customers.filter.archived') }
               ]}
             />
-          </div>
+          </ListToolbar>
           <ListSection
             title={t('customers.section.title')}
             description={t(
@@ -247,15 +231,21 @@ function Customers() {
                 name: current.organization.name
               }
             )}
-            status={sectionStatus()}
+            status={status.section()}
           >
-            <Show when={canAdd() && status() === 'active'}>
+            <Show when={canAdd() && list.filter() === 'active'}>
               <ListRow
                 icon="plus"
                 title={t('customers.add.title')}
                 description={t('customers.add.description')}
+                note={addWaits(loaded().total)}
                 action={
-                  <PanelButton panels={panels} panel="add" onOpen={forget}>
+                  <PanelButton
+                    panels={panels}
+                    panel="add"
+                    onOpen={status.forget}
+                    disabled={addWaits(loaded().total) !== undefined}
+                  >
                     {t('customers.add.go')}
                   </PanelButton>
                 }
@@ -266,8 +256,8 @@ function Customers() {
                         organizationId={id}
                         onSaved={(saved) => {
                           panels.close()
-                          setSectionStatus(t('customers.saved', { name: saved.name }))
-                          readAgain(key())
+                          status.saySection(t('customers.saved', { name: saved.name }))
+                          list.again()
                         }}
                         onStale={stale}
                         onCancel={panels.close}
@@ -286,18 +276,7 @@ function Customers() {
               <For each={loaded().items}>{rowOf}</For>
             </Show>
           </ListSection>
-          <Show when={pages(loaded()) > 1}>
-            <Pager
-              label={t('customers.section.title')}
-              previousLabel={t('customers.pager.previous')}
-              nextLabel={t('customers.pager.next')}
-              summary={t('customers.pager.page', { page: loaded().page, pages: pages(loaded()) })}
-              hasPrevious={page() > 1}
-              hasNext={page() < pages(loaded())}
-              onPrevious={() => setPage(page() - 1)}
-              onNext={() => setPage(page() + 1)}
-            />
-          </Show>
+          <ListPager label={t('customers.section.title')} list={list} />
         </div>
       )}
     </Show>

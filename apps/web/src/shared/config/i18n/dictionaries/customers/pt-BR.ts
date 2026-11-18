@@ -14,8 +14,7 @@ export const customersPtBR: typeof customersEn = {
       readOnly: 'As pessoas e empresas com quem {{name}} trabalha. Você pode ver, mas não alterar.'
     },
     search: {
-      label: 'Buscar clientes',
-      submit: 'Procurar'
+      label: 'Buscar clientes'
     },
     filter: {
       label: 'Mostrar',
@@ -72,11 +71,6 @@ export const customersPtBR: typeof customersEn = {
       warning: 'Excluir {{name}} para sempre? Os dados e as anotações não podem ser recuperados.',
       submit: 'Excluir cliente',
       removed: '{{name}} foi excluído.'
-    },
-    pager: {
-      previous: 'Anterior',
-      next: 'Próxima',
-      page: 'Página {{page}} de {{pages}}'
     }
   }
 }

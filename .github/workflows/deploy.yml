@@ -90,11 +90,15 @@ jobs:
           EMAIL_FROM: ${{ vars.EMAIL_FROM }}
           GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          ASAAS_API_KEY: ${{ secrets.ASAAS_API_KEY }}
+          ASAAS_API_URL: ${{ vars.ASAAS_API_URL }}
+          ASAAS_WEBHOOK_TOKEN: ${{ secrets.ASAAS_WEBHOOK_TOKEN }}
           IMAGE: ${{ needs.image.outputs.image }}
         run: |
           # Names only: a secret's value is never printed.
           missing=''
-          for name in RENDER_SERVICE_ID API_ORIGIN WEB_ORIGIN PROXY_SECRET BETTER_AUTH_SECRET RESEND_API_KEY EMAIL_FROM; do
+          for name in RENDER_SERVICE_ID API_ORIGIN WEB_ORIGIN PROXY_SECRET BETTER_AUTH_SECRET RESEND_API_KEY EMAIL_FROM \
+            ASAAS_API_KEY ASAAS_API_URL ASAAS_WEBHOOK_TOKEN; do
             [ -n "$(printenv "$name")" ] || missing="$missing $name"
           done
           # Google sign-in is optional, but needs both (ADR 0020).
@@ -114,6 +118,16 @@ jobs:
             echo "::error::Set these as https://host, with no path and no trailing slash:$wrong"
             exit 1
           fi
+          # Billing is real behind https (ADR 0064): a key works only on its environment's URL.
+          case "$ASAAS_API_URL" in
+            https://api-sandbox.asaas.com/v3) prefix='$aact_hmlg_' ;;
+            https://api.asaas.com/v3) prefix='$aact_prod_' ;;
+            *) echo "::error::Set ASAAS_API_URL to https://api.asaas.com/v3, or the sandbox's https://api-sandbox.asaas.com/v3"; exit 1 ;;
+          esac
+          if [[ "$ASAAS_API_KEY" != "$prefix"* ]]; then
+            echo "::error::ASAAS_API_KEY is not a key of the environment of ASAAS_API_URL (it must start with $prefix)"
+            exit 1
+          fi
       - name: Replace the service variables
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -125,6 +139,9 @@ jobs:
           EMAIL_FROM: ${{ vars.EMAIL_FROM }}
           GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          ASAAS_API_KEY: ${{ secrets.ASAAS_API_KEY }}
+          ASAAS_API_URL: ${{ vars.ASAAS_API_URL }}
+          ASAAS_WEBHOOK_TOKEN: ${{ secrets.ASAAS_WEBHOOK_TOKEN }}
         run: |
           # PUT replaces the whole set: GitHub is the only source of the service variables. The body is
           # built first, so a jq error stops the step before Render is called.
@@ -136,6 +153,9 @@ jobs:
             {key: "BETTER_AUTH_SECRET", value: env.BETTER_AUTH_SECRET},
             {key: "RESEND_API_KEY", value: env.RESEND_API_KEY},
             {key: "EMAIL_FROM", value: env.EMAIL_FROM},
+            {key: "ASAAS_API_KEY", value: env.ASAAS_API_KEY},
+            {key: "ASAAS_API_URL", value: env.ASAAS_API_URL},
+            {key: "ASAAS_WEBHOOK_TOKEN", value: env.ASAAS_WEBHOOK_TOKEN},
             {key: "LOG_LEVEL", value: "info"}
           ] + if env.GOOGLE_CLIENT_ID == "" then [] else [
             {key: "GOOGLE_CLIENT_ID", value: env.GOOGLE_CLIENT_ID},

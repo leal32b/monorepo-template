@@ -49,14 +49,14 @@ the proxy to the API), on free tiers, deployed by GitHub Actions after CI passes
 [ADR 0019](adr/0019-reach-the-api-through-the-web-worker.md)). Any Postgres and any container host
 work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
-1. Create the accounts: Neon, Render, Cloudflare, and Resend with a verified sending domain.
-   Google sign-in is optional (an OAuth client whose redirect URI is
+1. Create the accounts: Neon, Render, Cloudflare, Resend with a verified sending domain, and Asaas
+   (step 5). Google sign-in is optional (an OAuth client whose redirect URI is
    `<web origin>/api/auth/callback/google`).
 2. In GitHub, **Settings → Environments → `production`**, add:
 
    | Secrets | Variables |
    | --- | --- |
-   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET` | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty) |
+   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`) | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api.asaas.com/v3`, or the sandbox's `https://api-sandbox.asaas.com/v3` for a staging environment) |
 
 3. Push to `main`. The first run publishes the API image and stops at the configuration check: make
    the image's package public on GHCR, create a Render web service from it (free plan, health check
@@ -66,7 +66,18 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
    can have a service of their own: the same image and variables with the command
    `node --enable-source-maps dist/worker.js` and `JOB_IDLE_POLL_SECONDS=5`, and `JOB_WORKER=off` on
    the API. The deploy workflow does not create that service or set those variables: add them to it.
-5. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
+5. The payment provider, Asaas, before the first deploy
+   ([ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md),
+   [ADR 0069](adr/0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md)):
+   the account approved with Pix on, an API key in `ASAAS_API_KEY` (`$aact_prod_…`, or `$aact_hmlg_…`
+   with the sandbox's URL), and a webhook to `<web origin>/api/webhooks/asaas` with the token of
+   `ASAAS_WEBHOOK_TOKEN` and the events [operations](operations.md#asaas) lists, which also covers payer
+   notices, charges created 7 days ahead and card tokenization. The deploy checks that the three are set
+   and that the key belongs to the URL's environment, then pushes them to the API's host. With no
+   provider's key the API bills through a fake that marks an organization paid on a command, so env
+   validation refuses to start it when `WEB_ORIGIN` is https
+   ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
+6. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
    answers `/api/health` ([ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md)).
 
 ## 4. Set up once
@@ -96,7 +107,8 @@ every layer ([ADR 0044](adr/0044-build-customers-as-the-reference-vertical-modul
 the module", [ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
 for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) for tenant isolation). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
 
-1. The schemas in `packages/contracts`, and the resource in `statements` with the roles' share of it.
+1. The schemas in `packages/contracts`, and the resource in `statements` (and in `permissionsSchema`
+   beside it) with the roles' share of it.
 2. The domain: pure rules and errors, no I/O.
 3. The repository port, its in-memory fake and the contract suite; the Kysely adapter and a new
    migration in `apps/api/migrations` (plain SQL, forward only,
@@ -114,8 +126,33 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
 
    Without them the table is invisible to the API (`permission denied`), and
    `tenant-row-security.db.test.ts` names it. Add the table to `apps/api/test/reset-database.ts`.
-4. A service and a controller per use case, the routes behind `requireMember`, one line in
-   `app/create-app.ts`. Every use case, a read included, takes the module's unit of work and does
+4. A service per use case, in `commands/<use-case>/` or `queries/<use-case>/` with its unit test,
+   and the module's routes declared in `<module>.routes.ts` through `tenantRoutes`
+   ([ADR 0065](adr/0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md));
+   one line in `app/create-app.ts`. A route says what it asks and which use case answers; the helper
+   runs the tenant guard with the permission, parses the input with the schema (a `GET`'s query
+   string, any other method's body), and hands the use case the organization, the input, the path's
+   parameters, the member as the audit actor, and the member:
+
+   ```ts
+   const tenant = tenantRoutes(router, deps)
+   tenant.post(
+     '/api/organizations/:organizationId/appointments',
+     { permission: { appointment: ['create'] }, input: appointmentInputSchema, status: 201 },
+     ({ organizationId, input, actor }) => book.execute(organizationId, input, actor)
+   )
+   ```
+
+   The answer is what the use case returns, with the status (200 unless said); nothing returned is
+   a 204. The organization's plan is checked there too
+   ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)):
+   while it is read only, a `post` or `put` is refused (`403 subscription_read_only`); a route that
+   needs a capability names it (`entitlement: 'group-sessions'`, else `403 plan_required`). A use
+   case with a limit takes `entitlement(member, 'appointments.max')` from its route, counts inside
+   its `run` and calls `assertWithinLimit` from `#modules/billing/index` before it writes, as
+   `CreateCustomerService` does. Add the capability or the limit to `billing.ts` in `@repo/contracts`. The routes test serves the module with `serveRoutes` (`#modules/identity/testing/serve-routes`)
+   and covers the module's permissions and each route's main path; what the helper itself does is
+   proven once. Every use case, a read included, takes the module's unit of work and does
    its database work inside `run(organizationId, …)`, with the id the guard returned: Postgres then
    shows and accepts only that organization's rows, even for a query that forgot its `where`, and
    what the use case writes is kept together or not at all. Copy `customers-unit-of-work.port.ts`,
@@ -133,9 +170,44 @@ for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-
 6. Work for later, if the feature has any (a reminder at a time, a call to a provider that may
    fail, anything too slow for a request): a job
    ([ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md)), below.
-7. The web: the entity's reads and writes, the feature's forms, the page and its route with
-   `preload`, the menu item, the texts in every language. Screens go through the `design-system`
-   and `minimize-support` skills.
+7. The web, in four pieces ([ADR 0066](adr/0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md)).
+   Screens go through the `design-system` and `minimize-support` skills.
+   - `entities/<name>`: the list as a router query keyed by the organization, the filter, the search
+     and the page (`createQuery`), and the writes.
+   - `features/<name>/…`: the forms and buttons that write.
+   - `pages/<name>`: the list screen. It writes only what is the module's own: its rows, what each
+     role may do, its forms in the rows' panels, and its words. The rest comes from the mould:
+
+     | Part of a list screen | Comes from |
+     | --- | --- |
+     | filter, search, page, the read of the page, the page that empties | `createList` (`#shared/lib`) |
+     | the line in the row acted on and the one below the section | `createListStatus` (`#shared/lib`) |
+     | the search and the filter above the section | `ListToolbar` (`@repo/ui`) |
+     | the pager | `ListPager` (`#shared/ui`) |
+     | the rows, their panels and the empty state | `ListSection`, `ListRow`, `PanelButton`, `ListPanel`, `EmptyState` |
+
+     ```tsx
+     const panels = createPanels()
+     const status = createListStatus(panels)
+     const list = createList({
+       query: projectsQuery(api),
+       args: ({ filter, search, page }) => [organizationId, filter, search, page],
+       filter: 'active' as ProjectStatus, // a list with no filter leaves it out
+       onChange: () => {
+         panels.dismiss()
+         status.forget()
+       }
+     })
+     ```
+
+     After a write, `list.draw(change)` puts the change on the page at once, and `list.again()` asks
+     the API again when the data was found changed; a row that left the list is said with
+     `status.left(text)`. A list paged by a cursor, as the audit trail is, uses `Pager` with its own
+     state. Copy `pages/customers/` for the rows and the panels, and nothing else of its state.
+   - The route, with a `preload` that asks for the first page the list asks for (the same arguments, or
+     the key differs and the page is read twice), the menu item and the palette entry, and the texts in
+     every language: the search and filter labels, the empty states and the rows' words. The pager's
+     words and "Find" are shared, in `list` and `actions`.
 8. One end-to-end journey for the main path ([testing.md](testing.md)); edge cases stay below.
 
 ### Recording who changed what
@@ -151,8 +223,8 @@ A module has no history table of its own.
 2. Add `audit: AuditTrail` (`#libs/ports/audit-trail.port`) to the module's unit of work, bound to
    `new KyselyAuditTrail(transaction)` in `database/` and to an `InMemoryAuditTrail` in the module's
    test setup.
-3. Each command takes the actor as an argument (`AuditActor`): a member's controller passes
-   `{ kind: 'member', id: member.userId }` from `requireMember`, a public route `{ kind: 'visitor' }`,
+3. Each command takes the actor as an argument (`AuditActor`): a tenant route passes the `actor`
+   that `tenantRoutes` hands it (`{ kind: 'member', id }`), a public route `{ kind: 'visitor' }`,
    a job `{ kind: 'system' }`. The command draws the entry's id with the record's, and records the
    entry inside the same `run` as the change, after it succeeded (copy `customer-audit.ts` and
    `UpdateCustomerService`).
@@ -166,6 +238,44 @@ A module has no history table of its own.
 The tenant role may only insert and select entries, so nothing in a request can change one. The
 daily purge deletes them after `auditRetention.days` (365, in `libs/database/kysely-audit-trail.ts`);
 a product with a legal retention duty changes it there.
+
+### Checking an entitlement
+
+What an organization may do comes from its plan, as named capabilities and limits, never from the
+plan's name or the kind of business
+([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
+The membership read hands every tenant route the member with the organization's subscription and
+what it grants, in the statement it already makes.
+
+1. Name it in `packages/contracts/src/billing.ts`: a capability in `capabilities`
+   (`'group-sessions'`, for what it enables), or a limit in `limits` (`'appointments.max'`), and its
+   value in each plan's `entitlements` (a limit is a number, `null` for none). The trial grants what
+   the dearest plan does.
+2. A route that needs a capability declares it, and `tenantRoutes` refuses the request with
+   `403 plan_required`, naming it, before the input is read:
+
+   ```ts
+   tenant.post(base, { permission: { session: ['create'] }, entitlement: 'group-sessions', input }, run)
+   ```
+
+3. A use case with a limit takes the number from its route, `entitlement(member, 'appointments.max')`
+   from `@repo/contracts`, counts inside its own `run` and asks `assertWithinLimit` from
+   `#modules/billing/index` before it writes (`403 plan_limit_reached`, naming the limit and its
+   number). With `null` it counts nothing. Copy `CreateCustomerService` and its route.
+4. The web reads the same `entitlement(membership, key)` from the membership it holds, to draw the
+   action disabled with the reason before the member tries. The words live in the billing dictionary:
+   what the plan includes (`billing.limits.<limit>`, `billing.capabilities.<capability>`, shown on the
+   plan page) and what a refusal means (`billing.refusals.limits.<limit>` for the owner, an owner whose
+   upgrade waits, and another member; `billing.refusals.capabilities.<capability>`). `usePlanRefusal`
+   (`#entities/subscriptions`) says them in the row's note before and in the alert after a refusal, and
+   `SeePlansLink` gives the owner the way to the plans; copy the customers screen and the activity
+   screen ([ADR 0068](adr/0068-say-the-subscription-once-per-screen-and-open-the-plan-page-to-every-member.md)).
+   The API decides; the web only draws.
+5. Tests: `serveRoutes().signInAs(permissions, { entitlements })` gives the member a plan without
+   the capability or with a small limit; the service test passes the limit as a number.
+
+Nothing else checks a plan: read only (an organization whose trial ended, whose payment is past the
+grace period or whose plan ended) is refused for every `post` and `put` by `tenantRoutes` itself.
 
 ### A job kind
 
@@ -217,7 +327,7 @@ as the tests that read identity's emails do. What to look at in production:
 
 A route a visitor reaches with no session names its tenant by slug and is built with `publicRoute`
 ([ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
-`modules/customers/commands/register-customer/` is the worked write, and
+`modules/customers/customers.routes.ts` with `commands/register-customer/` is the worked write, and
 `modules/identity/queries/get-public-organization/` the read. Four pieces:
 
 1. **A schema of its own** in `packages/contracts`, named `public…`: what a visitor may send, and
@@ -226,19 +336,22 @@ A route a visitor reaches with no session names its tenant by slug and is built 
 2. **A use case** that takes the organization's id and does its database work inside
    `unitOfWork.run(organizationId, …)`, like a member's: row-level security confines it to that
    organization. It has no actor; if it creates a row, it records that a visitor did.
-3. **A controller** wrapped in `publicRoute(surface, publicLimits.read | publicLimits.write, handler)`
-   from `#modules/identity/index`. It counts the request for the client address, resolves the slug,
-   and hands the handler `organization`; there is no other way to get the id, so the limit cannot
-   be forgotten. A route with a different need passes a limit of its own
+3. **A handler** wrapped in `publicRoute(surface, publicLimits.read | publicLimits.write, handler)`
+   from `#modules/identity/index`, declared in the module's routes file beside its tenant routes.
+   It counts the request for the client address, resolves the slug, and hands the handler
+   `organization`; there is no other way to get the id, so the limit cannot be forgotten. A route with a different need passes a limit of its own
    (`{ name: 'public-book', max: 5, windowSeconds: 600 }`).
 
    ```ts
-   this.handle = publicRoute(surface, publicLimits.write, async (req, res, { organization, requestId }) => {
-     const { referralCode, ...values } = await readValidJson(req, publicBookingInputSchema)
-     if (referralCode) surface.logger.info({ reqId: requestId, reason: 'honeypot' }, 'public write ignored')
-     else await service.execute(organization.id, values)
-     sendJson(res, 202, { received: true })
-   })
+   router.post(
+     `${publicBase}/bookings`,
+     publicRoute(publicSurface, publicLimits.write, async (req, res, { organization, requestId }) => {
+       const { referralCode, ...values } = await readValidJson(req, publicBookingInputSchema)
+       if (referralCode) publicSurface.logger.info({ reqId: requestId, reason: 'honeypot' }, 'public write ignored')
+       else await book.execute(organization.id, values)
+       sendJson(res, 202, { received: true })
+     })
+   )
    ```
 
 4. **The route**, registered by the module under `/api/public/organizations/:organizationSlug/...`,
@@ -295,7 +408,10 @@ code goes the same way in both cases below:
    and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`), and
    the `customer` texts of the activity (`entries.customer` and `fields.customer` in `dictionaries/audit/`,
    and its field list in `pages/organization-activity/`). The audit trail and its screen stay: they
-   belong to every module.
+   belong to every module. So do `createListStatus`, which the members and roles screens use too. The
+   paged list's helpers (`createList`, `ListToolbar`, `ListPager`, the `list.pager` texts and
+   `actions.find`) are the customers screen's only user until the product has a list screen of its
+   own: build that one first, or remove them with the module when `pnpm knip` names them.
 4. `apps/e2e/tests/first-customer.spec.ts` (keep a journey that signs up and creates an
    organization), `public-registration.spec.ts`, `activity.spec.ts` (or point it at the product's own module), the screens of `accessibility.spec.ts`, and any icon of `packages/ui` only they
    used.

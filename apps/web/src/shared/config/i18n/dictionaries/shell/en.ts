@@ -21,7 +21,16 @@ export const shellEn = {
   /** Words that buttons share across screens. */
   actions: {
     cancel: 'Cancel',
-    retry: 'Try again'
+    retry: 'Try again',
+    find: 'Find'
+  },
+  /** What every list read a page at a time says (`ListPager`). */
+  list: {
+    pager: {
+      previous: 'Previous',
+      next: 'Next',
+      page: 'Page {{page}} of {{pages}}'
+    }
   },
   notFound: {
     title: 'Page not found',
@@ -50,6 +59,7 @@ export const shellEn = {
         members: 'people team invite remove role',
         roles: 'permissions access',
         activity: 'audit log history changes who',
+        billing: 'plan subscription payment pay upgrade trial invoice',
         customers: 'clients contacts people companies',
         create: 'organization new team',
         profile: 'account name email',
@@ -77,6 +87,7 @@ export const shellEn = {
       members: 'Members',
       roles: 'Roles',
       activity: 'Activity',
+      billing: 'Plan and billing',
       customers: 'Customers'
     },
     account: {

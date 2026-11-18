@@ -108,6 +108,25 @@ module.exports = {
       }
     },
     {
+      name: 'api-platform-transactions-bind-platform-tables',
+      comment:
+        'A platform transaction names no organization, so row-level security does not stand behind it (ADR 0063): ' +
+        'only the webhook inbox builds one, on webhook_event and the job queue.',
+      severity: 'error',
+      from: { pathNot: ['^apps/api/src/libs/database/kysely-webhook-inbox\\.ts$', NOT_PRODUCTION] },
+      to: { path: '^apps/api/src/libs/database/kysely-platform-unit-of-work\\.ts$' }
+    },
+    {
+      name: 'api-webhook-inbox-binds-platform-tables',
+      comment: 'The webhook inbox writes webhook_event and enqueues jobs, and binds no other adapter (ADR 0063).',
+      severity: 'error',
+      from: { path: '^apps/api/src/libs/database/kysely-webhook-inbox\\.ts$' },
+      to: {
+        path: '^apps/api/src/(libs/database|modules)/',
+        pathNot: '^apps/api/src/libs/database/kysely-platform-unit-of-work\\.ts$'
+      }
+    },
+    {
       name: 'api-modules-not-to-app',
       comment: 'The composition root (app/) knows the modules, never the other way round: no service locator.',
       severity: 'error',

@@ -80,7 +80,8 @@ export function RequireOrganization(props: ParentProps) {
  * (ADR 0033). A membership read before in this session draws at once and is asked again behind it: a new
  * answer replaces the old, a 404 (no longer a member) shows "not found", and any other failure keeps what
  * is known. One not read yet is read under a boundary of its own, which shows the screen's skeleton in the
- * frame meanwhile; the organization is then kept on this device as the place `/` opens next time.
+ * frame meanwhile; the organization is then kept on this device as the place `/` opens next time. A screen
+ * that changed what the membership carries (the plan) asks for it again the same way, behind it.
  */
 function OrganizationScreens(props: ParentProps<{ id: string; organization: Accessor<Organization | undefined> }>) {
   const api = useApi()
@@ -130,7 +131,16 @@ function OrganizationScreens(props: ParentProps<{ id: string; organization: Acce
           <OrganizationsUnavailable retry={() => void refetch()} />
         </Match>
         <Match when={held() ?? first()}>
-          <CurrentOrganizationProvider organization={shown()} membership={held() as OrganizationMembership}>
+          <CurrentOrganizationProvider
+            organization={shown()}
+            membership={held() as OrganizationMembership}
+            refresh={() =>
+              ask(true).then(
+                () => undefined,
+                () => undefined
+              )
+            }
+          >
             {props.children}
           </CurrentOrganizationProvider>
         </Match>

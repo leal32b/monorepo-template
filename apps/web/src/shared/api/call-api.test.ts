@@ -26,6 +26,23 @@ describe('callApi', () => {
     expect(failure).toEqual({ status: 429, code: 'rate_limited', requestId: undefined, retryAfter: 45 })
   })
 
+  it('keeps the number of the limit a plan refused with (ADR 0063)', async () => {
+    const problem = {
+      type: 'x',
+      title: 'Limit',
+      status: 403,
+      code: 'plan_limit_reached',
+      entitlement: 'customers.max' as const,
+      limit: 100
+    }
+
+    const failure = await callApi(async () => {
+      throw new ApiError('http', 'The API answered 403.', { status: 403, problem })
+    })
+
+    expect(failure).toEqual({ status: 403, code: 'plan_limit_reached', requestId: undefined, limit: 100 })
+  })
+
   it('returns the status alone when the answer was not a problem', async () => {
     const failure = await callApi(async () => {
       throw new ApiError('http', 'The API answered 502.', { status: 502 })

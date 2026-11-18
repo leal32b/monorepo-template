@@ -85,7 +85,8 @@ export const organizationsEs: typeof organizationsEn = {
       row: 'Eliminar esta organización',
       rowDescription: 'No se puede deshacer.',
       open: 'Eliminar organización',
-      warning: 'Esto elimina {{name}} y todo lo que contiene, para todos sus miembros. No se puede deshacer.',
+      warning:
+        'Esto elimina {{name}} y todo lo que contiene, para todos sus miembros, y termina su plan de inmediato, sin reembolso. No se puede deshacer.',
       label: 'Escribe el nombre de la organización para confirmar',
       mismatch: 'El nombre no coincide. Escríbelo tal como aparece: {{name}}',
       submit: 'Eliminar organización',
@@ -176,7 +177,8 @@ export const organizationsEs: typeof organizationsEn = {
       invitation: 'Invitaciones',
       ac: 'Roles',
       customer: 'Clientes',
-      audit: 'Actividad'
+      audit: 'Actividad',
+      billing: 'Plan y facturación'
     },
     permissions: {
       organization: {
@@ -206,6 +208,9 @@ export const organizationsEs: typeof organizationsEn = {
       },
       audit: {
         read: 'Ver el registro de actividad'
+      },
+      billing: {
+        manage: 'Elegir, pagar y cancelar el plan'
       }
     },
     form: {

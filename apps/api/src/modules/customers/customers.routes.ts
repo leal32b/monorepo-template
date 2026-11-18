@@ -1,28 +1,28 @@
+import {
+  customerInputSchema,
+  customerUpdateSchema,
+  entitlement,
+  listCustomersQuerySchema,
+  type PublicCustomerRegistration,
+  publicCustomerRegistrationInputSchema
+} from '@repo/contracts'
+import { readValidJson } from '#libs/http/body'
+import { sendJson } from '#libs/http/json'
 import type { HttpRouter } from '#libs/http/router'
 import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
-import type { CurrentSession, Membership, PublicSurface } from '#modules/identity/index'
-import { ArchiveCustomerController } from './commands/archive-customer/archive-customer.http-controller'
+import { type PublicSurface, publicLimits, publicRoute, type TenantGuard, tenantRoutes } from '#modules/identity/index'
 import { ArchiveCustomerService } from './commands/archive-customer/archive-customer.service'
-import { CreateCustomerController } from './commands/create-customer/create-customer.http-controller'
 import { CreateCustomerService } from './commands/create-customer/create-customer.service'
-import { DeleteCustomerController } from './commands/delete-customer/delete-customer.http-controller'
 import { DeleteCustomerService } from './commands/delete-customer/delete-customer.service'
-import { RegisterCustomerController } from './commands/register-customer/register-customer.http-controller'
 import { RegisterCustomerService } from './commands/register-customer/register-customer.service'
-import { RestoreCustomerController } from './commands/restore-customer/restore-customer.http-controller'
 import { RestoreCustomerService } from './commands/restore-customer/restore-customer.service'
-import { UpdateCustomerController } from './commands/update-customer/update-customer.http-controller'
 import { UpdateCustomerService } from './commands/update-customer/update-customer.service'
 import type { CustomersUnitOfWork } from './customers-unit-of-work.port'
-import { GetCustomerController } from './queries/get-customer/get-customer.http-controller'
 import { GetCustomerService } from './queries/get-customer/get-customer.service'
-import { ListCustomersController } from './queries/list-customers/list-customers.http-controller'
 import { ListCustomersService } from './queries/list-customers/list-customers.service'
 
-export type CustomerRoutesDeps = {
-  session: CurrentSession
-  membership: Membership
+export type CustomerRoutesDeps = TenantGuard & {
   /** What the module's route without a session is built from: the limiter and the slug (ADR 0059). */
   publicSurface: PublicSurface
   /** Every use case runs inside it, confined to the organization the guard returned (ADR 0055). */
@@ -36,43 +36,76 @@ const base = '/api/organizations/:organizationId/customers'
 /** Routes without a session name the tenant by its slug, under a prefix of their own (ADR 0059). */
 const publicBase = '/api/public/organizations/:organizationSlug'
 
+const received: PublicCustomerRegistration = { received: true }
+
 /**
- * The module's routes, each behind the tenant guard (ADR 0033): the module builds its use cases from
- * the ports it is given, so the composition root passes ports and the module stays one unit to copy.
- * It is given no repository: a use case reaches one only inside the unit of work (ADR 0055). The last
- * route is the module's public one, behind `publicRoute` instead of the tenant guard (ADR 0059).
+ * The module's HTTP edge (ADR 0065): it builds its use cases from the ports it is given, so the
+ * composition root passes ports and the module stays one unit to copy, and declares each route with
+ * what it asks of the member and of the input. It is given no repository: a use case reaches one only
+ * inside the unit of work (ADR 0055).
  */
-export function registerCustomerRoutes(
-  router: HttpRouter,
-  { session, membership, publicSurface, unitOfWork, clock, ids }: CustomerRoutesDeps
-): void {
-  router.get(base, new ListCustomersController(session, membership, new ListCustomersService(unitOfWork)).handle)
-  router.post(
+export function registerCustomerRoutes(router: HttpRouter, deps: CustomerRoutesDeps): void {
+  const { publicSurface, unitOfWork, clock, ids } = deps
+  const list = new ListCustomersService(unitOfWork)
+  const get = new GetCustomerService(unitOfWork)
+  const create = new CreateCustomerService(unitOfWork, clock, ids)
+  const update = new UpdateCustomerService(unitOfWork, clock, ids)
+  const archive = new ArchiveCustomerService(unitOfWork, clock, ids)
+  const restore = new RestoreCustomerService(unitOfWork, clock, ids)
+  const remove = new DeleteCustomerService(unitOfWork, clock, ids)
+  const register = new RegisterCustomerService(unitOfWork, clock, ids)
+
+  const tenant = tenantRoutes(router, deps)
+  tenant.get(
     base,
-    new CreateCustomerController(session, membership, new CreateCustomerService(unitOfWork, clock, ids)).handle
+    { permission: { customer: ['read'] }, input: listCustomersQuerySchema },
+    ({ organizationId, input }) => list.execute(organizationId, input)
   )
-  router.get(
+  tenant.post(
+    base,
+    { permission: { customer: ['create'] }, input: customerInputSchema, status: 201 },
+    ({ organizationId, input, actor, member }) =>
+      create.execute(organizationId, input, actor, entitlement(member, 'customers.max'))
+  )
+  tenant.get(`${base}/:customerId`, { permission: { customer: ['read'] } }, ({ organizationId, params }) =>
+    get.execute(organizationId, params.customerId)
+  )
+  // The whole customer, again, and the version read (ADR 0048).
+  tenant.put(
     `${base}/:customerId`,
-    new GetCustomerController(session, membership, new GetCustomerService(unitOfWork)).handle
+    { permission: { customer: ['update'] }, input: customerUpdateSchema },
+    ({ organizationId, params, input, actor }) => update.execute(organizationId, params.customerId, input, actor)
   )
-  router.put(
-    `${base}/:customerId`,
-    new UpdateCustomerController(session, membership, new UpdateCustomerService(unitOfWork, clock, ids)).handle
-  )
-  router.post(
+  tenant.post(
     `${base}/:customerId/archive`,
-    new ArchiveCustomerController(session, membership, new ArchiveCustomerService(unitOfWork, clock, ids)).handle
+    { permission: { customer: ['update'] } },
+    ({ organizationId, params, actor }) => archive.execute(organizationId, params.customerId, actor)
   )
-  router.post(
+  tenant.post(
     `${base}/:customerId/restore`,
-    new RestoreCustomerController(session, membership, new RestoreCustomerService(unitOfWork, clock, ids)).handle
+    { permission: { customer: ['update'] } },
+    ({ organizationId, params, actor, member }) =>
+      restore.execute(organizationId, params.customerId, actor, entitlement(member, 'customers.max'))
   )
-  router.delete(
-    `${base}/:customerId`,
-    new DeleteCustomerController(session, membership, new DeleteCustomerService(unitOfWork, clock, ids)).handle
+  // Once archived; its audit entry stays as the record of who deleted it (ADR 0061).
+  tenant.delete(`${base}/:customerId`, { permission: { customer: ['delete'] } }, ({ organizationId, params, actor }) =>
+    remove.execute(organizationId, params.customerId, actor)
   )
+
+  /**
+   * 202, the request was taken in (ADR 0059). The shape of a public write: `publicRoute` counts the
+   * request and resolves the slug before the body is read; the answer is the same whatever the use
+   * case found; a filled honeypot writes nothing, and only the log says so. The plan does not gate
+   * it (ADR 0063): a visitor is no party to the subscription, so neither read only nor the limit
+   * refuses a registration, though the customer it creates counts toward `customers.max`.
+   */
   router.post(
     `${publicBase}/customer-registrations`,
-    new RegisterCustomerController(publicSurface, new RegisterCustomerService(unitOfWork, clock, ids)).handle
+    publicRoute(publicSurface, publicLimits.write, async (req, res, { organization, requestId }) => {
+      const { referralCode, ...values } = await readValidJson(req, publicCustomerRegistrationInputSchema)
+      if (referralCode) publicSurface.logger.info({ reqId: requestId, reason: 'honeypot' }, 'public write ignored')
+      else await register.execute(organization.id, values)
+      sendJson(res, 202, received)
+    })
   )
 }

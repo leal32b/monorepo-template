@@ -2,9 +2,11 @@ import { fileURLToPath } from 'node:url'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
+import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { KyselyUnitOfWork } from '#libs/database/kysely-unit-of-work'
 import { runMigrations } from '#libs/database/migrations'
@@ -17,6 +19,8 @@ const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
 const db = createDatabase(createPool(inject('databaseUrl'), pino({ level: 'silent' })))
 const IDLE = 3_600_000
 const emailSender = new RecordingEmailSender()
+const fakeBilling = (clock: FixedClock) =>
+  new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
 
 beforeAll(async () => {
   await resetDatabase(db)
@@ -33,7 +37,12 @@ function setup() {
   const clock = new FixedClock(new Date('2026-11-11T09:00:00.000Z'))
   const timer = new ManualTimer(clock)
   const { logger, lines } = memoryLogger()
-  return { clock, timer, lines, jobs: createJobs({ db, clock, logger, emailSender, timer, idlePollMs: IDLE }) }
+  return {
+    clock,
+    timer,
+    lines,
+    jobs: createJobs({ db, clock, logger, emailSender, billing: fakeBilling(clock), timer, idlePollMs: IDLE })
+  }
 }
 const states = async () =>
   (await sql<{ state: string }>`select state from job order by created_at`.execute(db)).rows.map((row) => row.state)
@@ -81,7 +90,14 @@ describe('createJobs (ADR 0056)', () => {
 
   it('waits in real time when no timer is given', async () => {
     const { logger } = memoryLogger()
-    const jobs = createJobs({ db, clock: new FixedClock(new Date()), logger, emailSender, idlePollMs: IDLE })
+    const jobs = createJobs({
+      db,
+      clock: new FixedClock(new Date()),
+      logger,
+      emailSender,
+      billing: fakeBilling(new FixedClock(new Date())),
+      idlePollMs: IDLE
+    })
 
     jobs.worker.start()
     await jobs.worker.stop()

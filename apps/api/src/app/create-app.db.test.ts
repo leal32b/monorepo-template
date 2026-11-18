@@ -2,6 +2,7 @@ import type { AddressInfo } from 'node:net'
 import { apiProblemSchema, healthResponseSchema, identityOptionsSchema, livenessResponseSchema } from '@repo/contracts'
 import pino from 'pino'
 import { inject } from 'vitest'
+import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { InMemoryJobs } from '#libs/adapters/in-memory-jobs'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
@@ -27,8 +28,10 @@ describe('API', () => {
     proxySecret,
     db,
     jobs,
+    jobsOn: () => jobs,
     authSecret,
-    google: undefined
+    google: undefined,
+    billing: new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   })
   let url: string
 
@@ -111,8 +114,10 @@ describe('API without its database', () => {
     proxySecret: undefined,
     db,
     jobs,
+    jobsOn: () => jobs,
     authSecret,
-    google: undefined
+    google: undefined,
+    billing: new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   })
   let url: string
 

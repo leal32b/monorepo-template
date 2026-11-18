@@ -54,7 +54,12 @@ describe('RegisterCustomerService (ADR 0059)', () => {
 
   it('ends the same way when the email is already a customer, and changes nothing', async () => {
     const { repository, audit, service, create } = setup()
-    await create.execute('org-1', { name: 'Grace Hopper', email: 'grace@example.com', notes: 'Since 1952' }, byAda)
+    await create.execute(
+      'org-1',
+      { name: 'Grace Hopper', email: 'grace@example.com', notes: 'Since 1952' },
+      byAda,
+      null
+    )
 
     await expect(
       service.execute('org-1', { name: 'Someone else', email: 'grace@example.com', phone: '555 0100' })

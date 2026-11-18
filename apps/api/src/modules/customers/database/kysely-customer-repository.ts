@@ -94,6 +94,16 @@ export class KyselyCustomerRepository implements CustomerRepository {
     return { items: rows.map(toCustomer), total: Number(count.total) }
   }
 
+  async countActive(organizationId: string): Promise<number> {
+    const { total } = await this.#db
+      .selectFrom('customer')
+      .select(({ fn }) => fn.countAll<string>().as('total'))
+      .where('organization_id', '=', organizationId)
+      .where('archived_at', 'is', null)
+      .executeTakeFirstOrThrow()
+    return Number(total)
+  }
+
   async remove(customer: Customer): Promise<void> {
     const row = await this.#db
       .deleteFrom('customer')

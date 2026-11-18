@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 const icons = {
   activity: 'clock-counter-clockwise',
   back: 'arrow-left',
+  billing: 'credit-card',
   check: 'check',
   clock: 'clock',
   close: 'x',
@@ -62,7 +63,8 @@ const weights = {
     'users',
     'role',
     'customers',
-    'activity'
+    'activity',
+    'billing'
   ]
 }
 

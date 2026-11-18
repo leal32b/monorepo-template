@@ -1,4 +1,4 @@
-import { Show } from 'solid-js'
+import { children, type JSX, Show } from 'solid-js'
 import { Icon, type IconName } from '#icon'
 import { cn } from '#libs'
 
@@ -9,15 +9,22 @@ export type EmptyStateProps = {
   title: string
   /** What will fill it, or what to do: one line. */
   description?: string | undefined
+  /** What the user can do about it, such as a link to the plans: below the line. */
+  action?: JSX.Element
   class?: string | undefined
 }
 
+/** Whether resolved children hold anything to draw: a `<Show>` that is off resolves to nothing. */
+const drawn = (resolved: unknown[]) => resolved.some((item) => item !== undefined && item !== null && item !== false)
+
 /**
  * A place with nothing in it yet, said plainly instead of left blank: an icon, a short title and one
- * line, centred, as a short standalone message is. It sits in the frame with a subtle border, where the
- * content will be.
+ * line, centred, as a short standalone message is, and what to do about it when there is something. It
+ * sits in the frame with a subtle border, where the content will be.
  */
 export function EmptyState(props: EmptyStateProps) {
+  const action = children(() => props.action)
+
   return (
     <div
       class={cn(
@@ -34,6 +41,9 @@ export function EmptyState(props: EmptyStateProps) {
       <p class="font-medium">{props.title}</p>
       <Show when={props.description}>
         <p class="max-w-sm text-sm text-muted-foreground">{props.description}</p>
+      </Show>
+      <Show when={drawn(action.toArray())}>
+        <div class="mt-2">{action()}</div>
       </Show>
     </div>
   )

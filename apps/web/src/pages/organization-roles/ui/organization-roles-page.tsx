@@ -1,6 +1,6 @@
 import { covers, statements } from '@repo/contracts'
 import { Badge, createPanels, ListPanel, ListRow, ListSection, PanelButton } from '@repo/ui'
-import { createSignal, For, Show } from 'solid-js'
+import { For, Show } from 'solid-js'
 import {
   holdersOf,
   type Member,
@@ -15,6 +15,7 @@ import {
 import { DeleteRoleForm, RoleForm, RoleView } from '#features/organizations/manage-roles'
 import { createRead, readAgain, updateRead, useAuth } from '#shared/api'
 import { useI18n } from '#shared/config'
+import { createListStatus } from '#shared/lib'
 import { ReadFailure } from '#shared/ui'
 import { AppShell } from '#widgets/app-shell'
 
@@ -70,19 +71,11 @@ function Roles() {
   /** A change to the roles, drawn on every screen that reads them. */
   const change = (edit: (list: Role[]) => Role[]) => updateRead(roles.keyFor(id), edit)
   const panels = createPanels()
-  const [rowStatus, setRowStatus] = createSignal<{ role: string; text: string }>()
-  const [sectionStatus, setSectionStatus] = createSignal<string>()
+  const status = createListStatus(panels)
 
   const held = () => current.membership.permissions
-  const forget = () => {
-    setRowStatus(undefined)
-    setSectionStatus(undefined)
-  }
   /** The role left the list (deleted here, or already gone): said below the section, which takes focus. */
-  const left = (text: string) => {
-    panels.dismiss()
-    setSectionStatus(text)
-  }
+  const left = status.left
   const gone = () => {
     left(t('organizationRoles.errors.gone'))
     readAgain(roles.keyFor(id))
@@ -124,23 +117,23 @@ function Roles() {
         }
         description={t('organizationRoles.summary', { count: countOf(role), total: totalPermissions })}
         note={note()}
-        status={rowStatus()?.role === role.name ? rowStatus()?.text : undefined}
+        status={status.row(role.name)}
         action={
           <>
             <Show
               when={canEdit()}
               fallback={
-                <PanelButton panels={panels} panel={`view:${role.name}`} onOpen={forget}>
+                <PanelButton panels={panels} panel={`view:${role.name}`} onOpen={status.forget}>
                   {t('organizationRoles.actions.view')}
                 </PanelButton>
               }
             >
-              <PanelButton panels={panels} panel={`edit:${role.name}`} onOpen={forget}>
+              <PanelButton panels={panels} panel={`edit:${role.name}`} onOpen={status.forget}>
                 {t('organizationRoles.actions.edit')}
               </PanelButton>
             </Show>
             <Show when={canDelete()}>
-              <PanelButton panels={panels} panel={`delete:${role.name}`} onOpen={forget} disabled={inUse()}>
+              <PanelButton panels={panels} panel={`delete:${role.name}`} onOpen={status.forget} disabled={inUse()}>
                 {t('organizationRoles.actions.delete')}
               </PanelButton>
             </Show>
@@ -163,10 +156,7 @@ function Roles() {
                   nameLocked={inUse()}
                   onSaved={(saved) => {
                     change((list) => list.map((candidate) => (candidate.name === role.name ? saved : candidate)))
-                    setRowStatus({
-                      role: saved.name,
-                      text: t('organizationRoles.form.saved', { role: roleLabel(saved.name) })
-                    })
+                    status.sayRow(saved.name, t('organizationRoles.form.saved', { role: roleLabel(saved.name) }))
                     panels.close()
                   }}
                   onGone={gone}
@@ -210,7 +200,7 @@ function Roles() {
               <ListSection
                 title={t('organizationRoles.custom.title', { name: current.organization.name })}
                 description={t('organizationRoles.custom.description')}
-                status={sectionStatus()}
+                status={status.section()}
               >
                 <Show when={current.can('ac', 'create')}>
                   <ListRow
@@ -218,7 +208,7 @@ function Roles() {
                     title={t('organizationRoles.custom.create.title')}
                     description={t('organizationRoles.custom.create.description')}
                     action={
-                      <PanelButton panels={panels} panel="create" onOpen={forget}>
+                      <PanelButton panels={panels} panel="create" onOpen={status.forget}>
                         {t('organizationRoles.custom.create.open')}
                       </PanelButton>
                     }
@@ -231,10 +221,10 @@ function Roles() {
                             held={held()}
                             onSaved={(saved) => {
                               change((list) => [...list, saved])
-                              setRowStatus({
-                                role: saved.name,
-                                text: t('organizationRoles.form.created', { role: roleLabel(saved.name) })
-                              })
+                              status.sayRow(
+                                saved.name,
+                                t('organizationRoles.form.created', { role: roleLabel(saved.name) })
+                              )
                               panels.close()
                             }}
                             onGone={gone}

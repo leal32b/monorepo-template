@@ -12,8 +12,8 @@ describe('UpdateCustomerService', () => {
   const setup = async () => {
     const { repository, audit, unitOfWork, clock, ids } = testCustomers()
     const create = new CreateCustomerService(unitOfWork, clock, ids)
-    await create.execute('org-1', { name: 'Ada', email: 'ada@example.com' }, byAda)
-    await create.execute('org-1', { name: 'Bob' }, byAda)
+    await create.execute('org-1', { name: 'Ada', email: 'ada@example.com' }, byAda, null)
+    await create.execute('org-1', { name: 'Bob' }, byAda, null)
     return { repository, audit, unitOfWork, service: new UpdateCustomerService(unitOfWork, clock, ids), clock }
   }
 

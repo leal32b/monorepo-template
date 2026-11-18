@@ -5,6 +5,7 @@ import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/or
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
+import { membershipOf } from '../../../test-membership'
 import { HomePage } from './home-page'
 
 describe('HomePage', () => {
@@ -47,10 +48,7 @@ describe('HomePage', () => {
                         <OrganizationsProvider>
                           <CurrentOrganizationProvider
                             organization={{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }}
-                            membership={{
-                              roles: ['owner'],
-                              permissions: permissions as OrganizationMembership['permissions']
-                            }}
+                            membership={membershipOf(['owner'], permissions as OrganizationMembership['permissions'])}
                           >
                             {root.children}
                           </CurrentOrganizationProvider>

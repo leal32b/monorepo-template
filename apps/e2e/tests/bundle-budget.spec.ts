@@ -6,10 +6,13 @@ import { expect, newPerson, test } from '../support/test'
 /**
  * The JavaScript a cold load fetches before a screen shows, gzipped, against a budget: the baseline
  * measured on 2026-11-05 plus 5 KB (ADR 0045, docs/testing.md), lowered on 2026-11-12 when the first
- * download became one file, and a tenant's public page's measured then (ADR 0060). Lower a budget when the number drops;
- * raising one is a decision to write down (it checks the choice of `zod/mini`, ADR 0024).
+ * download became one file, and a tenant's public page's measured then (ADR 0060); raised by 1 KB each on
+ * 2026-11-13 for the plan's words in every language (ADR 0068), and the sign-in's and the public page's by
+ * 1 KB on 2026-11-18 for the payer's words and the CPF or CNPJ check that `@repo/contracts` brings to the
+ * first download (ADR 0069). Lower a budget when the number drops; raising one is a decision to write down
+ * (it checks the choice of `zod/mini`, ADR 0024).
  */
-const BUDGET_KB = { signIn: 77, signedIn: 117, publicPage: 81 }
+const BUDGET_KB = { signIn: 79, signedIn: 118, publicPage: 82 }
 
 /** Starts collecting every script the page fetches; the result is their gzipped size in KB. */
 function countScripts(page: Page): () => Promise<number> {

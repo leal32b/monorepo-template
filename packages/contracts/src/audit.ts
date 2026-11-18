@@ -7,7 +7,28 @@ import { instantSchema } from './time'
  * resource here, with the actions it records.
  */
 export const auditActions = {
-  customer: ['created', 'updated', 'archived', 'restored', 'deleted']
+  customer: ['created', 'updated', 'archived', 'restored', 'deleted'],
+  /**
+   * The organization's subscription (ADR 0063), whose resource id is the organization's: by the owner
+   * for what they asked for, by the system for what a provider's notice brought. Moving into read only
+   * is the clock, not a write, so it records nothing.
+   */
+  subscription: [
+    'checkout-started',
+    'checkout-abandoned',
+    'activated',
+    'renewed',
+    'upgrade-started',
+    'upgrade-abandoned',
+    'plan-changed',
+    'downgrade-scheduled',
+    'downgrade-withdrawn',
+    'payment-failed',
+    'payment-recovered',
+    'cancellation-scheduled',
+    'cancellation-withdrawn',
+    'cancelled'
+  ]
 } as const
 
 export type AuditResourceType = keyof typeof auditActions

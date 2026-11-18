@@ -2,8 +2,10 @@ import { apiProblemSchema } from '@repo/contracts'
 import {
   ArgumentInvalidException,
   ConflictException,
+  EntitlementException,
   ExceptionBase,
-  NotFoundException
+  NotFoundException,
+  UnavailableException
 } from '#libs/exceptions/exception.base'
 import { HttpProblem, toProblem } from './problem'
 
@@ -16,8 +18,21 @@ class Invalid extends ArgumentInvalidException {
 class Clash extends ConflictException {
   readonly code = 'clash'
 }
+class ProviderDown extends UnavailableException {
+  readonly code = 'provider_down'
+}
 class Unmapped extends ExceptionBase {
   readonly code = 'unmapped'
+}
+class OverTheLimit extends EntitlementException {
+  readonly code = 'plan_limit_reached'
+  readonly entitlement = 'customers.max'
+  readonly limit = 100
+}
+class WithoutCapability extends EntitlementException {
+  readonly code = 'plan_required'
+  readonly entitlement = 'activity-log'
+  readonly limit = undefined
 }
 
 describe('HttpProblem', () => {
@@ -45,6 +60,14 @@ describe('HttpProblem', () => {
     expect(body).not.toHaveProperty('requestId')
   })
 
+  it('names the entitlement that refused, and the limit, when given (ADR 0063)', () => {
+    const body = new HttpProblem(403, 'plan_limit_reached', { entitlement: 'customers.max', limit: 100 }).toJSON()
+
+    expect(body).toMatchObject({ entitlement: 'customers.max', limit: 100 })
+    expect(apiProblemSchema.safeParse(body).success).toBe(true)
+    expect(new HttpProblem(403, 'plan_required', { entitlement: 'activity-log' }).toJSON()).not.toHaveProperty('limit')
+  })
+
   it('falls back to a generic title for an unknown status', () => {
     expect(new HttpProblem(499, 'odd').toJSON().title).toBe('Error')
   })
@@ -70,6 +93,22 @@ describe('toProblem', () => {
     expect(problem.detail).toBe(error.message)
   })
 
+  it("maps a refusal of the organization's plan to 403, naming the entitlement and the limit (ADR 0063)", () => {
+    const { problem, expected } = toProblem(new OverTheLimit('The plan allows 100.'))
+
+    expect(expected).toBe(true)
+    expect(problem.toJSON()).toEqual({
+      type: 'urn:problem:plan_limit_reached',
+      title: 'Forbidden',
+      status: 403,
+      code: 'plan_limit_reached',
+      detail: 'The plan allows 100.',
+      entitlement: 'customers.max',
+      limit: 100
+    })
+    expect(toProblem(new WithoutCapability('Not on this plan.')).problem.toJSON()).not.toHaveProperty('limit')
+  })
+
   it('reports the field of an invalid argument in errors[]', () => {
     const { problem } = toProblem(new Invalid('Too short', { field: 'name' }))
 
@@ -93,6 +132,15 @@ describe('toProblem', () => {
     expect(problem.code).toBe('service_unavailable')
     expect(problem.headers).toEqual({ 'Retry-After': '5' })
     expect(JSON.stringify(problem.toJSON())).not.toContain('10.0.0.1')
+  })
+
+  it('answers a dependency a use case found out of reach as the same 503, without its message', () => {
+    const { problem, expected } = toProblem(new ProviderDown('provider at 10.0.0.2 timed out'))
+
+    expect(expected).toBe(true)
+    expect(problem.status).toBe(503)
+    expect(problem.code).toBe('service_unavailable')
+    expect(JSON.stringify(problem.toJSON())).not.toContain('10.0.0.2')
   })
 
   it('answers any other error as an opaque 500', () => {

@@ -12,6 +12,7 @@ import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/or
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { membershipOf } from '../../../test-membership'
 import { OrganizationActivityPage } from './organization-activity-page'
 
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
@@ -46,12 +47,18 @@ function fakeApi(entries: AuditEntry[], { fail = false } = {}) {
 function renderPage({
   held = builtInRoles.owner as Permissions,
   locale = 'en',
-  api
+  api,
+  capabilities
 }: {
   held?: Permissions
   locale?: Locale
   api: ReturnType<typeof fakeApi>
+  /** What the plan grants, when the test is about it: the trial's otherwise. */
+  capabilities?: OrganizationMembership['entitlements']['capabilities']
 }) {
+  const base = membershipOf(['owner'], held as OrganizationMembership['permissions'])
+  const membership =
+    capabilities === undefined ? base : { ...base, entitlements: { ...base.entitlements, capabilities } }
   const history = createMemoryHistory()
   history.set({ value: '/acme/settings/activity' })
   render(() => (
@@ -66,10 +73,7 @@ function renderPage({
                     <Route
                       path="/:orgSlug"
                       component={(props: ParentProps) => (
-                        <CurrentOrganizationProvider
-                          organization={acme}
-                          membership={{ roles: ['owner'], permissions: held as OrganizationMembership['permissions'] }}
-                        >
+                        <CurrentOrganizationProvider organization={acme} membership={membership}>
                           {props.children}
                         </CurrentOrganizationProvider>
                       )}
@@ -128,6 +132,23 @@ describe('OrganizationActivityPage (ADR 0061)', () => {
     expect(await screen.findByText('Edited a customer: nickname · Nov 7, 2026, 10:00 AM UTC')).toBeInTheDocument()
   })
 
+  it("says what a provider's notice changed in the subscription, by the system (ADR 0063)", async () => {
+    renderPage({
+      api: fakeApi([
+        entry('e1', {
+          actor: { kind: 'system' },
+          resource: { type: 'subscription', id: 'org-1' },
+          action: 'payment-recovered',
+          fields: ['status', 'pastDueSince', 'paidThrough']
+        })
+      ])
+    })
+
+    expect(
+      await screen.findByText('Received the late payment: status, late since, paid until · Nov 7, 2026, 10:00 AM UTC')
+    ).toBeInTheDocument()
+  })
+
   it('says nothing has changed yet, and draws no pager', async () => {
     renderPage({ api: fakeApi([]) })
 
@@ -181,5 +202,32 @@ describe('OrganizationActivityPage (ADR 0061)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Atividade' })).toBeInTheDocument()
     expect(await screen.findByText('Alguém que não é mais membro')).toBeInTheDocument()
     expect(screen.getByText(/^Editou um cliente: nome, e-mail · /)).toBeInTheDocument()
+  })
+
+  describe('on a plan without the activity log (ADR 0063)', () => {
+    it('tells the owner it comes with a larger plan, with the way to the plans, and reads nothing', async () => {
+      const api = fakeApi([entry('e1')])
+      renderPage({ api, capabilities: [] })
+
+      expect(await screen.findByText('The activity log is not in your plan')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          'It comes with Pro. Activity is recorded on every plan and shows here once the plan includes it.'
+        )
+      ).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute('href', '/acme/settings/billing')
+      expect(api.calls).toEqual([])
+    })
+
+    it('tells another member that an owner can change the plan', async () => {
+      renderPage({ api: fakeApi([]), held: builtInRoles.admin as Permissions, capabilities: [] })
+
+      expect(
+        await screen.findByText(
+          'It comes with Pro. Activity is recorded on every plan and shows here once the plan includes it. An owner can change the plan.'
+        )
+      ).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'See plans' })).not.toBeInTheDocument()
+    })
   })
 })

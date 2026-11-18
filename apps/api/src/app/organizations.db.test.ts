@@ -1,14 +1,16 @@
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
-import { auditEntryPageSchema, invitationSchema, organizationMembershipSchema } from '@repo/contracts'
+import { auditEntryPageSchema, invitationSchema, organizationMembershipSchema, trial } from '@repo/contracts'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
+import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { SystemClock } from '#libs/adapters/system-clock'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../test/reset-database'
@@ -30,7 +32,9 @@ describe('organizations through Better Auth (ADR 0033)', () => {
    * Not started: a test runs the jobs with `drain()` before it reads what was sent (ADR 0057). On the
    * system clock, so emails asked for one request after another are sent in that order.
    */
+  const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    billing,
     db,
     clock: new SystemClock(),
     logger,
@@ -61,8 +65,10 @@ describe('organizations through Better Auth (ADR 0033)', () => {
       proxySecret: undefined,
       db,
       jobs: jobs.queue,
+      jobsOn: jobs.bind,
       authSecret: 'fedcba9876543210'.repeat(2),
-      google: undefined
+      google: undefined,
+      billing
     })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
@@ -196,10 +202,36 @@ describe('organizations through Better Auth (ADR 0033)', () => {
       const response = await me(id, person(people, 'member').cookie)
 
       expect(response.status).toBe(200)
-      expect(organizationMembershipSchema.parse(await response.json())).toEqual({
+      expect(organizationMembershipSchema.parse(await response.json())).toMatchObject({
         roles: ['member'],
         permissions: { ac: ['read'], customer: ['read', 'create', 'update'] }
       })
+    })
+
+    it('answers the subscription with what it lets members do, and what it grants: a new organization is on trial (ADR 0063)', async () => {
+      const { id, people } = await organization({ member: 'member' })
+      const { rows } = await sql<{
+        createdAt: Date
+      }>`select "createdAt" from auth.organization where id = ${id}`.execute(db)
+      const trialEndsAt = new Date(
+        (rows[0] as { createdAt: Date }).createdAt.getTime() + trial.days * 24 * 60 * 60 * 1000
+      )
+
+      const answer = organizationMembershipSchema.parse(await (await me(id, person(people, 'member').cookie)).json())
+
+      expect(answer.subscription).toEqual({
+        status: 'trialing',
+        access: 'full',
+        plan: null,
+        nextPlan: null,
+        trialEndsAt: trialEndsAt.toISOString(),
+        periodStartsAt: null,
+        paidThrough: null,
+        pastDueSince: null,
+        cancelAtPeriodEnd: false,
+        checkout: null
+      })
+      expect(answer.entitlements).toEqual(trial.entitlements)
     })
 
     it('answers the permissions of a custom role', async () => {
@@ -207,7 +239,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
 
       const response = await me(id, person(people, 'editor').cookie)
 
-      expect(organizationMembershipSchema.parse(await response.json())).toEqual({
+      expect(organizationMembershipSchema.parse(await response.json())).toMatchObject({
         roles: ['editor'],
         permissions: { invitation: ['create'] }
       })
@@ -565,6 +597,10 @@ describe('organizations through Better Auth (ADR 0033)', () => {
           )
         )
       ).toEqual({ status: 400, code: 'OWNER_ONLY_PERMISSION' })
+      expect(await outcome(createRole(people.owner.cookie, id, 'payer', { billing: ['manage'] }))).toEqual({
+        status: 400,
+        code: 'OWNER_ONLY_PERMISSION'
+      })
     })
 
     it('refuses a role name that is not a lowercase word', async () => {

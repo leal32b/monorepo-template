@@ -10,7 +10,7 @@ describe('DeleteCustomerService', () => {
     const { repository, audit, unitOfWork, clock, ids } = testCustomers()
     const create = new CreateCustomerService(unitOfWork, clock, ids)
     const archive = new ArchiveCustomerService(unitOfWork, clock, ids)
-    await create.execute('org-1', { name: 'Ada' }, byAda)
+    await create.execute('org-1', { name: 'Ada' }, byAda, null)
     return {
       repository,
       audit,

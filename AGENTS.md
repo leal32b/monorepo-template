@@ -54,7 +54,9 @@ docs/                # using the template, operations, testing, security, adr
 - **Versions** live in the pnpm catalog of `pnpm-workspace.yaml`; package.json files say `catalog:`.
 - **Imports:** aliases are Node subpath imports (`#libs/...`) inside a package ([ADR 0009](docs/adr/0009-subpath-imports-for-aliases.md)); a package declares every dependency it imports.
 - **API:** plain `node:http`, no Express/Fastify; domain is pure (no I/O, clock or randomness);
-  use cases in `commands|queries/<use-case>/`; `GET` never writes.
+  use cases in `commands|queries/<use-case>/`, a service and its test each; a module declares its routes
+  in `<module>.routes.ts`, with no controller class ([ADR 0065](docs/adr/0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md));
+  `GET` never writes.
 - **Web:** FSD checked by Steiger ([ADR 0010](docs/adr/0010-web-architecture-feature-sliced-design.md)):
   imports go downwards only, slices and `shared` segments are reached through their `index.ts`.
 - **`index.ts` files contain re-exports only** (they are excluded from coverage).
@@ -74,6 +76,10 @@ docs/                # using the template, operations, testing, security, adr
   a missing component is added there, with tests. Colours are roles only (`bg-primary`,
   `text-muted-foreground`), held to WCAG contrast ([ADR 0016](docs/adr/0016-design-system-on-kobalte-and-unocss.md));
   no Kobalte import and no literal colour in `apps/web`.
+- **List screens:** a list read a page at a time holds its filter, search and page in `createList` and its
+  statuses in `createListStatus` (`#shared/lib`), draws its search and filter in `ListToolbar` and its
+  pager in `ListPager`, and writes only its own rows, panels and words
+  ([ADR 0066](docs/adr/0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md)).
 - **i18n:** UI text lives in typed dictionaries, one file per language ([ADR 0011](docs/adr/0011-typed-i18n-dictionaries.md)).
 - **Contracts:** every request/response is a Zod schema in `@repo/contracts`, except `/api/auth/*`,
   which keeps Better Auth's shapes ([ADR 0020](docs/adr/0020-authenticate-with-better-auth.md)).
@@ -82,10 +88,18 @@ docs/                # using the template, operations, testing, security, adr
   draw them, through the formatters of `#shared/lib` ([ADR 0053](docs/adr/0053-keep-time-zone-and-currency-on-the-organization-and-money-in-minor-units.md)).
 - **Auth:** `better-auth` stays in `modules/identity/infrastructure/` (dependency-cruiser checks it).
   A route that needs a session calls `requireActor` from `#modules/identity/index` and gets an
-  `Actor` or a 401; it never refreshes the session. A route without a session lives under
+  `Actor` or a 401; it never refreshes the session. A tenant route is declared with `tenantRoutes`, which
+  runs the tenant guard with the route's permission, refuses a capability the plan lacks and a `post` or
+  `put` while the organization is read only, and hands the use case the organization, the parsed input,
+  the actor and the member; a module never calls `requireMember`. A route without a session lives under
   `/api/public/organizations/:organizationSlug` and is built with `publicRoute`, which counts it against a
   rate limit before resolving the slug; it returns a `public…` schema of its own
   ([ADR 0059](docs/adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md)).
+- **Webhooks:** a route a provider calls has no session and no slug: it is `POST /api/webhooks/<provider>`, still
+  behind the Worker's secret, built with `webhookRoute`, which authenticates the raw body before parsing it, records
+  the event id in `webhook_event` and enqueues one job in the same transaction, then answers 200. The job reads the
+  provider's current state and never applies the notice's payload. Code checks entitlements (`entitlement`), never a
+  plan's name ([ADR 0063](docs/adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
 - **Database:** Postgres ([ADR 0003](docs/adr/0003-postgres-as-the-database.md)).
 - **Language:** code, comments and docs in English; conversation with the owner in pt-BR.
 

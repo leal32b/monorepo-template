@@ -6,6 +6,7 @@ import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/or
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { membershipOf } from '../../../test-membership'
 import { OrganizationMembersPage } from './organization-members-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -103,7 +104,7 @@ function renderPage({
                       component={(props: ParentProps) => (
                         <CurrentOrganizationProvider
                           organization={acme}
-                          membership={{ roles, permissions: permissions as OrganizationMembership['permissions'] }}
+                          membership={membershipOf(roles, permissions as OrganizationMembership['permissions'])}
                         >
                           {props.children}
                         </CurrentOrganizationProvider>

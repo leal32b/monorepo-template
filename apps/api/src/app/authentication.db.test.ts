@@ -6,10 +6,12 @@ import { apiProblemSchema, identityOptionsSchema, meResponseSchema } from '@repo
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
+import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { SystemClock } from '#libs/adapters/system-clock'
+import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
 import { emailTexts } from '#modules/identity/emails/email-texts'
@@ -69,7 +71,9 @@ describe('authentication through Better Auth (ADR 0020)', () => {
    * Not started: a test runs the jobs with `drain()` before it reads what was sent (ADR 0057). On the
    * system clock, so emails asked for one request after another are sent in that order.
    */
+  const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    billing,
     db,
     clock: new SystemClock(),
     logger,
@@ -106,8 +110,10 @@ describe('authentication through Better Auth (ADR 0020)', () => {
       proxySecret: undefined,
       db,
       jobs: jobs.queue,
+      jobsOn: jobs.bind,
       authSecret: 'fedcba9876543210'.repeat(2),
-      google: googleClient
+      google: googleClient,
+      billing
     })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
@@ -554,7 +560,8 @@ describe('authentication through Better Auth (ADR 0020)', () => {
       jobs: jobs.queue,
       webOrigin,
       secret: 'fedcba9876543210'.repeat(2),
-      google: undefined
+      google: undefined,
+      organizationDeletion: { beforeDelete: async () => undefined }
     })
 
     const response = await auth.handler(

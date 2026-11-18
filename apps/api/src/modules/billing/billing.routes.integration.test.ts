@@ -1,0 +1,252 @@
+import {
+  apiProblemSchema,
+  billingPageSchema,
+  billingSchema,
+  type Permissions,
+  webhookReceiptSchema
+} from '@repo/contracts'
+import { AsaasBillingProvider } from '#libs/adapters/asaas-billing-provider'
+import { type BillingNotice, type BillingProvider, PayerRequiredException } from '#libs/ports/billing-provider.port'
+import { serveRoutes } from '#modules/identity/testing/serve-routes'
+import { registerBillingRoutes } from './billing.routes'
+import { billingKit, kitToken } from './testing/billing-kit'
+import { subscribed } from './testing/subscribed'
+
+const owner: Permissions = { billing: ['manage'] }
+const base = '/api/organizations/org-1/billing'
+const returnTo = '/acme/settings/billing'
+
+/** The routes behind the real pipeline, with the tenant guard on fakes and billing on the kit, or on `provider`. */
+async function serve(provider?: BillingProvider) {
+  const kit = billingKit()
+  /** The notices taken in, as the webhook inbox would record them. */
+  const received: BillingNotice[] = []
+  const inbox = {
+    receive: async (_source: string, notice: BillingNotice) => {
+      received.push(notice)
+      return true
+    }
+  }
+  const { signInAs, call, code, origin } = await serveRoutes((router, { session, membership, logger }) =>
+    registerBillingRoutes(router, {
+      session,
+      membership,
+      unitOfWork: kit.unitOfWork,
+      provider: provider ?? kit.provider,
+      clock: kit.clock,
+      ids: kit.ids,
+      webOrigin: 'http://localhost:5173',
+      inbox,
+      logger
+    })
+  )
+  const deliver = (provider: string, body: unknown, token: string | null = kitToken) =>
+    fetch(`${origin}/api/webhooks/${provider}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token === null ? {} : { 'fake-billing-token': token }) },
+      body: JSON.stringify(body)
+    })
+  return { ...kit, signInAs, call, code, received, deliver, origin }
+}
+
+describe('the billing routes (ADR 0063)', () => {
+  it('reads the plan page, then opens a first checkout and shows its page', async () => {
+    const { signInAs, call } = await serve()
+    signInAs(owner, {
+      subscription: { status: 'trialing', plan: null, trialEndsAt: new Date('2026-11-25T12:00:00.000Z') }
+    })
+
+    const before = billingSchema.parse(await (await call('GET', base)).json())
+    const opened = await call('POST', `${base}/checkout`, { plan: 'pro', method: 'card', version: 0, returnTo })
+    const after = billingSchema.parse(await (await call('GET', base)).json())
+
+    expect(before).toMatchObject({
+      version: 0,
+      subscription: { status: 'trialing', trialEndsAt: '2026-11-25T12:00:00.000Z' }
+    })
+    expect(opened.status).toBe(200)
+    expect(billingPageSchema.parse(await opened.json())).toEqual({
+      url: `http://localhost:5173${returnTo}?checkout=returned`
+    })
+    expect(after).toMatchObject({
+      version: 2,
+      checkoutUrl: expect.any(String),
+      subscription: { checkout: { plan: 'pro' } }
+    })
+  })
+
+  it('refuses a payer whose CPF or CNPJ fails its check digits, and says when the provider needs one (ADR 0069)', async () => {
+    const { signInAs, call, provider } = await serve()
+    signInAs(owner, { subscription: { status: 'trialing', plan: null } })
+    const input = { plan: 'basic', method: 'pix', version: 0, returnTo }
+
+    const invalid = await call('POST', `${base}/checkout`, {
+      ...input,
+      payer: { name: 'Ana', taxId: '52998224724', email: 'ana@example.com' }
+    })
+    vi.spyOn(provider, 'startCheckout').mockRejectedValueOnce(new PayerRequiredException())
+    const missing = await call('POST', `${base}/checkout`, input)
+
+    expect(invalid.status).toBe(400)
+    expect(apiProblemSchema.parse(await invalid.json())).toMatchObject({ code: 'validation_failed' })
+    expect(missing.status).toBe(400)
+    expect(apiProblemSchema.parse(await missing.json())).toMatchObject({ code: 'payer_required' })
+  })
+
+  it('lets the owner pay while the organization is read only', async () => {
+    const { signInAs, call } = await serve()
+    signInAs(owner, { subscription: { status: 'trialing', plan: null, access: 'read-only' } })
+
+    const response = await call('POST', `${base}/checkout`, { plan: 'basic', method: 'boleto', version: 0, returnTo })
+
+    expect(response.status).toBe(200)
+  })
+
+  it('schedules a downgrade, withdraws it, cancels and keeps the plan, each answering 204', async () => {
+    const kit = await serve()
+    kit.signInAs(owner)
+    const row = await subscribed(kit, { plan: 'pro' })
+
+    expect((await kit.call('PUT', `${base}/plan`, { plan: 'basic', version: row.version })).status).toBe(204)
+    expect((await kit.call('PUT', `${base}/plan`, { plan: 'pro', version: row.version + 1 })).status).toBe(204)
+    expect((await kit.call('POST', `${base}/cancel`, { version: row.version + 2 })).status).toBe(204)
+    expect((await kit.call('POST', `${base}/resume`, { version: row.version + 3 })).status).toBe(204)
+    expect((await kit.entries()).map((entry) => entry.action)).toEqual([
+      'cancellation-withdrawn',
+      'cancellation-scheduled',
+      'downgrade-withdrawn',
+      'downgrade-scheduled'
+    ])
+  })
+
+  it('drops the open checkout, and reads the page for what is overdue', async () => {
+    const kit = await serve()
+    kit.signInAs(owner)
+    const row = await subscribed(kit)
+    await kit.call('POST', `${base}/checkout`, { plan: 'pro', method: 'pix', version: row.version, returnTo })
+
+    expect((await kit.call('DELETE', `${base}/checkout`)).status).toBe(204)
+    expect(billingPageSchema.parse(await (await kit.call('GET', `${base}/payment-page`)).json())).toEqual({ url: null })
+  })
+
+  it('says why a change was refused, with a 409 and its code', async () => {
+    const kit = await serve()
+    kit.signInAs(owner)
+    const row = await subscribed(kit, { plan: 'pro' })
+
+    expect(await kit.code(await kit.call('PUT', `${base}/plan`, { plan: 'basic', version: 9 }))).toEqual({
+      status: 409,
+      code: 'subscription_changed'
+    })
+    expect(
+      await kit.code(
+        await kit.call('POST', `${base}/checkout`, { plan: 'basic', method: 'card', version: row.version, returnTo })
+      )
+    ).toEqual({
+      status: 409,
+      code: 'plan_change_not_allowed'
+    })
+  })
+
+  it('answers 503 when the provider is out of reach, and nothing has changed', async () => {
+    const kit = await serve()
+    kit.signInAs(owner)
+    kit.provider.failNextCall()
+
+    const response = await kit.call('POST', `${base}/checkout`, { plan: 'pro', method: 'card', version: 0, returnTo })
+
+    expect(response.status).toBe(503)
+    expect(apiProblemSchema.parse(await response.json()).code).toBe('service_unavailable')
+    expect(await kit.subscriptions.find('org-1')).toMatchObject({ checkout: null })
+  })
+
+  it('refuses a path of the web that is a whole URL', async () => {
+    const { signInAs, call, code } = await serve()
+    signInAs(owner)
+
+    expect(
+      await code(
+        await call('POST', `${base}/checkout`, {
+          plan: 'pro',
+          method: 'card',
+          version: 0,
+          returnTo: 'https://evil.example'
+        })
+      )
+    ).toEqual({ status: 400, code: 'validation_failed' })
+  })
+
+  it.each([
+    ['GET', base, undefined],
+    ['GET', `${base}/payment-page`, undefined],
+    ['POST', `${base}/checkout`, { plan: 'pro', method: 'card', version: 0, returnTo }],
+    ['DELETE', `${base}/checkout`, undefined],
+    ['PUT', `${base}/plan`, { plan: 'basic', version: 0 }],
+    ['POST', `${base}/cancel`, { version: 0 }],
+    ['POST', `${base}/resume`, { version: 0 }]
+  ])('refuses %s %s to a member who is not the owner, whatever else they hold', async (method, path, body) => {
+    const { signInAs, call, code, subscriptions } = await serve()
+    signInAs({ organization: ['update'], member: ['create', 'update', 'delete'], customer: ['read', 'create'] })
+
+    expect(await code(await call(method, path, body))).toEqual({ status: 403, code: 'permission_denied' })
+    expect(await subscriptions.find('org-1')).toBeNull()
+  })
+
+  describe("the provider's webhook", () => {
+    it('takes a command to the fake in, with no session, and answers the receipt', async () => {
+      const kit = await serve()
+      await subscribed(kit)
+
+      const response = await kit.deliver('fake', { command: 'payment.fail', organizationId: 'org-1' })
+
+      expect(response.status).toBe(200)
+      expect(webhookReceiptSchema.parse(await response.json())).toEqual({ received: true })
+      expect(kit.received).toEqual([
+        expect.objectContaining({ eventId: expect.any(String), subscriptionId: expect.any(String) })
+      ])
+    })
+
+    it('refuses a forged or missing token with a 401, taking nothing in', async () => {
+      const kit = await serve()
+
+      expect((await kit.deliver('fake', { command: 'payment.fail', organizationId: 'org-1' }, 'guess')).status).toBe(
+        401
+      )
+      expect((await kit.deliver('fake', { command: 'payment.fail', organizationId: 'org-1' }, null)).status).toBe(401)
+      expect(kit.received).toEqual([])
+    })
+
+    it('answers 404 for a provider that is not the one configured', async () => {
+      const kit = await serve()
+
+      expect((await kit.deliver('asaas', { event: 'PAYMENT_CONFIRMED' })).status).toBe(404)
+    })
+
+    it('serves only Asaas once its key selects it: its notices are taken in, and the fake answers 404 (ADR 0064)', async () => {
+      const webhookToken = 'w'.repeat(40)
+      const asaas = new AsaasBillingProvider({
+        apiKey: `$aact_hmlg_${'k'.repeat(40)}`,
+        apiUrl: 'http://127.0.0.1:9/v3',
+        webhookToken,
+        clock: billingKit().clock
+      })
+      const kit = await serve(asaas)
+      const notice = {
+        id: 'evt_1',
+        event: 'SUBSCRIPTION_UPDATED',
+        subscription: { id: 'sub_1', customer: 'cus_1' }
+      }
+      const post = (provider: string, token: string) =>
+        fetch(`${kit.origin}/api/webhooks/${provider}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'asaas-access-token': token },
+          body: JSON.stringify(notice)
+        })
+
+      expect((await post('asaas', webhookToken)).status).toBe(200)
+      expect((await post('asaas', 'x'.repeat(40))).status).toBe(401)
+      expect((await kit.deliver('fake', { command: 'payment.fail', organizationId: 'org-1' })).status).toBe(404)
+      expect(kit.received).toEqual([{ eventId: 'evt_1', subscriptionId: 'sub_1', customerId: 'cus_1' }])
+    })
+  })
+})

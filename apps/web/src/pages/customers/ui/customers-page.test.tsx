@@ -12,6 +12,7 @@ import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/or
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { membershipOf } from '../../../test-membership'
 import { CustomersPage } from './customers-page'
 
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>
@@ -86,9 +87,16 @@ function fakeApi(initial: Customer[], over: { fail?: (method: string, path: stri
   return { fetch, calls, db }
 }
 
-type Options = { held?: Permissions; locale?: Locale; api: ReturnType<typeof fakeApi> }
+type Options = {
+  held?: Permissions
+  locale?: Locale
+  api: ReturnType<typeof fakeApi>
+  /** The caller's membership, when the test is about the plan: the roles' permissions on trial otherwise. */
+  membership?: OrganizationMembership
+}
 
-function renderPage({ held = builtInRoles.owner as Permissions, locale = 'en', api }: Options) {
+function renderPage({ held = builtInRoles.owner as Permissions, locale = 'en', api, membership }: Options) {
+  const refresh = vi.fn(async () => undefined)
   const history = createMemoryHistory()
   history.set({ value: '/acme/customers' })
   render(() => (
@@ -105,7 +113,10 @@ function renderPage({ held = builtInRoles.owner as Permissions, locale = 'en', a
                       component={(props: ParentProps) => (
                         <CurrentOrganizationProvider
                           organization={acme}
-                          membership={{ roles: ['owner'], permissions: held as OrganizationMembership['permissions'] }}
+                          membership={
+                            membership ?? membershipOf(['owner'], held as OrganizationMembership['permissions'])
+                          }
+                          refresh={refresh}
                         >
                           {props.children}
                         </CurrentOrganizationProvider>
@@ -122,6 +133,7 @@ function renderPage({ held = builtInRoles.owner as Permissions, locale = 'en', a
       </ThemeProvider>
     </I18nProvider>
   ))
+  return { refresh }
 }
 
 /** The row of a customer: the box around its title, with its buttons. */
@@ -502,5 +514,145 @@ describe('CustomersPage', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Clientes' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Arquivar' })).toBeInTheDocument()
+  })
+
+  describe('the plan (ADR 0063)', () => {
+    const onPlan = (
+      over: Partial<OrganizationMembership['subscription']>,
+      limit: number | null,
+      held: Permissions = builtInRoles.owner as Permissions
+    ): OrganizationMembership => {
+      const membership = membershipOf(['owner'], held as OrganizationMembership['permissions'])
+      return {
+        ...membership,
+        subscription: { ...membership.subscription, status: 'active', plan: 'basic', ...over },
+        entitlements: { capabilities: [], limits: { 'customers.max': limit } }
+      }
+    }
+    const addRow = async () => rowOf('Add customer')
+
+    it('holds adding at the plan’s limit, telling the owner why and what to do', async () => {
+      renderPage({ api: fakeApi([ada, grace]), membership: onPlan({}, 2) })
+
+      const row = await addRow()
+      expect(row.getByRole('button', { name: 'Add' })).toBeDisabled()
+      expect(
+        row.getByText(
+          'Your plan allows 2 active customers. Choose a larger plan, or archive customers you no longer serve.'
+        )
+      ).toBeInTheDocument()
+    })
+
+    it('tells another member how room is made, and the owner of an upgrade on its way when it starts', async () => {
+      renderPage({ api: fakeApi([ada, grace]), membership: onPlan({}, 2, builtInRoles.member as Permissions) })
+
+      expect(
+        (await addRow()).getByText(
+          "This organization's plan allows 2 active customers. Archiving customers you no longer serve frees room; an owner can choose a larger plan."
+        )
+      ).toBeInTheDocument()
+    })
+
+    it('says an upgrade on its way starts when its payment is confirmed', async () => {
+      const upgrading = {
+        checkout: { kind: 'upgrade' as const, plan: 'pro' as const, amount: { amount: 2000, currency: 'BRL' as const } }
+      }
+      renderPage({ api: fakeApi([ada, grace]), membership: onPlan(upgrading, 2) })
+
+      expect(
+        (await addRow()).getByText(
+          'Your plan allows 2 active customers. The upgrade to Pro starts when its payment is confirmed.'
+        )
+      ).toBeInTheDocument()
+    })
+
+    it('offers adding below the limit and with no limit', async () => {
+      renderPage({ api: fakeApi([ada, grace]), membership: onPlan({}, null) })
+
+      expect((await addRow()).getByRole('button', { name: 'Add' })).toBeEnabled()
+    })
+
+    it('explains a refusal by the limit, keeping what was typed, with the way to the plans', async () => {
+      const api = fakeApi([ada], {
+        fail: (method, path) =>
+          method === 'POST' && path.endsWith('/customers')
+            ? Response.json(
+                {
+                  type: 'urn:problem:plan_limit_reached',
+                  title: 'Limit',
+                  status: 403,
+                  code: 'plan_limit_reached',
+                  entitlement: 'customers.max',
+                  limit: 1
+                },
+                { status: 403 }
+              )
+            : undefined
+      })
+      const { refresh } = renderPage({ api, membership: onPlan({}, 2) })
+      press('Add', await addRow())
+      type('Name', 'Linus Torvalds')
+      press('Add customer')
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent(
+        'Your plan allows 1 active customers. Choose a larger plan, or archive customers you no longer serve.'
+      )
+      expect(within(alert).getByRole('link', { name: 'See plans' })).toHaveAttribute('href', '/acme/settings/billing')
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Linus Torvalds')
+      expect(refresh).toHaveBeenCalled()
+    })
+
+    it('says why a customer cannot be restored past the limit', async () => {
+      const archived = customer('c3', 'Hedy Lamarr', { archivedAt })
+      const api = fakeApi([ada, archived], {
+        fail: (_method, path) => (path.endsWith('/restore') ? problem('plan_limit_reached', 403) : undefined)
+      })
+      renderPage({ api, membership: onPlan({}, 1, builtInRoles.member as Permissions) })
+      fireEvent.click(await screen.findByRole('radio', { name: 'Archived' }))
+      const row = await rowOf('Hedy Lamarr')
+      press('Restore', row)
+
+      expect(
+        await row.findByText(
+          "This organization's plan allows 1 active customers. Archiving customers you no longer serve frees room; an owner can choose a larger plan."
+        )
+      ).toBeInTheDocument()
+    })
+
+    it('draws its writes disabled while read only, with the reason, and still deletes', async () => {
+      const archived = customer('c3', 'Hedy Lamarr', { archivedAt })
+      renderPage({ api: fakeApi([ada, archived]), membership: onPlan({ access: 'read-only' }, null) })
+
+      const add = await addRow()
+      expect(add.getByRole('button', { name: 'Add' })).toBeDisabled()
+      expect(add.getByText('Read only until the plan is paid')).toBeInTheDocument()
+      const row = await rowOf('Ada Lovelace')
+      expect(row.getByRole('button', { name: 'Edit' })).toBeDisabled()
+      expect(row.getByRole('button', { name: 'Archive' })).toBeDisabled()
+      expect(row.getByText('Read only until the plan is paid')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Archived' }))
+      const gone = await rowOf('Hedy Lamarr')
+      expect(gone.getByRole('button', { name: 'Restore' })).toBeDisabled()
+      expect(gone.getByRole('button', { name: 'Delete' })).toBeEnabled()
+    })
+
+    it('explains a write refused as read only by a stale screen, and reads the membership again', async () => {
+      const api = fakeApi([ada], {
+        fail: (method) => (method === 'POST' ? problem('subscription_read_only', 403) : undefined)
+      })
+      const { refresh } = renderPage({ api, membership: onPlan({}, null, builtInRoles.member as Permissions) })
+      press('Add', await addRow())
+      type('Name', 'Linus Torvalds')
+      press('Add customer')
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent(
+        'This organization is read only until an owner pays. You can still view everything.'
+      )
+      expect(within(alert).queryByRole('link')).not.toBeInTheDocument()
+      expect(refresh).toHaveBeenCalled()
+    })
   })
 })

@@ -2,6 +2,7 @@ import { builtInRoles } from '@repo/contracts'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { rememberSession } from '#entities/sessions'
 import { createApiClient, createAuthClient, createRequests } from '#shared/api'
+import { membershipOf } from '../test-membership'
 import { App } from './app'
 
 /** Follows a link the way the router takes one, as a link elsewhere on the page or the palette does. */
@@ -20,7 +21,7 @@ describe('App', () => {
 
   it('opens the signed-in user’s organization at the root, with its home in the app frame', async () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
-    const membership = { roles: ['owner'], permissions: { organization: ['update', 'delete'] } }
+    const membership = membershipOf(['owner'], { organization: ['update', 'delete'] })
     const client = createApiClient({
       fetch: async (path) => Response.json(path === '/api/organizations/org-1/me' ? membership : null)
     })
@@ -378,7 +379,7 @@ describe('App', () => {
 
   describe('the settings of the organization', () => {
     const user = { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', twoFactorEnabled: false, locale: 'en' }
-    const owner = { roles: ['owner'], permissions: { organization: ['update', 'delete'] } }
+    const owner = membershipOf(['owner'], { organization: ['update', 'delete'] })
 
     /** Ada in Acme, which she owns; every answer of the organization plugin is `true`. */
     const inAcme = () => {
@@ -443,7 +444,7 @@ describe('App', () => {
         fetch: async (path) => {
           asked.push(path)
           if (path === '/api/organizations/org-1/me') {
-            return Response.json({ roles: ['owner'], permissions: { customer: ['read', 'create'] } })
+            return Response.json(membershipOf(['owner'], { customer: ['read', 'create'] }))
           }
           return Response.json({
             items: [
@@ -502,7 +503,7 @@ describe('App', () => {
         fetch: async (path) => {
           asked.push(path)
           if (path === '/api/organizations/org-1/me') {
-            return Response.json({ roles: ['owner'], permissions: { audit: ['read'] } })
+            return Response.json(membershipOf(['owner'], { audit: ['read'] }))
           }
           return Response.json({
             items: [
@@ -539,7 +540,7 @@ describe('App', () => {
         fetch: async (path) => {
           asked.push(path)
           if (path === '/api/organizations/org-1/me') {
-            return Response.json({ roles: ['member'], permissions: builtInRoles.member })
+            return Response.json(membershipOf(['member'], builtInRoles.member))
           }
           return new Response(null, { status: 403 })
         }
@@ -551,6 +552,91 @@ describe('App', () => {
       await new Promise((resolve) => setTimeout(resolve, 50))
       expect(asked.filter((path) => path.includes('/audit-entries'))).toEqual([])
       expect(asked.filter((path) => path === '/api/organizations/org-1/me')).toHaveLength(1)
+    })
+
+    it('serves the plan page, the owner’s billing read as the address opens (ADR 0063)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/billing')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') return Response.json(membershipOf(['owner'], builtInRoles.owner))
+          return Response.json({
+            subscription: membershipOf([], {}).subscription,
+            version: 0,
+            reference: null,
+            checkoutUrl: null,
+            checkoutExpiresAt: null,
+            minimumCharge: { amount: 500, currency: 'BRL' }
+          })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Plan and billing' })).toBeInTheDocument()
+      expect(await screen.findByRole('region', { name: 'Your plan' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.endsWith('/billing'))).toEqual(['/api/organizations/org-1/billing'])
+      expect(asked.filter((path) => path === '/api/organizations/org-1/me')).toHaveLength(1)
+    })
+
+    it('asks a plain member for no billing, only who manages the plan (ADR 0042)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/billing')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me')
+            return Response.json(membershipOf(['member'], builtInRoles.member))
+          return new Response(null, { status: 403 })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByText('Ada Lovelace', { selector: 'p' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.includes('/billing'))).toEqual([])
+    })
+
+    it('asks for no billing at an address that names none of the user’s organizations', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/globex/settings/billing')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          return Response.json(null)
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.includes('/billing'))).toEqual([])
+    })
+
+    it('asks for no activity where the plan lacks it (ADR 0063)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/activity')
+      const asked: string[] = []
+      const membership = membershipOf(['owner'], { audit: ['read'] })
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') {
+            return Response.json({ ...membership, entitlements: { ...membership.entitlements, capabilities: [] } })
+          }
+          return new Response(null, { status: 403 })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByText('The activity log is not in your plan')).toBeInTheDocument()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(asked.filter((path) => path.includes('/audit-entries'))).toEqual([])
     })
 
     it('asks for no activity at an address that names none of the user’s organizations', async () => {
@@ -723,7 +809,7 @@ describe('App', () => {
     /** Ada owns Acme and Globex, so the home offers her the way to invite people. */
     const inTwo = () => {
       const client = createApiClient({
-        fetch: (path) => later(path.endsWith('/me') ? { roles: ['owner'], permissions: builtInRoles.owner } : null)
+        fetch: (path) => later(path.endsWith('/me') ? membershipOf(['owner'], builtInRoles.owner) : null)
       })
       const auth = createAuthClient({
         fetch: (input) => {
@@ -778,7 +864,7 @@ describe('App', () => {
       let joined = false
       const client = createApiClient({
         fetch: async (path) => {
-          if (path.endsWith('/me')) return Response.json({ roles: ['owner'], permissions: builtInRoles.owner })
+          if (path.endsWith('/me')) return Response.json(membershipOf(['owner'], builtInRoles.owner))
           if (path === '/api/invitations/inv-1') return Response.json(invitation)
           return Response.json(null)
         }

@@ -1,4 +1,5 @@
 import { render, screen } from '@solidjs/testing-library'
+import { membershipOf } from '../../../test-membership'
 import { CurrentOrganizationProvider, homeOf, useCurrentOrganization, useOrganization } from './current-organization'
 
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
@@ -15,7 +16,7 @@ function Rights() {
 
 describe('CurrentOrganizationProvider', () => {
   it('gives the screens the organization and what the caller may do, as the API resolved it', () => {
-    const membership = { roles: ['recruiter'], permissions: { invitation: ['create' as const] } }
+    const membership = membershipOf(['recruiter'], { invitation: ['create'] })
 
     render(() => (
       <CurrentOrganizationProvider organization={acme} membership={membership}>
@@ -24,6 +25,41 @@ describe('CurrentOrganizationProvider', () => {
     ))
 
     expect(screen.getByText('Acme as recruiter: invite true, delete false')).toBeInTheDocument()
+  })
+
+  it('hands a screen the way to read what the caller may do again', () => {
+    const refresh = vi.fn(async () => undefined)
+    function Again() {
+      const current = useOrganization()
+      return (
+        <button type="button" onClick={() => void current.refresh()}>
+          Read again
+        </button>
+      )
+    }
+
+    render(() => (
+      <CurrentOrganizationProvider organization={acme} membership={membershipOf([], {})} refresh={refresh}>
+        <Again />
+      </CurrentOrganizationProvider>
+    ))
+    screen.getByRole('button', { name: 'Read again' }).click()
+
+    expect(refresh).toHaveBeenCalledOnce()
+  })
+
+  it('reads nothing again where nothing put up a way to (a screen drawn on its own)', async () => {
+    let current: ReturnType<typeof useOrganization> | undefined
+    render(() => (
+      <CurrentOrganizationProvider organization={acme} membership={membershipOf([], {})}>
+        {(() => {
+          current = useOrganization()
+          return null
+        })()}
+      </CurrentOrganizationProvider>
+    ))
+
+    await expect(current?.refresh()).resolves.toBeUndefined()
   })
 
   it('is only for tenant screens', () => {

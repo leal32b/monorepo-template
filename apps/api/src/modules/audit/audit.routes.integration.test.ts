@@ -1,39 +1,23 @@
-import type { AddressInfo } from 'node:net'
-import { apiProblemSchema, auditEntryPageSchema } from '@repo/contracts'
+import { apiProblemSchema, auditEntryPageSchema, auditPageSize } from '@repo/contracts'
 import { InMemoryAuditTrail } from '#libs/adapters/in-memory-audit-trail'
 import { InMemoryUnitOfWork } from '#libs/adapters/in-memory-unit-of-work'
 import { anEntry } from '#libs/audit/testing/audit-trail.contract'
-import { HttpRouter } from '#libs/http/router'
-import { createHttpServer } from '#libs/http/server'
-import { memoryLogger } from '#libs/jobs/testing/memory-logger'
-import { FakeCurrentSession } from '#modules/identity/testing/fake-current-session'
-import { FakeMembership } from '#modules/identity/testing/fake-membership'
+import { serveRoutes } from '#modules/identity/testing/serve-routes'
 import { registerAuditRoutes } from './audit.routes'
-
-const closers: Array<() => Promise<void>> = []
-
-afterEach(async () => {
-  for (const close of closers.splice(0)) await close()
-})
 
 /** The route behind the real pipeline, with the tenant guard on fakes of its two ports. */
 async function serve() {
-  const session = new FakeCurrentSession()
-  const membership = new FakeMembership()
   const audit = new InMemoryAuditTrail()
-  const router = new HttpRouter()
-  registerAuditRoutes(router, { session, membership, unitOfWork: new InMemoryUnitOfWork({ audit }) })
-  const server = createHttpServer({ router, logger: memoryLogger().logger })
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
-  closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())))
-  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/organizations/org-1/audit-entries`
-
-  /** Ada, signed in to `org-1`, holding `permissions`. */
-  const signInWith = (permissions: { audit?: 'read'[] }) => {
-    session.actor = { userId: 'user-ada', email: 'ada@example.com', name: 'Ada' }
-    membership.add({ userId: 'user-ada', organizationId: 'org-1', roles: ['custom'], permissions }, 'Ada Lovelace')
+  const { signInAs, call } = await serveRoutes((router, { session, membership }) =>
+    registerAuditRoutes(router, { session, membership, unitOfWork: new InMemoryUnitOfWork({ audit }) })
+  )
+  return {
+    audit,
+    /** Ada, signed in to `org-1`, holding `permissions`, on a plan with every capability unless `plan` says otherwise. */
+    signInWith: (permissions: { audit?: 'read'[] }, plan: Parameters<typeof signInAs>[1] = {}) =>
+      signInAs(permissions, { name: 'Ada Lovelace', ...plan }),
+    get: (query = '') => call('GET', `/api/organizations/org-1/audit-entries${query}`)
   }
-  return { audit, signInWith, get: (query = '') => fetch(`${url}${query}`) }
 }
 
 describe('the audit trail route (ADR 0061)', () => {
@@ -51,6 +35,18 @@ describe('the audit trail route (ADR 0061)', () => {
     })
   })
 
+  it('reads the next page from the cursor it wrote', async () => {
+    const { audit, signInWith, get } = await serve()
+    signInWith({ audit: ['read'] })
+    for (let i = 0; i <= auditPageSize; i++) await audit.record(anEntry(`e${String(i).padStart(2, '0')}`))
+
+    const first = auditEntryPageSchema.parse(await (await get()).json())
+    const second = auditEntryPageSchema.parse(await (await get(`?before=${first.next}`)).json())
+
+    expect(first.items).toHaveLength(auditPageSize)
+    expect(second).toMatchObject({ items: [{ id: 'e00' }], next: null })
+  })
+
   it('refuses a member without it, and a caller without a session', async () => {
     const { signInWith, get } = await serve()
 
@@ -59,6 +55,26 @@ describe('the audit trail route (ADR 0061)', () => {
     const refused = await get()
     expect(refused.status).toBe(403)
     expect(apiProblemSchema.parse(await refused.json()).code).toBe('permission_denied')
+  })
+
+  it('refuses the trail to a plan without the activity log, naming the capability (ADR 0063)', async () => {
+    const { signInWith, get } = await serve()
+    signInWith({ audit: ['read'] }, { entitlements: { capabilities: [], limits: { 'customers.max': 100 } } })
+
+    const refused = await get()
+
+    expect(refused.status).toBe(403)
+    expect(apiProblemSchema.parse(await refused.json())).toMatchObject({
+      code: 'plan_required',
+      entitlement: 'activity-log'
+    })
+  })
+
+  it('keeps the trail readable while the organization is read only', async () => {
+    const { signInWith, get } = await serve()
+    signInWith({ audit: ['read'] }, { subscription: { status: 'cancelled', access: 'read-only' } })
+
+    expect((await get()).status).toBe(200)
   })
 
   it('refuses a cursor it did not write, and an unknown parameter', async () => {

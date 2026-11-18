@@ -59,12 +59,14 @@ describe('RoleForm', () => {
       expect(group('Roles').getAllByRole('checkbox')).toHaveLength(4)
     })
 
-    it('keeps the owner’s permission in the grid, disabled, saying why', () => {
+    it('keeps the owner’s permissions in the grid, disabled, saying why', () => {
       renderForm(vi.fn<Fetch>())
-      const ownerOnly = screen.getByRole('checkbox', { name: 'Delete the organization' })
 
-      expect(ownerOnly).toBeDisabled()
-      expect(ownerOnly).toHaveAccessibleDescription('Only the owner role holds this permission.')
+      for (const name of ['Delete the organization', 'Choose, pay for and cancel the plan']) {
+        const ownerOnly = screen.getByRole('checkbox', { name })
+        expect(ownerOnly).toBeDisabled()
+        expect(ownerOnly).toHaveAccessibleDescription('Only the owner role holds this permission.')
+      }
     })
 
     it('creates the role with the permissions chosen, the name cleaned', async () => {

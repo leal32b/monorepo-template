@@ -21,6 +21,7 @@ Neon, Render and Cloudflare are the template's own hosts; on others, the same si
 | Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, how many finished jobs, how many of our own rate-limit counters, and how many audit entries older than a year ([ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)) |
 | Rate limits | API log; the `rate_limit` table | `rate limited` when an address passes a limit of a public route, with the limit's name; which addresses are counting now |
 | Jobs | API log (or the worker's, `service: worker`); the `job` table | `job queue working` after every start; `job attempt failed` and `job failed` when a handler fails; what is waiting, running or failed |
+| Billing | API log; the `webhook_event`, `job` and `subscription` tables | `webhook received` per notice (`repeat: true` for one already taken in), `webhook refused` (warn), `billing synced` with the audit action, `billing event ignored`, and at error `billing duplicate subscription` or `billing reference names another organization` |
 
 ## Reading the API log
 
@@ -156,6 +157,174 @@ where action = 'created' and actor_kind = 'visitor' and at > now() - interval '1
 group by organization_id order by count(*) desc;
 ```
 
+## Billing and the provider's webhook
+
+A provider's notice arrives at `POST <web origin>/api/webhooks/<provider>` through the Worker
+([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md),
+[ADR 0067](adr/0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md)). Only the
+configured provider's path exists. The route authenticates the notice, records its event id in
+`webhook_event` and enqueues one `billing.sync-subscription` job in the same transaction, then
+answers 200; a repeat answers 200 and enqueues nothing. The job reads the provider's current state
+and writes it into the organization's `subscription` row, with an audit entry by the system. With
+no provider key set the API bills through the fake, which takes commands at
+`/api/webhooks/fake` (`.env.example` lists them); env validation refuses it when `WEB_ORIGIN` is
+https.
+
+What arrived and what it did, in the database's SQL console:
+
+```sql
+-- The last notices taken in, per provider.
+select source, event_id, received_at from webhook_event order by received_at desc limit 20;
+
+-- Their jobs: done, waiting for a retry, or failed (the payload is the provider's ids, never personal data).
+select id, state, attempts, last_error, payload, created_at from job
+where kind in ('billing.sync-subscription', 'billing.cancel-at-provider') order by created_at desc limit 20;
+
+-- An organization's subscription and its last changes.
+select s.status, s.plan, s.next_plan, s.paid_through, s.past_due_since, s.cancel_at_period_end,
+       s.checkout_kind, s.checkout_plan, s.provider_subscription_id, s.version
+from subscription s join auth.organization o on o.id = s.organization_id where o.slug = '<slug>';
+select at, actor_kind, action, fields from audit_entry
+where resource_type = 'subscription' and resource_id = '<organization id>' order by at desc limit 20;
+```
+
+**A dead billing job.** `job failed` with `kind: billing.sync-subscription` means the provider could
+not be read for about 43 minutes (its five attempts), or the row kept moving under it. Nothing is
+lost: the next notice for that subscription reads the whole state again. To apply the state now,
+once the provider answers, put the job back as any other (the `update job …` of
+[Background jobs](#background-jobs)): it reads the provider again, so running it twice is safe. A
+failed `billing.cancel-at-provider` left a deleted organization's subscription live at the
+provider: put it back, or cancel the subscription in the provider's dashboard.
+
+**Replaying a notice** the API never took in (a webhook down for longer than the provider resends,
+or an event the dashboard lists but `webhook_event` does not): resend it from the provider's
+dashboard, or enqueue its sync by hand with the ids it names, which reads the current state:
+
+```sql
+insert into job (id, kind, payload, run_at, created_at)
+values (gen_random_uuid()::text, 'billing.sync-subscription',
+        '{"provider": "asaas", "eventId": "manual-<date>", "subscriptionId": "<provider subscription id>"}',
+        now(), now());
+```
+
+**A provider whose queue stopped.** Asaas interrupts its webhook queue after 15 failed deliveries in
+a row and keeps events for 14 days ([ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md)).
+Signs: no `webhook received` for a while, and owners whose page keeps saying the payment is being
+confirmed. Restart it in the dashboard, or with `PUT /v3/webhooks/{id}` and `{"interrupted": false}`;
+the stored events then arrive.
+
+## Asaas
+
+The first real provider ([ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md),
+[ADR 0069](adr/0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md)).
+`ASAAS_API_KEY` selects it; `ASAAS_API_URL` and `ASAAS_WEBHOOK_TOKEN` are then required, and env
+validation refuses a key whose prefix does not match the URL (`$aact_hmlg_` for
+`https://api-sandbox.asaas.com/v3`, `$aact_prod_` for `https://api.asaas.com/v3`) and a token that is
+not 32 to 255 characters without spaces, or that is the key. With the key set, `/api/webhooks/asaas`
+takes the notices and `/api/webhooks/fake` answers 404.
+
+### What the owner creates in Asaas
+
+The accounts and keys are the owner's; the template creates none. For each environment (the
+sandbox for staging, production for the product):
+
+1. **The account.** The sandbox at `sandbox.asaas.com`, separate from production. Production goes
+   through Asaas's approval of the business's documents: check that **Pix is on** once approved, since
+   Asaas may leave it off depending on the account's data.
+2. **An API key** (Integrações → Chaves de API), kept only in the GitHub secret `ASAAS_API_KEY`. Asaas
+   shows it once.
+3. **A webhook** (Integrações → Webhooks): URL `https://<web origin>/api/webhooks/asaas`, the token of
+   `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`), API version 3, enabled, either delivery mode, an
+   email for Asaas's notices about the queue, and these events: `PAYMENT_CREATED`, `PAYMENT_CONFIRMED`,
+   `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_REFUNDED`, `PAYMENT_CHARGEBACK_REQUESTED`,
+   `PAYMENT_CREDIT_CARD_CAPTURE_REFUSED`, `PAYMENT_DELETED`, `SUBSCRIPTION_CREATED`,
+   `SUBSCRIPTION_UPDATED`, `SUBSCRIPTION_INACTIVATED`, `SUBSCRIPTION_DELETED`, `CHECKOUT_PAID`,
+   `CHECKOUT_CANCELED`, `CHECKOUT_EXPIRED`. Another event is answered 200 and ignored.
+4. **Payer notices** (Configurações → Notificações): keep the due-date warning and the overdue notice,
+   the only billing emails until P1-6. The default overdue notice includes a phone call; turn it off
+   if that is too much for the product's customers.
+5. **Charges created 7 days ahead** of their due date (40 by default, 14 or 7 as options), so a payer
+   does not see next month's boleto at the start of this one.
+6. **Card tokenization** in production: Asaas changes a card subscription's value (an upgrade, a
+   downgrade) only with it, and enables it on request to its support. The sandbox has it.
+
+The plan page asks the owner whom the charges name (name, CPF or CNPJ, email) before a subscription's
+first payment: Asaas requires a customer's document. The template keeps none of it; Asaas holds the
+customer, whose `externalReference` is the organization's id.
+
+### Trying it in the sandbox
+
+A local API cannot receive Asaas's notices (they need a public https URL): `pnpm dev` keeps the fake.
+Try Asaas on a staging environment on https with the sandbox's key and URL and a sandbox webhook to
+its origin. Pay a card Checkout with Asaas's test cards; confirm a Pix or boleto charge with
+`POST /v3/sandbox/payment/{id}/confirm` and make one late with `POST /v3/sandbox/payment/{id}/overdue`
+(both with the sandbox key in `access_token`). Each change arrives as a notice; `webhook_event` and
+the job show what it did.
+
+### Rotating the webhook token
+
+The token is one value on both sides, so notices fail with 401 between the two changes, and Asaas
+sends them again; keep the gap short, well under fifteen failed deliveries.
+
+1. Generate a new token and set it as the `ASAAS_WEBHOOK_TOKEN` secret of the `production`
+   environment.
+2. Run the `Deploy` workflow, which pushes it to the API's host.
+3. As soon as it is live, set the same token on the webhook in Asaas (dashboard, or
+   `PUT /v3/webhooks/{id}` with `{"authToken": "<token>"}`).
+4. Check that `webhook refused` lines stop and `webhook received` ones come back. If the queue stopped
+   meanwhile, restart it (below).
+
+Rotate the API key the same way: create a new key in Asaas, set the secret, deploy, then disable the
+old key in Asaas. The key in use is the only one that must work: calls with the old one fail with 401
+and answer the owner 503 until the deploy is live.
+
+### When something goes wrong
+
+- **A dead billing job** (`job failed`, `kind: billing.sync-subscription`, `provider: asaas`): Asaas
+  could not be read for about 43 minutes, or answered something the adapter refuses. `last_error`
+  names the call, its status and Asaas's error codes (`… answered 401 invalid_access_token` is the
+  key; `… did not answer` is Asaas slow or out of reach; `answered 429` is a quota: 25,000 calls per
+  12 hours, or 50 reads at once). Fix the cause, then put the job back: it reads Asaas again. A job
+  whose `eventId` starts with `period-end:` is the reading of a scheduled end on its date; until it
+  runs, the organization stays on its plan with the end scheduled.
+- **The queue stopped** after fifteen failed deliveries: see "A provider whose queue stopped" above.
+  A free host asleep costs a failure or two (Asaas waits 10 s for an answer), which the next success
+  resets; a host down for hours can stop it.
+- **A boleto paid after its checkout lapsed.** A first boleto paid at the bank on its due date may
+  clear after the job deleted its subscription (the checkout lapses when the charge falls overdue).
+  The money arrives at Asaas with no subscription: refund it from the dashboard, and the owner
+  subscribes again.
+- **`payer_required` (400)** means a subscription's checkout was sent without the payer while Asaas
+  knows no customer for the organization; the plan page always sends it, so look for a client that
+  does not.
+
+### Not verified in the sandbox yet
+
+No sandbox key was available when the adapter was built, so it follows Asaas's documentation as read
+on 2026-11-13, and each point below is open until someone runs it in the sandbox. A point that the
+sandbox answers differently changes the adapter (ADR 0069 says what to revisit).
+
+| Point | What the documentation says, and what the adapter does | How to verify |
+| --- | --- | --- |
+| Pix through a recurring Checkout (ADR 0064, 1) | The recurring guide shows only card; Pix uses a subscription made by the API | Create a Checkout with `PIX` and `RECURRENT` |
+| Customer's CPF or CNPJ (2) | The reference requires `name` and `cpfCnpj`; the plan page asks for them | Create a customer without `cpfCnpj` |
+| An overdue card charge paid on its invoice with another card or method (3) | Not stated; "Pay now" opens the overdue charge's `invoiceUrl` | Force a card charge overdue, pay it on its invoice |
+| Cancelling at the period's end (4) | The adapter removes the next pending charge, sets `endDate` the day before `paid_through`, and clears it with `endDate: null` on resume, with `nextDueDate` back | Set and clear an end; check whether Asaas accepts `null`, whether it marks the subscription `EXPIRED` early, and that the next charge comes back |
+| A refused card tried again (5) | Not stated; a refusal shows as an overdue charge the next day | Subscribe with a test card that refuses |
+| Charges created ahead (6) | 40 days by default, 14 or 7 as options (subscriptions FAQ); set in the dashboard | Set 7 and watch `PAYMENT_CREATED` |
+| `PAYMENT_CONFIRMED` for a boleto (7) | The boleto flow shows `CONFIRMED`, then `RECEIVED` | Confirm a boleto in the sandbox |
+| Pix and boleto fees, card fee after three months (8) | Two values on the public price page | The account's own fee page |
+| A one-off charge beside the subscription, and a card `DETACHED` Checkout (9) | The reference lists card among Checkout's methods | Upgrade by card, by Pix and by boleto |
+| A new value on a charge already created (10, and ADR 0067) | Only with `updatePendingPayments: true`, which the adapter sends; card subscriptions need tokenization | Change a plan after the next charge exists |
+| The R$ 5.00 minimum per method (11) | The help centre's minimum; the API reference states none | Create charges of R$ 4.99 by each method |
+| A Checkout given `customer` creates the subscription under it, with our `externalReference` | Documented for `customer`; not for `externalReference`, so the adapter falls back to the customer's | Pay a card Checkout, read the subscription |
+| The Checkout's creation answers with `link` | The reference shows it, the guides only `id`; the adapter builds `…/checkoutSession/show?id=` otherwise | Create a Checkout |
+| Checkout items without `imageBase64` | The schema marks it required, every example omits it; the adapter omits it | Create a Checkout |
+| `callback.successUrl` on a subscription and a charge, to any domain | Documented field; a domain rule is not stated | Create both with the staging origin |
+| An API subscription's first charge exists at once | Charges due within the creation window are created ahead; the adapter answers 503 otherwise, and a retry reuses the subscription | Create a Pix subscription due today |
+| `GET /payments?checkoutSession=` lists a recurring Checkout's first charge | Documented filter | Pay a card Checkout, list its charges |
+| The job's reads, end to end | `subscription(id)` reads the subscription, its charges and, if needed, its customer | Point a staging API at the sandbox and replay a notice (the `insert into job` above) |
+
 ## Set up once per product
 
 - An uptime monitor (any free one) on `<web origin>/api/health` every 5 to 10 minutes, alerting on a
@@ -165,10 +334,13 @@ group by organization_id order by count(*) desc;
   triggered the run).
 - If the host's log retention is too short, a log drain to a log service; the lines are already JSON.
 - The API and the database in the same region. A signed-in request makes at least two sequential
-  database round trips (the session, then the membership with its roles), and a tenant route then
+  database round trips (the session, then the membership with its roles and the organization's
+  subscription, in one statement: [ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)), and a tenant route then
   opens a transaction for its own work (`begin`, the statement that sets the tenant, the query,
   `commit`: [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), so each millisecond between them counts about six times on every
-  tenant route. A public route makes two before its own work: the rate-limit counter, then the slug.
+  tenant route. A write limited by the plan (creating or restoring a customer) counts first, one
+  more statement in its transaction while the plan has a limit: eight round trips instead of seven.
+  A public route makes two before its own work: the rate-limit counter, then the slug.
 
 ## When something breaks
 
@@ -184,6 +356,10 @@ group by organization_id order by count(*) desc;
 | Visitors of one place (an office, a shop's own Wi-Fi) say a public page tells them to wait | They share one address and passed a limit: `rate limited` lines with that `limit`, and the address's row in [Public routes and rate limits](#public-routes-and-rate-limits). Delete the row to let them through now; raise the limit in `publicLimits` if it is too low for the product |
 | Every visitor is told to wait, on every public page | The `…:unknown` counter is growing: requests reach the API with no `X-Client-IP`, so they all share one count. The Worker sets it from `CF-Connecting-IP` ([ADR 0022](adr/0022-accept-api-requests-only-from-the-web-worker.md)); on another proxy, set the header to the client's address there |
 | A tenant's list fills with customers nobody knows | [Public routes and rate limits](#public-routes-and-rate-limits): the visitor-made rows per organization, and `rate limited` lines. From few addresses, the limit is holding and can be lowered; from many, put the host's rate limiting or a CAPTCHA in front of `/api/public/` |
+| Members of one organization are refused every change with `subscription_read_only`, or a create with `plan_limit_reached` | Expected while its trial is over, its payment is past the grace period, or its plan has ended, or once it holds as many active customers as its plan allows ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)). Its state: `select o.slug, o."createdAt", s.* from auth.organization o left join subscription s on s.organization_id = o.id where o.slug = '<slug>'`; no row means a trial of 14 days from `createdAt`. Nothing is deleted, and reads and deletions still work |
+| An owner paid, and the organization is still on trial, past due or on its old plan | [Billing and the provider's webhook](#billing-and-the-providers-webhook): the notice in `webhook_event`, its job's state, then the subscription row. No notice: the provider has not sent it (a boleto takes up to three business days to clear) or its queue stopped. A failed job: put it back. A notice ignored as `unknown customer`: the customer was created by hand at the provider, or belongs to a deleted organization |
+| `webhook refused` lines in the log | `reason: token does not match` from the provider's own addresses means its webhook secret differs from the API's: set the same value on both. From elsewhere, someone is probing the route: the refusal costs one hash and touches no table |
+| `billing duplicate subscription` or `billing reference names another organization` at error | Two live subscriptions for one organization (a retried checkout at a provider without idempotency keys): the job ended the one the row does not hold; refund it from the provider's dashboard if it was charged. A reference to another organization means a subscription was edited at the provider: nothing was applied; correct it there |
 | `job failed` in the log, or something that should have happened later did not | [Background jobs](#background-jobs): the failed rows and their `last_error`; fix the cause, then put them back |
 | Jobs wait and nothing runs them | No `job queue working` line after the last start means no worker runs: `JOB_WORKER=off` on the API with no worker process beside it, or the worker process is down (its log, `service: worker`). `job poll failed` means the database is out of reach. A delayed job that ran late on a free tier waited for the container to wake |
 | Emails do not arrive | API log (or the worker's): `job attempt failed` or `job failed` with `kind: identity.send-email`, and `err` with the provider's status and error code; the failed rows in [Background jobs](#background-jobs). No such line and no `job done` for the kind means no worker runs (the row above). A refusal from Resend names the cause: the key, or the sender domain in Resend (until it is verified, only the provider account's own address receives) |

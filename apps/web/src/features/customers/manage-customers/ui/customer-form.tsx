@@ -2,6 +2,8 @@ import { type Customer, customerLength } from '@repo/contracts'
 import { Button, Field, FormActions } from '@repo/ui'
 import { createSignal, Show } from 'solid-js'
 import { createCustomer, updateCustomer } from '#entities/customers'
+import { useCurrentOrganization } from '#entities/organizations'
+import { SeePlansLink, usePlanRefusal } from '#entities/subscriptions'
 import { type AuthFailure, callApi, useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { createFormChecks } from '#shared/lib'
@@ -29,11 +31,23 @@ const maxOf = (field: CustomerField) => (field === 'email' ? undefined : custome
  * Adds a customer or edits one, in the same fields. Only the name is asked for. The fields are checked on
  * submit, and again when one is left after that; an email another customer has is said under the email,
  * and what the user typed stays. An edit states the version it started from, so a customer someone else
- * saved meanwhile is refused instead of overwritten.
+ * saved meanwhile is refused instead of overwritten. A refusal by the plan (its limit of customers, or read
+ * only) says what it means and what to do, with the way to the plans for the owner, and has the screen read
+ * the membership again (ADR 0063).
  */
 export function CustomerForm(props: CustomerFormProps) {
   const api = useApi()
   const { t } = useI18n()
+  const current = useCurrentOrganization()
+  const refusal = usePlanRefusal()
+  /** What the plan's refusal says, on an organization's screen. */
+  const byPlan = (failed: AuthFailure) =>
+    current === undefined
+      ? undefined
+      : refusal.of(failed, 'customers.max', {
+          membership: current.membership,
+          manages: current.can('billing', 'manage')
+        })
   const [values, setValues] = createSignal<Record<CustomerField, string>>({
     name: props.customer?.name ?? '',
     email: props.customer?.email ?? '',
@@ -88,13 +102,18 @@ export function CustomerForm(props: CustomerFormProps) {
       props.onStale(kind)
     } else {
       setFailure(failed)
+      if (failed !== undefined && byPlan(failed) !== undefined) void current?.refresh()
     }
   }
 
   const message = (failed: AuthFailure) => {
+    const plan = byPlan(failed)
+    if (plan !== undefined) return plan.message
     const kind = customerFailureKind(failed)
     return kind === undefined ? undefined : t(`customers.errors.${kind as 'notAllowed'}`)
   }
+  const action = (failed: AuthFailure) =>
+    current !== undefined && byPlan(failed)?.offerPlans ? <SeePlansLink slug={current.organization.slug} /> : undefined
 
   return (
     <form noValidate onSubmit={submit} onFocusOut={checks.recheck} class="flex flex-col gap-4">
@@ -155,7 +174,9 @@ export function CustomerForm(props: CustomerFormProps) {
           {t('actions.cancel')}
         </Button>
       </FormActions>
-      <Show when={failure()}>{(current) => <AuthFailureAlert failure={current()} message={message(current())} />}</Show>
+      <Show when={failure()}>
+        {(failed) => <AuthFailureAlert failure={failed()} message={message(failed())} action={action(failed())} />}
+      </Show>
     </form>
   )
 }

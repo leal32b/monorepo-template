@@ -27,11 +27,37 @@ export const auditEn = {
         archived: 'Archived a customer',
         restored: 'Restored a customer',
         deleted: 'Deleted a customer'
+      },
+      subscription: {
+        'checkout-started': 'Started subscribing to a plan',
+        'checkout-abandoned': 'Dropped a subscription that was not paid',
+        activated: 'Started the paid plan',
+        renewed: 'Received the payment of a new period',
+        'upgrade-started': 'Started a change to a larger plan, waiting for its payment',
+        'upgrade-abandoned': 'Dropped a change of plan that was not paid',
+        'plan-changed': 'Changed the plan',
+        'downgrade-scheduled': 'Scheduled a smaller plan for the next period',
+        'downgrade-withdrawn': 'Withdrew the change to a smaller plan',
+        'payment-failed': 'Recorded a payment as late',
+        'payment-recovered': 'Received the late payment',
+        'cancellation-scheduled': 'Scheduled the end of the plan',
+        'cancellation-withdrawn': 'Withdrew the end of the plan',
+        cancelled: 'Ended the plan'
       }
     },
     changed: '{{what}}: {{fields}}',
     fields: {
-      customer: { name: 'name', email: 'email', phone: 'phone', company: 'company', notes: 'notes' }
+      customer: { name: 'name', email: 'email', phone: 'phone', company: 'company', notes: 'notes' },
+      subscription: {
+        status: 'status',
+        plan: 'plan',
+        nextPlan: 'next plan',
+        periodStartsAt: 'start of the period',
+        paidThrough: 'paid until',
+        pastDueSince: 'late since',
+        cancelAtPeriodEnd: 'end of the plan',
+        checkout: 'payment in progress'
+      }
     },
     pager: {
       label: 'Activity pages',

@@ -2,6 +2,8 @@ import type { Customer } from '@repo/contracts'
 import { Button } from '@repo/ui'
 import { createSignal } from 'solid-js'
 import { archiveCustomer, restoreCustomer } from '#entities/customers'
+import { useCurrentOrganization } from '#entities/organizations'
+import { usePlanRefusal } from '#entities/subscriptions'
 import { callApi, useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { customerFailureKind } from '../model/customer-failure'
@@ -22,11 +24,14 @@ export type ArchiveCustomerButtonProps = {
 
 /**
  * One press archives or restores a customer: it can be undone, so it asks nothing first (the
- * minimize-support skill prefers recovery to a confirmation). It waits while its request is on its way.
+ * minimize-support skill prefers recovery to a confirmation). It waits while its request is on its way. A
+ * restore the plan refuses (its limit, or read only) says why, and the membership is read again (ADR 0063).
  */
 export function ArchiveCustomerButton(props: ArchiveCustomerButtonProps) {
   const api = useApi()
   const { t } = useI18n()
+  const current = useCurrentOrganization()
+  const refusal = usePlanRefusal()
   const [pending, setPending] = createSignal(false)
 
   const press = async () => {
@@ -41,6 +46,17 @@ export function ArchiveCustomerButton(props: ArchiveCustomerButtonProps) {
     })
     setPending(false)
     if (done !== undefined) return props.onDone(done)
+    const plan =
+      failed && current
+        ? refusal.of(failed, 'customers.max', {
+            membership: current.membership,
+            manages: current.can('billing', 'manage')
+          })
+        : undefined
+    if (plan !== undefined) {
+      void current?.refresh()
+      return props.onRefused(plan.message)
+    }
     const kind = failed && customerFailureKind(failed)
     if (kind === 'gone' || kind === 'changed') props.onChanged()
     else props.onRefused(t(kind === 'notAllowed' ? 'customers.errors.notAllowed' : 'failure.unexpected'))

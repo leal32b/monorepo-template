@@ -192,6 +192,18 @@ export function describeCustomerRepository(label: string, make: () => Promise<Cu
       })
     })
 
+    describe('countActive', () => {
+      it('counts the active customers of the organization, not the archived ones nor another’s (ADR 0063)', async () => {
+        await repo.insert(aCustomer('c1'))
+        await repo.insert(aCustomer('c2'))
+        await repo.insert(aCustomer('c3', { archivedAt: day }))
+        await repo.insert(aCustomer('c4', { organizationId: 'org-2' }))
+
+        expect(await repo.countActive('org-1')).toBe(2)
+        expect(await repo.countActive('org-2')).toBe(1)
+      })
+    })
+
     describe('remove', () => {
       it('deletes the customer', async () => {
         await repo.insert(aCustomer('c1'))

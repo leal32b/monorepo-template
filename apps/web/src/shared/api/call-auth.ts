@@ -8,6 +8,8 @@ export type AuthFailure = {
   requestId: string | undefined
   /** Seconds to wait before trying again, when a 429 of our API said it (ADR 0059). */
   retryAfter?: number | undefined
+  /** The plan's number for the limit that refused, when `plan_limit_reached` of our API said it (ADR 0063). */
+  limit?: number | undefined
 }
 
 export type AuthCallOptions = {

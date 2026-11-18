@@ -1,3 +1,4 @@
+import type { OrganizationMembership } from '@repo/contracts'
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { createResource, Suspense } from 'solid-js'
@@ -5,6 +6,7 @@ import { CurrentOrganizationProvider, type Organization, OrganizationsProvider }
 import { hasSession, rememberSession, SessionProvider } from '#entities/sessions'
 import { AuthProvider, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { membershipOf } from '../../../test-membership'
 import { AppFrame } from './app-frame'
 import { AppShell } from './app-shell'
 
@@ -18,6 +20,8 @@ type Options = {
   organization?: Organization
   /** What the members screen reads before it can be drawn: a navigation to it waits on this. */
   members?: () => Promise<string>
+  /** The caller's membership in the organization: an owner on trial unless said. */
+  membership?: OrganizationMembership
 }
 
 /** A screen that reads what it shows, so a navigation to it waits, as the app's screens do. */
@@ -36,9 +40,9 @@ function renderShell({
   locale = 'en',
   path = '/projects',
   organization,
-  members = async () => 'The members'
+  members = async () => 'The members',
+  membership = membershipOf(['owner'], {})
 }: Options = {}) {
-  const membership = { roles: ['owner'], permissions: {} }
   const authFetch: Fetch =
     auth ??
     (async (input) =>
@@ -95,6 +99,14 @@ function renderShell({
                   )}
                 />
                 <Route path="/acme/settings/members" component={() => <Members read={members} />} />
+                <Route
+                  path="/acme/settings/billing"
+                  component={() => (
+                    <AppShell title="Plan and billing">
+                      <p>The plans</p>
+                    </AppShell>
+                  )}
+                />
                 <Route
                   path="/invitation"
                   component={() => (
@@ -196,11 +208,65 @@ describe('AppShell', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Search' })[0] as HTMLElement)
     const dialog = within(await screen.findByRole('dialog', { name: 'Command palette' }))
 
-    for (const name of ['General', 'Members', 'Roles', 'Activity'])
+    for (const name of ['General', 'Members', 'Roles', 'Activity', 'Plan and billing'])
       expect(dialog.getByRole('option', { name })).toBeInTheDocument()
     fireEvent.click(dialog.getByRole('option', { name: 'Members' }))
 
     await waitFor(() => expect(history.get()).toBe('/acme/settings/members'))
+  })
+
+  describe('the subscription’s state (ADR 0063)', () => {
+    const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
+    const late = (roles: string[], permissions: OrganizationMembership['permissions']): OrganizationMembership => {
+      const membership = membershipOf(roles, permissions)
+      return {
+        ...membership,
+        subscription: {
+          ...membership.subscription,
+          status: 'past_due',
+          plan: 'pro',
+          periodStartsAt: '2026-10-03T00:00:00.000Z',
+          paidThrough: '2026-11-03T00:00:00.000Z',
+          pastDueSince: '2026-11-03T00:00:00.000Z'
+        }
+      }
+    }
+
+    it('is said below a tenant screen’s title, to the owner with the way to the plan page', () => {
+      renderShell({ organization: acme, membership: late(['owner'], { billing: ['manage'] }) })
+
+      const main = within(screen.getByRole('main'))
+      const notice = main.getByRole('status')
+      expect(notice).toHaveTextContent('We have not received the payment due on Nov 3, 2026.')
+      expect(within(notice).getByRole('link', { name: 'Pay now' })).toHaveAttribute('href', '/acme/settings/billing')
+      expect(main.getByRole('heading', { level: 1 }).parentElement?.nextElementSibling).toBe(notice)
+    })
+
+    it('tells another member who can act, with nothing to press', () => {
+      renderShell({ organization: acme, membership: late(['member'], { customer: ['read'] }) })
+
+      expect(within(screen.getByRole('main')).getByRole('status')).toHaveTextContent(
+        "This organization's payment is late."
+      )
+      expect(within(screen.getByRole('main')).queryByRole('link')).not.toBeInTheDocument()
+    })
+
+    it('says nothing on the plan page, whose rows say where the subscription stands', () => {
+      renderShell({
+        path: '/acme/settings/billing',
+        organization: acme,
+        membership: late(['owner'], { billing: ['manage'] })
+      })
+
+      expect(within(screen.getByRole('main')).getByText('The plans')).toBeInTheDocument()
+      expect(within(screen.getByRole('main')).queryByRole('status')).not.toBeInTheDocument()
+    })
+
+    it('says nothing on a screen outside any organization', () => {
+      renderShell({ path: '/settings/profile', membership: late(['owner'], { billing: ['manage'] }) })
+
+      expect(within(screen.getByRole('main')).queryByRole('status')).not.toBeInTheDocument()
+    })
   })
 
   it('puts the organization you are in at the top of the side menu, in place of the app’s name', () => {
@@ -504,7 +570,8 @@ describe('AppShell', () => {
           ['General', '/acme/settings/general'],
           ['Members', '/acme/settings/members'],
           ['Roles', '/acme/settings/roles'],
-          ['Activity', '/acme/settings/activity']
+          ['Activity', '/acme/settings/activity'],
+          ['Plan and billing', '/acme/settings/billing']
         ])
         expect(organization.getByRole('link', { name: 'General' })).toHaveAttribute('aria-current', 'page')
       })

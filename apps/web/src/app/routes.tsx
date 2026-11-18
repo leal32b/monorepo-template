@@ -1,4 +1,4 @@
-import { can } from '@repo/contracts'
+import { can, entitlement } from '@repo/contracts'
 import { Navigate, type RouteDefinition, type RoutePreloadFuncArgs, useParams } from '@solidjs/router'
 import { lazy } from 'solid-js'
 import { ForgotPasswordPage } from '#pages/forgot-password'
@@ -42,6 +42,9 @@ const OrganizationRolesPage = lazy(() =>
 )
 const OrganizationActivityPage = lazy(() =>
   import('#pages/organization-activity').then((m) => ({ default: m.OrganizationActivityPage }))
+)
+const OrganizationBillingPage = lazy(() =>
+  import('#pages/organization-billing').then((m) => ({ default: m.OrganizationBillingPage }))
 )
 const InvitationPage = lazy(() => import('#pages/invitation').then((m) => ({ default: m.InvitationPage })))
 const OnboardingPage = lazy(() => import('#pages/onboarding').then((m) => ({ default: m.OnboardingPage })))
@@ -119,9 +122,9 @@ const preloadCustomers = onOpen(({ params }) => {
 })
 /**
  * The newest page of the organization's activity starts as soon as the organization is known (ADR 0061), and
- * only for a role that holds `audit:read`: the preload waits for the membership the frame reads anyway (one
- * request for both), so a plain member's console shows no refused call (ADR 0042), and the screen says why
- * from the membership alone.
+ * only for a role that holds `audit:read` on a plan with the activity log (ADR 0063): the preload waits for the
+ * membership the frame reads anyway (one request for both), so no console shows a refused call (ADR 0042),
+ * and the screen says why from the membership alone.
  */
 const preloadActivity = onOpen(({ params }) => {
   const slug = params.orgSlug as string
@@ -129,9 +132,25 @@ const preloadActivity = onOpen(({ params }) => {
     const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
     if (organization === undefined) return
     const membership = await entity.membershipQuery(api)(organization.id)
-    if (!can(membership.permissions, 'audit', 'read')) return
+    if (!can(membership.permissions, 'audit', 'read') || !entitlement(membership, 'activity-log')) return
     const { auditEntriesQuery } = await import('#entities/audit-entries')
     await auditEntriesQuery(api)(organization.id, '')
+  })
+})
+/**
+ * The plan page's read starts as soon as the organization is known (ADR 0063): the billing read for the
+ * owner, who alone holds `billing:manage`, and the members, whose owners the page names, for anyone else. It
+ * waits for the membership the frame reads anyway, so no member's console shows a refused call (ADR 0042).
+ */
+const preloadBilling = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  preload(organizations, async (entity, { auth, api }) => {
+    const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
+    if (organization === undefined) return
+    const membership = await entity.membershipQuery(api)(organization.id)
+    if (!can(membership.permissions, 'billing', 'manage')) return entity.membersQuery(auth)(organization.id)
+    const { billingQuery } = await import('#entities/subscriptions')
+    return billingQuery(api)(organization.id)
   })
 })
 const identityOptions = () => import('#entities/identity-options')
@@ -249,7 +268,8 @@ export const routes: RouteDefinition[] = [
                       { path: '/general', component: OrganizationGeneralPage },
                       { path: '/members', component: OrganizationMembersPage, preload: preloadTeam },
                       { path: '/roles', component: OrganizationRolesPage, preload: preloadTeam },
-                      { path: '/activity', component: OrganizationActivityPage, preload: preloadActivity }
+                      { path: '/activity', component: OrganizationActivityPage, preload: preloadActivity },
+                      { path: '/billing', component: OrganizationBillingPage, preload: preloadBilling }
                     ]
                   }
                 ]

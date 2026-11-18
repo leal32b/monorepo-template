@@ -85,7 +85,8 @@ export const organizationsPtBR: typeof organizationsEn = {
       row: 'Excluir esta organização',
       rowDescription: 'Isso não pode ser desfeito.',
       open: 'Excluir organização',
-      warning: 'Isso remove {{name}} e tudo o que há nela, para todos os membros. Não pode ser desfeito.',
+      warning:
+        'Isso remove {{name}} e tudo o que há nela, para todos os membros, e encerra o plano na hora, sem reembolso. Não pode ser desfeito.',
       label: 'Digite o nome da organização para confirmar',
       mismatch: 'O nome não confere. Digite-o exatamente como aparece: {{name}}',
       submit: 'Excluir organização',
@@ -174,7 +175,8 @@ export const organizationsPtBR: typeof organizationsEn = {
       invitation: 'Convites',
       ac: 'Papéis',
       customer: 'Clientes',
-      audit: 'Atividade'
+      audit: 'Atividade',
+      billing: 'Plano e cobrança'
     },
     permissions: {
       organization: {
@@ -204,6 +206,9 @@ export const organizationsPtBR: typeof organizationsEn = {
       },
       audit: {
         read: 'Ver o registro de atividades'
+      },
+      billing: {
+        manage: 'Escolher, pagar e cancelar o plano'
       }
     },
     form: {

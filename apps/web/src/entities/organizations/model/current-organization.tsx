@@ -7,13 +7,26 @@ export type CurrentOrganization = {
   membership: OrganizationMembership
   /** Whether the caller's roles hold `action` on `resource`, as the API resolved them. */
   can: <R extends Resource>(resource: R, action: Action<R>) => boolean
+  /**
+   * Asks the API what the caller may do again, behind the screen, after a change the membership carries,
+   * such as the plan (ADR 0063, ADR 0068): the frame and every screen draw the answer. It never fails: an answer that
+   * does not come keeps what is known, as the guard's check behind does.
+   */
+  refresh: () => Promise<void>
 }
 
 const CurrentOrganizationContext = createContext<CurrentOrganization>()
 
-/** Gives the tenant screens below the organization in the URL and what the caller may do in it. */
+/**
+ * Gives the tenant screens below the organization in the URL and what the caller may do in it. The tenant
+ * guard hands it the way to read the membership again; a screen drawn on its own has none, and reads nothing.
+ */
 export function CurrentOrganizationProvider(
-  props: ParentProps<{ organization: Organization; membership: OrganizationMembership }>
+  props: ParentProps<{
+    organization: Organization
+    membership: OrganizationMembership
+    refresh?: (() => Promise<void>) | undefined
+  }>
 ) {
   const value: CurrentOrganization = {
     get organization() {
@@ -22,7 +35,8 @@ export function CurrentOrganizationProvider(
     get membership() {
       return props.membership
     },
-    can: (resource, action) => can(props.membership.permissions, resource, action)
+    can: (resource, action) => can(props.membership.permissions, resource, action),
+    refresh: () => props.refresh?.() ?? Promise.resolve()
   }
 
   return <CurrentOrganizationContext.Provider value={value}>{props.children}</CurrentOrganizationContext.Provider>

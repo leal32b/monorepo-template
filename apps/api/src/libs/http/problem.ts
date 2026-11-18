@@ -1,10 +1,12 @@
 import { type ServerResponse, STATUS_CODES } from 'node:http'
-import type { ApiProblem } from '@repo/contracts'
+import type { ApiProblem, EntitlementKey } from '@repo/contracts'
 import {
   ArgumentInvalidException,
   ConflictException,
+  EntitlementException,
   ExceptionBase,
-  NotFoundException
+  NotFoundException,
+  UnavailableException
 } from '#libs/exceptions/exception.base'
 
 export type ProblemFieldError = { path: string; message: string }
@@ -20,6 +22,9 @@ export class HttpProblem extends Error {
   readonly headers: Record<string, string>
   /** Seconds to wait before trying again: sent as `Retry-After` and in the body (ADR 0059). */
   readonly retryAfter: number | undefined
+  /** The capability or limit of the plan that refused, and the limit's number (ADR 0063). */
+  readonly entitlement: EntitlementKey | undefined
+  readonly limit: number | undefined
 
   constructor(
     status: number,
@@ -29,6 +34,8 @@ export class HttpProblem extends Error {
       errors?: ProblemFieldError[]
       headers?: Record<string, string>
       retryAfter?: number
+      entitlement?: EntitlementKey
+      limit?: number
     } = {}
   ) {
     super(options.detail ?? code)
@@ -37,6 +44,8 @@ export class HttpProblem extends Error {
     this.detail = options.detail
     this.errors = options.errors
     this.retryAfter = options.retryAfter
+    this.entitlement = options.entitlement
+    this.limit = options.limit
     this.headers = {
       ...options.headers,
       ...(options.retryAfter === undefined ? {} : { 'Retry-After': String(options.retryAfter) })
@@ -52,6 +61,8 @@ export class HttpProblem extends Error {
       ...(this.detail ? { detail: this.detail } : {}),
       ...(this.errors ? { errors: this.errors } : {}),
       ...(this.retryAfter === undefined ? {} : { retryAfter: this.retryAfter }),
+      ...(this.entitlement === undefined ? {} : { entitlement: this.entitlement }),
+      ...(this.limit === undefined ? {} : { limit: this.limit }),
       ...(requestId ? { requestId } : {})
     }
   }
@@ -71,27 +82,36 @@ function statusOf(error: ExceptionBase): number | null {
   if (error instanceof NotFoundException) return 404
   if (error instanceof ArgumentInvalidException) return 400
   if (error instanceof ConflictException) return 409
+  if (error instanceof EntitlementException) return 403
   return null
 }
 
+/** What a refusal of the plan adds to its problem: the entitlement, and a limit's number. */
+const entitlementOf = (error: ExceptionBase) =>
+  error instanceof EntitlementException
+    ? { entitlement: error.entitlement, ...(error.limit === undefined ? {} : { limit: error.limit }) }
+    : {}
+
 /**
- * The problem an error answers with: HTTP problems as they are, use-case exceptions by family, an
- * error `isUnavailable` recognises as a 503, anything else as an opaque 500. `expected` is false for
- * the last case, which is a bug worth logging with its stack.
+ * The problem an error answers with: HTTP problems as they are, use-case exceptions by family (a
+ * refusal of the plan with its entitlement), an error `isUnavailable` recognises or a use case's
+ * `UnavailableException` as a 503, anything else as an opaque 500. `expected` is false for the last
+ * case, which is a bug worth logging with its stack.
  */
 export function toProblem(
   error: unknown,
   isUnavailable: (error: unknown) => boolean = () => false
 ): { problem: HttpProblem; expected: boolean } {
   if (error instanceof HttpProblem) return { problem: error, expected: true }
-  if (isUnavailable(error)) return { problem: unavailable(), expected: true }
+  if (isUnavailable(error) || error instanceof UnavailableException) return { problem: unavailable(), expected: true }
   if (!(error instanceof ExceptionBase)) return { problem: internalError(), expected: false }
   const status = statusOf(error)
   if (status === null) return { problem: internalError(), expected: false }
   return {
     problem: new HttpProblem(status, error.code, {
       detail: error.message,
-      ...(error.field ? { errors: [{ path: error.field, message: error.message }] } : {})
+      ...(error.field ? { errors: [{ path: error.field, message: error.message }] } : {}),
+      ...entitlementOf(error)
     }),
     expected: true
   }

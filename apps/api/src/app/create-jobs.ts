@@ -6,10 +6,14 @@ import { KyselyJobs } from '#libs/database/kysely-jobs'
 import { JobRegistry } from '#libs/jobs/job-registry'
 import { JobWorker } from '#libs/jobs/job-worker'
 import { WakingJobQueue } from '#libs/jobs/waking-job-queue'
+import type { BillingProvider } from '#libs/ports/billing-provider.port'
 import type { Clock } from '#libs/ports/clock.port'
 import type { EmailSender } from '#libs/ports/email-sender.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import type { Timer } from '#libs/ports/timer.port'
+import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
+import { registerBillingJobs } from '#modules/billing/index'
+import { KyselyBillingDirectory } from '#modules/billing/infrastructure/kysely-billing-directory'
 import { registerHealthJobs } from '#modules/health/jobs/queue-check'
 import { registerIdentityJobs } from '#modules/identity/jobs/send-email'
 
@@ -19,6 +23,8 @@ export type JobsDeps = {
   logger: Logger
   /** Where identity's emails go (ADR 0021): the process that runs the jobs sends them (ADR 0057). */
   emailSender: EmailSender
+  /** The payment provider a notice's sync reads (ADR 0063): the same instance the app was given. */
+  billing: BillingProvider
   /** How the worker waits; real time unless a test says otherwise. */
   timer?: Timer
   /** The longest an idle worker sleeps before it looks again (`JOB_IDLE_POLL_SECONDS`). */
@@ -39,19 +45,36 @@ export type Jobs = {
  * module's handlers. A module with job kinds adds its `registerXJobs` here, with the ports its
  * handlers need. The API process and the worker process both build this, so either can run the jobs.
  */
-export function createJobs({ db, clock, logger, emailSender, timer = new SystemTimer(), idlePollMs }: JobsDeps): Jobs {
+export function createJobs({
+  db,
+  clock,
+  logger,
+  emailSender,
+  billing,
+  timer = new SystemTimer(),
+  idlePollMs
+}: JobsDeps): Jobs {
   const ids = new UuidGenerator()
   const store = new KyselyJobs(db, ids, clock)
   const registry = new JobRegistry()
   const worker = new JobWorker({ store, registry, clock, timer, logger, idlePollMs })
   const waking = (queue: JobQueue) => new WakingJobQueue(queue, () => worker.nudge())
+  const bind = (transaction: Kysely<unknown>) => waking(new KyselyJobs(transaction, ids, clock))
 
   registerHealthJobs(registry, { clock, logger })
   registerIdentityJobs(registry, { emailSender })
+  registerBillingJobs(registry, {
+    unitOfWork: kyselyBillingUnitOfWork(db, bind),
+    directory: new KyselyBillingDirectory(db),
+    provider: billing,
+    clock,
+    ids,
+    logger
+  })
 
   return {
     queue: waking(store),
-    bind: (transaction) => waking(new KyselyJobs(transaction, ids, clock)),
+    bind,
     worker
   }
 }

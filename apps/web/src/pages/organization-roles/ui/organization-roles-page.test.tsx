@@ -12,6 +12,7 @@ import {
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { membershipOf } from '../../../test-membership'
 import { OrganizationRolesPage } from './organization-roles-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -87,7 +88,7 @@ function renderPage({ held = builtInRoles.owner as Permissions, locale = 'en', a
                       component={(props: ParentProps) => (
                         <CurrentOrganizationProvider
                           organization={acme}
-                          membership={{ roles: ['owner'], permissions: held as OrganizationMembership['permissions'] }}
+                          membership={membershipOf(['owner'], held as OrganizationMembership['permissions'])}
                         >
                           {props.children}
                         </CurrentOrganizationProvider>
@@ -150,9 +151,9 @@ describe('OrganizationRolesPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Roles' })).toBeInTheDocument()
     const builtIn = within(await screen.findByRole('region', { name: 'Built-in roles' }))
     expect(builtIn.getAllByText('Built in')).toHaveLength(3)
-    expect((await rowOf('Owner')).getByText('16 of 16 permissions')).toBeInTheDocument()
-    expect((await rowOf('Admin')).getByText('15 of 16 permissions')).toBeInTheDocument()
-    expect((await rowOf('Member')).getByText('4 of 16 permissions')).toBeInTheDocument()
+    expect((await rowOf('Owner')).getByText('17 of 17 permissions')).toBeInTheDocument()
+    expect((await rowOf('Admin')).getByText('15 of 17 permissions')).toBeInTheDocument()
+    expect((await rowOf('Member')).getByText('4 of 17 permissions')).toBeInTheDocument()
     expect(await buttonsOf('Owner')).toEqual(['View permissions'])
   })
 
@@ -240,7 +241,7 @@ describe('OrganizationRolesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create role' }))
 
     expect(await screen.findByText('Role Support created')).toBeInTheDocument()
-    expect((await rowOf('Support')).getByText('2 of 16 permissions')).toBeInTheDocument()
+    expect((await rowOf('Support')).getByText('2 of 17 permissions')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
@@ -252,7 +253,7 @@ describe('OrganizationRolesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save role' }))
 
     expect(await screen.findByText('Role Billing saved')).toBeInTheDocument()
-    expect((await rowOf('Billing')).getByText('2 of 16 permissions')).toBeInTheDocument()
+    expect((await rowOf('Billing')).getByText('2 of 17 permissions')).toBeInTheDocument()
   })
 
   it('opens one form at a time, and closes one from Cancel', async () => {
