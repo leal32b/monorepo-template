@@ -1,5 +1,5 @@
 import type { Money, PaymentMethod, PlanKey } from '@repo/contracts'
-import { UnavailableException } from '#libs/exceptions/exception.base'
+import { ArgumentInvalidException, UnavailableException } from '#libs/exceptions/exception.base'
 import type { WebhookReader } from './webhook-reader.port'
 
 /** A hosted page the owner pays on, opened by the provider: money moves there, never in our request. */
@@ -42,6 +42,12 @@ export type BillingNotice = {
   customerId?: string | undefined
 }
 
+/**
+ * Whom the provider charges, as the owner typed it on the plan page, with the owner's email for the
+ * provider's notices. Asaas needs a name and a CPF or CNPJ to create a customer (ADR 0069).
+ */
+export type Payer = { name: string; taxId: string; email: string }
+
 /** Where the provider sends the owner back: the plan page, after paying or after leaving the page. */
 type Return = { returnUrl: string; cancelUrl: string }
 
@@ -57,10 +63,17 @@ export interface BillingProvider extends WebhookReader<BillingNotice> {
   /**
    * Opens the page where the owner subscribes to `plan`, at the catalogue's price and interval, paying
    * by `method`. It reuses the provider's customer when the row holds one, or finds or creates the one
-   * whose reference is the organization, and returns its id.
+   * whose reference is the organization, and returns its id. A provider that needs the payer to create
+   * a customer, and has none, throws `PayerRequiredException`.
    */
   startCheckout(
-    request: Return & { organizationId: string; plan: PlanKey; method: PaymentMethod; customerId: string | null }
+    request: Return & {
+      organizationId: string
+      plan: PlanKey
+      method: PaymentMethod
+      customerId: string | null
+      payer?: Payer | undefined
+    }
   ): Promise<Checkout & { customerId: string }>
   /** Opens a page for one payment of `amount` (an upgrade's difference), for the customer who holds the subscription. */
   startPayment(
@@ -97,6 +110,15 @@ export interface BillingProvider extends WebhookReader<BillingNotice> {
  */
 export interface NoticeSource {
   listen(deliver: (notice: BillingNotice) => Promise<void>): void
+}
+
+/** The provider must create a customer, which needs the payer's name and document, and the request has none (ADR 0069). */
+export class PayerRequiredException extends ArgumentInvalidException {
+  readonly code = 'payer_required'
+
+  constructor() {
+    super("The payment provider needs the payer's name and CPF or CNPJ.", { field: 'payer' })
+  }
 }
 
 /** The provider is out of reach, too slow, or refused a call: nothing changed locally, try again (ADR 0063). */

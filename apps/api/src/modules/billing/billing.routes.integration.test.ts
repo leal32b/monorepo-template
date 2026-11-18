@@ -5,7 +5,8 @@ import {
   type Permissions,
   webhookReceiptSchema
 } from '@repo/contracts'
-import type { BillingNotice } from '#libs/ports/billing-provider.port'
+import { AsaasBillingProvider } from '#libs/adapters/asaas-billing-provider'
+import type { BillingNotice, BillingProvider } from '#libs/ports/billing-provider.port'
 import { serveRoutes } from '#modules/identity/testing/serve-routes'
 import { registerBillingRoutes } from './billing.routes'
 import { billingKit, kitToken } from './testing/billing-kit'
@@ -15,8 +16,8 @@ const owner: Permissions = { billing: ['manage'] }
 const base = '/api/organizations/org-1/billing'
 const returnTo = '/acme/settings/billing'
 
-/** The routes behind the real pipeline, with the tenant guard on fakes and billing on the kit. */
-async function serve() {
+/** The routes behind the real pipeline, with the tenant guard on fakes and billing on the kit, or on `provider`. */
+async function serve(provider?: BillingProvider) {
   const kit = billingKit()
   /** The notices taken in, as the webhook inbox would record them. */
   const received: BillingNotice[] = []
@@ -31,7 +32,7 @@ async function serve() {
       session,
       membership,
       unitOfWork: kit.unitOfWork,
-      provider: kit.provider,
+      provider: provider ?? kit.provider,
       clock: kit.clock,
       ids: kit.ids,
       webOrigin: 'http://localhost:5173',
@@ -45,7 +46,7 @@ async function serve() {
       headers: { 'Content-Type': 'application/json', ...(token === null ? {} : { 'fake-billing-token': token }) },
       body: JSON.stringify(body)
     })
-  return { ...kit, signInAs, call, code, received, deliver }
+  return { ...kit, signInAs, call, code, received, deliver, origin }
 }
 
 describe('the billing routes (ADR 0063)', () => {
@@ -201,6 +202,33 @@ describe('the billing routes (ADR 0063)', () => {
       const kit = await serve()
 
       expect((await kit.deliver('asaas', { event: 'PAYMENT_CONFIRMED' })).status).toBe(404)
+    })
+
+    it('serves only Asaas once its key selects it: its notices are taken in, and the fake answers 404 (ADR 0064)', async () => {
+      const webhookToken = 'w'.repeat(40)
+      const asaas = new AsaasBillingProvider({
+        apiKey: `$aact_hmlg_${'k'.repeat(40)}`,
+        apiUrl: 'http://127.0.0.1:9/v3',
+        webhookToken,
+        clock: billingKit().clock
+      })
+      const kit = await serve(asaas)
+      const notice = {
+        id: 'evt_1',
+        event: 'SUBSCRIPTION_UPDATED',
+        subscription: { id: 'sub_1', customer: 'cus_1' }
+      }
+      const post = (provider: string, token: string) =>
+        fetch(`${kit.origin}/api/webhooks/${provider}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'asaas-access-token': token },
+          body: JSON.stringify(notice)
+        })
+
+      expect((await post('asaas', webhookToken)).status).toBe(200)
+      expect((await post('asaas', 'x'.repeat(40))).status).toBe(401)
+      expect((await kit.deliver('fake', { command: 'payment.fail', organizationId: 'org-1' })).status).toBe(404)
+      expect(kit.received).toEqual([{ eventId: 'evt_1', subscriptionId: 'sub_1', customerId: 'cus_1' }])
     })
   })
 })

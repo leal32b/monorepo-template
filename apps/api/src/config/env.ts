@@ -8,6 +8,15 @@ const SENDER = /^(?:[^<>@]+ <[^\s<>@]+@[^\s<>@]+>|[^\s<>@]+@[^\s<>@]+)$/
 /** A commit SHA, a tag or `dev`: letters, digits, `.`, `_` and `-` only, as it is logged on every line. */
 const RELEASE = /^[\w.-]{1,64}$/
 
+/**
+ * Asaas's two environments (ADR 0064), each with the prefix of its keys: a key is refused on the other's
+ * URL, so a sandbox key never meets production and the reverse.
+ */
+const ASAAS_KEY_PREFIXES: Record<string, string> = {
+  'https://api-sandbox.asaas.com/v3': '$aact_hmlg_',
+  'https://api.asaas.com/v3': '$aact_prod_'
+}
+
 /** True when `value` is exactly an http(s) origin: scheme, host and port, no path, no trailing slash. */
 function isOrigin(value: string): boolean {
   try {
@@ -58,6 +67,10 @@ const envSchema = z
     GOOGLE_CLIENT_ID: optional(z.string()),
     GOOGLE_CLIENT_SECRET: optional(z.string()),
     FAKE_BILLING_TOKEN: optional(z.string().check(z.minLength(16))),
+    ASAAS_API_KEY: optional(z.string()),
+    ASAAS_API_URL: optional(z.enum(Object.keys(ASAAS_KEY_PREFIXES))),
+    // Asaas's own rules for a webhook's token: 32 to 255 characters, no spaces.
+    ASAAS_WEBHOOK_TOKEN: optional(z.string().check(z.minLength(32), z.maxLength(255), z.regex(/^\S+$/))),
     JOB_WORKER: optional(z.enum(['on', 'off'])),
     JOB_IDLE_POLL_SECONDS: optional(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(86_400))))
   })
@@ -80,16 +93,43 @@ const envSchema = z
     z.refine((env) => env.GOOGLE_CLIENT_SECRET !== undefined || env.GOOGLE_CLIENT_ID === undefined, {
       path: ['GOOGLE_CLIENT_SECRET']
     }),
+    // Asaas needs its URL and the token of its notices with the key; either without the key is a mistake.
+    z.refine((env) => env.ASAAS_API_KEY === undefined || env.ASAAS_API_URL !== undefined, { path: ['ASAAS_API_URL'] }),
+    z.refine((env) => env.ASAAS_API_KEY === undefined || env.ASAAS_WEBHOOK_TOKEN !== undefined, {
+      path: ['ASAAS_WEBHOOK_TOKEN']
+    }),
+    z.refine(
+      (env) =>
+        env.ASAAS_API_KEY !== undefined || (env.ASAAS_API_URL === undefined && env.ASAAS_WEBHOOK_TOKEN === undefined),
+      { path: ['ASAAS_API_KEY'] }
+    ),
+    // A key works only in its own environment: the prefix names it (ADR 0064).
+    z.refine(
+      (env) => {
+        const prefix = env.ASAAS_API_URL === undefined ? undefined : ASAAS_KEY_PREFIXES[env.ASAAS_API_URL]
+        return env.ASAAS_API_KEY === undefined || prefix === undefined || env.ASAAS_API_KEY.startsWith(prefix)
+      },
+      { path: ['ASAAS_API_KEY'] }
+    ),
+    // The token travels in every notice: it must never be the key (Asaas's rule).
+    z.refine((env) => env.ASAAS_WEBHOOK_TOKEN === undefined || env.ASAAS_WEBHOOK_TOKEN !== env.ASAAS_API_KEY, {
+      path: ['ASAAS_WEBHOOK_TOKEN']
+    }),
     // Deployed, payments must be real: the fake marks an organization paid on a command (ADR 0063). A
     // provider's key selects its adapter (ADR 0064); with none configured, the fake is all there is.
-    z.refine((env) => !env.WEB_ORIGIN.startsWith('https:'), { path: ['ASAAS_API_KEY'] })
+    z.refine((env) => env.ASAAS_API_KEY !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
+      path: ['ASAAS_API_KEY']
+    })
   )
 
 /**
  * Who takes the payments (ADR 0063): the provider whose key is set, or the fake with none, driven by
  * commands that carry `FAKE_BILLING_TOKEN` (every command is refused while it is unset).
  */
-export type BillingConfig = { kind: 'fake'; token: string | undefined }
+export type BillingConfig =
+  | { kind: 'fake'; token: string | undefined }
+  /** Asaas (ADR 0064): the key (a secret, never logged), its environment's URL and the token its notices carry. */
+  | { kind: 'asaas'; apiKey: string; apiUrl: string; webhookToken: string }
 
 /** How email leaves the API (ADR 0021): logged in development, or sent through Resend. */
 export type EmailTransport = { kind: 'log' } | { kind: 'resend'; apiKey: string; from: string }
@@ -172,7 +212,16 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
       env.GOOGLE_CLIENT_ID === undefined
         ? undefined
         : { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET as string },
-    billing: { kind: 'fake', token: env.FAKE_BILLING_TOKEN },
+    // The rules above require the URL and the token with the key.
+    billing:
+      env.ASAAS_API_KEY === undefined
+        ? { kind: 'fake', token: env.FAKE_BILLING_TOKEN }
+        : {
+            kind: 'asaas',
+            apiKey: env.ASAAS_API_KEY,
+            apiUrl: env.ASAAS_API_URL as string,
+            webhookToken: env.ASAAS_WEBHOOK_TOKEN as string
+          },
     jobs: { worker: env.JOB_WORKER !== 'off', idlePollMs: (env.JOB_IDLE_POLL_SECONDS ?? 3_600) * 1000 }
   }
 }

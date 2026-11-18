@@ -22,6 +22,21 @@ describe('createBillingProvider (ADR 0063)', () => {
     expect(notice).toMatchObject({ subscriptionId: expect.any(String) })
   })
 
+  it('bills through Asaas when its key is set (ADR 0064)', () => {
+    const provider = createBillingProvider(
+      {
+        kind: 'asaas',
+        apiKey: `$aact_hmlg_${'k'.repeat(40)}`,
+        apiUrl: 'https://api-sandbox.asaas.com/v3',
+        webhookToken: 'w'.repeat(40)
+      },
+      { clock, ids }
+    )
+
+    expect(provider.name).toBe('asaas')
+    expect(provider.listen).toBeUndefined()
+  })
+
   it('completes checkouts by itself in development, handing the notices to whoever listens', async () => {
     const timer = new ManualTimer(clock)
     const provider = createBillingProvider(

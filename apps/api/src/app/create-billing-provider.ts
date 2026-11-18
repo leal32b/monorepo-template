@@ -1,4 +1,5 @@
 import type { BillingConfig } from '#config/env'
+import { AsaasBillingProvider } from '#libs/adapters/asaas-billing-provider'
 import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import type { BillingProvider, NoticeSource } from '#libs/ports/billing-provider.port'
 import type { Clock } from '#libs/ports/clock.port'
@@ -21,5 +22,6 @@ export function createBillingProvider(
   config: BillingConfig,
   { clock, ids, autoComplete }: BillingProviderDeps
 ): BillingProvider & Partial<NoticeSource> {
+  if (config.kind === 'asaas') return new AsaasBillingProvider({ ...config, clock })
   return new FakeBillingProvider({ clock, ids, token: config.token, autoComplete })
 }

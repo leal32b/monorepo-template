@@ -10,6 +10,11 @@ describe('loadEnv', () => {
   const proxySecret = '0123456789abcdef'.repeat(4)
   const resend = { RESEND_API_KEY: 're_123', EMAIL_FROM: 'Acme <noreply@acme.example>' }
   const google = { GOOGLE_CLIENT_ID: 'client-123.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'GOCSPX-secret' }
+  const asaas = {
+    ASAAS_API_KEY: `$aact_prod_${'b2'.repeat(40)}`,
+    ASAAS_API_URL: 'https://api.asaas.com/v3',
+    ASAAS_WEBHOOK_TOKEN: 'c3'.repeat(32)
+  }
 
   it('uses safe defaults for everything but the database, the web origin and the auth secret', () => {
     expect(loadEnv({ ...required })).toEqual({
@@ -133,15 +138,12 @@ describe('loadEnv', () => {
   })
 
   it('requires PROXY_SECRET when the web origin is https, as when deployed (ADR 0022)', () => {
-    const deployed = { ...required, ...resend, WEB_ORIGIN: 'https://app.example.com' }
+    const deployed = { ...required, ...resend, ...asaas, WEB_ORIGIN: 'https://app.example.com' }
 
     expect(() => loadEnv({ ...deployed, PROXY_SECRET: '' })).toThrow(
-      expect.objectContaining({ variables: expect.arrayContaining(['PROXY_SECRET']) })
+      expect.objectContaining({ variables: ['PROXY_SECRET'] })
     )
-    // Until a real provider is configured, only the billing fake is left to refuse (ADR 0063).
-    expect(() => loadEnv({ ...deployed, PROXY_SECRET: proxySecret })).toThrow(
-      expect.objectContaining({ variables: ['ASAAS_API_KEY'] })
-    )
+    expect(loadEnv({ ...deployed, PROXY_SECRET: proxySecret }).proxySecret).toBe(proxySecret)
   })
 
   it('rejects a BETTER_AUTH_SECRET shorter than 32 characters', () => {
@@ -180,12 +182,10 @@ describe('loadEnv', () => {
   })
 
   it('refuses the log transport when the web origin is https, as when deployed (ADR 0021)', () => {
-    const deployed = { ...required, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
+    const deployed = { ...required, ...asaas, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
 
-    expect(() => loadEnv(deployed)).toThrow(
-      expect.objectContaining({ variables: expect.arrayContaining(['RESEND_API_KEY']) })
-    )
-    expect(() => loadEnv({ ...deployed, ...resend })).toThrow(expect.objectContaining({ variables: ['ASAAS_API_KEY'] }))
+    expect(() => loadEnv(deployed)).toThrow(expect.objectContaining({ variables: ['RESEND_API_KEY'] }))
+    expect(loadEnv({ ...deployed, ...resend }).email.kind).toBe('resend')
   })
 
   it('bills through the fake when no provider key is set, with the token its commands carry (ADR 0063)', () => {
@@ -206,6 +206,106 @@ describe('loadEnv', () => {
     const deployed = { ...required, ...resend, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
 
     expect(() => loadEnv(deployed)).toThrow(expect.objectContaining({ variables: ['ASAAS_API_KEY'] }))
+  })
+
+  describe('Asaas (ADR 0064)', () => {
+    const sandboxKey = `$aact_hmlg_${'a1'.repeat(40)}`
+    const productionKey = asaas.ASAAS_API_KEY
+    const webhookToken = asaas.ASAAS_WEBHOOK_TOKEN
+    const sandbox = { ...asaas, ASAAS_API_KEY: sandboxKey, ASAAS_API_URL: 'https://api-sandbox.asaas.com/v3' }
+    const production = asaas
+
+    it('bills through Asaas when ASAAS_API_KEY is set, with its URL and the token of its notices', () => {
+      expect(loadEnv({ ...required, ...sandbox }).billing).toEqual({
+        kind: 'asaas',
+        apiKey: sandboxKey,
+        apiUrl: 'https://api-sandbox.asaas.com/v3',
+        webhookToken
+      })
+      expect(loadEnv({ ...required, ...production }).billing).toMatchObject({
+        kind: 'asaas',
+        apiUrl: 'https://api.asaas.com/v3'
+      })
+    })
+
+    it('lets a deployed environment start once Asaas is configured, on the sandbox for staging', () => {
+      const deployed = { ...required, ...resend, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
+
+      expect(loadEnv({ ...deployed, ...production }).billing.kind).toBe('asaas')
+      expect(loadEnv({ ...deployed, ...sandbox }).billing.kind).toBe('asaas')
+    })
+
+    it('treats empty Asaas variables as unset, as a copied .env.example leaves them', () => {
+      expect(loadEnv({ ...required, ASAAS_API_KEY: '', ASAAS_API_URL: '', ASAAS_WEBHOOK_TOKEN: '' }).billing).toEqual({
+        kind: 'fake',
+        token: undefined
+      })
+    })
+
+    it.each([
+      ['a sandbox key on the production URL', { ASAAS_API_URL: 'https://api.asaas.com/v3' }],
+      ['a production key on the sandbox URL', { ASAAS_API_KEY: productionKey }],
+      ['a key of neither environment', { ASAAS_API_KEY: '$aact_test_123' }]
+    ])('rejects %s', (_case, change) => {
+      expect(() => loadEnv({ ...required, ...sandbox, ...change })).toThrow(
+        expect.objectContaining({ variables: ['ASAAS_API_KEY'] })
+      )
+    })
+
+    it.each([
+      'https://api-sandbox.asaas.com',
+      'https://api.asaas.com/v3/',
+      'http://api.asaas.com/v3',
+      'https://evil.example/v3'
+    ])('rejects the API URL %j', (url) => {
+      expect(() => loadEnv({ ...required, ...sandbox, ASAAS_API_URL: url })).toThrow(
+        expect.objectContaining({ variables: expect.arrayContaining(['ASAAS_API_URL']) })
+      )
+    })
+
+    it.each([
+      ['shorter than 32 characters', 'x'.repeat(31)],
+      ['longer than 255 characters', 'x'.repeat(256)],
+      ['with a space', `${'x'.repeat(20)} ${'x'.repeat(20)}`],
+      ['with a tab', `${'x'.repeat(20)}\t${'x'.repeat(20)}`]
+    ])('rejects a webhook token %s', (_case, token) => {
+      expect(() => loadEnv({ ...required, ...sandbox, ASAAS_WEBHOOK_TOKEN: token })).toThrow(
+        expect.objectContaining({ variables: ['ASAAS_WEBHOOK_TOKEN'] })
+      )
+    })
+
+    it('accepts webhook tokens of 32 and 255 characters', () => {
+      for (const token of ['x'.repeat(32), 'x'.repeat(255)]) {
+        expect(loadEnv({ ...required, ...sandbox, ASAAS_WEBHOOK_TOKEN: token }).billing).toMatchObject({
+          webhookToken: token
+        })
+      }
+    })
+
+    it('rejects the API key as the webhook token: a leaked notice would leak the key', () => {
+      expect(() => loadEnv({ ...required, ...sandbox, ASAAS_WEBHOOK_TOKEN: sandboxKey })).toThrow(
+        expect.objectContaining({ variables: ['ASAAS_WEBHOOK_TOKEN'] })
+      )
+    })
+
+    it.each([
+      ['the key without its URL', { ASAAS_API_URL: '' }, 'ASAAS_API_URL'],
+      ['the key without the webhook token', { ASAAS_WEBHOOK_TOKEN: '' }, 'ASAAS_WEBHOOK_TOKEN'],
+      ['the URL without the key', { ASAAS_API_KEY: '', ASAAS_WEBHOOK_TOKEN: '' }, 'ASAAS_API_KEY'],
+      ['the webhook token without the key', { ASAAS_API_KEY: '', ASAAS_API_URL: '' }, 'ASAAS_API_KEY']
+    ])('rejects %s', (_case, change, variable) => {
+      expect(() => loadEnv({ ...required, ...sandbox, ...change })).toThrow(
+        expect.objectContaining({ variables: [variable] })
+      )
+    })
+
+    it('never prints the key or the token', () => {
+      const wrong = { ...sandbox, ASAAS_API_URL: 'https://api.asaas.com/v3', ASAAS_WEBHOOK_TOKEN: 'short' }
+
+      expect(() => loadEnv({ ...required, ...wrong })).toThrow(
+        expect.objectContaining({ message: 'Invalid environment: ASAAS_WEBHOOK_TOKEN, ASAAS_API_KEY' })
+      )
+    })
   })
 
   it('turns Google sign-in on when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (ADR 0020)', () => {
