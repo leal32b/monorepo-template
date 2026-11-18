@@ -15,9 +15,7 @@ import {
 import type { Clock } from '#libs/ports/clock.port'
 import { WebhookRefused } from '#libs/ports/webhook-reader.port'
 
-/** How long a checkout's page takes a payment: Asaas accepts 10 to 1440 minutes (ADR 0064). */
-const CHECKOUT_MINUTES = 30
-/** Days a boleto gives the payer before its due date; a Pix is due the day it is asked for. */
+/** Days a boleto gives the payer before its due date; a card or a Pix is due the day it is asked for. */
 const BOLETO_DAYS_TO_PAY = 3
 /** How long one call to Asaas may take before it counts as out of reach (ADR 0047, ADR 0069). */
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -57,7 +55,6 @@ const SUBSCRIPTION_EVENTS = new Set([
   'SUBSCRIPTION_INACTIVATED',
   'SUBSCRIPTION_DELETED'
 ])
-const CHECKOUT_EVENTS = new Set(['CHECKOUT_PAID', 'CHECKOUT_CANCELED', 'CHECKOUT_EXPIRED'])
 
 const text = z.optional(z.nullable(z.string()))
 const errorsSchema = z.object({ errors: z.array(z.object({ code: z.optional(z.string()) })) })
@@ -80,7 +77,6 @@ const paymentSchema = z.object({
   deleted: z.optional(z.boolean()),
   invoiceUrl: text
 })
-const checkoutSchema = z.object({ id: z.string(), link: text })
 const deletedSchema = z.object({ deleted: z.optional(z.boolean()) })
 const pageOf = <T extends z.ZodMiniType>(item: T) => z.object({ data: z.array(item), hasMore: z.optional(z.boolean()) })
 
@@ -89,8 +85,7 @@ const noticeSchema = z.object({
   id: z.string(),
   event: z.string(),
   payment: z.optional(z.object({ id: z.string(), customer: z.string(), subscription: text })),
-  subscription: z.optional(z.object({ id: z.string(), customer: z.string() })),
-  checkout: z.optional(z.object({ id: z.string(), customer: text }))
+  subscription: z.optional(z.object({ id: z.string(), customer: z.string() }))
 })
 
 type AsaasSubscription = z.output<typeof subscriptionSchema>
@@ -125,32 +120,25 @@ function shift(day: string, days: number): string {
 }
 
 /**
- * Where a checkout of the port lives at Asaas, written in its id, since Asaas has no call that reads a
- * checkout back (ADR 0069): an Asaas Checkout with the instant its page lapses, a subscription made by
- * the API for a Pix or a boleto, or a charge made by the API for an upgrade's boleto.
+ * Where a checkout of the port lives at Asaas, written in its id (ADR 0069, ADR 0070): a subscription made
+ * by the API, paid on its first charge's invoice, or a one-off charge made by the API for an upgrade. Any
+ * other id, an Asaas Checkout's of before ADR 0070 included, names nothing that can still take money.
  */
-type CheckoutRef =
-  | { kind: 'checkout'; id: string; expiresAt: number }
-  | { kind: 'subscription'; id: string }
-  | { kind: 'payment'; id: string }
+type CheckoutRef = { kind: 'subscription' | 'payment'; id: string }
 
 function parseCheckoutId(checkoutId: string): CheckoutRef | null {
-  const [kind, id, expiresAt] = checkoutId.split(':')
-  if (id === undefined || id === '') return null
-  if (kind === 'checkout' && expiresAt !== undefined && /^\d+$/.test(expiresAt)) {
-    return { kind, id, expiresAt: Number(expiresAt) }
-  }
-  if ((kind === 'subscription' || kind === 'payment') && expiresAt === undefined) return { kind, id }
-  return null
+  const [kind, id, rest] = checkoutId.split(':')
+  if (id === undefined || id === '' || rest !== undefined) return null
+  return kind === 'subscription' || kind === 'payment' ? { kind, id } : null
 }
 
-type Return = { returnUrl: string; cancelUrl: string }
-
 /**
- * The billing port on Asaas (ADR 0064, ADR 0067, ADR 0069), through its REST API with `fetch`. A card
- * subscribes on an Asaas Checkout, which creates the subscription once paid; a Pix or a boleto on a
- * subscription made by the API, paid on its first charge's invoice. An upgrade's difference is a one-off
- * Checkout for a card or a Pix, and a charge for a boleto. Asaas has no idempotency key: customers and
+ * The billing port on Asaas (ADR 0064, ADR 0067, ADR 0069, ADR 0070), through its REST API with `fetch`.
+ * Every method subscribes the same way: a subscription made by the API, paid on its first charge's invoice,
+ * where a card typed by the payer is kept for the next charges. An upgrade's difference is a one-off charge,
+ * paid on its own invoice. Asaas's Checkout is not used: given our customer, it asks for an address we do not
+ * have. Both send the payer back to the plan page, once the account has a site registered (Asaas refuses
+ * the way back until then, and the adapter goes without it). Asaas has no idempotency key: customers and
  * subscriptions are looked up by our reference before one is created, and nothing is retried here (the
  * owner, or the job's backoff, tries again). Every failure is a `BillingProviderUnavailableException`
  * naming the call, its status and Asaas's error codes: never the key, nor the payer's data.
@@ -180,38 +168,28 @@ export class AsaasBillingProvider implements BillingProvider {
     method,
     customerId,
     payer,
-    returnUrl,
-    cancelUrl
+    returnUrl
   }: Parameters<BillingProvider['startCheckout']>[0]): Promise<Checkout & { customerId: string }> {
     const customer = await this.#customer(organizationId, customerId, payer)
-    const price = plans[plan].price
-    if (method === 'card') {
-      await this.#dropUnpaid(customer, organizationId, null)
-      const checkout = await this.#openCheckout({
-        organizationId,
-        customer,
-        billingType: 'CREDIT_CARD',
-        recurrent: true,
-        item: { name: `Plan ${plan}`, description: `Monthly plan ${plan}`, value: reais(price) },
-        returnUrl,
-        cancelUrl
-      })
-      return { ...checkout, customerId: customer }
-    }
     const billingType = billingTypeOf[method]
-    const reused = await this.#dropUnpaid(customer, organizationId, { billingType, value: reais(price) })
+    const value = reais(plans[plan].price)
+    const reused = await this.#dropUnpaid(customer, organizationId, { billingType, value })
     const subscription =
       reused ??
-      (await this.#post('/subscriptions', subscriptionSchema, {
-        customer,
-        billingType,
-        value: reais(price),
-        nextDueDate: this.#dueDay(method),
-        cycle: 'MONTHLY',
-        description: `Monthly plan ${plan}`,
-        externalReference: organizationId,
-        callback: { successUrl: returnUrl, autoRedirect: true }
-      }))
+      (await this.#postReturning(
+        '/subscriptions',
+        subscriptionSchema,
+        {
+          customer,
+          billingType,
+          value,
+          nextDueDate: this.#dueDay(method),
+          cycle: 'MONTHLY',
+          description: `Monthly plan ${plan}`,
+          externalReference: organizationId
+        },
+        returnUrl
+      ))
     const first = earliestCharge(await this.#chargesOf(subscription.id))
     if (first?.invoiceUrl == null) {
       throw new BillingProviderUnavailableException(`subscription ${subscription.id} has no charge to pay yet`)
@@ -230,31 +208,23 @@ export class AsaasBillingProvider implements BillingProvider {
     amount,
     description,
     method,
-    returnUrl,
-    cancelUrl
+    returnUrl
   }: Parameters<BillingProvider['startPayment']>[0]): Promise<Checkout> {
-    if (method !== 'boleto') {
-      return this.#openCheckout({
-        organizationId,
+    const charge = await this.#postReturning(
+      '/payments',
+      paymentSchema,
+      {
         customer: customerId,
-        billingType: method === 'card' ? 'CREDIT_CARD' : 'PIX',
-        recurrent: false,
-        item: { name: 'Plan upgrade', description, value: reais(amount) },
-        returnUrl,
-        cancelUrl
-      })
-    }
-    const charge = await this.#post('/payments', paymentSchema, {
-      customer: customerId,
-      billingType: 'BOLETO',
-      value: reais(amount),
-      dueDate: this.#dueDay('boleto'),
-      description,
-      externalReference: organizationId,
-      // The boleto cannot be paid once it lapses, so a dropped upgrade takes no money later.
-      daysAfterDueDateToRegistrationCancellation: 0,
-      callback: { successUrl: returnUrl, autoRedirect: true }
-    })
+        billingType: billingTypeOf[method],
+        value: reais(amount),
+        dueDate: this.#dueDay(method),
+        description,
+        externalReference: organizationId,
+        // A boleto cannot be paid once it lapses, so a dropped upgrade takes no money later.
+        ...(method === 'boleto' ? { daysAfterDueDateToRegistrationCancellation: 0 } : {})
+      },
+      returnUrl
+    )
     return {
       checkoutId: `payment:${charge.id}`,
       url: charge.invoiceUrl as string,
@@ -265,11 +235,6 @@ export class AsaasBillingProvider implements BillingProvider {
   async payment(checkoutId: string): Promise<CheckoutPayment> {
     const ref = parseCheckoutId(checkoutId)
     if (ref === null) return 'expired'
-    if (ref.kind === 'checkout') {
-      const charges = await this.#list('/payments', paymentSchema, { checkoutSession: ref.id })
-      if (charges.some((charge) => PAID.has(charge.status))) return 'paid'
-      return this.#clock.now().getTime() >= ref.expiresAt ? 'expired' : 'open'
-    }
     const live = ref.kind === 'payment' ? await this.#chargeIfLive(ref.id) : await this.#chargesIfLive(ref.id)
     if (live.some((charge) => PAID.has(charge.status))) return 'paid'
     const first = earliestCharge(live)
@@ -278,13 +243,7 @@ export class AsaasBillingProvider implements BillingProvider {
 
   async cancelCheckout(checkoutId: string): Promise<void> {
     const ref = parseCheckoutId(checkoutId)
-    if (ref === null) return
-    if (ref.kind === 'checkout') {
-      // Asaas refuses to cancel a checkout already paid, expired or cancelled: nothing is left to withdraw.
-      await this.#call('POST', `/checkouts/${ref.id}/cancel`, checkoutSchema, { body: {}, refused: 'ignore' })
-      return
-    }
-    if ((await this.payment(checkoutId)) === 'paid') return
+    if (ref === null || (await this.payment(checkoutId)) === 'paid') return
     await this.#delete(ref.kind === 'payment' ? `/payments/${ref.id}` : `/subscriptions/${ref.id}`)
   }
 
@@ -294,10 +253,14 @@ export class AsaasBillingProvider implements BillingProvider {
   }
 
   async changePlan(subscriptionId: string, plan: PlanKey): Promise<void> {
-    // Charges already created for the next cycle take the new value too (ADR 0067, sandbox point 10).
-    await this.#call('PUT', `/subscriptions/${subscriptionId}`, subscriptionSchema, {
-      body: { value: reais(plans[plan].price), updatePendingPayments: true }
-    })
+    const value = reais(plans[plan].price)
+    await this.#call('PUT', `/subscriptions/${subscriptionId}`, subscriptionSchema, { body: { value } })
+    // A charge already created for a next cycle takes the new value too (ADR 0067). One by one: the
+    // sandbox answers 500 to `updatePendingPayments` on a boleto subscription (ADR 0070).
+    const pending = await this.#list(`/subscriptions/${subscriptionId}/payments`, paymentSchema, { status: PENDING })
+    for (const charge of pending) {
+      await this.#call('PUT', `/payments/${charge.id}`, paymentSchema, { body: { value } })
+    }
   }
 
   async cancel(subscriptionId: string, { atPeriodEnd }: { atPeriodEnd: boolean }): Promise<void> {
@@ -356,7 +319,7 @@ export class AsaasBillingProvider implements BillingProvider {
     }
     const notice = noticeSchema.safeParse(body)
     if (!notice.success) return 'ignored'
-    const { id: eventId, event, payment, subscription, checkout } = notice.data
+    const { id: eventId, event, payment, subscription } = notice.data
     if (PAYMENT_EVENTS.has(event) && payment !== undefined) {
       const subscriptionId = payment.subscription ?? undefined
       return {
@@ -369,8 +332,6 @@ export class AsaasBillingProvider implements BillingProvider {
     if (SUBSCRIPTION_EVENTS.has(event) && subscription !== undefined) {
       return { eventId, subscriptionId: subscription.id, customerId: subscription.customer }
     }
-    // The checkout's id alone cannot name our row, which keeps the page's end with it: its customer does.
-    if (CHECKOUT_EVENTS.has(event) && checkout?.customer != null) return { eventId, customerId: checkout.customer }
     return 'ignored'
   }
 
@@ -404,7 +365,7 @@ export class AsaasBillingProvider implements BillingProvider {
   async #dropUnpaid(
     customer: string,
     organizationId: string,
-    keep: { billingType: string; value: number } | null
+    keep: { billingType: string; value: number }
   ): Promise<AsaasSubscription | null> {
     const ours = await this.#list('/subscriptions', subscriptionSchema, {
       customer,
@@ -416,7 +377,6 @@ export class AsaasBillingProvider implements BillingProvider {
       const charges = await this.#chargesOf(subscription.id)
       if (charges.some((charge) => PAID.has(charge.status))) continue
       const payable =
-        keep !== null &&
         subscription.billingType === keep.billingType &&
         subscription.value === keep.value &&
         !charges.some((charge) => OVERDUE.has(charge.status))
@@ -426,32 +386,21 @@ export class AsaasBillingProvider implements BillingProvider {
     return reused
   }
 
-  async #openCheckout(
-    request: Return & {
-      organizationId: string
-      customer: string
-      billingType: 'CREDIT_CARD' | 'PIX'
-      recurrent: boolean
-      item: { name: string; description: string; value: number }
-    }
-  ): Promise<Checkout> {
-    const { organizationId, customer, billingType, recurrent, item, returnUrl, cancelUrl } = request
-    const checkout = await this.#post('/checkouts', checkoutSchema, {
-      billingTypes: [billingType],
-      chargeTypes: [recurrent ? 'RECURRENT' : 'DETACHED'],
-      minutesToExpire: CHECKOUT_MINUTES,
-      externalReference: organizationId,
-      customer,
-      callback: { successUrl: returnUrl, cancelUrl, expiredUrl: cancelUrl },
-      items: [{ ...item, quantity: 1 }],
-      ...(recurrent ? { subscription: { cycle: 'MONTHLY', nextDueDate: this.#today() } } : {})
-    })
-    const expiresAt = new Date(this.#clock.now().getTime() + CHECKOUT_MINUTES * 60 * 1000)
-    return {
-      checkoutId: `checkout:${checkout.id}:${expiresAt.getTime()}`,
-      url: checkout.link ?? `${this.#pagesOrigin()}/checkoutSession/show?id=${checkout.id}`,
-      expiresAt
-    }
+  /**
+   * Creates what the payer pays at `path`, sending them back to `returnUrl` once paid. Asaas refuses the way
+   * back while the account has no site registered (Minha Conta → Informações): a refusal is tried once more
+   * without it, so paying works before the owner registers the site, only without the redirect. A refusal for
+   * another reason is refused again, and thrown.
+   */
+  async #postReturning<T extends z.ZodMiniType>(
+    path: string,
+    schema: T,
+    body: Record<string, unknown>,
+    returnUrl: string
+  ): Promise<z.output<T>> {
+    const callback = { successUrl: returnUrl, autoRedirect: true }
+    const withWayBack = await this.#call('POST', path, schema, { body: { ...body, callback }, refused: 'ignore' })
+    return withWayBack ?? (await this.#post(path, schema, body))
   }
 
   /** The subscription's charges and the day its paid period ends, as `subscription` reads them. */
@@ -515,15 +464,8 @@ export class AsaasBillingProvider implements BillingProvider {
     return new Intl.DateTimeFormat('en-CA', { timeZone: ZONE }).format(this.#clock.now())
   }
 
-  #dueDay(method: 'pix' | 'boleto'): string {
+  #dueDay(method: PaymentMethod): string {
     return method === 'boleto' ? shift(this.#today(), BOLETO_DAYS_TO_PAY) : this.#today()
-  }
-
-  /** Where Asaas serves its pages: `sandbox.asaas.com` for `api-sandbox.asaas.com`, `asaas.com` for `api.asaas.com`. */
-  #pagesOrigin(): string {
-    const url = new URL(this.#apiUrl)
-    url.hostname = url.hostname.replace(/^api-/, '').replace(/^api\./, '')
-    return url.origin
   }
 
   async #get<T extends z.ZodMiniType>(path: string, schema: T): Promise<z.output<T> | null> {

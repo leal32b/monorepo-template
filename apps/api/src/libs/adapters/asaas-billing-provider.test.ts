@@ -79,7 +79,6 @@ const back = { returnUrl: 'https://app.example/acme/settings/billing?checkout=re
 const payer = { name: 'Barbearia do Zé Ltda', taxId: '24971563792', email: 'ze@example.com' }
 /** Noon in Brasília, 4 November 2026. */
 const now = new Date('2026-11-04T15:00:00.000Z')
-const minute = 60 * 1000
 
 const list = (data: unknown[], hasMore = false) => ({
   object: 'list',
@@ -141,12 +140,19 @@ const charge = (id: string, dueDate: string, status: string, overrides: Record<s
   ...overrides
 })
 
-/** The checkout of the reference's `CheckoutSessionResponseDTO` example. */
-const CHECKOUT = '131ca662-56c8-4479-b5b3-fd61a413fce7'
-const checkoutAnswer = {
-  body: { id: CHECKOUT, link: `https://sandbox.asaas.com/checkoutSession/show/${CHECKOUT}`, status: 'ACTIVE' }
+/** What the sandbox answered to a `callback` while the account had no site registered (2026-11-18). */
+const noSite = {
+  status: 400,
+  body: {
+    errors: [
+      {
+        code: 'invalid_object',
+        description:
+          'Não há nenhum domínio configurado em sua conta. Cadastre um site em Minha Conta na aba Informações.'
+      }
+    ]
+  }
 }
-const thirtyMinutesOn = now.getTime() + 30 * minute
 
 const server = new AsaasTestServer()
 let clock: FixedClock
@@ -185,12 +191,13 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
   })
 
   describe('startCheckout', () => {
-    it('by card: creates the customer from the payer, then a recurring Checkout of the plan for 30 minutes', async () => {
+    it('by card: creates the customer from the payer, then a monthly subscription paid on its first invoice (ADR 0070)', async () => {
       server
         .on('GET /customers', { body: list([]) })
         .on('POST /customers', { body: customer() })
         .on('GET /subscriptions', { body: list([]) })
-        .on('POST /checkouts', checkoutAnswer)
+        .on('POST /subscriptions', { body: subscription({ billingType: 'CREDIT_CARD', nextDueDate: '2026-11-04' }) })
+        .on(`GET /subscriptions/${SUB}/payments`, { body: list([charge('pay_1', '2026-11-04', 'PENDING')]) })
 
       const checkout = await provider.startCheckout({
         organizationId,
@@ -202,9 +209,9 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
       })
 
       expect(checkout).toEqual({
-        checkoutId: `checkout:${CHECKOUT}:${thirtyMinutesOn}`,
-        url: `https://sandbox.asaas.com/checkoutSession/show/${CHECKOUT}`,
-        expiresAt: new Date(thirtyMinutesOn),
+        checkoutId: `subscription:${SUB}`,
+        url: 'https://www.asaas.com/i/pay_1',
+        expiresAt: new Date('2026-11-05T03:00:00.000Z'),
         customerId: 'cus_000005219613'
       })
       expect(server.to('GET /customers')[0]?.query.get('externalReference')).toBe(organizationId)
@@ -214,24 +221,26 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
         email: payer.email,
         externalReference: organizationId
       })
-      expect(server.to('POST /checkouts')[0]?.headers['content-type']).toBe('application/json')
-      expect(server.to('POST /checkouts')[0]?.body).toEqual({
-        billingTypes: ['CREDIT_CARD'],
-        chargeTypes: ['RECURRENT'],
-        minutesToExpire: 30,
-        externalReference: organizationId,
+      expect(server.to('POST /subscriptions')[0]?.headers['content-type']).toBe('application/json')
+      expect(server.to('POST /subscriptions')[0]?.body).toEqual({
         customer: 'cus_000005219613',
-        callback: { successUrl: back.returnUrl, cancelUrl: back.cancelUrl, expiredUrl: back.cancelUrl },
-        items: [{ name: 'Plan basic', description: 'Monthly plan basic', value: 49, quantity: 1 }],
-        subscription: { cycle: 'MONTHLY', nextDueDate: '2026-11-04' }
+        billingType: 'CREDIT_CARD',
+        value: 49,
+        nextDueDate: '2026-11-04',
+        cycle: 'MONTHLY',
+        description: 'Monthly plan basic',
+        externalReference: organizationId,
+        callback: { successUrl: back.returnUrl, autoRedirect: true }
       })
+      expect(server.to('POST /checkouts')).toHaveLength(0)
     })
 
-    it('reuses the customer the row holds, naming whom the owner typed, and builds the page when Asaas gives no link', async () => {
+    it('reuses the customer the row holds, naming whom the owner typed', async () => {
       server
         .on('PUT /customers/cus_held', { body: customer({ id: 'cus_held' }) })
         .on('GET /subscriptions', { body: list([]) })
-        .on('POST /checkouts', { body: { id: CHECKOUT } })
+        .on('POST /subscriptions', { body: subscription({ customer: 'cus_held', value: 99 }) })
+        .on(`GET /subscriptions/${SUB}/payments`, { body: list([charge('pay_1', '2026-11-04', 'PENDING')]) })
 
       const checkout = await provider.startCheckout({
         organizationId,
@@ -243,7 +252,6 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
       })
 
       expect(checkout.customerId).toBe('cus_held')
-      expect(checkout.url).toBe(`${new URL(server.url).origin}/checkoutSession/show?id=${CHECKOUT}`)
       expect(server.to('PUT /customers/cus_held')[0]?.body).toEqual({
         name: payer.name,
         cpfCnpj: payer.taxId,
@@ -256,7 +264,8 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
       server
         .on('GET /customers', { body: list([customer({ id: 'cus_gone', deleted: true }), customer()]) })
         .on('GET /subscriptions', { body: list([]) })
-        .on('POST /checkouts', checkoutAnswer)
+        .on('POST /subscriptions', { body: subscription() })
+        .on(`GET /subscriptions/${SUB}/payments`, { body: list([charge('pay_1', '2026-11-04', 'PENDING')]) })
 
       const checkout = await provider.startCheckout({
         organizationId,
@@ -268,6 +277,40 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
 
       expect(checkout.customerId).toBe('cus_000005219613')
       expect(server.to('POST /customers')).toHaveLength(0)
+    })
+
+    it('creates the subscription without the way back when Asaas refuses it: the account has no site registered yet', async () => {
+      server
+        .on('GET /subscriptions', { body: list([]) })
+        .on('POST /subscriptions', (call) =>
+          (call.body as { callback?: unknown }).callback === undefined ? { body: subscription() } : noSite
+        )
+        .on(`GET /subscriptions/${SUB}/payments`, { body: list([charge('pay_1', '2026-11-04', 'PENDING')]) })
+
+      const checkout = await provider.startCheckout({
+        organizationId,
+        plan: 'basic',
+        method: 'card',
+        customerId: 'cus_000005219613',
+        ...back
+      })
+
+      expect(checkout.url).toBe('https://www.asaas.com/i/pay_1')
+      expect(server.to('POST /subscriptions').map((call) => 'callback' in (call.body as object))).toEqual([true, false])
+    })
+
+    it('is out of reach when Asaas refuses the subscription without the way back too', async () => {
+      server.on('GET /subscriptions', { body: list([]) }).on('POST /subscriptions', noSite)
+
+      await expect(
+        provider.startCheckout({
+          organizationId,
+          plan: 'basic',
+          method: 'card',
+          customerId: 'cus_000005219613',
+          ...back
+        })
+      ).rejects.toThrow('POST /subscriptions answered 400 invalid_object')
     })
 
     it('refuses to create a customer without the payer, whose name and CPF or CNPJ Asaas requires', async () => {
@@ -377,24 +420,6 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
       ])
     })
 
-    it('by card, deletes every unpaid subscription of ours: the Checkout creates its own', async () => {
-      server
-        .on('GET /subscriptions', { body: list([subscription({ id: 'sub_left', billingType: 'PIX' })]) })
-        .on('GET /subscriptions/sub_left/payments', { body: list([charge('pay_x', '2026-11-04', 'PENDING')]) })
-        .on('DELETE /subscriptions/sub_left', { body: { deleted: true, id: 'sub_left' } })
-        .on('POST /checkouts', checkoutAnswer)
-
-      await provider.startCheckout({
-        organizationId,
-        plan: 'basic',
-        method: 'card',
-        customerId: 'cus_000005219613',
-        ...back
-      })
-
-      expect(server.to('DELETE /subscriptions/sub_left')).toHaveLength(1)
-    })
-
     it('is out of reach when the subscription has no charge to pay yet', async () => {
       server
         .on('GET /subscriptions', { body: list([]) })
@@ -425,25 +450,43 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
     it.each([
       ['card', 'CREDIT_CARD'],
       ['pix', 'PIX']
-    ] as const)('by %s: opens a one-off Checkout of the difference for the customer', async (method, billingType) => {
-      server.on('POST /checkouts', checkoutAnswer)
+    ] as const)(
+      'by %s: a charge of the difference due today, paid on its invoice (ADR 0070)',
+      async (method, billingType) => {
+        server.on('POST /payments', {
+          body: charge('pay_up', '2026-11-04', 'PENDING', { subscription: null, billingType })
+        })
 
-      const checkout = await provider.startPayment({ ...upgrade, method })
+        const checkout = await provider.startPayment({ ...upgrade, method })
 
-      expect(checkout).toEqual({
-        checkoutId: `checkout:${CHECKOUT}:${thirtyMinutesOn}`,
-        url: checkoutAnswer.body.link,
-        expiresAt: new Date(thirtyMinutesOn)
-      })
-      expect(server.to('POST /checkouts')[0]?.body).toEqual({
-        billingTypes: [billingType],
-        chargeTypes: ['DETACHED'],
-        minutesToExpire: 30,
-        externalReference: organizationId,
-        customer: 'cus_000005219613',
-        callback: { successUrl: back.returnUrl, cancelUrl: back.cancelUrl, expiredUrl: back.cancelUrl },
-        items: [{ name: 'Plan upgrade', description: upgrade.description, value: 33.5, quantity: 1 }]
-      })
+        expect(checkout).toEqual({
+          checkoutId: 'payment:pay_up',
+          url: 'https://www.asaas.com/i/pay_up',
+          expiresAt: new Date('2026-11-05T03:00:00.000Z')
+        })
+        expect(server.to('POST /payments')[0]?.body).toEqual({
+          customer: 'cus_000005219613',
+          billingType,
+          value: 33.5,
+          dueDate: '2026-11-04',
+          description: upgrade.description,
+          externalReference: organizationId,
+          callback: { successUrl: back.returnUrl, autoRedirect: true }
+        })
+      }
+    )
+
+    it('creates the charge without the way back when Asaas refuses it', async () => {
+      server.on('POST /payments', (call) =>
+        (call.body as { callback?: unknown }).callback === undefined
+          ? { body: charge('pay_up', '2026-11-07', 'PENDING', { subscription: null, billingType: 'BOLETO' }) }
+          : noSite
+      )
+
+      const checkout = await provider.startPayment({ ...upgrade, method: 'boleto' })
+
+      expect(checkout.checkoutId).toBe('payment:pay_up')
+      expect(server.to('POST /payments')).toHaveLength(2)
     })
 
     it('by boleto: a charge due in three days, whose boleto cannot be paid once it lapses', async () => {
@@ -472,33 +515,16 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
   })
 
   describe('payment', () => {
-    it.each(['chk_1', 'checkout:x', 'checkout:x:soon', 'checkout::1', 'subscription:', 'payment:a:1', 'other:x'])(
-      'answers expired for %j, an id it never gave, without calling Asaas',
-      async (checkoutId) => {
-        expect(await provider.payment(checkoutId)).toBe('expired')
-        expect(server.calls).toHaveLength(0)
-      }
-    )
-
-    describe('of an Asaas Checkout', () => {
-      const checkoutId = `checkout:${CHECKOUT}:${thirtyMinutesOn}`
-
-      it('is paid once a charge it created is confirmed', async () => {
-        server.on('GET /payments', {
-          body: list([charge('pay_c', '2026-11-04', 'CONFIRMED', { checkoutSession: CHECKOUT })])
-        })
-
-        expect(await provider.payment(checkoutId)).toBe('paid')
-        expect(server.to('GET /payments')[0]?.query.get('checkoutSession')).toBe(CHECKOUT)
-      })
-
-      it('is open until its page lapses, then expired', async () => {
-        server.on('GET /payments', { body: list([]) })
-
-        expect(await provider.payment(checkoutId)).toBe('open')
-        clock.advance(30 * minute)
-        expect(await provider.payment(checkoutId)).toBe('expired')
-      })
+    it.each([
+      'chk_1',
+      // An Asaas Checkout's, as an adapter before ADR 0070 wrote it: no page of it can be open any more.
+      'checkout:131ca662-56c8-4479-b5b3-fd61a413fce7:1793804400000',
+      'subscription:',
+      'payment:a:1',
+      'other:x'
+    ])('answers expired for %j, an id it never gave, without calling Asaas', async (checkoutId) => {
+      expect(await provider.payment(checkoutId)).toBe('expired')
+      expect(server.calls).toHaveLength(0)
     })
 
     describe('of a subscription by the API', () => {
@@ -543,31 +569,6 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
   })
 
   describe('cancelCheckout', () => {
-    it('cancels an Asaas Checkout', async () => {
-      server.on(`POST /checkouts/${CHECKOUT}/cancel`, { body: { id: CHECKOUT, status: 'CANCELED' } })
-
-      await provider.cancelCheckout(`checkout:${CHECKOUT}:${thirtyMinutesOn}`)
-
-      expect(server.to(`POST /checkouts/${CHECKOUT}/cancel`)).toHaveLength(1)
-    })
-
-    it('does nothing to a Checkout Asaas will not cancel: paid, expired or cancelled already', async () => {
-      server.on(`POST /checkouts/${CHECKOUT}/cancel`, {
-        status: 400,
-        body: { errors: [{ code: 'invalid_action', description: 'Checkout já pago' }] }
-      })
-
-      await expect(provider.cancelCheckout(`checkout:${CHECKOUT}:${thirtyMinutesOn}`)).resolves.toBeUndefined()
-    })
-
-    it('is out of reach when Asaas fails cancelling a Checkout', async () => {
-      server.on(`POST /checkouts/${CHECKOUT}/cancel`, { status: 502, raw: 'Bad gateway' })
-
-      await expect(provider.cancelCheckout(`checkout:${CHECKOUT}:${thirtyMinutesOn}`)).rejects.toBeInstanceOf(
-        BillingProviderUnavailableException
-      )
-    })
-
     it('deletes an unpaid subscription, which takes its charges with it', async () => {
       holds({ billingType: 'BOLETO' }, [charge('pay_1', '2026-11-07', 'PENDING')])
       server.on(`DELETE /subscriptions/${SUB}`, { body: { deleted: true, id: SUB } })
@@ -595,8 +596,9 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
       expect(server.to('DELETE /payments/pay_up')).toHaveLength(1)
     })
 
-    it('does nothing for an id it never gave', async () => {
+    it('does nothing for an id it never gave, an Asaas Checkout of before ADR 0070 included', async () => {
       await provider.cancelCheckout('chk_1')
+      await provider.cancelCheckout('checkout:131ca662-56c8-4479-b5b3-fd61a413fce7:1793804400000')
 
       expect(server.calls).toHaveLength(0)
     })
@@ -623,12 +625,22 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
     })
   })
 
-  it("changePlan sets the plan's value, on the charges already created too", async () => {
-    server.on(`PUT /subscriptions/${SUB}`, { body: subscription({ value: 99 }) })
+  it("changePlan sets the plan's value, then each charge already created for a next cycle (ADR 0070)", async () => {
+    server
+      .on(`PUT /subscriptions/${SUB}`, { body: subscription({ value: 99 }) })
+      .on(`GET /subscriptions/${SUB}/payments`, {
+        body: list([charge('pay_2', '2026-12-04', 'PENDING'), charge('pay_3', '2027-01-04', 'PENDING')])
+      })
+      .on('PUT /payments/pay_2', { body: charge('pay_2', '2026-12-04', 'PENDING', { value: 99 }) })
+      .on('PUT /payments/pay_3', { body: charge('pay_3', '2027-01-04', 'PENDING', { value: 99 }) })
 
     await provider.changePlan(SUB, 'pro')
 
-    expect(server.to(`PUT /subscriptions/${SUB}`)[0]?.body).toEqual({ value: 99, updatePendingPayments: true })
+    // `updatePendingPayments` answers 500 on a boleto subscription in the sandbox: each charge is set instead.
+    expect(server.to(`PUT /subscriptions/${SUB}`)[0]?.body).toEqual({ value: 99 })
+    expect(server.to(`GET /subscriptions/${SUB}/payments`)[0]?.query.get('status')).toBe('PENDING')
+    expect(server.to('PUT /payments/pay_2')[0]?.body).toEqual({ value: 99 })
+    expect(server.to('PUT /payments/pay_3')[0]?.body).toEqual({ value: 99 })
   })
 
   describe('cancel', () => {
@@ -847,7 +859,7 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
     })
 
     it('is out of reach on a body it does not expect', async () => {
-      server.on('POST /checkouts', { body: { status: 'ACTIVE' } })
+      server.on('POST /payments', { body: { status: 'PENDING' } })
 
       await expect(
         provider.startPayment({
@@ -858,7 +870,7 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
           method: 'card',
           ...back
         })
-      ).rejects.toThrow('POST /checkouts answered an unexpected body')
+      ).rejects.toThrow('POST /payments answered an unexpected body')
     })
 
     it('is out of reach when nothing answers at its address', async () => {
@@ -935,18 +947,6 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
       }
     )
 
-    it.each(['CHECKOUT_PAID', 'CHECKOUT_CANCELED', 'CHECKOUT_EXPIRED'])(
-      "takes the checkout's customer from %s",
-      async (name) => {
-        const checkout = { id: CHECKOUT, link: null, status: 'PAID', customer: 'cus_000005219613' }
-
-        expect(await read(event(name, { checkout }))).toEqual({
-          eventId: expect.any(String),
-          customerId: 'cus_000005219613'
-        })
-      }
-    )
-
     it.each([
       [
         'an event the template does not use',
@@ -954,7 +954,10 @@ describe('AsaasBillingProvider (ADR 0064)', () => {
       ],
       ['a payment event without its charge', event('PAYMENT_RECEIVED', {})],
       ['a subscription event without its subscription', event('SUBSCRIPTION_CREATED', {})],
-      ['a checkout without a customer', event('CHECKOUT_PAID', { checkout: { id: CHECKOUT, customer: null } })],
+      [
+        'a Checkout event, which the template no longer uses (ADR 0070)',
+        event('CHECKOUT_PAID', { checkout: { id: 'chk', customer: 'cus_000005219613' } })
+      ],
       ['a body without an event', { id: 'evt_1' }],
       ['a body that is not JSON', '{not json']
     ])('ignores %s, answered 200 so the queue goes on', async (_case, body) => {
