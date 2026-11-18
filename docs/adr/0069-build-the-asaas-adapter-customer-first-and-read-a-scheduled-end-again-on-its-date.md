@@ -159,6 +159,9 @@ ADR 0064's mapping, with what the build had to decide:
 - Good: a scheduled end lands on its date with any provider, announced or not.
 - Good: the payer's document is checked where it is typed and stored only at Asaas.
 - Bad: the plan page asks for a document and a name on every full-price subscription, also when Asaas knows them.
+- Bad: the first download grows by about 1 KB gzipped: the CPF or CNPJ check rides with `@repo/contracts`'s
+  billing module, which every screen loads, and the payer's words with each language's dictionary. The
+  sign-in's and the public page's budgets rise by 1 KB (`bundle-budget.spec.ts`).
 - Bad: every point of ADR 0064's sandbox list is unverified, as are the new ones the build found
   ([operations](../operations.md#asaas)); the first sandbox run may change the adapter.
 - Bad: a payer who leaves an Asaas Checkout keeps it "open" on the plan page until its 30 minutes run out.

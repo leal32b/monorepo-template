@@ -65,11 +65,14 @@ describe('CheckoutForm (ADR 0067)', () => {
       target: { value: 'Barbearia do Zé' }
     })
     fireEvent.input(screen.getByRole('textbox', { name: 'CPF or CNPJ' }), { target: { value: '11.222.333/0001-81' } })
+    fireEvent.input(screen.getByRole('textbox', { name: 'Email for charges' }), {
+      target: { value: 'finance@example.com' }
+    })
     press('Continue to payment')
 
     await waitFor(() => expect(assign).toHaveBeenCalledWith('https://pay.example/c/1'))
     expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toMatchObject({
-      payer: { name: 'Barbearia do Zé', taxId: '11222333000181', email: 'owner@example.com' }
+      payer: { name: 'Barbearia do Zé', taxId: '11222333000181', email: 'finance@example.com' }
     })
   })
 
