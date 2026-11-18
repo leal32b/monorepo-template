@@ -70,8 +70,10 @@ routes a visitor reaches without a session, and their rate limiter).
 - Invitation links: their id is enough to find the invitation, though only the invited address
   can use it.
 - Secrets: `BETTER_AUTH_SECRET`, `PROXY_SECRET`, `DATABASE_URL`, `GOOGLE_CLIENT_SECRET`, the
-  email provider key, the payment provider's API key and webhook secret (`FAKE_BILLING_TOKEN` in
-  development, where the fake takes the payments), and the Render and Cloudflare tokens.
+  email provider key, the payment provider's API key and webhook secret (`ASAAS_API_KEY` and
+  `ASAAS_WEBHOOK_TOKEN`; `FAKE_BILLING_TOKEN` in development, where the fake takes the payments), and
+  the Render and Cloudflare tokens.
+- The payer's name, CPF or CNPJ and email, typed on the plan page and passed to the provider.
 - The organization's money: what its owner pays the SaaS, on the provider's pages.
 
 ## Attackers
@@ -144,6 +146,7 @@ it).
 | T49 | A genuine notice replayed to roll a subscription back, or delivered twice or out of order | T | `webhook_event` keeps each provider and event id for 30 days, recorded in the same transaction as the one job it enqueues, so a repeat enqueues nothing; the job writes the provider's current state at the row's version, so neither order nor a late replay changes the result, and two syncs at once make the second read again | in place |
 | T50 | A tenant pays for another, or a payment lands on the wrong organization: a checkout opened for an organization the caller does not own, one provider customer shared by two organizations, or a reference changed at the provider | S, T, E | The organization comes from the path, behind `tenantRoutes` with `billing:manage`, which only owners hold; the reference sent to the provider is the organization id the server set; a provider customer and a provider subscription each belong to one row (unique indexes); the job finds the organization by our row and refuses, logged at error, a provider state whose reference names another one, or ids that point at two rows; the return URL is a path of the web origin, never a whole URL | in place |
 | T51 | Card data stolen from or through the template | I | The template draws no payment form; every card is typed on the provider's pages, and the port has no method that takes card data or calls a provider's card or card-token endpoints ([ADR 0064](../adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md)) | in place |
+| T52 | The payer's CPF or CNPJ, or the provider's key, read from the template | I | The payer's document is checked by the contract, sent only to the provider over TLS and stored nowhere in the template: the provider keeps the customer; the request log names the route, never the body; a provider's failure names the call, its status and the provider's error codes, never their descriptions, which may quote what was sent, nor the key, which travels only in its header; env validation names a wrong variable, never its value ([ADR 0069](../adr/0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md)) | in place |
 
 ## Accepted risks
 

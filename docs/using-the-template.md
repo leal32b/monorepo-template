@@ -49,14 +49,14 @@ the proxy to the API), on free tiers, deployed by GitHub Actions after CI passes
 [ADR 0019](adr/0019-reach-the-api-through-the-web-worker.md)). Any Postgres and any container host
 work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
-1. Create the accounts: Neon, Render, Cloudflare, and Resend with a verified sending domain.
-   Google sign-in is optional (an OAuth client whose redirect URI is
+1. Create the accounts: Neon, Render, Cloudflare, Resend with a verified sending domain, and Asaas
+   (step 5). Google sign-in is optional (an OAuth client whose redirect URI is
    `<web origin>/api/auth/callback/google`).
 2. In GitHub, **Settings → Environments → `production`**, add:
 
    | Secrets | Variables |
    | --- | --- |
-   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET` | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty) |
+   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`) | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api.asaas.com/v3`, or the sandbox's `https://api-sandbox.asaas.com/v3` for a staging environment) |
 
 3. Push to `main`. The first run publishes the API image and stops at the configuration check: make
    the image's package public on GHCR, create a Render web service from it (free plan, health check
@@ -66,11 +66,16 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
    can have a service of their own: the same image and variables with the command
    `node --enable-source-maps dist/worker.js` and `JOB_IDLE_POLL_SECONDS=5`, and `JOB_WORKER=off` on
    the API. The deploy workflow does not create that service or set those variables: add them to it.
-5. A payment provider, before the first deploy: [ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md)
-   says what to create at Asaas (an account, an API key, a webhook to
-   `<web origin>/api/webhooks/asaas` with its token) and which variables to set. With no provider's
-   key the API bills through a fake that marks an organization paid on a command, so env validation
-   refuses to start it when `WEB_ORIGIN` is https
+5. The payment provider, Asaas, before the first deploy
+   ([ADR 0064](adr/0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md),
+   [ADR 0069](adr/0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md)):
+   the account approved with Pix on, an API key in `ASAAS_API_KEY` (`$aact_prod_…`, or `$aact_hmlg_…`
+   with the sandbox's URL), and a webhook to `<web origin>/api/webhooks/asaas` with the token of
+   `ASAAS_WEBHOOK_TOKEN` and the events [operations](operations.md#asaas) lists, which also covers payer
+   notices, charges created 7 days ahead and card tokenization. The deploy checks that the three are set
+   and that the key belongs to the URL's environment, then pushes them to the API's host. With no
+   provider's key the API bills through a fake that marks an organization paid on a command, so env
+   validation refuses to start it when `WEB_ORIGIN` is https
    ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
 6. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
    answers `/api/health` ([ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md)).

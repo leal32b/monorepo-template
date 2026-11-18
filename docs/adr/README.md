@@ -73,3 +73,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0066](0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md) | Hold a list screen's state in shared helpers, and its toolbar and pager in components | accepted |
 | [0067](0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md) | Settle what ADR 0063 left open in the billing port, routes and jobs | proposed |
 | [0068](0068-say-the-subscription-once-per-screen-and-open-the-plan-page-to-every-member.md) | Say the subscription once per screen, and open the plan page to every member | proposed |
+| [0069](0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md) | Build the Asaas adapter customer first, and read a scheduled end again on its date | proposed |
