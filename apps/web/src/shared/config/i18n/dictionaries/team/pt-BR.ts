@@ -53,6 +53,21 @@ export const teamPtBR: typeof teamEn = {
         saved: 'Moeda salva'
       }
     },
+    export: {
+      title: 'Seus dados',
+      description: 'Uma cópia de tudo o que há em {{name}}, para guardar ou levar para outro lugar.',
+      row: 'Exportar dados',
+      none: 'Um arquivo zip com uma planilha para cada tipo de registro: membros, clientes, atividade e mais. Enviamos um e-mail quando estiver pronto.',
+      pending: 'Em preparação. Enviamos um e-mail quando estiver pronto, e você pode baixá-lo aqui.',
+      ready: 'Pronto para baixar até {{date}} ({{size}}).',
+      expired: 'A última exportação foi apagada em {{date}}. Peça uma nova.',
+      again: 'Você pode pedir uma nova a partir de {{time}}.',
+      request: 'Exportar dados',
+      requestAgain: 'Exportar de novo',
+      download: 'Baixar',
+      failed: 'Não conseguimos pedir a exportação. Tente de novo em instantes.',
+      unavailable: 'Não conseguimos ler a última exportação. Verifique sua conexão e tente de novo.'
+    },
     delete: {
       title: 'Excluir organização',
       description: 'Para todos os membros, isso remove a organização e tudo o que ela contém.',

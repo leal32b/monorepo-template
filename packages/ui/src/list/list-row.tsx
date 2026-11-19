@@ -54,7 +54,7 @@ const drawn = (resolved: unknown[]) => resolved.some((item) => item !== undefine
 /** The id of the row's note, while it has one: a button that cannot act points to it for its reason. */
 const NoteContext = createContext<() => string | undefined>(() => undefined)
 
-/** The id of the `note` of the row around, if it has one (`PanelButton` uses it when disabled). */
+/** The id of the `note` of the row around, if it has one: a button of the row disabled for its reason points to it. */
 export const useRowNote = () => useContext(NoteContext)
 
 export function ListRow(props: ListRowProps) {

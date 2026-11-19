@@ -6,6 +6,7 @@ export {
   formatDateTime,
   formatDays,
   formatMoney,
+  formatSize,
   /** @public */
   formatTime,
   formatWait

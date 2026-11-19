@@ -17,6 +17,7 @@ const icons = {
   close: 'x',
   coins: 'coins',
   customers: 'address-book',
+  download: 'download-simple',
   error: 'warning-circle',
   expand: 'caret-up-down',
   folder: 'folder',

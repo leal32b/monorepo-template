@@ -16,6 +16,13 @@ async function failureOf(promise: Promise<unknown>): Promise<ApiError> {
 }
 
 describe('createApiClient', () => {
+  it('says where a path is on the API, for a link the browser opens itself (ADR 0074)', () => {
+    expect(createApiClient({ fetch: vi.fn() }).url('/api/x')).toBe('/api/x')
+    expect(createApiClient({ fetch: vi.fn(), baseUrl: 'https://api.example.com' }).url('/api/x')).toBe(
+      'https://api.example.com/api/x'
+    )
+  })
+
   it('returns the response body once it satisfies the schema', async () => {
     const client = createApiClient({ fetch: async () => json(health) })
 

@@ -9,10 +9,46 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'America/Sao_Paulo', currency: 'BRL' as const }
 const globex = { id: 'org-2', name: 'Globex', slug: 'globex', timeZone: 'UTC', currency: 'USD' as const }
 
-type Options = { permissions?: Permissions; auth?: Fetch; locale?: Locale }
+type Options = {
+  permissions?: Permissions
+  auth?: Fetch
+  locale?: Locale
+  api?: (input: string, init?: RequestInit) => Promise<Response>
+}
+
+/** The export routes in memory (ADR 0074): what GET answers, in turn, and what POST answers. */
+function exportApi(reads: unknown[], post: () => Response = () => Response.json(pending, { status: 202 })) {
+  const calls: string[] = []
+  let read = 0
+  const api = async (input: string, init?: RequestInit) => {
+    calls.push(`${init?.method ?? 'GET'} ${input}`)
+    if (init?.method === 'POST') return post()
+    const answer = reads[Math.min(read++, reads.length - 1)]
+    return answer instanceof Response ? answer : Response.json(answer)
+  }
+  return { api, calls }
+}
+
+const pending = {
+  status: 'pending',
+  requestedAt: '2026-11-19T12:00:00.000Z',
+  nextRequestAt: '2099-01-01T12:15:00.000Z'
+}
+const ready = {
+  status: 'ready',
+  requestedAt: '2026-11-19T12:00:00.000Z',
+  expiresAt: '2026-11-26T12:00:05.000Z',
+  size: 2_400_000,
+  nextRequestAt: null
+}
 
 /** The page at `/acme/settings/general` for a caller with `permissions`, and Better Auth answering through `fetch`. */
-function renderPage({ permissions = builtInRoles.owner, auth, locale = 'en' }: Options = {}) {
+function renderPage({
+  permissions = builtInRoles.owner,
+  auth,
+  locale = 'en',
+  api = exportApi([{ status: 'none' }]).api
+}: Options = {}) {
   const authFetch: Fetch =
     auth ??
     (async (input) =>
@@ -22,6 +58,7 @@ function renderPage({ permissions = builtInRoles.owner, auth, locale = 'en' }: O
     path: '/settings/general',
     organization: acme,
     auth: authFetch,
+    api,
     locale,
     membership: membershipOf(['member'], permissions as OrganizationMembership['permissions'])
   }).history
@@ -29,6 +66,7 @@ function renderPage({ permissions = builtInRoles.owner, auth, locale = 'en' }: O
 
 const details = () => within(screen.getByRole('region', { name: 'Organization' }))
 const regional = () => within(screen.getByRole('region', { name: 'Time and money' }))
+const data = async () => within(await screen.findByRole('region', { name: 'Your data' }))
 
 /** Every kind of space as a plain one: ICU versions differ on which space goes before PM. */
 const spaced = (text: string | null) => text?.replace(/\s/g, ' ')
@@ -211,5 +249,111 @@ describe('OrganizationGeneralPage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Geral' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Renomear' })).toBeInTheDocument()
+  })
+
+  describe('the export of the data (ADR 0074)', () => {
+    afterEach(() => vi.useRealTimers())
+
+    it('shows the owner what it holds and the button to ask, and nobody else the section', async () => {
+      renderPage()
+
+      const section = await data()
+      expect(await section.findByText(/A zip file with a spreadsheet for each kind of record/)).toBeInTheDocument()
+      expect(section.getByRole('button', { name: 'Export data' })).toBeEnabled()
+    })
+
+    it('shows an admin no export', () => {
+      renderPage({ permissions: builtInRoles.admin })
+
+      expect(screen.queryByRole('region', { name: 'Your data' })).not.toBeInTheDocument()
+    })
+
+    it('asks, says it is being prepared, reads again until it is ready, then offers the download', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const { api, calls } = exportApi([{ status: 'none' }, pending, ready])
+      renderPage({ api })
+      const section = await data()
+
+      fireEvent.click(await section.findByRole('button', { name: 'Export data' }))
+
+      expect(await section.findByText(/Being prepared/)).toBeInTheDocument()
+      expect(section.queryByRole('button', { name: 'Export data' })).not.toBeInTheDocument()
+      vi.advanceTimersByTime(3_000)
+      const download = await section.findByRole('link', { name: 'Download' })
+      expect(download).toHaveAttribute('href', '/api/organizations/org-1/export/file')
+      expect(section.getByText('Ready to download until Nov 26, 2026 (2.4 MB).')).toBeInTheDocument()
+      expect(section.getByRole('button', { name: 'Export again' })).toBeEnabled()
+      expect(calls).toContain('POST /api/organizations/org-1/export')
+    })
+
+    it('waits within 15 minutes of the last request, saying from when, for a screen reader too', async () => {
+      renderPage({ api: exportApi([{ ...ready, nextRequestAt: '2099-01-01T12:15:00.000Z' }]).api })
+      const section = await data()
+
+      const again = await section.findByRole('button', { name: 'Export again' })
+      expect(again).toBeDisabled()
+      expect(again).toHaveAccessibleDescription(/You can ask for a new one from Jan 1, 2099/)
+    })
+
+    it('opens the button again by itself when the 15 minutes are over', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      const soon = new Date(Date.now() + 60_000).toISOString()
+      renderPage({ api: exportApi([{ ...ready, nextRequestAt: soon }, ready]).api })
+      const section = await data()
+      expect(await section.findByRole('button', { name: 'Export again' })).toBeDisabled()
+
+      vi.advanceTimersByTime(60_000)
+
+      await waitFor(() => expect(section.getByRole('button', { name: 'Export again' })).toBeEnabled())
+    })
+
+    it('says when an expired export was deleted, with the way to ask again', async () => {
+      renderPage({ api: exportApi([{ ...ready, status: 'expired', size: undefined }]).api })
+
+      expect(
+        await (await data()).findByText('The last export was deleted on Nov 26, 2026. Ask for a new one.')
+      ).toBeInTheDocument()
+    })
+
+    it('reads the state again when the API says it was asked a moment ago, as in another tab', async () => {
+      const tooSoon = () =>
+        Response.json(
+          { type: 'urn:problem:export_too_soon', title: 'Conflict', status: 409, code: 'export_too_soon' },
+          { status: 409 }
+        )
+      const { api } = exportApi([{ status: 'none' }, pending], tooSoon)
+      renderPage({ api })
+      const section = await data()
+
+      fireEvent.click(await section.findByRole('button', { name: 'Export data' }))
+
+      expect(await section.findByText(/Being prepared/)).toBeInTheDocument()
+    })
+
+    it('says a request that failed, and keeps the button', async () => {
+      const boom = () =>
+        Response.json(
+          { type: 'urn:problem:boom', title: 'Error', status: 500, code: 'internal_error' },
+          { status: 500 }
+        )
+      renderPage({ api: exportApi([{ status: 'none' }], boom).api })
+      const section = await data()
+
+      fireEvent.click(await section.findByRole('button', { name: 'Export data' }))
+
+      expect(await section.findByText('We could not ask for the export. Try again in a moment.')).toBeInTheDocument()
+      expect(section.getByRole('button', { name: 'Export data' })).toBeEnabled()
+    })
+
+    it('says in the row when the state cannot be read, and the rest of the page stays', async () => {
+      const failing = Response.json(
+        { type: 'urn:problem:boom', title: 'Error', status: 500, code: 'boom' },
+        { status: 500 }
+      )
+      renderPage({ api: exportApi([failing]).api })
+
+      expect(await (await data()).findByText(/We could not read the last export/)).toBeInTheDocument()
+      expect(details().getByText('Acme')).toBeInTheDocument()
+    })
   })
 })

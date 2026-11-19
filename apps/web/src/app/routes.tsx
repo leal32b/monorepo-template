@@ -161,6 +161,22 @@ const preloadBilling = onOpen(({ params }) => {
     return billingQuery(api)(organization.id)
   })
 })
+/**
+ * The General screen's export row reads the organization's last export as it opens (ADR 0074), for the owner
+ * alone, who holds `organization:export`: it waits for the membership the frame reads anyway, so nobody
+ * else's console shows a refused call (ADR 0042).
+ */
+const preloadGeneral = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  preload(organizations, async (entity, { auth, api }) => {
+    const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
+    if (organization === undefined) return
+    const membership = await entity.membershipQuery(api)(organization.id)
+    if (!can(membership.permissions, 'organization', 'export')) return
+    const { organizationExportQuery } = await import('#entities/organization-exports')
+    await organizationExportQuery(api)(organization.id)
+  })
+})
 const identityOptions = () => import('#entities/identity-options')
 /** The security screen reads the ways to sign in, and whether the API has Google for the Google row. */
 const preloadSecurity = onOpen(() => {
@@ -272,7 +288,7 @@ export const routes: RouteDefinition[] = [
                     path: '/settings',
                     children: [
                       { path: '/', component: SettingsOfOrganization },
-                      { path: '/general', ...screenOf(OrganizationGeneralPage, ['team']) },
+                      { path: '/general', ...screenOf(OrganizationGeneralPage, ['team'], preloadGeneral) },
                       { path: '/members', ...screenOf(OrganizationMembersPage, ['team'], preloadTeam) },
                       { path: '/roles', ...screenOf(OrganizationRolesPage, ['team'], preloadTeam) },
                       {

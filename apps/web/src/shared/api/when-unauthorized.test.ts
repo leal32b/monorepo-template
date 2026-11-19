@@ -13,6 +13,10 @@ function clientAnswering(status: number) {
 }
 
 describe('whenUnauthorized', () => {
+  it('says where a path is as the client it watches does', () => {
+    expect(clientAnswering(200).client.url('/api/x')).toBe('/api/x')
+  })
+
   it('calls the handler when an answer is 401, and still fails, so the caller stops', async () => {
     const { client, handle } = clientAnswering(401)
 
