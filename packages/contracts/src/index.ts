@@ -60,6 +60,12 @@ export {
   webhookReceiptSchema
 } from './billing'
 export {
+  type ClientErrorReport,
+  clientErrorKinds,
+  clientErrorLimits,
+  clientErrorReportSchema
+} from './client-errors'
+export {
   type Customer,
   type CustomerInput,
   type CustomerList,
