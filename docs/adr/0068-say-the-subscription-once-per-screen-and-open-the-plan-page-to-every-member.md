@@ -1,6 +1,6 @@
 # 0068. Say the subscription once per screen, and open the plan page to every member
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-13
 
 Amends [ADR 0063](0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)

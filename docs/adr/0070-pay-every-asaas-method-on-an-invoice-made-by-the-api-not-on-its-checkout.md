@@ -1,6 +1,6 @@
 # 0070. Pay every Asaas method on an invoice made by the API, not on its Checkout
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-18
 
 Changes [ADR 0064](0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md)'s

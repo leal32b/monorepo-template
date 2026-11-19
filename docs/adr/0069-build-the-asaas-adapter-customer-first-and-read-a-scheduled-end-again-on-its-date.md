@@ -1,6 +1,6 @@
 # 0069. Build the Asaas adapter customer first, and read a scheduled end again on its date
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-18
 
 Builds the adapter of [ADR 0064](0064-start-billing-on-asaas-because-stripe-cannot-charge-recurring-pix-in-brazil.md)
