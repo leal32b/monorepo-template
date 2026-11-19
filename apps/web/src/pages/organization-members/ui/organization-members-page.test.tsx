@@ -1,12 +1,8 @@
 import { builtInRoles, type OrganizationMembership, type Permissions } from '@repo/contracts'
-import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
-import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import type { ParentProps } from 'solid-js'
-import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/organizations'
-import { SessionProvider } from '#entities/sessions'
-import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { fireEvent, screen, waitFor, within } from '@solidjs/testing-library'
+import type { Locale } from '#shared/config'
 import { membershipOf } from '../../../test-membership'
+import { renderOrganizationPage } from '../../../test-organization-page'
 import { OrganizationMembersPage } from './organization-members-page'
 
 type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -88,41 +84,15 @@ function renderPage({
       if (url.includes('/organization/list')) return Response.json([acme])
       return Response.json({ status: true })
     })
-  const history = createMemoryHistory()
-  history.set({ value: '/acme/settings/members' })
-  render(() => (
-    <I18nProvider locale={locale}>
-      <ThemeProvider>
-        <PaletteProvider>
-          <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
-            <AuthProvider client={createAuthClient({ fetch: authFetch })}>
-              <SessionProvider user={{ id: `u-${as}`, email: 'ada@example.com', name: 'Ada' }}>
-                <MemoryRouter history={history}>
-                  <Route path="/" component={OrganizationsProvider}>
-                    <Route
-                      path="/:orgSlug"
-                      component={(props: ParentProps) => (
-                        <CurrentOrganizationProvider
-                          organization={acme}
-                          membership={membershipOf(roles, permissions as OrganizationMembership['permissions'])}
-                        >
-                          {props.children}
-                        </CurrentOrganizationProvider>
-                      )}
-                    >
-                      <Route path="/settings/members" component={OrganizationMembersPage} />
-                    </Route>
-                    <Route path="/" component={() => <p>The root</p>} />
-                  </Route>
-                </MemoryRouter>
-              </SessionProvider>
-            </AuthProvider>
-          </ApiProvider>
-        </PaletteProvider>
-      </ThemeProvider>
-    </I18nProvider>
-  ))
-  return history
+  return renderOrganizationPage({
+    page: OrganizationMembersPage,
+    path: '/settings/members',
+    organization: acme,
+    auth: authFetch,
+    locale,
+    user: { id: `u-${as}`, email: 'ada@example.com', name: 'Ada' },
+    membership: membershipOf(roles, permissions as OrganizationMembership['permissions'])
+  }).history
 }
 
 /** The row of a person: the box around their name, with its buttons and notes. */

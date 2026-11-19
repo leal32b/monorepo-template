@@ -5,14 +5,9 @@ import {
   type Permissions,
   type Subscription
 } from '@repo/contracts'
-import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
-import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import type { ParentProps } from 'solid-js'
-import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/organizations'
-import { SessionProvider } from '#entities/sessions'
-import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
+import { fireEvent, screen, waitFor, within } from '@solidjs/testing-library'
 import { membershipOf } from '../../../test-membership'
+import { renderOrganizationPage } from '../../../test-organization-page'
 import { OrganizationBillingPage } from './organization-billing-page'
 
 const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
@@ -105,38 +100,15 @@ function renderPage({
   membership?: OrganizationMembership
   auth?: (input: RequestInfo | URL) => Promise<Response>
 }) {
-  const refresh = vi.fn(async () => undefined)
-  const history = createMemoryHistory()
-  history.set({ value: path })
-  render(() => (
-    <I18nProvider locale="en">
-      <ThemeProvider>
-        <PaletteProvider>
-          <ApiProvider client={createApiClient({ fetch: api.fetch })}>
-            <AuthProvider client={createAuthClient({ fetch: auth })}>
-              <SessionProvider user={{ id: 'u1', email: 'o@example.com', name: 'Olivia Owner' }}>
-                <MemoryRouter history={history}>
-                  <Route path="/" component={OrganizationsProvider}>
-                    <Route
-                      path="/:orgSlug"
-                      component={(props: ParentProps) => (
-                        <CurrentOrganizationProvider organization={acme} membership={membership} refresh={refresh}>
-                          {props.children}
-                        </CurrentOrganizationProvider>
-                      )}
-                    >
-                      <Route path="/settings/billing" component={OrganizationBillingPage} />
-                    </Route>
-                  </Route>
-                </MemoryRouter>
-              </SessionProvider>
-            </AuthProvider>
-          </ApiProvider>
-        </PaletteProvider>
-      </ThemeProvider>
-    </I18nProvider>
-  ))
-  return { refresh, history }
+  return renderOrganizationPage({
+    page: OrganizationBillingPage,
+    path: '/settings/billing',
+    at: path,
+    api: api.fetch,
+    auth,
+    membership,
+    user: { id: 'u1', email: 'o@example.com', name: 'Olivia Owner' }
+  })
 }
 
 const yourPlan = async () => within(await screen.findByRole('region', { name: 'Your plan' }))

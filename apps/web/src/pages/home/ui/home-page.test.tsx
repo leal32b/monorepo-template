@@ -1,11 +1,11 @@
 import { builtInRoles, type OrganizationMembership, type Permissions } from '@repo/contracts'
 import { MemoryRouter, Route } from '@solidjs/router'
 import { render, screen } from '@solidjs/testing-library'
-import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/organizations'
 import { SessionProvider } from '#entities/sessions'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider, ThemeProvider } from '#shared/config'
 import { membershipOf } from '../../../test-membership'
+import { renderOrganizationPage } from '../../../test-organization-page'
 import { HomePage } from './home-page'
 
 describe('HomePage', () => {
@@ -36,34 +36,12 @@ describe('HomePage', () => {
 
   describe('Getting started', () => {
     function renderHome(permissions: Permissions) {
-      render(() => (
-        <I18nProvider locale="en">
-          <ThemeProvider>
-            <PaletteProvider>
-              <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
-                <AuthProvider client={createAuthClient({ fetch: async () => Response.json([]) })}>
-                  <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-                    <MemoryRouter
-                      root={(root) => (
-                        <OrganizationsProvider>
-                          <CurrentOrganizationProvider
-                            organization={{ id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' }}
-                            membership={membershipOf(['owner'], permissions as OrganizationMembership['permissions'])}
-                          >
-                            {root.children}
-                          </CurrentOrganizationProvider>
-                        </OrganizationsProvider>
-                      )}
-                    >
-                      <Route path="*" component={HomePage} />
-                    </MemoryRouter>
-                  </SessionProvider>
-                </AuthProvider>
-              </ApiProvider>
-            </PaletteProvider>
-          </ThemeProvider>
-        </I18nProvider>
-      ))
+      renderOrganizationPage({
+        page: HomePage,
+        path: '/',
+        user: { id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' },
+        membership: membershipOf(['owner'], permissions as OrganizationMembership['permissions'])
+      })
     }
 
     it('offers whoever may invite a link to invite people, to the members of their organization', () => {

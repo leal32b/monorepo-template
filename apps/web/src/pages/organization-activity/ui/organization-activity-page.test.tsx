@@ -5,17 +5,13 @@ import {
   type OrganizationMembership,
   type Permissions
 } from '@repo/contracts'
-import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
-import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import type { ParentProps } from 'solid-js'
-import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/organizations'
-import { SessionProvider } from '#entities/sessions'
-import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { fireEvent, screen, waitFor, within } from '@solidjs/testing-library'
+import type { Locale } from '#shared/config'
 import { membershipOf } from '../../../test-membership'
+import { renderOrganizationPage } from '../../../test-organization-page'
 import { OrganizationActivityPage } from './organization-activity-page'
 
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
+const _acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 
 const entry = (id: string, over: Partial<AuditEntry> = {}): AuditEntry => ({
   id,
@@ -59,36 +55,13 @@ function renderPage({
   const base = membershipOf(['owner'], held as OrganizationMembership['permissions'])
   const membership =
     capabilities === undefined ? base : { ...base, entitlements: { ...base.entitlements, capabilities } }
-  const history = createMemoryHistory()
-  history.set({ value: '/acme/settings/activity' })
-  render(() => (
-    <I18nProvider locale={locale}>
-      <ThemeProvider>
-        <PaletteProvider>
-          <ApiProvider client={createApiClient({ fetch: api.fetch })}>
-            <AuthProvider client={createAuthClient({ fetch: async () => Response.json([acme]) })}>
-              <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada' }}>
-                <MemoryRouter history={history}>
-                  <Route path="/" component={OrganizationsProvider}>
-                    <Route
-                      path="/:orgSlug"
-                      component={(props: ParentProps) => (
-                        <CurrentOrganizationProvider organization={acme} membership={membership}>
-                          {props.children}
-                        </CurrentOrganizationProvider>
-                      )}
-                    >
-                      <Route path="/settings/activity" component={OrganizationActivityPage} />
-                    </Route>
-                  </Route>
-                </MemoryRouter>
-              </SessionProvider>
-            </AuthProvider>
-          </ApiProvider>
-        </PaletteProvider>
-      </ThemeProvider>
-    </I18nProvider>
-  ))
+  return renderOrganizationPage({
+    page: OrganizationActivityPage,
+    path: '/settings/activity',
+    api: api.fetch,
+    locale,
+    membership
+  })
 }
 
 const section = async () => within(await screen.findByRole('region', { name: 'Recent changes' }))

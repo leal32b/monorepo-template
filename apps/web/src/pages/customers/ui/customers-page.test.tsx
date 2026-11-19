@@ -5,18 +5,13 @@ import {
   type OrganizationMembership,
   type Permissions
 } from '@repo/contracts'
-import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
-import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
-import type { ParentProps } from 'solid-js'
-import { CurrentOrganizationProvider, OrganizationsProvider } from '#entities/organizations'
-import { SessionProvider } from '#entities/sessions'
-import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
-import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { fireEvent, screen, waitFor, within } from '@solidjs/testing-library'
+import type { Locale } from '#shared/config'
 import { membershipOf } from '../../../test-membership'
+import { renderOrganizationPage } from '../../../test-organization-page'
 import { CustomersPage } from './customers-page'
 
 type Fetch = (input: string, init?: RequestInit) => Promise<Response>
-const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
 const archivedAt = '2026-11-08T10:00:00.000Z'
 
 const customer = (id: string, name: string, over: Partial<Customer> = {}): Customer => ({
@@ -96,44 +91,13 @@ type Options = {
 }
 
 function renderPage({ held = builtInRoles.owner as Permissions, locale = 'en', api, membership }: Options) {
-  const refresh = vi.fn(async () => undefined)
-  const history = createMemoryHistory()
-  history.set({ value: '/acme/customers' })
-  render(() => (
-    <I18nProvider locale={locale}>
-      <ThemeProvider>
-        <PaletteProvider>
-          <ApiProvider client={createApiClient({ fetch: api.fetch })}>
-            <AuthProvider client={createAuthClient({ fetch: async () => Response.json([acme]) })}>
-              <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada' }}>
-                <MemoryRouter history={history}>
-                  <Route path="/" component={OrganizationsProvider}>
-                    <Route
-                      path="/:orgSlug"
-                      component={(props: ParentProps) => (
-                        <CurrentOrganizationProvider
-                          organization={acme}
-                          membership={
-                            membership ?? membershipOf(['owner'], held as OrganizationMembership['permissions'])
-                          }
-                          refresh={refresh}
-                        >
-                          {props.children}
-                        </CurrentOrganizationProvider>
-                      )}
-                    >
-                      <Route path="/customers" component={CustomersPage} />
-                    </Route>
-                  </Route>
-                </MemoryRouter>
-              </SessionProvider>
-            </AuthProvider>
-          </ApiProvider>
-        </PaletteProvider>
-      </ThemeProvider>
-    </I18nProvider>
-  ))
-  return { refresh }
+  return renderOrganizationPage({
+    page: CustomersPage,
+    path: '/customers',
+    api: api.fetch,
+    locale,
+    membership: membership ?? membershipOf(['owner'], held as OrganizationMembership['permissions'])
+  })
 }
 
 /** The row of a customer: the box around its title, with its buttons. */
