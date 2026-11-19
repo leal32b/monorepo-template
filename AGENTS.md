@@ -80,7 +80,10 @@ docs/                # using the template, operations, testing, security, adr
   statuses in `createListStatus` (`#shared/lib`), draws its search and filter in `ListToolbar` and its
   pager in `ListPager`, and writes only its own rows, panels and words
   ([ADR 0066](docs/adr/0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md)).
-- **i18n:** UI text lives in typed dictionaries, one file per language ([ADR 0011](docs/adr/0011-typed-i18n-dictionaries.md)).
+- **i18n:** UI text lives in typed dictionaries, one file per group and language ([ADR 0011](docs/adr/0011-typed-i18n-dictionaries.md),
+  [ADR 0058](docs/adr/0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)); the first download
+  carries the core groups only, and a screen's groups load with its route through `screenOf`
+  ([ADR 0071](docs/adr/0071-load-each-screens-dictionary-group-with-its-route.md)).
 - **Contracts:** every request/response is a Zod schema in `@repo/contracts`, except `/api/auth/*`,
   which keeps Better Auth's shapes ([ADR 0020](docs/adr/0020-authenticate-with-better-auth.md)).
 - **Money and time:** money is an integer in minor units with its currency (`moneySchema`); instants are ISO 8601

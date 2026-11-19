@@ -264,7 +264,7 @@ what it grants, in the statement it already makes.
    `#modules/billing/index` before it writes (`403 plan_limit_reached`, naming the limit and its
    number). With `null` it counts nothing. Copy `CreateCustomerService` and its route.
 4. The web reads the same `entitlement(membership, key)` from the membership it holds, to draw the
-   action disabled with the reason before the member tries. The words live in the billing dictionary:
+   action disabled with the reason before the member tries. The words live in the billing dictionary (a screen that uses them names `billing` in its route, [ADR 0071](adr/0071-load-each-screens-dictionary-group-with-its-route.md)):
    what the plan includes (`billing.limits.<limit>`, `billing.capabilities.<capability>`, shown on the
    plan page) and what a refusal means (`billing.refusals.limits.<limit>` for the owner, an owner whose
    upgrade waits, and another member; `billing.refusals.capabilities.<capability>`). `usePlanRefusal`
@@ -406,7 +406,8 @@ code goes the same way in both cases below:
 3. `apps/web/src/entities/customers/`, `features/customers/`, `pages/customers/`, the route in
    `app/routes.tsx`, the registration form on `pages/public-organization/` and its `registration`
    texts (`dictionaries/public/`), the menu and palette items in `widgets/app-shell/`, and the `customers` texts
-   and role descriptions in every locale (`dictionaries/customers/`, and its line in `locales/*.ts`), and
+   and role descriptions in every locale (`dictionaries/customers/`, its name in `lazyGroups` and its line in the
+   `Messages` type), and
    the `customer` texts of the activity (`entries.customer` and `fields.customer` in `dictionaries/audit/`,
    and its field list in `pages/organization-activity/`). The audit trail and its screen stay: they
    belong to every module. So do `createListStatus`, which the members and roles screens use too. The
@@ -442,17 +443,25 @@ module records into. The public profile
 ### Texts and languages
 
 Texts live in `apps/web/src/shared/config/i18n/dictionaries/<group>/<language>.ts`, one file per module and
-language ([ADR 0058](adr/0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)). The
-`locales/*.ts` files only merge them.
+language ([ADR 0058](adr/0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)). The first
+download carries only the **core** groups, `shell` and `entry`, which `locales/*.ts` merge; every other group is
+a file of its own that loads with the screens that use it
+([ADR 0071](adr/0071-load-each-screens-dictionary-group-with-its-route.md)).
 
 A new module adds its texts like this, and edits no other module's file:
 
 1. `dictionaries/<module>/en.ts` exports `<module>En`, an object of top-level keys no other group uses.
 2. `es.ts` and `pt-BR.ts` beside it export `<module>Es` and `<module>PtBR`, typed `typeof <module>En`, so a key
    missing in one language fails `pnpm typecheck` in that file.
-3. One import and one `...<module>En` line in each of `locales/en.ts`, `es.ts` and `pt-BR.ts` (the only shared
-   edit, two adjacent lines). A group left out of the merge fails `dictionaries.test.ts` and the screens that
-   use its keys.
+3. The group's name in `lazyGroups` (`messages.ts`) and one `typeof <module>En` line in the `Messages` type
+   (`locales/en.ts`, an `import type`): the first makes the group loadable, the second keeps `t` exact. A group
+   missing from either fails `dictionaries.test.ts` or the typecheck.
+4. The groups of each screen in its route, `screenOf(ModulePage, ['<module>'], reads)` in `app/routes.tsx`: every
+   group whose keys the screen, its features and its entities use. The route starts the fetch as it opens and the
+   screen waits for it under its skeleton, so no key is ever drawn. A key of a group the route does not name
+   shows as itself and logs `[i18n]`, which fails the end-to-end test that opens the screen. A group the frame or
+   a visitor's screens need goes in `coreGroups` and in the `locales/*.ts` merge instead; it costs everybody's
+   first download, so keep it for what really is on every screen.
 
 If the test says a key has no group right after you add one, run it again after touching
 `dictionaries.test.ts`: Vitest keeps the list of files its glob found.

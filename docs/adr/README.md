@@ -62,7 +62,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0055](0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) | Keep tenants apart with row-level security, set by the unit of work | accepted |
 | [0056](0056-run-background-work-from-a-job-table-in-postgres.md) | Run background work from a job table in Postgres | accepted |
 | [0057](0057-send-identity-emails-through-the-job-queue.md) | Send identity emails through the job queue | accepted |
-| [0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md) | Split the i18n dictionaries by slice and merge them per language | accepted |
+| [0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md) | Split the i18n dictionaries by slice and merge them per language | accepted; its loading part (one chunk per language) superseded by [0071](0071-load-each-screens-dictionary-group-with-its-route.md) |
 | [0059](0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) | Open a public surface per tenant, behind a rate limiter of our own | accepted; `customer_change` replaced by [0061](0061-keep-one-append-only-audit-trail-per-organization.md) |
 | [0060](0060-draw-a-tenants-public-pages-under-a-reserved-prefix-in-a-frame-of-their-own.md) | Draw a tenant's public pages under a reserved prefix, in a frame of their own | accepted |
 | [0061](0061-keep-one-append-only-audit-trail-per-organization.md) | Keep one append-only audit trail per organization | accepted |
@@ -75,3 +75,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0068](0068-say-the-subscription-once-per-screen-and-open-the-plan-page-to-every-member.md) | Say the subscription once per screen, and open the plan page to every member | accepted |
 | [0069](0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md) | Build the Asaas adapter customer first, and read a scheduled end again on its date | accepted; its checkout ids and `changePlan` changed by [0070](0070-pay-every-asaas-method-on-an-invoice-made-by-the-api-not-on-its-checkout.md) |
 | [0070](0070-pay-every-asaas-method-on-an-invoice-made-by-the-api-not-on-its-checkout.md) | Pay every Asaas method on an invoice made by the API, not on its Checkout | accepted |
+| [0071](0071-load-each-screens-dictionary-group-with-its-route.md) | Load each screen's dictionary group with its route | accepted |
