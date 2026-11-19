@@ -1,4 +1,5 @@
 export { AppFrame } from './ui/app-frame'
 export { AppShell } from './ui/app-shell'
+export { GuardedScreen } from './ui/guarded-screen'
 export { PageSkeleton } from './ui/page-skeleton'
 export { ShellSkeleton } from './ui/shell-skeleton'

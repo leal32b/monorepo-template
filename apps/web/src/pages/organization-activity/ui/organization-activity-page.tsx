@@ -13,8 +13,7 @@ import { SeePlansLink, usePlanWords } from '#entities/subscriptions'
 import { createRead, useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { formatDateTime } from '#shared/lib'
-import { ReadFailure } from '#shared/ui'
-import { AppShell } from '#widgets/app-shell'
+import { GuardedScreen } from '#widgets/app-shell'
 
 /**
  * `/:orgSlug/settings/activity`: the organization's audit trail (ADR 0061), read only, for whoever holds
@@ -31,36 +30,30 @@ export function OrganizationActivityPage() {
     t('billing.refusals.capabilities.activity-log.description', { plans: words.plansWith('activity-log') })
 
   return (
-    <AppShell title={t('activity.title')}>
-      <Show
-        when={current.can('audit', 'read')}
-        fallback={
+    <GuardedScreen
+      title={t('activity.title')}
+      allowed={current.can('audit', 'read')}
+      icon="activity"
+      noAccess={{
+        title: t('activity.noAccess.title'),
+        description: t('activity.noAccess.description', { name: current.organization.name })
+      }}
+      unavailable={t('activity.unavailable')}
+      refusal={() =>
+        entitlement(current.membership, 'activity-log') ? undefined : (
           <EmptyState
             icon="activity"
-            title={t('activity.noAccess.title')}
-            description={t('activity.noAccess.description', { name: current.organization.name })}
+            title={t('billing.refusals.capabilities.activity-log.title')}
+            description={
+              current.can('billing', 'manage') ? inPlan() : `${inPlan()} ${t('billing.refusals.capabilityMember')}`
+            }
+            action={current.can('billing', 'manage') ? <SeePlansLink slug={current.organization.slug} /> : undefined}
           />
-        }
-      >
-        <Show
-          when={entitlement(current.membership, 'activity-log')}
-          fallback={
-            <EmptyState
-              icon="activity"
-              title={t('billing.refusals.capabilities.activity-log.title')}
-              description={
-                current.can('billing', 'manage') ? inPlan() : `${inPlan()} ${t('billing.refusals.capabilityMember')}`
-              }
-              action={current.can('billing', 'manage') ? <SeePlansLink slug={current.organization.slug} /> : undefined}
-            />
-          }
-        >
-          <ReadFailure message={t('activity.unavailable')}>
-            <Activity />
-          </ReadFailure>
-        </Show>
-      </Show>
-    </AppShell>
+        )
+      }
+    >
+      <Activity />
+    </GuardedScreen>
   )
 }
 
