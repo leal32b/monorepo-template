@@ -1,20 +1,9 @@
-import { accountEs } from '../dictionaries/account/es'
-import { auditEs } from '../dictionaries/audit/es'
-import { billingEs } from '../dictionaries/billing/es'
-import { customersEs } from '../dictionaries/customers/es'
 import { entryEs } from '../dictionaries/entry/es'
-import { organizationsEs } from '../dictionaries/organizations/es'
-import { publicEs } from '../dictionaries/public/es'
 import { shellEs } from '../dictionaries/shell/es'
-import type { Messages } from './en'
+import type { en } from './en'
 
-export const es: Messages = {
-  ...customersEs,
+/** The core groups, as English has them (ADR 0071). */
+export const es: typeof en = {
   ...shellEs,
-  ...accountEs,
-  ...organizationsEs,
-  ...entryEs,
-  ...publicEs,
-  ...auditEs,
-  ...billingEs
+  ...entryEs
 }

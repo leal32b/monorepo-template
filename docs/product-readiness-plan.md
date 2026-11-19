@@ -42,7 +42,7 @@ the rest.
 | [P1-1](#p1-1-audit-trail) | Audit trail | P1 | Opus | P0-1 | Done |
 | [P1-2](#p1-2-design-system-for-product-screens) | Design system for product screens | P1 | Sonnet | | In progress |
 | [P1-3](#p1-3-a-cheaper-mould) | A cheaper mould | P1 | Opus, then Sonnet | P0-1, P0-2, P1-2 | Done |
-| [P1-4](#p1-4-new-module-skill-and-product-mode) | `new-module` skill and product mode | P1 | Sonnet | P1-3 | Todo |
+| [P1-4](#p1-4-new-module-skill-and-product-mode) | `new-module` skill and product mode | P1 | Sonnet | P1-3 | Done |
 | [P1-5](#p1-5-file-storage) | File storage | P1 | Opus | | Todo |
 | [P1-6](#p1-6-product-notifications) | Product notifications | P1 | Opus, then Sonnet | P0-4 | Todo |
 | [P1-7](#p1-7-operator-back-office) | Operator back office | P1 | Opus | P1-1 | Todo |
@@ -232,7 +232,7 @@ then P1 by need.
 ### P1-4. `new-module` skill and product mode
 
 - **Model:** Sonnet
-- **Status:** Todo
+- **Status:** Done. The skill is `.claude/skills/new-module/SKILL.md`, proven by a throwaway module built from it alone; product mode is a switch in [using-the-template.md](using-the-template.md). The mould lost its last copied blocks (`GuardedScreen`, the page-test provider, a `statements`/`permissionsSchema` parity test).
 - **Depends on:** P1-3
 - **Finding:** the steps to copy the module live in ADR 0044 and in
   [using-the-template.md](using-the-template.md); an agent follows a skill more reliably. The
@@ -326,7 +326,7 @@ then P1 by need.
 ### P1-11. Split the dictionaries by slice
 
 - **Model:** Sonnet
-- **Status:** Done ([ADR 0058](adr/0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)). One file per group and language, merged per language; loading texts with the route was rejected at this size.
+- **Status:** Done ([ADR 0058](adr/0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)). One file per group and language, merged per language; loading texts with the route was rejected at this size. Revisited after P0-6 spent the budgets: each screen's group now loads with its route ([ADR 0071](adr/0071-load-each-screens-dictionary-group-with-its-route.md)).
 - **Finding:** each language is one file of about 790 lines. Every screen of a product edits the
   same three files, which grow to thousands of lines and collide between sessions.
 - **Scope:** one dictionary per slice, merged with types kept, loaded with the slice's code; the

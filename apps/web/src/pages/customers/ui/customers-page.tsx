@@ -19,8 +19,8 @@ import { ArchiveCustomerButton, CustomerForm, DeleteCustomerForm } from '#featur
 import { useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { createList, createListStatus, formatDate } from '#shared/lib'
-import { ListPager, ReadFailure } from '#shared/ui'
-import { AppShell } from '#widgets/app-shell'
+import { ListPager } from '#shared/ui'
+import { GuardedScreen } from '#widgets/app-shell'
 
 /**
  * `/:orgSlug/customers`: the organization's customers (ADR 0044), the reference screen every module of a
@@ -36,22 +36,18 @@ export function CustomersPage() {
   const current = useOrganization()
 
   return (
-    <AppShell title={t('customers.title')}>
-      <Show
-        when={current.can('customer', 'read')}
-        fallback={
-          <EmptyState
-            icon="customers"
-            title={t('customers.noAccess.title')}
-            description={t('customers.noAccess.description', { name: current.organization.name })}
-          />
-        }
-      >
-        <ReadFailure message={t('customers.unavailable')}>
-          <Customers />
-        </ReadFailure>
-      </Show>
-    </AppShell>
+    <GuardedScreen
+      title={t('customers.title')}
+      allowed={current.can('customer', 'read')}
+      icon="customers"
+      noAccess={{
+        title: t('customers.noAccess.title'),
+        description: t('customers.noAccess.description', { name: current.organization.name })
+      }}
+      unavailable={t('customers.unavailable')}
+    >
+      <Customers />
+    </GuardedScreen>
   )
 }
 

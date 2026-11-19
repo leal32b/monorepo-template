@@ -146,10 +146,6 @@ export const accountEs: typeof accountEn = {
     send: 'Crear una contraseña',
     sent: 'Enviamos un enlace a {{email}} para crear tu contraseña. Funciona durante 1 hora.'
   },
-  confirmPassword: {
-    label: 'Tu contraseña',
-    hint: 'Para confirmar que eres tú.'
-  },
   enableTwoFactor: {
     setUp: 'Configurar',
     scan: 'Escanea este código QR con una app de autenticación, como Google Authenticator, Microsoft Authenticator o 1Password.',

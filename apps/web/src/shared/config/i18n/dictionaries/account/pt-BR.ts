@@ -145,10 +145,6 @@ export const accountPtBR: typeof accountEn = {
     send: 'Criar uma senha',
     sent: 'Enviamos para {{email}} um link para criar sua senha. Ele vale por 1 hora.'
   },
-  confirmPassword: {
-    label: 'Sua senha',
-    hint: 'Para confirmar que é você.'
-  },
   enableTwoFactor: {
     setUp: 'Configurar',
     scan: 'Leia este QR code com um app autenticador, como Google Authenticator, Microsoft Authenticator ou 1Password.',

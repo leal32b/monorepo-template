@@ -9,6 +9,7 @@ import { SignUpPage } from '#pages/sign-up'
 import { TwoFactorPage } from '#pages/two-factor'
 import { type ApiClient, type AuthClient, useApi, useAuth } from '#shared/api'
 import { AccountRedirect } from './account-redirect'
+import { screenOf } from './screen'
 
 /**
  * What a visitor needs (the entry screens) is in the first download; what only someone signed in
@@ -17,6 +18,10 @@ import { AccountRedirect } from './account-redirect'
  * session, a screen whose code is not loaded yet keeps the page on view a moment, under the session
  * guard's `Suspense`; its data never does (ADR 0038). The security screen is the heaviest of those (QR
  * code, backup codes, every security form), so it loads on its own.
+ */
+/**
+ * A screen's words come with it (ADR 0071): `screenOf` names the groups it needs, which its route starts to fetch
+ * as it opens and which the screen waits for before it draws.
  */
 const RequireSession = lazy(() => import('./require-session').then((m) => ({ default: m.RequireSession })))
 const OrganizationsProvider = lazy(() =>
@@ -230,29 +235,28 @@ export const routes: RouteDefinition[] = [
         // The organizations are read for every screen behind the session, the account settings
         // included: their side menu offers the organization's settings beside the account's.
         path: '/',
-        component: OrganizationsProvider,
-        preload: preloadOrganizations,
+        ...screenOf(OrganizationsProvider, ['organizations'], preloadOrganizations),
         children: [
           {
             // Every screen behind the session shares one frame, drawn once (ADR 0037, ADR 0039): the start,
             // onboarding and an invitation as well, which are drawn in it for someone who has an
             // organization and as entry screens, with the frame aside, for someone who has none.
             path: '/',
-            component: AppFrame,
+            ...screenOf(AppFrame, ['billing']),
             children: [
               { path: '/', component: OrganizationRedirect },
-              { path: '/onboarding', component: OnboardingPage, preload: preloadUserInvitations },
+              { path: '/onboarding', ...screenOf(OnboardingPage, ['team'], preloadUserInvitations) },
               // The invitation email's link (ADR 0033, D5); a visitor signs in or signs up and comes back.
-              { path: '/invitations/:id', component: InvitationPage, preload: preloadInvitation },
+              { path: '/invitations/:id', ...screenOf(InvitationPage, ['team'], preloadInvitation) },
               {
                 path: '/settings',
                 children: [
                   { path: '/', component: () => <Navigate href="/settings/profile" /> },
-                  { path: '/profile', component: ProfilePage, preload: preloadAccountDeletion },
+                  { path: '/profile', ...screenOf(ProfilePage, ['account'], preloadAccountDeletion) },
                   // The link of the deletion email (ADR 0049); a visitor signs in and comes back.
-                  { path: '/delete-account', component: DeleteAccountPage, preload: preloadAccountDeletion },
-                  { path: '/security', component: SecurityPage, preload: preloadSecurity },
-                  { path: '/preferences', component: PreferencesPage }
+                  { path: '/delete-account', ...screenOf(DeleteAccountPage, ['account'], preloadAccountDeletion) },
+                  { path: '/security', ...screenOf(SecurityPage, ['account'], preloadSecurity) },
+                  { path: '/preferences', ...screenOf(PreferencesPage, ['account']) }
                 ]
               },
               {
@@ -260,16 +264,19 @@ export const routes: RouteDefinition[] = [
                 component: RequireOrganization,
                 children: [
                   { path: '/', component: HomePage },
-                  { path: '/customers', component: CustomersPage, preload: preloadCustomers },
+                  { path: '/customers', ...screenOf(CustomersPage, ['customers', 'billing'], preloadCustomers) },
                   {
                     path: '/settings',
                     children: [
                       { path: '/', component: SettingsOfOrganization },
-                      { path: '/general', component: OrganizationGeneralPage },
-                      { path: '/members', component: OrganizationMembersPage, preload: preloadTeam },
-                      { path: '/roles', component: OrganizationRolesPage, preload: preloadTeam },
-                      { path: '/activity', component: OrganizationActivityPage, preload: preloadActivity },
-                      { path: '/billing', component: OrganizationBillingPage, preload: preloadBilling }
+                      { path: '/general', ...screenOf(OrganizationGeneralPage, ['team']) },
+                      { path: '/members', ...screenOf(OrganizationMembersPage, ['team'], preloadTeam) },
+                      { path: '/roles', ...screenOf(OrganizationRolesPage, ['team'], preloadTeam) },
+                      {
+                        path: '/activity',
+                        ...screenOf(OrganizationActivityPage, ['audit', 'billing'], preloadActivity)
+                      },
+                      { path: '/billing', ...screenOf(OrganizationBillingPage, ['billing'], preloadBilling) }
                     ]
                   }
                 ]
@@ -280,7 +287,7 @@ export const routes: RouteDefinition[] = [
       }
     ]
   },
-  { path: publicPath, component: PublicOrganizationPage, preload: preloadPublic },
+  { path: publicPath, ...screenOf(PublicOrganizationPage, ['public'], preloadPublic) },
   { path: '/account', component: AccountRedirect },
   ...entryScreens,
   { path: '*404', component: NotFoundPage }

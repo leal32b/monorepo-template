@@ -3,7 +3,7 @@
  * Run with `pnpm lint:deps`.
  */
 const PRODUCTION_SOURCE = '^(apps|packages)/[^/]+/src/'
-const NOT_PRODUCTION = '\\.(test|stories|bench)\\.tsx?$|/test-setup\\.ts$|\\.d\\.ts$'
+const NOT_PRODUCTION = '\\.(test|stories|bench)\\.tsx?$|/test-setup\\.ts$|/test-[a-z-]+\\.tsx?$|\\.d\\.ts$'
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {

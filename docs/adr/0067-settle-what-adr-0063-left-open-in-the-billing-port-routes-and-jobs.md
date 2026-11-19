@@ -1,6 +1,6 @@
 # 0067. Settle what ADR 0063 left open in the billing port, routes and jobs
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-13
 
 Amends [ADR 0063](0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)

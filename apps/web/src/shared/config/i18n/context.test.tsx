@@ -98,4 +98,69 @@ describe('I18nProvider', () => {
 
     await waitFor(() => expect(document.documentElement.lang).toBe('pt-BR'))
   })
+
+  describe('groups fetched with their screens (ADR 0071)', () => {
+    beforeEach(() => vi.resetModules())
+    afterEach(() => vi.restoreAllMocks())
+
+    const fresh = async () => {
+      const [{ I18nProvider, useI18n }, messages] = await Promise.all([import('./context'), import('./messages')])
+      await messages.loadMessages('en')
+      return { I18nProvider, useI18n, ...messages }
+    }
+
+    it('draws the texts of a group when it arrives', async () => {
+      const { I18nProvider, useI18n, loadGroups } = await fresh()
+      const Customers = () => <p>{useI18n().t('customers.title')}</p>
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      render(() => (
+        <I18nProvider locale="en">
+          <Customers />
+        </I18nProvider>
+      ))
+      expect(screen.getByText('customers.title')).toBeInTheDocument()
+
+      await loadGroups(['customers'])
+
+      expect(await screen.findByText('Customers')).toBeInTheDocument()
+    })
+
+    it('says in the console which text is missing, and shows its key', async () => {
+      const { I18nProvider, useI18n } = await fresh()
+      const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const Customers = () => <p>{useI18n().t('customers.title')}</p>
+
+      render(() => (
+        <I18nProvider locale="en">
+          <Customers />
+        </I18nProvider>
+      ))
+
+      expect(screen.getByText('customers.title')).toBeInTheDocument()
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('[i18n] "customers.title"'))
+    })
+
+    it('brings the groups already in use along when the language changes', async () => {
+      const { I18nProvider, useI18n, loadGroups } = await fresh()
+      await loadGroups(['customers'])
+      const Customers = () => {
+        const { t, setLocale } = useI18n()
+        return (
+          <button type="button" onClick={() => setLocale('es')}>
+            {t('customers.title')}
+          </button>
+        )
+      }
+      render(() => (
+        <I18nProvider locale="en">
+          <Customers />
+        </I18nProvider>
+      ))
+
+      screen.getByRole('button', { name: 'Customers' }).click()
+
+      expect(await screen.findByRole('button', { name: 'Clientes' })).toBeInTheDocument()
+      localStorage.clear()
+    })
+  })
 })

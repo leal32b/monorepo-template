@@ -108,10 +108,15 @@ export const shellEs: typeof shellEn = {
     }
   },
   failure: {
+    texts: 'No pudimos cargar esta pantalla. Revisa tu conexión y vuelve a intentarlo.',
     network: 'No pudimos conectar con el servidor. Revisa tu conexión y vuelve a intentarlo.',
     rateLimited: 'Demasiados intentos. Espera un minuto y vuelve a intentarlo.',
     rateLimitedFor: 'Demasiados intentos desde esta conexión. Vuelve a intentarlo en {{wait}}.',
     unexpected: 'Algo salió mal de nuestro lado. Vuelve a intentarlo en un momento.',
     reference: 'Si sigue pasando, avisa a soporte: {{reference}}'
+  },
+  confirmPassword: {
+    label: 'Tu contraseña',
+    hint: 'Para confirmar que eres tú.'
   }
 }

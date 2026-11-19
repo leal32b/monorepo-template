@@ -15,11 +15,26 @@ function clientAddress(): { 'X-Client-IP': string } {
   return { 'X-Client-IP': `10.${base.info().workerIndex % 256}.${clients >> 8}.${clients % 256}` }
 }
 
-/** Every test's page is its own client. */
+/** What the app said about a text it drew before its words came (ADR 0071), for the test running in this worker. */
+const missingTexts: string[] = []
+
+function watchTexts(page: Page): void {
+  page.on('console', (message) => {
+    if (message.type() === 'error' && message.text().startsWith('[i18n]')) missingTexts.push(message.text())
+  })
+}
+
+/**
+ * Every test's page is its own client, and no test passes if a screen drew a key where its words should be
+ * (ADR 0071), in this page or in a second person's.
+ */
 export const test = base.extend({
   page: async ({ page }, use) => {
+    missingTexts.length = 0
     await page.setExtraHTTPHeaders(clientAddress())
+    watchTexts(page)
     await use(page)
+    expect(missingTexts).toEqual([])
   }
 })
 
@@ -32,7 +47,9 @@ export async function newPerson(browser: Browser): Promise<Page> {
     storageState: { cookies: [], origins: [] },
     extraHTTPHeaders: clientAddress()
   })
-  return context.newPage()
+  const page = await context.newPage()
+  watchTexts(page)
+  return page
 }
 
 /** A fresh address for one test, so tests never share an account. */

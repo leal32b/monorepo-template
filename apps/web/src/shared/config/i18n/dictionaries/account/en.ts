@@ -143,10 +143,6 @@ export const accountEn = {
     send: 'Create a password',
     sent: 'We sent a link to {{email}} to create your password. It works for 1 hour.'
   },
-  confirmPassword: {
-    label: 'Your password',
-    hint: 'To confirm it is you.'
-  },
   enableTwoFactor: {
     setUp: 'Set up',
     scan: 'Scan this QR code with an authenticator app, such as Google Authenticator, Microsoft Authenticator or 1Password.',

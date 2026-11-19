@@ -1,20 +1,9 @@
-import { accountPtBR } from '../dictionaries/account/pt-BR'
-import { auditPtBR } from '../dictionaries/audit/pt-BR'
-import { billingPtBR } from '../dictionaries/billing/pt-BR'
-import { customersPtBR } from '../dictionaries/customers/pt-BR'
 import { entryPtBR } from '../dictionaries/entry/pt-BR'
-import { organizationsPtBR } from '../dictionaries/organizations/pt-BR'
-import { publicPtBR } from '../dictionaries/public/pt-BR'
 import { shellPtBR } from '../dictionaries/shell/pt-BR'
-import type { Messages } from './en'
+import type { en } from './en'
 
-export const ptBR: Messages = {
-  ...customersPtBR,
+/** The core groups, as English has them (ADR 0071). */
+export const ptBR: typeof en = {
   ...shellPtBR,
-  ...accountPtBR,
-  ...organizationsPtBR,
-  ...entryPtBR,
-  ...publicPtBR,
-  ...auditPtBR,
-  ...billingPtBR
+  ...entryPtBR
 }

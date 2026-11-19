@@ -1,6 +1,6 @@
 # 0058. Split the i18n dictionaries by slice and merge them per language
 
-- Status: accepted
+- Status: accepted (its loading part superseded by [0071](0071-load-each-screens-dictionary-group-with-its-route.md))
 - Date: 2026-11-11
 - Amends: [0011](0011-typed-i18n-dictionaries.md)
 
