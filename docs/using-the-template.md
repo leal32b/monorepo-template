@@ -106,7 +106,7 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 Customers is the worked example of a tenant-scoped module, from contract to screen, with tests at
 every layer ([ADR 0044](adr/0044-build-customers-as-the-reference-vertical-module.md), "How to copy
 the module", [ADR 0052](adr/0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md)
-for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) for tenant isolation). Copy and rename it, in this order, each step test first (the `tdd-slice` skill):
+for the unit of work, and [ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md) for tenant isolation). Copy and rename it, in this order, each step test first (the `tdd-slice` skill); the [`new-module`](../.claude/skills/new-module/SKILL.md) skill holds the same order as a file list for an agent:
 
 1. The schemas in `packages/contracts`, and the resource in `statements` (and in `permissionsSchema`
    beside it) with the roles' share of it.
@@ -480,6 +480,37 @@ A product that does not sell in a language (say `es`) removes it in these places
 Then run the whole definition of done: the typecheck names anything left behind. Adding a language is the same
 list backwards: a file per group, a line in `loaders` and `localeNames`, a branch in `detect-locale.ts`, and the
 emails.
+
+## Product mode
+
+The template's working agreement in `AGENTS.md` teaches: the owner creates each file. A repository that
+becomes a product flips one switch, written in the product's own `AGENTS.md` under "Working agreement",
+and edits nothing else of the template's rules:
+
+> **Product mode: on.** The agent writes the files; teaching mode is off.
+
+What the switch changes:
+
+- **Who writes files:** the agent, with the owner reviewing. It no longer stops to explain a concept
+  before each file or waits for the owner to type it.
+- **When to commit:** the agent commits each finished cycle (Conventional Commits), after the checks of
+  the step are green. It never pushes or opens a pull request unless asked.
+- **A new module:** the agent follows the [`new-module`](../.claude/skills/new-module/SKILL.md) skill.
+
+What stays, because it is what keeps a product small and safe: TDD with the `tdd-slice` skill, one
+decision one ADR, 100% coverage, the `design-system` and `minimize-support` skills, the visual review,
+minimal scope, the fixed conventions and the whole definition of done before the last commit.
+
+Keep the template as a remote to receive its fixes:
+
+```bash
+git remote add template git@github.com:<template-owner>/monorepo-template.git
+git fetch template
+git merge --allow-unrelated-histories template/main   # the first time; later: git merge template/main
+```
+
+Merge it on a branch, resolve what the product renamed (the guide's section 2 lists those places) and
+run the definition of done before it lands.
 
 ## 6. Keep it healthy
 

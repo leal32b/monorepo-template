@@ -24,6 +24,8 @@ docs/                # using the template, operations, testing, security, adr
 
 ## Working agreement (how we build)
 
+- **Product mode** is a switch a product turns on in its own copy of this file; what it changes and what stays
+  is in [`docs/using-the-template.md`](docs/using-the-template.md#product-mode). It is off in the template.
 - **Teaching mode.** The owner creates each file; the agent explains the concept, links the
   official documentation, reviews, and runs the checks. Do not dump a whole feature at once.
 - **TDD.** A rule or a bug starts with a failing test (red), then the smallest change (green),
