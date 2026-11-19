@@ -16,7 +16,9 @@
   the payment provider (boundary B8, T48 to T51) added the same day, with the billing routes and the
   webhook ([ADR 0067](../adr/0067-settle-what-adr-0063-left-open-in-the-billing-port-routes-and-jobs.md));
   the browser's error reports (T53 to T55) added on 2026-11-19
-  ([ADR 0072](../adr/0072-report-browser-errors-to-the-api-log.md)).
+  ([ADR 0072](../adr/0072-report-browser-errors-to-the-api-log.md)); the owner's email for each public
+  registration (T56) added the same day
+  ([ADR 0073](../adr/0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md)).
 - Method: STRIDE per trust boundary, kept short. Update this file in the same PR as any change
   to a flow, a provider, an auth plugin or a trust boundary.
 
@@ -152,6 +154,7 @@ it).
 | T53 | Flooding the log, or filling the host's log quota, through the open report route | D | `POST /api/client-errors` has no session, so it is bounded instead: the Worker's secret and the `Origin` check stand in front (T06, T16), then 30 reports per 10 minutes per client address, counted in Postgres before the body is read (T41); the body is JSON only, at most 1 MiB, and every field has a length (message 500, stack 4000); the page sends at most 5 and repeats nothing. A flood past the limit costs one counter row and one `rate limited` line per refused request, not a report line ([ADR 0072](../adr/0072-report-browser-errors-to-the-api-log.md)) | in place |
 | T54 | Forging a log line, or hiding one, with a crafted report (a line break, a JSON fragment, a fake `request failed`) | T, R | A report becomes one `warn` line whose fields are values, which pino writes as JSON strings, so a line break stays inside the field and cannot start a line; the message is `client error` and the fields carry a `client` prefix, so it is never taken for the API's own; the route accepts only the characters of a route pattern and the release only `[A-Za-z0-9._-]`; a test sends a forged line and finds one line ([ADR 0072](../adr/0072-report-browser-errors-to-the-api-log.md)) | in place |
 | T55 | A user's personal data, typed or shown, reaching the log through an error message or stack | I | A report has no field for the address, a query, a body, a form value, a header or an id: the route is the router's pattern, never the address. The client removes email addresses and the query or fragment of an address from the message and the stack, and cuts them to their limits; our own code puts no user data in an error. What a library quotes in a message is not caught: best effort, bounded by the limits and by the host's short log retention ([ADR 0072](../adr/0072-report-browser-errors-to-the-api-log.md)) | in place, best effort |
+| T56 | Flooding an owner's inbox, or putting a lure in it, through the public registration, whose every new customer emails the owner | D, S | The email goes only to the organization's owner, never to an address the visitor typed (T43 stands); it is enqueued in the registration's transaction, so a filled honeypot or an email that is already a customer sends nothing; the public write's limit, 10 per 10 minutes per client address (T41), bounds a flood as it bounds the list's; the customer's name, the only text the visitor wrote, is escaped in the HTML and written as a quoted value, with no link of the visitor's ([ADR 0073](../adr/0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md)) | in place; a flood from many addresses reaches the inbox, as it reaches the list |
 
 ## Accepted risks
 
