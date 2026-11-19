@@ -1,6 +1,6 @@
 # 0046. Observe through structured logs tagged with the release
 
-- Status: accepted
+- Status: accepted; amended by [0072](0072-report-browser-errors-to-the-api-log.md)
 - Date: 2026-11-07
 
 ## Context and problem statement

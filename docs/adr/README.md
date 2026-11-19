@@ -50,7 +50,7 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0043](0043-remove-the-service-status-from-the-web.md) | Remove the service status from the web | accepted |
 | [0044](0044-build-customers-as-the-reference-vertical-module.md) | Build customers as the reference vertical module | accepted; its saves amended by [0048](0048-refuse-a-stale-save-with-a-version-per-record.md); "How to copy the module" extended by [0052](0052-run-a-use-cases-writes-in-one-transaction-through-a-unit-of-work.md); every write audited since [0061](0061-keep-one-append-only-audit-trail-per-organization.md); routes declared through a helper since [0065](0065-declare-a-modules-tenant-routes-through-one-helper-without-controller-classes.md); list screens built from shared helpers since [0066](0066-hold-a-list-screens-state-in-shared-helpers-and-its-toolbar-and-pager-in-components.md) |
 | [0045](0045-run-the-end-to-end-suite-on-the-built-app-without-outside-services.md) | Run the end-to-end suite on the built app, without outside services | accepted |
-| [0046](0046-observe-through-structured-logs-tagged-with-the-release.md) | Observe through structured logs tagged with the release | accepted |
+| [0046](0046-observe-through-structured-logs-tagged-with-the-release.md) | Observe through structured logs tagged with the release | accepted; amended by [0072](0072-report-browser-errors-to-the-api-log.md) |
 | [0047](0047-put-time-limits-on-every-database-wait.md) | Put time limits on every database wait | accepted |
 | [0048](0048-refuse-a-stale-save-with-a-version-per-record.md) | Refuse a stale save with a version per record | accepted |
 | [0049](0049-delete-an-account-from-an-emailed-link.md) | Delete an account from an emailed link | accepted |
@@ -76,3 +76,4 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0069](0069-build-the-asaas-adapter-customer-first-and-read-a-scheduled-end-again-on-its-date.md) | Build the Asaas adapter customer first, and read a scheduled end again on its date | accepted; its checkout ids and `changePlan` changed by [0070](0070-pay-every-asaas-method-on-an-invoice-made-by-the-api-not-on-its-checkout.md) |
 | [0070](0070-pay-every-asaas-method-on-an-invoice-made-by-the-api-not-on-its-checkout.md) | Pay every Asaas method on an invoice made by the API, not on its Checkout | accepted |
 | [0071](0071-load-each-screens-dictionary-group-with-its-route.md) | Load each screen's dictionary group with its route | accepted |
+| [0072](0072-report-browser-errors-to-the-api-log.md) | Report browser errors to the API log | accepted; amends [0046](0046-observe-through-structured-logs-tagged-with-the-release.md) |
