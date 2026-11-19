@@ -95,6 +95,7 @@ export {
   accountDeletionSchema,
   type IdentityOptions,
   identityOptionsSchema,
+  legal,
   type MeResponse,
   meResponseSchema,
   passwordLength

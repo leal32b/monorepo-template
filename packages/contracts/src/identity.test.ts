@@ -1,4 +1,5 @@
-import { accountDeletionSchema, identityOptionsSchema, meResponseSchema } from './identity'
+import { accountDeletionSchema, identityOptionsSchema, legal, meResponseSchema } from './identity'
+import { calendarDateSchema } from './time'
 
 describe('meResponseSchema', () => {
   const valid = { id: 'user-1', email: 'ada@example.com', name: 'Ada' }
@@ -35,5 +36,11 @@ describe('accountDeletionSchema', () => {
     expect(accountDeletionSchema.safeParse({ organizations: [{ ...organization, outcome: 'kept' }] }).success).toBe(
       false
     )
+  })
+})
+
+describe('legal', () => {
+  it('names the version of the terms and privacy notice by the day it takes effect (ADR 0074)', () => {
+    expect(calendarDateSchema.safeParse(legal.version).success).toBe(true)
   })
 })

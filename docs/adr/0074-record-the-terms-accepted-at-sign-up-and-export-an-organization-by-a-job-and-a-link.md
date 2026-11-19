@@ -70,7 +70,7 @@ Chosen options: **1, A, i and a.**
   terms and the privacy notice as they read together; a change to either is a new version. The API stamps
   it and the web prints it on both pages, from the same constant, so they cannot disagree.
 - **Two additional fields of Better Auth's user** (migration `0015`), `legalVersion` and `legalAcceptedAt`,
-  declared with `input: false`, so a sign-up that sends them has them ignored. The hook
+  declared with `input: false`, so Better Auth refuses a sign-up that sends either (`400 FIELD_NOT_ALLOWED`). The hook
   `databaseHooks.user.create.before` sets both on every creation: the password form, Google's first sign-in
   (Better Auth creates the account from the sign-in as well), and an invited person signing up. Accounts
   made before this change keep both `null`: no acceptance was recorded for them.

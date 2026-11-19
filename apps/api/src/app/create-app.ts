@@ -102,6 +102,7 @@ export function createApp({
   const auth = createAuth({
     db,
     logger,
+    clock,
     jobs,
     webOrigin,
     secret: authSecret,

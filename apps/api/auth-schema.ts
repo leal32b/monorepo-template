@@ -26,6 +26,7 @@ try {
   const auth = createAuth({
     db,
     logger,
+    clock: new SystemClock(),
     jobs: new InMemoryJobs(new UuidGenerator(), new SystemClock()), // no email is sent here
     webOrigin: 'http://localhost:5173',
     secret: 'schema-only-secret-0123456789abcdef',

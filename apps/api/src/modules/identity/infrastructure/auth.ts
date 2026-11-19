@@ -1,4 +1,4 @@
-import { builtInRoles, passwordLength, statements } from '@repo/contracts'
+import { builtInRoles, legal, passwordLength, statements } from '@repo/contracts'
 import { betterAuth } from 'better-auth'
 import { createAuthMiddleware, getSessionFromCtx } from 'better-auth/api'
 import { haveIBeenPwned, organization, twoFactor } from 'better-auth/plugins'
@@ -6,6 +6,7 @@ import { createAccessControl } from 'better-auth/plugins/access'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
 import { type Locale, localeSchema } from '#libs/notifications/locales'
+import type { Clock } from '#libs/ports/clock.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import { EMAIL_LINK_SECONDS, type IdentityEmail, sendEmail } from '../jobs/send-email'
 import type { OrganizationCreationListener } from '../organization-creation.port'
@@ -17,6 +18,8 @@ import { hashPassword, verifyPassword } from './password-hashing'
 export type AuthDeps = {
   db: Kysely<unknown>
   logger: Logger
+  /** When an account accepted the terms (ADR 0074). */
+  clock: Clock
   /** The queue on the pool: Better Auth's callbacks run outside any unit of work (ADR 0057). */
   jobs: JobQueue
   /** The web app's origin (ADR 0019): every link and callback comes through it. */
@@ -43,6 +46,7 @@ const roles = {
 export function createAuth({
   db,
   logger,
+  clock,
   jobs,
   webOrigin,
   secret,
@@ -71,7 +75,10 @@ export function createAuth({
     database: { db, type: 'postgres', schemaName: 'auth' },
     user: {
       additionalFields: {
-        locale: { type: 'string', required: true, defaultValue: 'en', input: true, validator: { input: localeSchema } }
+        locale: { type: 'string', required: true, defaultValue: 'en', input: true, validator: { input: localeSchema } },
+        // ADR 0074: never from the request; `databaseHooks` stamps both on every creation.
+        legalVersion: { type: 'string', required: false, input: false },
+        legalAcceptedAt: { type: 'date', required: false, input: false }
       },
       // T09: an account from a provider counts only with an email the provider has confirmed.
       validateUserInfo: ({ user, source }) =>
@@ -109,6 +116,17 @@ export function createAuth({
       autoSignInAfterVerification: true,
       expiresIn: EMAIL_LINK_SECONDS,
       sendVerificationEmail: async ({ user, url }) => send('confirmEmail', user, url)
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          // ADR 0074: every way an account is made (the form, Google's first sign-in) is beside the words that
+          // name the terms and privacy notice in force, so the account records that version and when.
+          before: async (user) => ({
+            data: { ...user, legalVersion: legal.version, legalAcceptedAt: clock.now() }
+          })
+        }
+      }
     },
     // Every request reads the session row: GHSA-xg6x-h9c9-2m83 came from this cache.
     session: { cookieCache: { enabled: false } },

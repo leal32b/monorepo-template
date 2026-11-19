@@ -2,7 +2,7 @@ import { createHash, createHmac } from 'node:crypto'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath } from 'node:url'
-import { apiProblemSchema, identityOptionsSchema, meResponseSchema } from '@repo/contracts'
+import { apiProblemSchema, identityOptionsSchema, legal, meResponseSchema } from '@repo/contracts'
 import { sql } from 'kysely'
 import pino from 'pino'
 import { inject } from 'vitest'
@@ -244,6 +244,35 @@ describe('authentication through Better Auth (ADR 0020)', () => {
       subject: ptBR.confirmEmail.subject
     })
     expect((await sent()).at(-1)?.text).toContain(`${webOrigin}/api/auth/verify-email?token=`)
+  })
+
+  /** What the account's row says it accepted (ADR 0074). */
+  const acceptanceOf = async (address: string) =>
+    (
+      await sql<{ legalVersion: string | null; legalAcceptedAt: Date | null }>`
+        select "legalVersion", "legalAcceptedAt" from auth."user" where email = ${address}
+      `.execute(db)
+    ).rows[0]
+
+  it('records the terms version in force and when, on every new account (ADR 0074)', async () => {
+    const response = await signUp('lea@example.com')
+
+    expect(response.status).toBe(200)
+    expect(await acceptanceOf('lea@example.com')).toEqual({ legalVersion: legal.version, legalAcceptedAt: clock.now() })
+  })
+
+  it('refuses a sign-up that sends a version or an instant of its own (T60)', async () => {
+    const response = await post('/api/auth/sign-up/email', {
+      name: 'Tom',
+      email: 'tom@example.com',
+      password,
+      locale: 'en',
+      legalVersion: 'never-published'
+    })
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ code: 'FIELD_NOT_ALLOWED' })
+    expect(await acceptanceOf('tom@example.com')).toBeUndefined()
   })
 
   it('refuses to sign in before the email is confirmed', async () => {
@@ -558,6 +587,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     const auth = createAuth({
       db,
       logger,
+      clock,
       jobs: jobs.queue,
       webOrigin,
       secret: 'fedcba9876543210'.repeat(2),
@@ -598,6 +628,8 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     expect(callback.headers.get('location')).toBe('/')
     expect(tokenRequests.at(-1)).toContain('code_verifier=')
     expect(await userOf(cookieOf(callback))).toMatchObject({ email: 'amy@example.com', emailVerified: true })
+    // Google's first sign-in makes the account, beside the same words as the sign-up (ADR 0074).
+    expect(await acceptanceOf('amy@example.com')).toEqual({ legalVersion: legal.version, legalAcceptedAt: clock.now() })
   })
 
   it('links Google to an account whose email is confirmed (T09)', async () => {
