@@ -15,7 +15,11 @@ fail for the right reason, then write the code. Commit after each numbered step 
 the order and the files.
 
 Below, `<n>` is the singular (`note`), `<ns>` the plural (`notes`), `<Ns>` the plural in PascalCase.
-Copy `customers` to the new name in every path.
+Copy `customers` to the new name in every path; a file named `customer-x` (singular) becomes `<n>-x`, one
+named `customers-x` becomes `<ns>-x`.
+Customers has an archive, an update with a `version`, a status filter and a public route: copy only the
+pieces the new module needs and delete the rest, with their tests (coverage is 100%, so a copied branch
+nobody uses fails the checks). `createList` works with no `filter`.
 
 ## 0. Decide first (write the answers in your plan)
 
@@ -33,23 +37,29 @@ Copy `customers` to the new name in every path.
 2. `<ns>.ts` + `<ns>.test.ts` (from `customers.ts`): the entity, the input, the update (with `version`),
    the list query (status, search, page) and list answer, the page size. Export them from `index.ts`.
 3. `organizations.ts`: the resource in `statements`, `permissionsSchema`, and its share in each of
-   `builtInRoles` (`admin`, `member`; the owner takes all). Update the built-in role tests there.
+   `builtInRoles` (`admin`, `member`; the owner takes all). Update the tests that count or list
+   permissions: `organizations.test.ts`, `apps/api/.../identity/infrastructure/organization-rules.test.ts`,
+   `apps/web/src/entities/organizations/lib/members.test.ts`, and the "N of 17 permissions" texts in
+   `pages/organization-roles` (grep `of 17 permissions` and `customer: ['read', 'create', 'update']`).
 4. `audit.ts` + `audit.test.ts`: `<n>: [...]` in `auditActions`.
 5. `billing.ts` + `billing.test.ts` only if step 0 named a limit or capability.
 
 ## 2. Migration (`apps/api/migrations`)
 
-`00NN_<ns>.sql` (next number; plain SQL, forward only), from `0004_customers.sql`: `organization_id text
-not null references auth."organization" ("id") on delete cascade`, the indexes the list reads, and the
-three row-level-security lines (`enable row level security`, `create policy tenant_isolation`, `grant`).
-Add the table to `apps/api/test/reset-database.ts`. Tests that name a table without these lines:
+`00NN_<ns>.sql` (next number; plain SQL, forward only), columns and indexes from `0004_customers.sql`
+(`organization_id text not null references auth."organization" ("id") on delete cascade`), and the three
+row-level-security lines (`enable row level security`, `create policy tenant_isolation ... to app_tenant`,
+`grant` with only the verbs the module uses) copied from `0013_subscription.sql`; `0004` has none.
+Add `drop table if exists <n>` to the one long string of `apps/api/test/reset-database.ts`, before `schema_migration`. Tests that name a table without these lines:
 `libs/database/tenant-row-security.db.test.ts`.
 
 ## 3. API module (`apps/api/src/modules/<ns>/`), in this order
 
 1. `domain/<n>.ts` + test, `domain/<ns>.errors.ts`: pure rules and `changedFields`.
-2. `<n>-repository.port.ts`, `<ns>-unit-of-work.port.ts` (with `audit: AuditTrail`), `<n>-audit.ts`.
-3. `testing/in-memory-<n>-repository.ts` + test, `testing/in-memory-<ns>-unit-of-work.ts` + test,
+2. `<n>-repository.port.ts`, `<ns>-unit-of-work.port.ts` (with `audit: AuditTrail`), `<n>-audit.ts`,
+   `<n>-response.ts` (`to<N>Response`) and `find-<n>.ts` (raises not found).
+3. `testing/in-memory-<n>-repository.ts` + test, `testing/test-<ns>.ts` (the actor and the `test<Ns>()`
+   factory over `InMemoryUnitOfWork`) and `testing/in-memory-<ns>-unit-of-work.test.ts`,
    `testing/<n>-repository.contract.ts` and `testing/<ns>-unit-of-work.contract.ts`; the contract
    suites run against the fake here and against Postgres in step 4.
 4. `database/kysely-<n>-repository.ts` + `.db.test.ts` (runs the contract), `database/kysely-<ns>-unit-of-work.ts`
@@ -69,10 +79,16 @@ Add the table to `apps/api/test/reset-database.ts`. Tests that name a table with
    page needs.
 3. Texts first, in all three languages: `shared/config/i18n/dictionaries/<ns>/{en,es,pt-BR}.ts`, then
    register the group: `lazyGroups` in `i18n/messages.ts` and the `Messages` type in `i18n/locales/en.ts`.
-   Also the texts that other groups hold for the new resource: `team` (the role editor's
-   resource and action names), `audit` (`entries.<n>.<action>`, `fields.<n>.<field>`), `shell` (the menu
-   label `appShell.nav.<ns>` and the palette keywords). Delete `node_modules/.vitest-cache` afterwards.
-4. `pages/<ns>/ui/<ns>-page.tsx` + test (from the customers page): the screen is
+   Also the texts that other groups hold for the new resource, in all three languages: `team`
+   (`team.resources.<n>`, `team.permissions.<n>.<action>`), `audit` (`activity.entries.<n>.<action>`,
+   `activity.fields.<n>.<field>` for each field the entries name), `shell` (`appShell.nav.<ns>`,
+   `appShell.palette.keywords.<ns>`); the es and pt-BR files type themselves from `./en`. The activity page
+   keeps a `fieldsWithWords` map keyed by resource (`pages/organization-activity/ui/organization-activity-page.tsx`):
+   add `<n>: [...]` there or typecheck fails. Delete `node_modules/.vitest-cache` at the repo root whenever
+   a dictionary folder is added or removed (`dictionaries.test.ts` globs the folders).
+4. `pages/<group>/<ns>/ui/<ns>-page.tsx` + test (from the customers page). `pages/` already holds as many
+   slices as Steiger allows ungrouped (`fsd/excessive-slicing`): put a new page in a group folder,
+   `pages/modules/<ns>/`, imported as `#pages/modules/<ns>`, with one more `../` on the test helper imports: the screen is
    `GuardedScreen` (access guard, no-access empty state, `ReadFailure`), `createList` +
    `createListStatus`, `ListToolbar`, `ListPager`, `ListSection`/`ListRow`. The test draws it with
    `renderOrganizationPage` (`apps/web/src/test-organization-page.tsx`) and a fake API.
@@ -82,12 +98,15 @@ Add the table to `apps/api/test/reset-database.ts`. Tests that name a table with
    (add `'billing'` to the groups only if the page shows plan refusals). The menu item in
    `widgets/app-shell/ui/sidebar.tsx` and the entry in `shell-palette.tsx`, with an icon from
    `packages/ui` (`scripts/generate-icons.mjs` lists the names; add one there only if none fits).
-   Extend `app/app.test.tsx` as the customers route does: the first page is asked as the address opens.
+   Tests: `app/app.test.tsx`, two as the customers route has them (the first page is asked as the address
+   opens; none is asked at an address naming no organization of the user), and a case in
+   `widgets/app-shell/ui/app-shell.test.tsx` for the menu item and palette entry. A module with no plan
+   limit leaves the read-only screen state to the API's refusal and the generic alert.
 
 ## 5. End to end (`apps/e2e/tests/`)
 
 One journey for the main path, from `first-customer.spec.ts` (`docs/testing.md`). Edge cases stay in
-the layers below.
+the layers below. Find fields with `getByRole('textbox', { name })`: `getByLabel` also matches the search box.
 
 ## Checks
 

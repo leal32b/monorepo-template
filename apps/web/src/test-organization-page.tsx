@@ -24,7 +24,7 @@ export type OrganizationPageOptions = {
   organization?: Organization
   /** What the caller holds in it; the owner on trial unless the test is about a role or the plan. */
   membership?: OrganizationMembership
-  /** The product API: answers `null` to everything unless the screen reads from it. */
+  /** The product API: the screen's fake; a screen that reads nothing from it leaves it out. */
   api?: Fetch
   /** Better Auth: answers the organization list with `organization` unless the screen asks it more. */
   auth?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -46,7 +46,7 @@ export function renderOrganizationPage({
   at,
   organization = acme,
   membership = membershipOf(['owner'], builtInRoles.owner as Permissions),
-  api = async () => Response.json(null),
+  api = fetch,
   auth = async () => Response.json([organization]),
   locale = 'en',
   user = { id: 'u1', email: 'ada@example.com', name: 'Ada' }
