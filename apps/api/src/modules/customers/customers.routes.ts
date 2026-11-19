@@ -11,7 +11,14 @@ import { sendJson } from '#libs/http/json'
 import type { HttpRouter } from '#libs/http/router'
 import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
-import { type PublicSurface, publicLimits, publicRoute, type TenantGuard, tenantRoutes } from '#modules/identity/index'
+import {
+  type OrganizationOwners,
+  type PublicSurface,
+  publicLimits,
+  publicRoute,
+  type TenantGuard,
+  tenantRoutes
+} from '#modules/identity/index'
 import { ArchiveCustomerService } from './commands/archive-customer/archive-customer.service'
 import { CreateCustomerService } from './commands/create-customer/create-customer.service'
 import { DeleteCustomerService } from './commands/delete-customer/delete-customer.service'
@@ -29,6 +36,9 @@ export type CustomerRoutesDeps = TenantGuard & {
   unitOfWork: CustomersUnitOfWork
   clock: Clock
   ids: IdGenerator
+  /** Whom a public registration is told to (ADR 0073), and the web origin its link opens. */
+  owners: OrganizationOwners
+  webOrigin: string
 }
 
 const base = '/api/organizations/:organizationId/customers'
@@ -45,7 +55,7 @@ const received: PublicCustomerRegistration = { received: true }
  * inside the unit of work (ADR 0055).
  */
 export function registerCustomerRoutes(router: HttpRouter, deps: CustomerRoutesDeps): void {
-  const { publicSurface, unitOfWork, clock, ids } = deps
+  const { publicSurface, unitOfWork, clock, ids, owners, webOrigin } = deps
   const list = new ListCustomersService(unitOfWork)
   const get = new GetCustomerService(unitOfWork)
   const create = new CreateCustomerService(unitOfWork, clock, ids)
@@ -53,7 +63,7 @@ export function registerCustomerRoutes(router: HttpRouter, deps: CustomerRoutesD
   const archive = new ArchiveCustomerService(unitOfWork, clock, ids)
   const restore = new RestoreCustomerService(unitOfWork, clock, ids)
   const remove = new DeleteCustomerService(unitOfWork, clock, ids)
-  const register = new RegisterCustomerService(unitOfWork, clock, ids)
+  const register = new RegisterCustomerService(unitOfWork, clock, ids, { owners, webOrigin })
 
   const tenant = tenantRoutes(router, deps)
   tenant.get(

@@ -7,7 +7,7 @@ import { testCustomers } from './testing/test-customers'
 
 /** The module's routes behind the real pipeline, with the tenant guard on fakes of its two ports. */
 async function serve() {
-  const { audit, unitOfWork, clock, ids } = testCustomers()
+  const { audit, unitOfWork, clock, ids, owners, webOrigin } = testCustomers()
   const { origin, signInAs, call, code, lines } = await serveRoutes((router, { session, membership, logger }) => {
     const publicSurface = {
       limiter: new InMemoryRateLimiter(clock),
@@ -17,7 +17,7 @@ async function serve() {
       ]),
       logger
     }
-    registerCustomerRoutes(router, { session, membership, publicSurface, unitOfWork, clock, ids })
+    registerCustomerRoutes(router, { session, membership, publicSurface, unitOfWork, clock, ids, owners, webOrigin })
   })
   /** A visitor, with no session, asks to be a customer of the organization with this slug. */
   const register = (slug: string, body: unknown, address = '203.0.113.7') =>

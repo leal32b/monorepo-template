@@ -32,6 +32,7 @@ import { BetterAuthCurrentSession } from '#modules/identity/infrastructure/bette
 import { KyselyAccountDeletion } from '#modules/identity/infrastructure/kysely-account-deletion'
 import { KyselyInvitations } from '#modules/identity/infrastructure/kysely-invitations'
 import { KyselyMembership } from '#modules/identity/infrastructure/kysely-membership'
+import { KyselyOrganizationOwners } from '#modules/identity/infrastructure/kysely-organization-owners'
 import { KyselyPublicOrganizations } from '#modules/identity/infrastructure/kysely-public-organizations'
 import { GetAccountDeletionController } from '#modules/identity/queries/get-account-deletion/get-account-deletion.http-controller'
 import { GetIdentityOptionsController } from '#modules/identity/queries/get-identity-options/get-identity-options.http-controller'
@@ -99,6 +100,8 @@ export function createApp({
   const session = new BetterAuthCurrentSession(auth)
   const membership = new KyselyMembership(db, clock)
   const ids = new UuidGenerator()
+  // Whom a module tells of its organization's state (ADR 0073): customers and billing write to the owner.
+  const owners = new KyselyOrganizationOwners(db)
   // What routes without a session are built from (ADR 0059): the limiter first, then the slug.
   const publicSurface = {
     limiter: new KyselyRateLimiter(db, clock),
@@ -121,9 +124,11 @@ export function createApp({
     session,
     membership,
     publicSurface,
-    unitOfWork: kyselyCustomersUnitOfWork(db),
+    unitOfWork: kyselyCustomersUnitOfWork(db, jobsOn),
     clock,
-    ids
+    ids,
+    owners,
+    webOrigin
   })
   // The organization's audit trail, read only: every module writes its entries in its own unit of work (ADR 0061).
   registerAuditRoutes(router, { session, membership, unitOfWork: kyselyAuditUnitOfWork(db) })

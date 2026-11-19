@@ -56,7 +56,7 @@ Add `drop table if exists <n>` to the one long string of `apps/api/test/reset-da
 ## 3. API module (`apps/api/src/modules/<ns>/`), in this order
 
 1. `domain/<n>.ts` + test, `domain/<ns>.errors.ts`: pure rules and `changedFields`.
-2. `<n>-repository.port.ts`, `<ns>-unit-of-work.port.ts` (with `audit: AuditTrail`), `<n>-audit.ts`,
+2. `<n>-repository.port.ts`, `<ns>-unit-of-work.port.ts` (with `audit: AuditTrail` and `jobs: JobQueue`), `<n>-audit.ts`,
    `<n>-response.ts` (`to<N>Response`) and `find-<n>.ts` (raises not found).
 3. `testing/in-memory-<n>-repository.ts` + test, `testing/test-<ns>.ts` (the actor and the `test<Ns>()`
    factory over `InMemoryUnitOfWork`) and `testing/in-memory-<ns>-unit-of-work.test.ts`,

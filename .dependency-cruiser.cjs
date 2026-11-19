@@ -91,7 +91,8 @@ module.exports = {
       to: {
         path: ['^apps/api/src/modules/[^/]+/(database|infrastructure)/', '^apps/api/src/libs/'],
         // Of libs/, only what holds no infrastructure: an allowlist, so a new folder starts forbidden.
-        pathNot: ['\\.port\\.ts$', '^apps/api/src/libs/(ports|exceptions|http)/']
+        // notifications writes texts and declares jobs, with no I/O (ADR 0073).
+        pathNot: ['\\.port\\.ts$', '^apps/api/src/libs/(ports|exceptions|http|notifications)/']
       }
     },
     {

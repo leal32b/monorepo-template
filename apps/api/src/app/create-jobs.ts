@@ -14,6 +14,7 @@ import type { Timer } from '#libs/ports/timer.port'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
 import { registerBillingJobs } from '#modules/billing/index'
 import { KyselyBillingDirectory } from '#modules/billing/infrastructure/kysely-billing-directory'
+import { customersEmails } from '#modules/customers/index'
 import { registerHealthJobs } from '#modules/health/jobs/queue-check'
 import { registerIdentityJobs } from '#modules/identity/jobs/send-email'
 
@@ -21,7 +22,7 @@ export type JobsDeps = {
   db: Kysely<unknown>
   clock: Clock
   logger: Logger
-  /** Where identity's emails go (ADR 0021): the process that runs the jobs sends them (ADR 0057). */
+  /** Where every module's emails go (ADR 0021, ADR 0073): the process that runs the jobs sends them (ADR 0057). */
   emailSender: EmailSender
   /** The payment provider a notice's sync reads (ADR 0063): the same instance the app was given. */
   billing: BillingProvider
@@ -63,6 +64,7 @@ export function createJobs({
 
   registerHealthJobs(registry, { clock, logger })
   registerIdentityJobs(registry, { emailSender })
+  customersEmails.register(registry, emailSender)
   registerBillingJobs(registry, {
     unitOfWork: kyselyBillingUnitOfWork(db, bind),
     directory: new KyselyBillingDirectory(db),

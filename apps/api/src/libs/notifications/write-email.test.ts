@@ -6,7 +6,7 @@ const text = {
   subject: 'Join {organization}',
   body: '{inviter} invited you to join {organization}.',
   action: 'Open the invitation',
-  footer: 'The invitation expires in 7 days.'
+  footer: 'The invitation to {organization} expires in 7 days.'
 }
 
 describe('writeEmail', () => {
@@ -16,7 +16,7 @@ describe('writeEmail', () => {
     expect(email).toMatchObject({ to, subject: 'Join {organization}' })
     expect(email.text).toBe(
       '{inviter} invited you to join {organization}.\n\nOpen the invitation: ' +
-        `${url}\n\nThe invitation expires in 7 days.\n`
+        `${url}\n\nThe invitation to {organization} expires in 7 days.\n`
     )
     expect(email.html).toContain('<html lang="pt-BR">')
     expect(email.html).toContain(`<a href="${url.replaceAll('&', '&amp;')}">Open the invitation</a>`)
@@ -29,7 +29,7 @@ describe('writeEmail', () => {
     expect(email.html).not.toContain('<script>')
   })
 
-  it('fills the tokens of the subject and the body, escaped in the HTML', () => {
+  it('fills the tokens of the subject, the body and the footer, escaped in the HTML', () => {
     const values = { organization: 'Acme <Labs>', inviter: 'Ada (ada@example.com)' }
 
     const email = writeEmail(text, { to, locale: 'en', url, values })
@@ -37,6 +37,7 @@ describe('writeEmail', () => {
     expect(email.subject).toBe('Join Acme <Labs>')
     expect(email.text).toContain('Ada (ada@example.com) invited you to join Acme <Labs>.')
     expect(email.html).toContain('Ada (ada@example.com) invited you to join Acme &lt;Labs&gt;.')
+    expect(email.html).toContain('The invitation to Acme &lt;Labs&gt; expires in 7 days.')
   })
 
   it('leaves a token without a value as written', () => {

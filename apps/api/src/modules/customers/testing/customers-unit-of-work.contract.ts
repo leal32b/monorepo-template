@@ -2,6 +2,7 @@ import { anEntry } from '#libs/audit/testing/audit-trail.contract'
 import type { AuditTrail } from '#libs/ports/audit-trail.port'
 import type { CustomerRepository } from '../customer-repository.port'
 import type { CustomersUnitOfWork } from '../customers-unit-of-work.port'
+import { customersEmails } from '../emails/customers-emails'
 import { aCustomer } from './customer-repository.contract'
 
 export type CustomersUnderTest = {
@@ -9,13 +10,15 @@ export type CustomersUnderTest = {
   /** The same stores read outside any unit of work, to see what was kept. */
   customers: CustomerRepository
   audit: AuditTrail
+  /** How many jobs were kept, read outside any unit of work. */
+  jobsKept: () => Promise<number>
 }
 
 const page = { limit: 10 }
 
 /**
  * What every `CustomersUnitOfWork` must do (ADR 0052, ADR 0061), run against the in-memory fake and the
- * database adapter alike: a change and its audit entry are kept together or not at all.
+ * database adapter alike: a change, its audit entry and the jobs it enqueues are kept together or not at all.
  */
 export function describeCustomersUnitOfWork(label: string, make: () => Promise<CustomersUnderTest>): void {
   describe(`${label} as a CustomersUnitOfWork`, () => {
@@ -61,6 +64,24 @@ export function describeCustomersUnitOfWork(label: string, make: () => Promise<C
       await expect(work).rejects.toThrow('changed my mind')
       expect(await under.customers.findById('org-1', 'c2')).toBeNull()
       expect(await under.audit.list('org-1', page)).toEqual([])
+    })
+
+    it('keeps a job enqueued in the work with the change, and drops it when the work throws (ADR 0073)', async () => {
+      const email = {
+        email: 'customerRegistered' as const,
+        to: 'ada@example.com',
+        locale: 'en' as const,
+        url: 'https://app.example.com/acme/customers'
+      }
+
+      await under.unitOfWork.run('org-1', ({ jobs }) => jobs.enqueue(customersEmails.job, email))
+      const dropped = under.unitOfWork.run('org-1', async ({ jobs }) => {
+        await jobs.enqueue(customersEmails.job, email)
+        throw new Error('changed my mind')
+      })
+
+      await expect(dropped).rejects.toThrow('changed my mind')
+      expect(await under.jobsKept()).toBe(1)
     })
 
     it('reads its own writes inside the work', async () => {

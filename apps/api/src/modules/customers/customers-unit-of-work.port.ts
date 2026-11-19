@@ -1,4 +1,5 @@
 import type { AuditTrail } from '#libs/ports/audit-trail.port'
+import type { JobQueue } from '#libs/ports/job-queue.port'
 import type { UnitOfWork } from '#libs/ports/unit-of-work.port'
 import type { CustomerRepository } from './customer-repository.port'
 
@@ -7,6 +8,8 @@ export type CustomerRepositories = {
   customers: CustomerRepository
   /** The organization's audit trail (ADR 0061): every write of the module records its entry here. */
   audit: AuditTrail
+  /** The queue on the same transaction: an email a write asks for is kept or dropped with it (ADR 0052, ADR 0073). */
+  jobs: JobQueue
 }
 
 /**

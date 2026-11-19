@@ -67,8 +67,12 @@ Chosen options: 1, B and i.
   object per language, each typed as the English one, and returns `{ job, write, register }`: the
   `JobDefinition` whose schema accepts only the module's message names and the languages there are
   texts for, the writer, and the registration of its handler with the `EmailSender` port.
-- `format.ts`: `formatDay(instant, { locale, timeZone })` ("5 de dezembro de 2026") and
-  `formatMoney(money, locale)`, on `Intl`, so a text never shows UTC or a bare number.
+- `format.ts`: `formatDay(instant, { locale, timeZone })` ("5 de dezembro de 2026"), on `Intl`, so a
+  text never names a day in UTC. No text shows an amount yet; the first that does adds `formatMoney`
+  beside it, in the amount's own currency.
+
+It holds no I/O, so use cases may import it: dependency-cruiser's allowlist of `libs/` for use cases
+gains `notifications`.
 
 Option 2 makes a module that knows every other module's messages, or a registry filled at start-up, for
 what a function does; option 3 keeps identity the owner of a layout it does not need to own.
@@ -95,8 +99,8 @@ is a secret. A generic kind (A) would make every payload secret or none, and nee
 
 **Language, time zone, currency (i).** The enqueuer knows them and the handler does not need to look
 them up again: identity uses the user's `locale` (ADR 0021); customers and billing, the owner's. Dates are formatted with
-the organization's `timeZone` and amounts with their own currency at the enqueue, so the payload holds
-the text's values as strings. The texts change only with a deploy, so a retry 40 minutes later writes the
+the organization's `timeZone` (and amounts, when a text has one, with their own currency) at the
+enqueue, so the payload holds the text's values as strings. The texts change only with a deploy, so a retry 40 minutes later writes the
 same email (ii would format the same strings later, with more in the payload). A text that has a date
 names the day only, never a time without its zone.
 

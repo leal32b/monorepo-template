@@ -29,12 +29,13 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
   const db = createDatabase(createPool(inject('databaseUrl'), logger))
   const clock = new FixedClock(new Date('2026-11-12T10:00:00.000Z'))
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
+  const email = new RecordingEmailSender()
   const jobs = createJobs({
     billing,
     db,
     clock,
     logger,
-    emailSender: new RecordingEmailSender(),
+    emailSender: email,
     timer: new ManualTimer(clock),
     idlePollMs: 3_600_000
   })
@@ -48,6 +49,10 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
     await sql`insert into auth.organization (id, name, slug, "createdAt", "timeZone", currency)
       values ('org-acme', 'Acme Barbers', 'acme', now(), 'America/Sao_Paulo', 'BRL'),
              ('org-other', 'Other Barbers', 'other', now(), 'UTC', 'USD')`.execute(db)
+    await sql`insert into auth."user" (id, name, email, "emailVerified", "createdAt", "updatedAt", locale)
+      values ('user-ada', 'Ada', 'ada@example.com', true, now(), now(), 'en')`.execute(db)
+    await sql`insert into auth.member (id, "organizationId", "userId", role, "createdAt")
+      values ('member-ada', 'org-acme', 'user-ada', 'owner', now())`.execute(db)
     server = createApp({
       clock,
       logger,
@@ -68,8 +73,9 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
   })
 
   beforeEach(async () => {
-    await sql`truncate customer, audit_entry, rate_limit`.execute(db)
+    await sql`truncate customer, audit_entry, rate_limit, job`.execute(db)
     lines.length = 0
+    email.sent.length = 0
   })
 
   afterAll(async () => {
@@ -129,6 +135,21 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
     expect(await changesOf('org-acme')).toEqual([{ action: 'created', actor_kind: 'visitor', actor_id: null }])
   })
 
+  it('tells the owner of the new customer by email, through the queue, and never writes to the visitor (ADR 0073)', async () => {
+    const response = await register('acme', { name: 'Grace', email: 'grace@example.com' })
+    await jobs.worker.drain()
+
+    expect(response.status).toBe(202)
+    expect(email.sent).toEqual([
+      expect.objectContaining({
+        to: 'ada@example.com',
+        subject: 'New customer: Grace',
+        text: expect.stringContaining('on November 12, 2026')
+      })
+    ])
+    expect(email.sent[0]?.text).toContain(`${webOrigin}/acme/customers`)
+  })
+
   it('writes in the organization its slug names and no other, and each keeps its own emails', async () => {
     await register('acme', { name: 'Grace Hopper', email: 'grace@example.com' })
     await register('other', { name: 'Grace H.', email: 'grace@example.com' })
@@ -143,7 +164,7 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
   })
 
   it('cannot write a row of another organization: Postgres refuses it, whatever the code says', async () => {
-    const unitOfWork = kyselyCustomersUnitOfWork(db)
+    const unitOfWork = kyselyCustomersUnitOfWork(db, jobs.bind)
     const foreign = registerCustomer({
       id: 'c-foreign',
       organizationId: 'org-other',
