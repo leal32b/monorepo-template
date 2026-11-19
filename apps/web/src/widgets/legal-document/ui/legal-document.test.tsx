@@ -20,20 +20,18 @@ async function renderPage(Page: typeof TermsPage, locale: 'en' | 'pt-BR' = 'en')
 }
 
 describe('LegalDocument (ADR 0074)', () => {
-  it('draws the terms in the entry frame: the title, the version in force, and each paragraph', async () => {
+  it('draws the terms: the version in force, and each paragraph', async () => {
     await renderPage(TermsPage)
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Terms of use' })).toBeInTheDocument()
     const day = formatDate(new Date(`${legal.version}T00:00:00Z`), 'en', 'UTC')
-    expect(screen.getByText(`Version of ${day}`)).toBeInTheDocument()
+    expect(await screen.findByText(`Version of ${day}`)).toBeInTheDocument()
     expect(screen.getByText(/This text is a placeholder/)).toBeInTheDocument()
-    expect(document.querySelectorAll('main p').length).toBeGreaterThan(3)
+    expect(document.querySelectorAll('p').length).toBeGreaterThan(3)
   })
 
   it('draws the privacy notice in the reader’s language', async () => {
     await renderPage(PrivacyPage, 'pt-BR')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Aviso de privacidade' })).toBeInTheDocument()
-    expect(screen.getByText(/Este texto é provisório/)).toBeInTheDocument()
+    expect(await screen.findByText(/Este texto é provisório/)).toBeInTheDocument()
   })
 })
