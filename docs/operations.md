@@ -60,10 +60,13 @@ A job line has `jobId`, `kind` and `attempt` instead of a request's fields:
 - `job queue working` (info): the check the API enqueues as it starts was run, `waitedMs` after it
   was enqueued.
 
-A job's payload is never logged: it may hold an address or a link. Identity's emails are jobs of the
-kind `identity.send-email` ([ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)):
-a provider's refusal shows as `job attempt failed`, with the provider's status and error code in
-`err`, and an email that failed every attempt as `job failed`.
+A job's payload is never logged: it may hold an address or a link. Each module's emails are jobs of
+its own kind, `<module>.send-email`
+([ADR 0073](adr/0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md)):
+`identity.send-email` ([ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)),
+`customers.send-email` and `billing.send-email`. A provider's refusal shows as `job attempt failed`,
+with the provider's status and error code in `err`, and an email that failed every attempt as
+`job failed`; see [A failed notification](#a-failed-notification).
 
 A browser error is a line of its own: see [Browser errors](#browser-errors).
 
@@ -151,6 +154,39 @@ when the next request wakes the container. Jobs caused by a request are not affe
 jobs to run on time, keep the container awake (the uptime monitor below, on an interval shorter
 than the host's idle limit) or move to an always-on plan. An idle worker sends no queries, so
 keeping the container awake does not keep the database awake.
+
+### A failed notification
+
+`job failed` with a kind that ends in `.send-email` is an email that was refused on every attempt,
+about 43 minutes. First, the cause: `err` and `last_error` hold the provider's status and code (a
+`401` or `403` is the key, `422` a sending domain not verified or an address refused, `429` the
+plan's quota, `5xx` the provider down). Fix it, then:
+
+| Kind | Who it was for | What to do |
+| --- | --- | --- |
+| `identity.send-email` | The person who asked: a confirmation, reset, deletion or invitation | Nothing to put back: its payload is gone and its link has expired. The user asks again from the screen; an inviter presses Resend. |
+| `customers.send-email` | The owner, of a visitor's registration | Put it back (below), or let it go: the customer is in the list, marked as created by a visitor. |
+| `billing.send-email` | The owner: the trial ends in 3 days, or a payment is late | Put it back while it is still true: the plan page shows the trial's end or the day to pay by in any case. A late payment's email may already be stale if the organization paid since. |
+
+A failed `billing.remind-trial-end` means the row or the owner could not be read: put it back
+before the trial ends, or it sends nothing. What a payload holds, to decide (it names an address,
+so read it only for this):
+
+```sql
+select id, kind, payload->>'email' as email, payload->>'locale' as locale, last_error, finished_at
+from job where kind like '%.send-email' and state = 'failed' order by finished_at desc;
+```
+
+The reminder is a delayed job: on a host that sleeps when idle it runs when the next request wakes the
+container (see above), so keep the container awake for it to arrive on its day.
+
+Many at once, all with the same error, is the provider or its configuration, not the messages: fix
+it, then put them back together, leaving identity's out:
+
+```sql
+update job set state = 'pending', attempts = 0, run_at = now(), finished_at = null
+where kind in ('customers.send-email', 'billing.send-email') and state = 'failed' and finished_at > '<since>';
+```
 
 ## Public routes and rate limits
 
@@ -271,9 +307,12 @@ sandbox for staging, production for the product):
    `PAYMENT_CREDIT_CARD_CAPTURE_REFUSED`, `PAYMENT_DELETED`, `SUBSCRIPTION_CREATED`,
    `SUBSCRIPTION_UPDATED`, `SUBSCRIPTION_INACTIVATED`, `SUBSCRIPTION_DELETED`. Another event (the
    `CHECKOUT_*` ones of before ADR 0070 included) is answered 200 and ignored.
-4. **Payer notices** (Configurações → Notificações): keep the due-date warning and the overdue notice,
-   the only billing emails until P1-6. The default overdue notice includes a phone call; turn it off
-   if that is too much for the product's customers.
+4. **Payer notices** (Configurações → Notificações). The API emails the owner when a payment is late,
+   with the day the organization becomes read only and a button to pay
+   ([ADR 0073](adr/0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md)),
+   so the payer gets one message per event: **turn off every overdue notice** ("Cobrança vencida":
+   email, SMS, WhatsApp and the phone call). Keep the notices the API does not send, which carry the
+   invoice: the charge created, the due-date warning and the payment received.
 5. **Charges created 7 days ahead** of their due date (40 by default, 14 or 7 as options), so a payer
    does not see next month's boleto at the start of this one.
 6. **Card tokenization** in production: Asaas changes a card subscription's value (an upgrade, a
