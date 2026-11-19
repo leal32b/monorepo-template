@@ -113,7 +113,10 @@ export const shellPtBR: typeof shellEn = {
     rateLimited: 'Muitas tentativas. Espere um minuto e tente de novo.',
     rateLimitedFor: 'Muitas tentativas desta conexão. Tente de novo em {{wait}}.',
     unexpected: 'Algo deu errado do nosso lado. Tente de novo em instantes.',
-    reference: 'Se continuar, informe ao suporte: {{reference}}'
+    reference: 'Se continuar, informe ao suporte: {{reference}}',
+    crashedTitle: 'Algo deu errado',
+    crashed: 'Esta tela parou de funcionar. Recarregue a página para continuar.',
+    reload: 'Recarregar a página'
   },
   confirmPassword: {
     label: 'Sua senha',

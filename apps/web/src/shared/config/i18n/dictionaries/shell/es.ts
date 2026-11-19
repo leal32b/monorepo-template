@@ -113,7 +113,10 @@ export const shellEs: typeof shellEn = {
     rateLimited: 'Demasiados intentos. Espera un minuto y vuelve a intentarlo.',
     rateLimitedFor: 'Demasiados intentos desde esta conexión. Vuelve a intentarlo en {{wait}}.',
     unexpected: 'Algo salió mal de nuestro lado. Vuelve a intentarlo en un momento.',
-    reference: 'Si sigue pasando, avisa a soporte: {{reference}}'
+    reference: 'Si sigue pasando, avisa a soporte: {{reference}}',
+    crashedTitle: 'Algo salió mal',
+    crashed: 'Esta pantalla dejó de funcionar. Recarga la página para continuar.',
+    reload: 'Recargar la página'
   },
   confirmPassword: {
     label: 'Tu contraseña',

@@ -280,6 +280,17 @@ describe('App', () => {
     expect(fetch).not.toHaveBeenCalledWith('/api/identity/options', expect.anything())
   })
 
+  it('tells the error reporter which screen is on view by its pattern, as the route changes (ADR 0072)', async () => {
+    const reporter = { report: vi.fn(), setRoute: vi.fn() }
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/login')
+
+    render(() => <App client={client} auth={auth} reporter={reporter} locale="en" />)
+
+    await waitFor(() => expect(reporter.setRoute).toHaveBeenLastCalledWith('/login'))
+  })
+
   it('serves the sign-in page at /login', () => {
     const client = createApiClient({ fetch: async () => Response.json(null) })
     const auth = createAuthClient({ fetch: async () => Response.json(null) })
