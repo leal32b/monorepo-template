@@ -410,6 +410,36 @@ the adapter.
 | The job's reads, end to end | Verified: `subscription` read an active card subscription, a received boleto, an overdue card charge paid late, an unpaid Pix (`pending`), a deleted one (`cancelled`) and an unknown id (`null`), with the right periods; `payment` and `paymentPage` answered accordingly | Ran the adapter against the sandbox |
 | A Checkout's `link`, items without `imageBase64`, `GET /payments?checkoutSession=` | No longer used (ADR 0070); a Checkout without a customer did answer with `link`, without an image | Created one |
 
+## Terms and privacy
+
+The text of `/terms` and `/privacy` is the dictionary group `legal` of the web
+(`apps/web/src/shared/config/i18n/dictionaries/legal/`), and their version is `legal.version` in
+`@repo/contracts`; every account records the version in force when it was made ([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md)).
+
+To publish a new version:
+
+1. Change the texts in every language the product sells in, and `legal.version` to the day it takes effect, in
+   one commit.
+2. Before that day, email every user what changes and when (the notice period the text promises). The
+   addresses: `select email, "legalVersion" from auth."user" where "emailVerified"`.
+3. Deploy on that day. Accounts made from then on record the new version; the others keep theirs, which
+   says who accepted which.
+
+A change that needs consent rather than notice (a new purpose, a new paid term) needs re-acceptance in the
+app, which the template does not build: see the ADR.
+
+## Organization exports
+
+An owner asks in General; `data-export.build` builds a zip of CSV files and `data-export.send-email` tells
+them. One request per organization every 15 minutes; the file is kept 7 days, then the purge empties it
+([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md)).
+
+- **An owner says the export never arrived.** `job failed` with `kind: data-export.build` and its error:
+  `Query read timeout` or the job's 60 s means the organization outgrew a one-shot export (see the ADR's
+  "Revisit when"). The page lets them ask again 15 minutes after the first request; the email's failure is
+  [a failed notification](#a-failed-notification), and the page shows the export as ready anyway.
+- **Who downloaded it.** `export downloaded` lines, with the organization and the member's id.
+
 ## Set up once per product
 
 - An uptime monitor (any free one) on `<web origin>/api/health` every 5 to 10 minutes, alerting on a
