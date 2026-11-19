@@ -18,6 +18,7 @@ import {
   cancelAtProvider,
   EnqueueCancellationService,
   registerBillingRoutes,
+  ScheduleTrialReminderService,
   syncPayloadOf,
   syncSubscription
 } from '#modules/billing/index'
@@ -96,7 +97,18 @@ export function createApp({
   const billingUnitOfWork = kyselyBillingUnitOfWork(db, jobsOn)
   // Deleting an organization, alone or with its only member's account, ends its subscription (ADR 0063).
   const organizationDeletion = new EnqueueCancellationService(billingUnitOfWork, jobs, clock, cancelAtProvider)
-  const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google, organizationDeletion })
+  // A new organization's trial is recalled 3 days before it ends (ADR 0073).
+  const organizationCreation = new ScheduleTrialReminderService(jobs, logger)
+  const auth = createAuth({
+    db,
+    logger,
+    jobs,
+    webOrigin,
+    secret: authSecret,
+    google,
+    organizationDeletion,
+    organizationCreation
+  })
   const session = new BetterAuthCurrentSession(auth)
   const membership = new KyselyMembership(db, clock)
   const ids = new UuidGenerator()

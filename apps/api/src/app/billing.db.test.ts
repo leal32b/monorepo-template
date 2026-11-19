@@ -57,6 +57,7 @@ describe('billing through the API (ADR 0063)', () => {
     autoComplete: { afterMs: 3_000, timer: development }
   })
   const jobs = createJobs({
+    webOrigin,
     db,
     clock,
     logger,

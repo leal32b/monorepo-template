@@ -31,6 +31,7 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const email = new RecordingEmailSender()
   const jobs = createJobs({
+    webOrigin,
     billing,
     db,
     clock,

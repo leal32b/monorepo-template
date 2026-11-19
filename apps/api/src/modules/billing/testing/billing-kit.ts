@@ -3,6 +3,7 @@ import { FixedClock } from '#libs/adapters/fixed-clock'
 import { InMemoryAuditTrail } from '#libs/adapters/in-memory-audit-trail'
 import { InMemoryJobs } from '#libs/adapters/in-memory-jobs'
 import { InMemoryUnitOfWork } from '#libs/adapters/in-memory-unit-of-work'
+import type { OrganizationOwners } from '#modules/identity/index'
 import { InMemorySubscriptionRepository } from './in-memory-subscription-repository'
 
 /** The token the kit's fake takes commands with. */
@@ -11,7 +12,8 @@ export const kitToken = 'billing-kit-token-0123'
 /**
  * What a billing use-case or job test runs on (ADR 0063): the fake provider and the in-memory rows, trail
  * and jobs in one unit of work, on a fixed clock, 19 November 2026 at noon, and a counter for ids. `command`
- * sends the fake a command as the end-to-end suite would.
+ * sends the fake a command as the end-to-end suite would. `org-1`'s owner, Ada, reads in es in São Paulo;
+ * other organizations have none.
  */
 export function billingKit(now = new Date('2026-11-19T12:00:00.000Z')) {
   const clock = new FixedClock(now)
@@ -27,5 +29,16 @@ export function billingKit(now = new Date('2026-11-19T12:00:00.000Z')) {
       'fake-billing-token': kitToken
     })
   const entries = (organizationId = 'org-1') => audit.list(organizationId, { limit: 50 })
-  return { clock, ids, provider, subscriptions, audit, jobs, unitOfWork, command, entries }
+  const owners: OrganizationOwners = {
+    ownerOf: async (organizationId) =>
+      organizationId === 'org-1'
+        ? {
+            email: 'ada@example.com',
+            locale: 'es',
+            organization: { name: 'Acme Barbers', slug: 'acme', timeZone: 'America/Sao_Paulo' }
+          }
+        : null
+  }
+  const webOrigin = 'https://app.example.com'
+  return { clock, ids, provider, subscriptions, audit, jobs, unitOfWork, command, entries, owners, webOrigin }
 }

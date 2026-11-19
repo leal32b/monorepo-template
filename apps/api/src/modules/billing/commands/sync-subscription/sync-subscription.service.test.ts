@@ -83,6 +83,39 @@ describe('SyncSubscriptionService (ADR 0063)', () => {
     expect(await kit.actions()).toEqual(['checkout-started', 'activated', 'payment-failed', 'payment-recovered'])
   })
 
+  it('emails the owner once when the subscription goes past due, with the day to pay by (ADR 0073)', async () => {
+    const kit = setUp()
+    await kit.checkout('basic', 0)
+    await kit.notify('checkout.complete')
+
+    await kit.notify('payment.fail')
+    await kit.notify('payment.fail')
+    const emails = kit.jobs.all.filter((job) => job.kind === 'billing.send-email')
+
+    expect(emails).toMatchObject([
+      {
+        payload: {
+          email: 'paymentFailed',
+          to: 'ada@example.com',
+          locale: 'es',
+          url: 'https://app.example.com/acme/settings/billing',
+          values: { organization: 'Acme Barbers', dueDay: '19 de noviembre de 2026', payBy: '3 de diciembre de 2026' }
+        }
+      }
+    ])
+  })
+
+  it('sends no email for a payment that failed in an organization with no owner', async () => {
+    const kit = setUp()
+    await kit.checkout('basic', 0, 'org-2')
+    await kit.notify('checkout.complete', 'org-2')
+
+    await kit.notify('payment.fail', 'org-2')
+
+    expect(await kit.row('org-2')).toMatchObject({ status: 'past_due' })
+    expect(kit.jobs.all.map((job) => job.kind)).not.toContain('billing.send-email')
+  })
+
   it('completes an upgrade once its payment is paid: the next charges cost the new plan, then the plan changes', async () => {
     const kit = setUp()
     const row = await subscribed(kit)

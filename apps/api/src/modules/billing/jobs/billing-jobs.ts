@@ -4,12 +4,14 @@ import type { BillingNotice, BillingProvider } from '#libs/ports/billing-provide
 import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
 import type { JobDefinition, JobRegistrar } from '#libs/ports/job-queue.port'
+import type { OrganizationOwners } from '#modules/identity/index'
 import type { BillingDirectory } from '../billing-directory.port'
 import type { BillingUnitOfWork } from '../billing-unit-of-work.port'
 import {
   type CancelAtProvider,
   CancelAtProviderService
 } from '../commands/cancel-at-provider/cancel-at-provider.service'
+import { type RemindTrialEnd, RemindTrialEndService } from '../commands/remind-trial-end/remind-trial-end.service'
 import { type SyncSubscription, SyncSubscriptionService } from '../commands/sync-subscription/sync-subscription.service'
 
 const providerId = z.optional(z.string())
@@ -39,6 +41,15 @@ export const cancelAtProvider: JobDefinition<CancelAtProvider> = {
   maxAttempts: 5
 }
 
+/**
+ * The trial's reminder (ADR 0073), enqueued when the organization is created to run 3 days before the
+ * trial ends; it enqueues the owner's email, so its own retries never send twice.
+ */
+export const remindTrialEnd: JobDefinition<RemindTrialEnd> = {
+  kind: 'billing.remind-trial-end',
+  schema: z.object({ organizationId: z.string(), trialEndsAt: z.iso.datetime() })
+}
+
 /** The job a notice taken in by the webhook inbox enqueues: its ids, and nothing else of it. */
 export function syncPayloadOf(
   provider: string,
@@ -54,13 +65,18 @@ export type BillingJobsDeps = {
   clock: Clock
   ids: IdGenerator
   logger: Logger
+  /** Whom billing's emails go to (ADR 0073), and the web origin their button opens. */
+  owners: OrganizationOwners
+  webOrigin: string
 }
 
 /** Billing's job kinds, registered by the composition root with the ports they need. */
 export function registerBillingJobs(registrar: JobRegistrar, deps: BillingJobsDeps): void {
   const sync = new SyncSubscriptionService(deps)
   const cancel = new CancelAtProviderService(deps)
+  const remind = new RemindTrialEndService(deps)
   registrar.register(syncSubscription, (payload) => sync.execute(payload))
+  registrar.register(remindTrialEnd, (payload) => remind.execute(payload))
   registrar.register(cancelAtProvider, (payload, { attempt }) =>
     cancel.execute(payload, attempt >= (cancelAtProvider.maxAttempts as number))
   )

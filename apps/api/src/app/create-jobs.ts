@@ -12,10 +12,11 @@ import type { EmailSender } from '#libs/ports/email-sender.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import type { Timer } from '#libs/ports/timer.port'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
-import { registerBillingJobs } from '#modules/billing/index'
+import { billingEmails, registerBillingJobs } from '#modules/billing/index'
 import { KyselyBillingDirectory } from '#modules/billing/infrastructure/kysely-billing-directory'
 import { customersEmails } from '#modules/customers/index'
 import { registerHealthJobs } from '#modules/health/jobs/queue-check'
+import { KyselyOrganizationOwners } from '#modules/identity/infrastructure/kysely-organization-owners'
 import { registerIdentityJobs } from '#modules/identity/jobs/send-email'
 
 export type JobsDeps = {
@@ -26,6 +27,8 @@ export type JobsDeps = {
   emailSender: EmailSender
   /** The payment provider a notice's sync reads (ADR 0063): the same instance the app was given. */
   billing: BillingProvider
+  /** The web app's origin (ADR 0019): the buttons of billing's emails open it (ADR 0073). */
+  webOrigin: string
   /** How the worker waits; real time unless a test says otherwise. */
   timer?: Timer
   /** The longest an idle worker sleeps before it looks again (`JOB_IDLE_POLL_SECONDS`). */
@@ -52,6 +55,7 @@ export function createJobs({
   logger,
   emailSender,
   billing,
+  webOrigin,
   timer = new SystemTimer(),
   idlePollMs
 }: JobsDeps): Jobs {
@@ -65,13 +69,16 @@ export function createJobs({
   registerHealthJobs(registry, { clock, logger })
   registerIdentityJobs(registry, { emailSender })
   customersEmails.register(registry, emailSender)
+  billingEmails.register(registry, emailSender)
   registerBillingJobs(registry, {
     unitOfWork: kyselyBillingUnitOfWork(db, bind),
     directory: new KyselyBillingDirectory(db),
     provider: billing,
     clock,
     ids,
-    logger
+    logger,
+    owners: new KyselyOrganizationOwners(db),
+    webOrigin
   })
 
   return {

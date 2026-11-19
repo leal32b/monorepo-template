@@ -8,6 +8,7 @@ import type { Logger } from 'pino'
 import { type Locale, localeSchema } from '#libs/notifications/locales'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import { EMAIL_LINK_SECONDS, type IdentityEmail, sendEmail } from '../jobs/send-email'
+import type { OrganizationCreationListener } from '../organization-creation.port'
 import type { OrganizationDeletionListener } from '../organization-deletion.port'
 import { KyselyAccountDeletion } from './kysely-account-deletion'
 import { checkOrganization, OrganizationReader, OrganizationRules, organizationLimits } from './organization-rules'
@@ -26,6 +27,8 @@ export type AuthDeps = {
   google: { clientId: string; clientSecret: string } | undefined
   /** Told of every organization about to be deleted (ADR 0063): billing ends its subscription at the provider. */
   organizationDeletion: OrganizationDeletionListener
+  /** Told of every organization just created (ADR 0073): billing enqueues the reminder of its trial's end. */
+  organizationCreation: OrganizationCreationListener
 }
 
 /** The access control of ADR 0033, built from the statements and built-in roles in `@repo/contracts`. */
@@ -37,7 +40,16 @@ const roles = {
 }
 
 /** Better Auth with the template's defaults (ADR 0020). */
-export function createAuth({ db, logger, jobs, webOrigin, secret, google, organizationDeletion }: AuthDeps) {
+export function createAuth({
+  db,
+  logger,
+  jobs,
+  webOrigin,
+  secret,
+  google,
+  organizationDeletion,
+  organizationCreation
+}: AuthDeps) {
   /**
    * Enqueued, not sent (ADR 0057): the response waits for one insert, never for the provider, and a
    * provider's failure is retried by the queue. A failed insert fails the request, so nothing is lost unseen.
@@ -168,6 +180,8 @@ export function createAuth({ db, logger, jobs, webOrigin, secret, google, organi
           ),
         organizationHooks: {
           beforeCreateOrganization: async ({ organization }) => checkOrganization(organization),
+          afterCreateOrganization: async ({ organization }) =>
+            organizationCreation.afterCreate({ id: organization.id, createdAt: organization.createdAt }),
           beforeUpdateOrganization: async ({ organization }) => checkOrganization(organization),
           beforeCreateInvitation: async ({ inviter }) => rules.beforeInvitation(inviter.id),
           // Only an owner deletes (ADR 0033); then billing enqueues the end of its subscription (ADR 0063).

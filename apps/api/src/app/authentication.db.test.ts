@@ -73,6 +73,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
    */
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    webOrigin,
     billing,
     db,
     clock: new SystemClock(),
@@ -561,7 +562,8 @@ describe('authentication through Better Auth (ADR 0020)', () => {
       webOrigin,
       secret: 'fedcba9876543210'.repeat(2),
       google: undefined,
-      organizationDeletion: { beforeDelete: async () => undefined }
+      organizationDeletion: { beforeDelete: async () => undefined },
+      organizationCreation: { afterCreate: async () => undefined }
     })
 
     const response = await auth.handler(

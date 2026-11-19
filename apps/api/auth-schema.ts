@@ -30,7 +30,8 @@ try {
     webOrigin: 'http://localhost:5173',
     secret: 'schema-only-secret-0123456789abcdef',
     google: undefined, // Google adds no tables or columns
-    organizationDeletion: { beforeDelete: async () => undefined } // nothing is deleted here
+    organizationDeletion: { beforeDelete: async () => undefined }, // nothing is deleted here
+    organizationCreation: { afterCreate: async () => undefined } // nothing is created here
   })
   const { toBeCreated, toBeAdded, toBeAddedIndexes, compileMigrations } = await getMigrations(auth.options)
   const upToDate = toBeCreated.length + toBeAdded.length + toBeAddedIndexes.length === 0

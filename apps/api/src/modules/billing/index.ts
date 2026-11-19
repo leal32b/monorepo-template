@@ -5,5 +5,7 @@
  */
 export { registerBillingRoutes } from './billing.routes'
 export { EnqueueCancellationService } from './commands/enqueue-cancellation/enqueue-cancellation.service'
+export { ScheduleTrialReminderService } from './commands/schedule-trial-reminder/schedule-trial-reminder.service'
+export { billingEmails } from './emails/billing-emails'
 export { cancelAtProvider, registerBillingJobs, syncPayloadOf, syncSubscription } from './jobs/billing-jobs'
 export { assertWithinLimit } from './plan-limits'

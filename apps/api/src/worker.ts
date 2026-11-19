@@ -32,6 +32,7 @@ const jobs = createJobs({
   // A real provider holds its state itself. The billing fake keeps it in the API's process, so its
   // notices are synced only by the API's own worker: run the fake with JOB_WORKER on (ADR 0063).
   billing: createBillingProvider(env.billing, { clock, ids: new UuidGenerator() }),
+  webOrigin: env.webOrigin,
   idlePollMs: env.jobs.idlePollMs
 })
 

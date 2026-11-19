@@ -2,10 +2,12 @@ import type { Logger } from 'pino'
 import type { BillingNotice, BillingProvider, ProviderSubscription } from '#libs/ports/billing-provider.port'
 import type { Clock } from '#libs/ports/clock.port'
 import type { IdGenerator } from '#libs/ports/id-generator.port'
+import type { OrganizationOwners } from '#modules/identity/index'
 import { SubscriptionChangedException } from '../../billing.errors'
 import { subscriptionEntry } from '../../billing-audit'
 import type { BillingDirectory } from '../../billing-directory.port'
 import type { BillingUnitOfWork } from '../../billing-unit-of-work.port'
+import { billingEmails, paymentFailedEmail } from '../../emails/billing-emails'
 import {
   activate,
   applyProviderState,
@@ -37,6 +39,8 @@ const live = (state: ProviderSubscription) => state.status !== 'cancelled'
  *   dropped.
  * - A live subscription of ours that the row does not hold, and no checkout opened, is a duplicate: it is
  *   ended at once and logged at error, for the operator to refund.
+ * - A move into `past_due` enqueues the owner's email in the same transaction (ADR 0073), once: a sync
+ *   that finds it already past due sends nothing again.
  * - A notice about a customer no row holds is ignored; a provider state whose reference names another
  *   organization is refused, logged at error (T50).
  */
@@ -49,6 +53,8 @@ export class SyncSubscriptionService {
       clock: Clock
       ids: IdGenerator
       logger: Logger
+      owners: OrganizationOwners
+      webOrigin: string
     }
   ) {}
 
@@ -132,11 +138,14 @@ export class SyncSubscriptionService {
 
   /** Saves the row at the version read, with the system's audit entry; a save that lost to another throws, and the retry reads again. */
   async #write(read: Subscription, next: Subscription, done: Done): Promise<void> {
-    const { unitOfWork, ids, clock, logger } = this.deps
+    const { unitOfWork, ids, clock, logger, owners, webOrigin } = this.deps
     const action = syncAction(read, next, done)
     if (action === null) return
     const { organizationId } = read
-    await unitOfWork.run(organizationId, async ({ subscriptions, audit }) => {
+    const failed = action === 'payment-failed' && read.status !== 'past_due'
+    const owner = failed ? await owners.ownerOf(organizationId) : null
+    const email = owner === null ? null : paymentFailedEmail(owner, next.pastDueSince, webOrigin)
+    await unitOfWork.run(organizationId, async ({ subscriptions, audit, jobs }) => {
       const current = await subscriptions.find(organizationId)
       if (current?.version !== read.version) throw new SubscriptionChangedException()
       await audit.record(
@@ -149,6 +158,7 @@ export class SyncSubscriptionService {
         })
       )
       await subscriptions.save(next)
+      if (email !== null) await jobs.enqueue(billingEmails.job, email)
     })
     logger.info({ organizationId, action }, 'billing synced')
   }

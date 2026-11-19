@@ -34,6 +34,7 @@ describe('account deletion through Better Auth (ADR 0049)', () => {
    */
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    webOrigin,
     billing,
     db,
     clock: new SystemClock(),

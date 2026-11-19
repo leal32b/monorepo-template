@@ -34,6 +34,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
    */
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    webOrigin,
     billing,
     db,
     clock: new SystemClock(),
@@ -254,6 +255,25 @@ describe('organizations through Better Auth (ADR 0033)', () => {
 
       expect(created.status).toBe(200)
       expect(await created.json()).toMatchObject({ name: 'Acme Inc', slug: 'acme-inc', members: [{ role: 'owner' }] })
+    })
+
+    it('enqueues the reminder of the new organization’s trial, 3 days before it ends (ADR 0073)', async () => {
+      const { cookie } = await account()
+
+      const { id, createdAt } = (await (
+        await createOrganization(cookie, 'Acme', `acme-trial-${lastAccount}`)
+      ).json()) as {
+        id: string
+        createdAt: string
+      }
+
+      const { rows } = await sql<{ run_at: Date; payload: { trialEndsAt: string } }>`
+        select run_at, payload from job where kind = 'billing.remind-trial-end' and payload->>'organizationId' = ${id}
+      `.execute(db)
+      const day = 24 * 60 * 60 * 1000
+      expect(rows).toHaveLength(1)
+      expect(new Date(rows[0]?.payload.trialEndsAt as string).getTime() - new Date(createdAt).getTime()).toBe(14 * day)
+      expect(rows[0]?.run_at.getTime()).toBe(new Date(createdAt).getTime() + 11 * day)
     })
 
     it.each([

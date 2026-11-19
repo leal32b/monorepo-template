@@ -29,6 +29,7 @@ describe('browser error reports on the database (ADR 0072)', () => {
   const clock = new FixedClock(new Date('2026-11-12T10:00:00.000Z'))
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    webOrigin,
     billing,
     db,
     clock,
