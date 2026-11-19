@@ -24,6 +24,8 @@ import {
 } from '#modules/billing/index'
 import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomerRoutes } from '#modules/customers/index'
+import { kyselyDataExportUnitOfWork } from '#modules/data-export/database/kysely-data-export-unit-of-work'
+import { registerDataExportRoutes } from '#modules/data-export/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
 import { GetHealthController } from '#modules/health/queries/get-health/get-health.http-controller'
 import { GetHealthService } from '#modules/health/queries/get-health/get-health.service'
@@ -145,6 +147,15 @@ export function createApp({
   })
   // The organization's audit trail, read only: every module writes its entries in its own unit of work (ADR 0061).
   registerAuditRoutes(router, { session, membership, unitOfWork: kyselyAuditUnitOfWork(db) })
+  // The owner's export of the organization's data (ADR 0074): the request, its state and the file.
+  registerDataExportRoutes(router, {
+    session,
+    membership,
+    unitOfWork: kyselyDataExportUnitOfWork(db, jobsOn),
+    clock,
+    ids,
+    logger
+  })
   // The owner's plan page and the provider's webhook (ADR 0063): the subscription row in billing's unit
   // of work, the provider called outside it, and each notice's event id recorded with its sync job.
   const inbox = new KyselyWebhookInbox({ db, clock, jobsOn, job: syncSubscription, payloadOf: syncPayloadOf })

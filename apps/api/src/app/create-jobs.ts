@@ -15,6 +15,9 @@ import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billin
 import { billingEmails, registerBillingJobs } from '#modules/billing/index'
 import { KyselyBillingDirectory } from '#modules/billing/infrastructure/kysely-billing-directory'
 import { customersEmails } from '#modules/customers/index'
+import { kyselyDataExportUnitOfWork } from '#modules/data-export/database/kysely-data-export-unit-of-work'
+import { dataExportEmails, registerDataExportJobs } from '#modules/data-export/index'
+import { KyselyOrganizationDirectory } from '#modules/data-export/infrastructure/kysely-organization-directory'
 import { registerHealthJobs } from '#modules/health/jobs/queue-check'
 import { KyselyOrganizationOwners } from '#modules/identity/infrastructure/kysely-organization-owners'
 import { registerIdentityJobs } from '#modules/identity/jobs/send-email'
@@ -70,6 +73,13 @@ export function createJobs({
   registerIdentityJobs(registry, { emailSender })
   customersEmails.register(registry, emailSender)
   billingEmails.register(registry, emailSender)
+  dataExportEmails.register(registry, emailSender)
+  registerDataExportJobs(registry, {
+    unitOfWork: kyselyDataExportUnitOfWork(db, bind),
+    directory: new KyselyOrganizationDirectory(db),
+    clock,
+    webOrigin
+  })
   registerBillingJobs(registry, {
     unitOfWork: kyselyBillingUnitOfWork(db, bind),
     directory: new KyselyBillingDirectory(db),
