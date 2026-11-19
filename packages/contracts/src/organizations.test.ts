@@ -14,17 +14,17 @@ import {
 } from './organizations'
 
 describe('statements', () => {
-  it('names every resource with its actions', () => {
-    expect(statements).toEqual({
-      organization: ['update', 'delete'],
-      member: ['create', 'update', 'delete'],
-      invitation: ['create', 'cancel'],
-      ac: ['create', 'read', 'update', 'delete'],
-      customer: ['read', 'create', 'update', 'delete'],
-      audit: ['read'],
-      billing: ['manage']
-    })
+  it('has every resource in permissionsSchema, and no other', () => {
+    expect(Object.keys(permissionsSchema.shape).sort()).toEqual(Object.keys(statements).sort())
   })
+
+  it.each(Object.entries(statements))(
+    'lets permissionsSchema hold every action of %s, and no other',
+    (resource, actions) => {
+      expect(permissionsSchema.safeParse({ [resource]: [...actions] }).success).toBe(true)
+      expect(permissionsSchema.safeParse({ [resource]: [...actions, 'unknown'] }).success).toBe(false)
+    }
+  )
 })
 
 describe('builtInRoles', () => {
