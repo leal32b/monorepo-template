@@ -6,7 +6,8 @@ How to see what production is doing, and what to do when it misbehaves. The deci
 [ADR 0047](adr/0047-put-time-limits-on-every-database-wait.md) (time limits on the database),
 [ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md) (the daily purge),
 [ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md) (background jobs) and
-[ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) (public routes and their rate limits).
+[ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) (public routes and their rate limits) and
+[ADR 0072](adr/0072-report-browser-errors-to-the-api-log.md) (browser errors).
 Neon, Render and Cloudflare are the template's own hosts; on others, the same signals live elsewhere.
 
 ## Signals
@@ -19,6 +20,7 @@ Neon, Render and Cloudflare are the template's own hosts; on others, the same si
 | Worker log | Cloudflare dashboard, Workers Logs | Each request through the web origin, its status and any exception |
 | Deploy | GitHub Actions, `Deploy` workflow | Which commit went live, and the smoke tests it passed |
 | Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, how many finished jobs, how many of our own rate-limit counters, and how many audit entries older than a year ([ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)) |
+| Browser errors | API log | `client error` (warn): an error the browser could not handle, with the commit that threw it and the reference the user saw ([Browser errors](#browser-errors)) |
 | Rate limits | API log; the `rate_limit` table | `rate limited` when an address passes a limit of a public route, with the limit's name; which addresses are counting now |
 | Jobs | API log (or the worker's, `service: worker`); the `job` table | `job queue working` after every start; `job attempt failed` and `job failed` when a handler fails; what is waiting, running or failed |
 | Billing | API log; the `webhook_event`, `job` and `subscription` tables | `webhook received` per notice (`repeat: true` for one already taken in), `webhook refused` (warn), `billing synced` with the audit action, `billing event ignored`, and at error `billing duplicate subscription` or `billing reference names another organization` |
@@ -63,6 +65,8 @@ kind `identity.send-email` ([ADR 0057](adr/0057-send-identity-emails-through-the
 a provider's refusal shows as `job attempt failed`, with the provider's status and error code in
 `err`, and an email that failed every attempt as `job failed`.
 
+A browser error is a line of its own: see [Browser errors](#browser-errors).
+
 Headers, cookies and bodies are never logged. Keep it that way: a log line may be read by anyone with
 access to the host.
 
@@ -74,8 +78,31 @@ access to the host.
    5xx, the stack.
 3. The `release` is the commit: `git show <release>` is the code that answered.
 
+A reference that starts with `client_error` is not a request id but a browser error: search the log for the
+hex part, as in [Browser errors](#browser-errors).
+
 No reference on the screen means the browser could not reach the API: look at the Worker log and at
 `/api/health`.
+
+## Browser errors
+
+A screen that throws while it draws, an uncaught error and an uncaught promise rejection are posted by the
+browser to `POST /api/client-errors` ([ADR 0072](adr/0072-report-browser-errors-to-the-api-log.md)) and leave one
+`warn` line, `client error`. The screen of a crash shows the reference as `client_error · 3fa9c1d2e4b5`; search the
+log for the 12 hex characters (`reference`). The line has:
+
+- `release`: the API that took the report. `clientRelease`: the commit of the **web build that threw**, which an
+  old tab keeps until it is reloaded. `git show <clientRelease>` is the code; its stack is the minified one, read
+  against that commit's build.
+- `kind` (`render`, `error` or `unhandledrejection`), `route` (the router's pattern, such as
+  `/:organizationSlug/customers/:customerId`, never the address), `clientMessage` and `clientStack`.
+- `reqId`, the request that carried the report.
+
+A spike of these lines right after a deploy, all with the new `clientRelease`, is a bad release: roll back. Lines
+with an old `clientRelease` are tabs not yet reloaded. Reports are limited to 5 per page and 30 per address per 10
+minutes (`client-errors` in the `rate limited` line), so a count is a floor, not a total. Messages are cleaned of
+email addresses and query strings, but may still quote what a library put in them: treat them as logs, not as a
+place for personal data.
 
 ## Background jobs
 

@@ -87,8 +87,12 @@ few hundred bytes, and gives the user the same kind of reference.
 
 ### Results
 
-The first download grows by the reporter and the boundary: see the measure in
-[testing.md](../testing.md#javascript-budgets) and the budgets in `bundle-budget.spec.ts`.
+The reporter, the boundary, the three texts and the release add about 1.0 KB gzipped to the first download (the entry
+chunk was 70,345 bytes, now 71,342; the texts are in the shell group, fetched with the language). Every cold load pays
+it, so the three JavaScript budgets of `bundle-budget.spec.ts` (73, 115 and 76 KB) hold with no margin left beyond
+the 1 KB they already kept; none is raised. The release is a `VITE_*` value, so the entry chunk's hash now changes with
+every commit, not only with a code change: a returning visitor re-fetches it after a deploy that changed nothing in the
+web.
 
 ## Revisit when
 
