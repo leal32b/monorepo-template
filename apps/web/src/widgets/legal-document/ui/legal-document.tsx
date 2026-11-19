@@ -2,12 +2,12 @@ import { legal } from '@repo/contracts'
 import { For } from 'solid-js'
 import { useI18n } from '#shared/config'
 import { formatDate } from '#shared/lib'
-import { EntryLayout } from './entry-layout'
+import { EntryLayout } from '#widgets/entry-layout'
 
 /**
  * A legal text in the entry frame (ADR 0074), signed in or not: its title, the version in force, which every
  * account made from now on records, and its paragraphs. The text is the `legal` group of the dictionaries, a
- * product's to write.
+ * product's to write. A slice of its own, so the entry screens' first download does not carry it.
  */
 export function LegalDocument(props: { document: 'terms' | 'privacy' }) {
   const { t, locale } = useI18n()

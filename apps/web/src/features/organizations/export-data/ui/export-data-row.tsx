@@ -30,7 +30,7 @@ export function ExportDataRow(props: ExportDataRowProps) {
   // Its own boundary: the rest of the page never waits for the export's read, and a failure stays in the row.
   return (
     <ReadFailure message={t('organizationGeneral.export.unavailable')}>
-      <Suspense fallback={<ListRow icon="download" title={t('organizationGeneral.export.row')} description=" " />}>
+      <Suspense fallback={<ListRow icon="folder" title={t('organizationGeneral.export.row')} description=" " />}>
         <ExportState {...props} />
       </Suspense>
     </ReadFailure>
@@ -103,7 +103,7 @@ function ExportState(props: ExportDataRowProps) {
     <Show when={state()}>
       {(current) => (
         <ListRow
-          icon="download"
+          icon="folder"
           title={t('organizationGeneral.export.row')}
           description={description(current())}
           note={note()}

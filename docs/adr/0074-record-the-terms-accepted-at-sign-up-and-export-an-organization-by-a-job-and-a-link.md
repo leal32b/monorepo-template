@@ -180,8 +180,12 @@ email, the file behind the session.
 
 ### What it costs the first download
 
-The sign-up and sign-in gain one sentence with two links, in the core `entry` group; the pages and their
-texts load with their route. The budgets of ADR 0045 are not raised.
+The sign-up and sign-in gain one sentence with two links, in the core `entry` group, and every entry
+screen two links in its footer; the pages, their texts and the export's code load with their routes, and
+the export's row uses an icon the set already has. The sign-in stays within its budget (73 KB). The public
+page's and the first signed-in screen's budgets (ADR 0045) are raised by 1 KB, to 77 and 116 KB: both sat
+exactly on their budget before this change, and the footer's links and the General route's preload of the
+export tip them over the rounding.
 
 ### Consequences
 
@@ -201,6 +205,7 @@ texts load with their route. The budgets of ADR 0045 are not raised.
   fails, and is retried and failed again, until the export is paged.
 - Bad: the download is not in the audit trail, only in the log.
 - Bad: no personal export.
+- Bad: two JavaScript budgets grow by 1 KB.
 
 ## Revisit when
 
