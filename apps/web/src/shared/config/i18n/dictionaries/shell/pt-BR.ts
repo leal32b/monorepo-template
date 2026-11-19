@@ -108,10 +108,15 @@ export const shellPtBR: typeof shellEn = {
     }
   },
   failure: {
+    texts: 'Não conseguimos abrir esta tela. Confira sua conexão e tente de novo.',
     network: 'Não conseguimos falar com o servidor. Confira sua conexão e tente de novo.',
     rateLimited: 'Muitas tentativas. Espere um minuto e tente de novo.',
     rateLimitedFor: 'Muitas tentativas desta conexão. Tente de novo em {{wait}}.',
     unexpected: 'Algo deu errado do nosso lado. Tente de novo em instantes.',
     reference: 'Se continuar, informe ao suporte: {{reference}}'
+  },
+  confirmPassword: {
+    label: 'Sua senha',
+    hint: 'Para confirmar que é você.'
   }
 }

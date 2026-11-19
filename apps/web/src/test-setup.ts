@@ -1,9 +1,11 @@
 import '@testing-library/jest-dom/vitest'
 import { query } from '@solidjs/router'
-import { loadMessages, locales } from './shared/config/i18n/messages'
+import { lazyGroups, loadGroups, loadMessages, locales } from './shared/config/i18n/messages'
 
-// The app loads the user's language before it renders; the screens' tests render at once, so they start loaded.
+// The app loads the user's language before it renders, and a screen's groups with it (ADR 0071); the screens'
+// tests render at once, so they start with every text loaded.
 await Promise.all(locales.map(loadMessages))
+await loadGroups(lazyGroups)
 
 // The router keeps one cache of reads for the whole page (ADR 0038): each test starts without one.
 afterEach(() => query.clear())
