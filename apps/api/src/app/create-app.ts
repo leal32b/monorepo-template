@@ -39,6 +39,7 @@ import { GetInvitationController } from '#modules/identity/queries/get-invitatio
 import { GetMeController } from '#modules/identity/queries/get-me/get-me.http-controller'
 import { GetMembershipController } from '#modules/identity/queries/get-membership/get-membership.http-controller'
 import { GetPublicOrganizationController } from '#modules/identity/queries/get-public-organization/get-public-organization.http-controller'
+import { ReportClientErrorController } from '#modules/observability/commands/report-client-error/report-client-error.http-controller'
 import { PUBLIC_PATHS, registerRoutes } from './http-routes'
 
 /** Long enough for Neon to wake from suspension, short enough for a status page to wait. */
@@ -113,7 +114,8 @@ export function createApp({
     getMembership: new GetMembershipController(session, membership),
     getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
     getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined }),
-    getPublicOrganization: new GetPublicOrganizationController(publicSurface)
+    getPublicOrganization: new GetPublicOrganizationController(publicSurface),
+    reportClientError: new ReportClientErrorController({ limiter: publicSurface.limiter, logger })
   })
   registerCustomerRoutes(router, {
     session,

@@ -7,6 +7,7 @@ import type { GetInvitationController } from '#modules/identity/queries/get-invi
 import type { GetMeController } from '#modules/identity/queries/get-me/get-me.http-controller'
 import type { GetMembershipController } from '#modules/identity/queries/get-membership/get-membership.http-controller'
 import type { GetPublicOrganizationController } from '#modules/identity/queries/get-public-organization/get-public-organization.http-controller'
+import type { ReportClientErrorController } from '#modules/observability/commands/report-client-error/report-client-error.http-controller'
 
 /**
  * Read-only routes served without the Worker's secret: Render's health check and the deploy smoke test
@@ -26,6 +27,8 @@ export type Controllers = {
   getInvitation: GetInvitationController
   getIdentityOptions: GetIdentityOptionsController
   getPublicOrganization: GetPublicOrganizationController
+  /** The browser's error reports (ADR 0072): no session and no tenant, behind the Worker's secret and a rate limit. */
+  reportClientError: ReportClientErrorController
 }
 
 export function registerRoutes(
@@ -39,7 +42,8 @@ export function registerRoutes(
     getMembership,
     getInvitation,
     getIdentityOptions,
-    getPublicOrganization
+    getPublicOrganization,
+    reportClientError
   }: Controllers
 ): void {
   router.get('/api/health', getHealth.handle)
@@ -52,4 +56,5 @@ export function registerRoutes(
   router.get('/api/invitations/:invitationId', getInvitation.handle)
   router.get('/api/identity/options', getIdentityOptions.handle)
   router.get('/api/public/organizations/:organizationSlug', getPublicOrganization.handle)
+  router.post('/api/client-errors', reportClientError.handle)
 }
