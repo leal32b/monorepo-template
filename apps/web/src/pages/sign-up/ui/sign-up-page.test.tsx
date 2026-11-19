@@ -40,6 +40,23 @@ async function signUp(email: string) {
 }
 
 describe('SignUpPage', () => {
+  it('says, below its button, that continuing accepts the terms and the privacy notice, each in a new tab (ADR 0074)', () => {
+    renderPage()
+    const terms = screen.getByRole('link', { name: 'Terms of use (opens in a new tab)' })
+    const privacy = screen.getByRole('link', { name: 'Privacy notice (opens in a new tab)' })
+    const button = screen.getByRole('button', { name: 'Create account' })
+
+    expect(terms.closest('p')).toHaveTextContent(
+      'By continuing, you accept the Terms of use (opens in a new tab) and the Privacy notice (opens in a new tab).'
+    )
+    expect([terms.getAttribute('href'), terms.getAttribute('target'), privacy.getAttribute('href')]).toEqual([
+      '/terms',
+      '_blank',
+      '/privacy'
+    ])
+    expect(Boolean(button.compareDocumentPosition(terms) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true)
+  })
+
   it('offers Google too, for an account made with it', async () => {
     renderPage()
 

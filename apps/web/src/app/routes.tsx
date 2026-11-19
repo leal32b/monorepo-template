@@ -58,6 +58,9 @@ const DeleteAccountPage = lazy(() => import('#pages/delete-account').then((m) =>
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
 /** A tenant's public page, a chunk of its own: neither the sign-in nor the signed-in screens download it (ADR 0060). */
+/** The terms and the privacy notice (ADR 0074), with their texts: neither the sign-in nor the sign-up pays for them. */
+const TermsPage = lazy(() => import('#pages/legal/terms').then((m) => ({ default: m.TermsPage })))
+const PrivacyPage = lazy(() => import('#pages/legal/privacy').then((m) => ({ default: m.PrivacyPage })))
 const PublicOrganizationPage = lazy(() =>
   import('#pages/public-organization').then((m) => ({ default: m.PublicOrganizationPage }))
 )
@@ -288,6 +291,9 @@ export const routes: RouteDefinition[] = [
     ]
   },
   { path: publicPath, ...screenOf(PublicOrganizationPage, ['public'], preloadPublic) },
+  // The terms and the privacy notice, in the entry frame, signed in or not (ADR 0074).
+  { path: '/terms', ...screenOf(TermsPage, ['legal']) },
+  { path: '/privacy', ...screenOf(PrivacyPage, ['legal']) },
   { path: '/account', component: AccountRedirect },
   ...entryScreens,
   { path: '*404', component: NotFoundPage }

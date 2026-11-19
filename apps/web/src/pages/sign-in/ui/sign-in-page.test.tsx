@@ -9,12 +9,13 @@ type Fetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 /** The sign-in page at `path`, in a router that has somewhere else to go, with Google on. */
 function renderPage(
   path: string,
-  fetch: Fetch = async () => Response.json({ redirect: false, token: 'session', user: { id: 'u1' } })
+  fetch: Fetch = async () => Response.json({ redirect: false, token: 'session', user: { id: 'u1' } }),
+  { google = true }: { google?: boolean } = {}
 ) {
   const history = createMemoryHistory()
   history.set({ value: path })
   const api = createApiClient({
-    fetch: async () => Response.json({ google: true })
+    fetch: async () => Response.json({ google })
   })
   render(() => (
     <I18nProvider locale="en">
@@ -48,6 +49,20 @@ function signIn() {
 
 describe('SignInPage', () => {
   afterEach(() => vi.restoreAllMocks())
+
+  it('says Google makes an account under the terms and the privacy notice, since it can (ADR 0074)', async () => {
+    renderPage('/login')
+
+    const terms = await screen.findByRole('link', { name: 'Terms of use (opens in a new tab)' })
+    expect(terms.closest('p')).toHaveTextContent('By continuing, you accept the Terms of use')
+  })
+
+  it('says nothing of the terms without Google: signing in makes no account', async () => {
+    renderPage('/login', undefined, { google: false })
+
+    await screen.findByRole('heading', { level: 1, name: 'Sign in' })
+    await waitFor(() => expect(screen.queryByText(/By continuing/)).not.toBeInTheDocument())
+  })
 
   it('opens on the sign-in form, with a way to create an account instead', () => {
     renderPage('/login')

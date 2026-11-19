@@ -142,9 +142,12 @@ export const reservedSlugs = [
   'organizations',
   /** A tenant's public pages, `/p/:orgSlug` (ADR 0060). */
   'p',
+  /** The privacy notice and the terms of use (ADR 0074). */
+  'privacy',
   'reset-password',
   'settings',
-  'signup'
+  'signup',
+  'terms'
 ] as const
 
 /** How long an organization's name may be; the web says it when the name is too long. */

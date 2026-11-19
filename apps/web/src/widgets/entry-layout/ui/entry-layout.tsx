@@ -1,3 +1,4 @@
+import { Link } from '@repo/ui'
 import { A } from '@solidjs/router'
 import { type JSX, onMount, type ParentProps, Show } from 'solid-js'
 import { useI18n } from '#shared/config'
@@ -25,7 +26,7 @@ export type EntryLayoutProps = ParentProps<{
  * The frame every entry screen shares (sign-up, sign-in, MFA, password): brand, title, description,
  * content and footer, top-aligned in one narrow column, so moving between them keeps each element
  * where it was. A problem with the service is said below the content, before the user tries, and
- * the language can be changed in the footer. A tenant's public page is drawn in the same frame, with the
+ * the language can be changed in the footer, beside the links to the terms and the privacy notice (ADR 0074), which a tenant's page leaves out. A tenant's public page is drawn in the same frame, with the
  * organization's name in the brand's place (ADR 0060). Focus moves to the title when the screen opens, as a
  * route change.
  */
@@ -62,8 +63,15 @@ export function EntryLayout(props: EntryLayoutProps) {
           <div class="text-sm text-muted-foreground">{props.footer}</div>
         </Show>
       </main>
-      <footer class="mx-auto w-full max-w-sm px-4 pb-8 sm:px-6 sm:pb-12">
+      <footer class="mx-auto flex w-full max-w-sm flex-col gap-4 px-4 pb-8 sm:px-6 sm:pb-12">
         <LanguagePicker />
+        {/* A tenant's page links nothing of the app (ADR 0060). */}
+        <Show when={props.brand === undefined}>
+          <nav aria-label={t('entryLayout.legal')} class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <Link href="/terms">{t('entryLayout.terms')}</Link>
+            <Link href="/privacy">{t('entryLayout.privacy')}</Link>
+          </nav>
+        </Show>
       </footer>
     </>
   )

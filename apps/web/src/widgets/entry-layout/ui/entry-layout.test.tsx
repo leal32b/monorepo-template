@@ -27,6 +27,19 @@ const renderSignIn = () =>
   ))
 
 describe('EntryLayout', () => {
+  it('links the terms and the privacy notice in its footer, beside the language (ADR 0074)', () => {
+    renderSignIn()
+
+    expect(screen.getByRole('link', { name: 'Terms of use' })).toHaveAttribute('href', '/terms')
+    expect(screen.getByRole('link', { name: 'Privacy notice' })).toHaveAttribute('href', '/privacy')
+  })
+
+  it("leaves them out of a tenant's page, which links nothing of the app (ADR 0060)", () => {
+    renderScreen(() => <EntryLayout brand="Acme Barbers" title="Become a customer" />)
+
+    expect(screen.queryByRole('link', { name: 'Terms of use' })).not.toBeInTheDocument()
+  })
+
   it('frames an entry screen: brand, heading, description, content and footer, in that order', () => {
     renderSignIn()
     const brand = screen.getByRole('link', { name: 'Monorepo Template' })

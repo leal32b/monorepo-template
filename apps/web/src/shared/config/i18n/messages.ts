@@ -32,7 +32,16 @@ export const coreGroups = ['shell', 'entry'] as const
  * The groups fetched with the screens that use them, by `loadGroups` (ADR 0071). A new group is a folder in
  * `dictionaries/`, a name here and a line in the `Messages` type of `locales/en.ts`.
  */
-export const lazyGroups = ['account', 'audit', 'billing', 'customers', 'organizations', 'public', 'team'] as const
+export const lazyGroups = [
+  'account',
+  'audit',
+  'billing',
+  'customers',
+  'legal',
+  'organizations',
+  'public',
+  'team'
+] as const
 
 export type Group = (typeof lazyGroups)[number]
 

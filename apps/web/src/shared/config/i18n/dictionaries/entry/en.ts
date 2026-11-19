@@ -109,7 +109,16 @@ export const entryEn = {
     }
   },
   entryLayout: {
-    language: 'Language'
+    legal: 'Legal',
+    language: 'Language',
+    terms: 'Terms of use',
+    privacy: 'Privacy notice'
+  },
+  /** Beside every button that makes an account (ADR 0074): the links’ words are `entryLayout`’s. */
+  legalNotice: {
+    before: 'By continuing, you accept the',
+    and: 'and the',
+    after: '.'
   },
   mail: {
     open: 'Open {{provider}}',

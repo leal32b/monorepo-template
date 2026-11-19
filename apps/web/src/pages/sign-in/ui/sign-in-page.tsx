@@ -1,12 +1,13 @@
 import { Alert, cn, Link, linkClass } from '@repo/ui'
 import { A, useNavigate, useSearchParams } from '@solidjs/router'
 import { Show } from 'solid-js'
+import { useIdentityOptions } from '#entities/identity-options'
 import { ResendConfirmation } from '#features/resend-confirmation'
 import { SignInForm } from '#features/sign-in'
 import { SignInWithGoogle } from '#features/sign-in-with-google'
 import { useI18n } from '#shared/config'
 import { safeNext, withNext } from '#shared/lib'
-import { EntryLayout } from '#widgets/entry-layout'
+import { EntryLayout, LegalNotice } from '#widgets/entry-layout'
 
 /** The errors a confirmation link comes back with, which the session guard brings here. */
 const linkErrors = new Set(['TOKEN_EXPIRED', 'INVALID_TOKEN'])
@@ -19,11 +20,14 @@ const linkErrors = new Set(['TOKEN_EXPIRED', 'INVALID_TOKEN'])
  * the answer to a sign-in takes its place. Google comes first, then "or", then the form. The way to a
  * new password sits beside the password's label and carries the email typed so far in the history's
  * state, never in the URL. A new account, and a confirmation link sent again, head to `next` too, so an
- * invitation opened while signed out is where the user ends up whichever way they come in.
+ * invitation opened while signed out is where the user ends up whichever way they come in. Google makes an
+ * account for an address it does not know, so with Google on the page ends with the sentence that the account
+ * accepts the terms and the privacy notice (ADR 0074).
  */
 export function SignInPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
+  const options = useIdentityOptions()
   const [params] = useSearchParams()
 
   const next = () => safeNext(params.next, window.location.origin)
@@ -66,6 +70,9 @@ export function SignInPage() {
           </A>
         )}
       />
+      <Show when={options()?.google}>
+        <LegalNotice />
+      </Show>
     </EntryLayout>
   )
 }

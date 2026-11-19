@@ -110,7 +110,16 @@ export const entryPtBR: typeof entryEn = {
     }
   },
   entryLayout: {
-    language: 'Idioma'
+    legal: 'Jurídico',
+    language: 'Idioma',
+    terms: 'Termos de uso',
+    privacy: 'Aviso de privacidade'
+  },
+  /** Beside every button that makes an account (ADR 0074): the links’ words are `entryLayout`’s. */
+  legalNotice: {
+    before: 'Ao continuar, você aceita os',
+    and: 'e o',
+    after: '.'
   },
   mail: {
     open: 'Abrir o {{provider}}',
