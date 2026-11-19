@@ -157,7 +157,8 @@ export const teamEs: typeof teamEn = {
     permissions: {
       organization: {
         update: 'Cambiar el nombre y la dirección',
-        delete: 'Eliminar la organización'
+        delete: 'Eliminar la organización',
+        export: 'Exportar todos sus datos'
       },
       member: {
         create: 'Añadir miembros',

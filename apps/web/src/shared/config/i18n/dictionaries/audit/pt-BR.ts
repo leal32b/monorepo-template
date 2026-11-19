@@ -22,6 +22,9 @@ export const auditPtBR: typeof auditEn = {
       system: 'O sistema'
     },
     entries: {
+      organization: {
+        'export-requested': 'Pediu uma exportação dos dados'
+      },
       customer: {
         created: 'Adicionou um cliente',
         updated: 'Editou um cliente',
@@ -48,6 +51,7 @@ export const auditPtBR: typeof auditEn = {
     },
     changed: '{{what}}: {{fields}}',
     fields: {
+      organization: {},
       customer: { name: 'nome', email: 'e-mail', phone: 'telefone', company: 'empresa', notes: 'anotações' },
       subscription: {
         status: 'situação',

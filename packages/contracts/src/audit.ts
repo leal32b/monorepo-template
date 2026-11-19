@@ -7,6 +7,8 @@ import { instantSchema } from './time'
  * resource here, with the actions it records.
  */
 export const auditActions = {
+  /** The organization itself, whose resource id is its own (ADR 0074): what its owner asked of it. */
+  organization: ['export-requested'],
   customer: ['created', 'updated', 'archived', 'restored', 'deleted'],
   /**
    * The organization's subscription (ADR 0063), whose resource id is the organization's: by the owner

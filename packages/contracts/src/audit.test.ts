@@ -34,6 +34,12 @@ describe('auditActions', () => {
   })
 })
 
+describe('auditActions of the organization', () => {
+  it('lists the export an owner asked for (ADR 0074)', () => {
+    expect(auditActions.organization).toEqual(['export-requested'])
+  })
+})
+
 describe('auditEntrySchema (ADR 0061)', () => {
   it('reads an entry by a member, with their name', () => {
     expect(auditEntrySchema.parse(entry)).toEqual(entry)

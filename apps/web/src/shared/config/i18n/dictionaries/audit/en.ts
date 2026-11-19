@@ -21,6 +21,9 @@ export const auditEn = {
       system: 'The system'
     },
     entries: {
+      organization: {
+        'export-requested': 'Asked for an export of the data'
+      },
       customer: {
         created: 'Added a customer',
         updated: 'Edited a customer',
@@ -47,6 +50,7 @@ export const auditEn = {
     },
     changed: '{{what}}: {{fields}}',
     fields: {
+      organization: {},
       customer: { name: 'name', email: 'email', phone: 'phone', company: 'company', notes: 'notes' },
       subscription: {
         status: 'status',

@@ -152,7 +152,8 @@ export const teamEn = {
     permissions: {
       organization: {
         update: 'Change the name and the address',
-        delete: 'Delete the organization'
+        delete: 'Delete the organization',
+        export: 'Export all its data'
       },
       member: {
         create: 'Add members',

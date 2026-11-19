@@ -155,7 +155,8 @@ export const teamPtBR: typeof teamEn = {
     permissions: {
       organization: {
         update: 'Alterar o nome e o endereço',
-        delete: 'Excluir a organização'
+        delete: 'Excluir a organização',
+        export: 'Exportar todos os dados'
       },
       member: {
         create: 'Adicionar membros',
