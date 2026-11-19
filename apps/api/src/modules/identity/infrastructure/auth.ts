@@ -5,10 +5,9 @@ import { haveIBeenPwned, organization, twoFactor } from 'better-auth/plugins'
 import { createAccessControl } from 'better-auth/plugins/access'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
-import * as z from 'zod/mini'
+import { type Locale, localeSchema } from '#libs/notifications/locales'
 import type { JobQueue } from '#libs/ports/job-queue.port'
-import { type EmailKind, emailTexts, type Locale } from '../emails/email-texts'
-import { EMAIL_LINK_SECONDS, sendEmail } from '../jobs/send-email'
+import { EMAIL_LINK_SECONDS, type IdentityEmail, sendEmail } from '../jobs/send-email'
 import type { OrganizationDeletionListener } from '../organization-deletion.port'
 import { KyselyAccountDeletion } from './kysely-account-deletion'
 import { checkOrganization, OrganizationReader, OrganizationRules, organizationLimits } from './organization-rules'
@@ -29,9 +28,6 @@ export type AuthDeps = {
   organizationDeletion: OrganizationDeletionListener
 }
 
-/** The languages emails are written in: a sign-up in any other is refused. */
-const localeSchema = z.enum(Object.keys(emailTexts) as [Locale, ...Locale[]])
-
 /** The access control of ADR 0033, built from the statements and built-in roles in `@repo/contracts`. */
 const accessControl = createAccessControl(statements)
 const roles = {
@@ -46,7 +42,7 @@ export function createAuth({ db, logger, jobs, webOrigin, secret, google, organi
    * Enqueued, not sent (ADR 0057): the response waits for one insert, never for the provider, and a
    * provider's failure is retried by the queue. A failed insert fails the request, so nothing is lost unseen.
    */
-  const send = async (kind: EmailKind, user: { email: string }, url: string, values?: Record<string, string>) => {
+  const send = async (kind: IdentityEmail, user: { email: string }, url: string, values?: Record<string, string>) => {
     const { email, locale } = user as { email: string; locale: Locale } // `locale` is our additional field
     await jobs.enqueue(sendEmail, { email: kind, to: email, locale, url, values })
   }

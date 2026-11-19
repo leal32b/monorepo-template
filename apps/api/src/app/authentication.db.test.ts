@@ -14,7 +14,7 @@ import { SystemClock } from '#libs/adapters/system-clock'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { runMigrations } from '#libs/database/migrations'
-import { emailTexts } from '#modules/identity/emails/email-texts'
+import { ptBR } from '#modules/identity/emails/locales/pt-BR'
 import { createAuth } from '#modules/identity/infrastructure/auth'
 import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
@@ -240,7 +240,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     expect(response.status).toBe(200)
     expect((await sent()).at(-1)).toMatchObject({
       to: 'ada@example.com',
-      subject: emailTexts['pt-BR'].confirmEmail.subject
+      subject: ptBR.confirmEmail.subject
     })
     expect((await sent()).at(-1)?.text).toContain(`${webOrigin}/api/auth/verify-email?token=`)
   })
@@ -304,7 +304,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     expect(await fields(again)).toEqual(await fields(first))
     expect((await sent()).at(-1)).toMatchObject({
       to: 'hana@example.com',
-      subject: emailTexts['pt-BR'].alreadyRegistered.subject
+      subject: ptBR.alreadyRegistered.subject
     })
     expect((await sent()).at(-1)?.text).toContain(`${webOrigin}/login`)
   })
@@ -377,7 +377,7 @@ describe('authentication through Better Auth (ADR 0020)', () => {
     expect(await unknown.json()).toEqual(await known.json())
     expect((await sent()).at(-1)).toMatchObject({
       to: 'nina@example.com',
-      subject: emailTexts['pt-BR'].resetPassword.subject
+      subject: ptBR.resetPassword.subject
     })
     expect((await sent()).some((message) => message.to === 'nobody@example.com')).toBe(false)
   })

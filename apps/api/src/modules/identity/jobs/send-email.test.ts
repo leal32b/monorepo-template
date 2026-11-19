@@ -8,7 +8,7 @@ import { JobWorker } from '#libs/jobs/job-worker'
 import { CountingIds } from '#libs/jobs/testing/jobs.contract'
 import { memoryLogger } from '#libs/jobs/testing/memory-logger'
 import type { EmailMessage, EmailSender } from '#libs/ports/email-sender.port'
-import { writeEmail } from '../emails/write-email'
+import { identityEmails } from '../emails/identity-emails'
 import { EMAIL_LINK_SECONDS, registerIdentityJobs, type SendEmail, sendEmail } from './send-email'
 
 const url = 'https://app.example.com/api/auth/reset-password/secret-token?callbackURL=%2Freset'
@@ -40,7 +40,7 @@ describe('identity.send-email (ADR 0057)', () => {
     await jobs.enqueue(sendEmail, invitation)
     await worker.drain()
 
-    expect(sender.sent).toEqual([writeEmail('resetPassword', reset), writeEmail('invitation', invitation)])
+    expect(sender.sent).toEqual([identityEmails.write(reset), identityEmails.write(invitation)])
     expect(jobs.all).toMatchObject([
       { kind: 'identity.send-email', state: 'done', payload: null },
       { kind: 'identity.send-email', state: 'done', payload: null }
