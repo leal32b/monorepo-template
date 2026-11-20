@@ -1,6 +1,6 @@
 # 0062. Wait in the Worker while the host wakes the API
 
-- Status: accepted
+- Status: accepted; its retry delay changed by [0075](0075-ask-a-waking-api-again-every-30-seconds.md)
 - Date: 2026-11-12
 
 ## Context and problem statement

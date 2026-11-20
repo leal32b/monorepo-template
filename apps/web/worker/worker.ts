@@ -16,8 +16,8 @@ function isNavigation(request: Request): boolean {
   return request.method === 'GET' && (request.headers.get('Accept') ?? '').includes('text/html')
 }
 
-/** How long to wait before asking a waking API again. */
-const wakeRetryDelay = 3_000
+/** How long to wait before asking a waking API again (ADR 0075). */
+const wakeRetryDelay = 30_000
 /** Below the web's `readTimeout` (90 s), so a read that gives up here still gets an answer in time. */
 const wakeDeadline = 80_000
 
