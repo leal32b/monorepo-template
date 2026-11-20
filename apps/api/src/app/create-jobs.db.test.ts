@@ -4,6 +4,7 @@ import pino from 'pino'
 import { inject } from 'vitest'
 import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { InMemoryFileStorage } from '#libs/adapters/in-memory-file-storage'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
@@ -14,6 +15,9 @@ import { memoryLogger } from '#libs/jobs/testing/memory-logger'
 import { enqueueQueueCheck } from '#modules/health/jobs/queue-check'
 import { resetDatabase } from '../../test/reset-database'
 import { createJobs } from './create-jobs'
+
+/** The file store of the run (ADR 0076): the jobs and the app share it. */
+const storage = new InMemoryFileStorage()
 
 const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
 const db = createDatabase(createPool(inject('databaseUrl'), pino({ level: 'silent' })))
@@ -42,6 +46,7 @@ function setup() {
     timer,
     lines,
     jobs: createJobs({
+      storage,
       webOrigin: 'http://localhost:5173',
       db,
       clock,
@@ -100,6 +105,7 @@ describe('createJobs (ADR 0056)', () => {
   it('waits in real time when no timer is given', async () => {
     const { logger } = memoryLogger()
     const jobs = createJobs({
+      storage,
       webOrigin: 'http://localhost:5173',
       db,
       clock: new FixedClock(new Date()),

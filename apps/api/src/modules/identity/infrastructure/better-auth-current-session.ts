@@ -9,6 +9,8 @@ export class BetterAuthCurrentSession implements CurrentSession {
 
   async actorFor(headers: IncomingHttpHeaders): Promise<Actor | null> {
     const found = await this.auth.api.getSession({ headers: fromNodeHeaders(headers), query: { disableRefresh: true } })
-    return found === null ? null : { userId: found.user.id, email: found.user.email, name: found.user.name }
+    if (found === null) return null
+    const { user, session } = found
+    return { userId: user.id, email: user.email, name: user.name, signedInAt: session.createdAt }
   }
 }

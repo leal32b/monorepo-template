@@ -508,6 +508,29 @@ describe('JSON request bodies', () => {
     expect(handler).not.toHaveBeenCalled()
   })
 
+  it('hands a route marked raw a body of any type, unread, for the handler to check (ADR 0076)', async () => {
+    const url = await start((router) =>
+      router.on(
+        'PUT',
+        '/files/*',
+        async (req, res) => {
+          const chunks: Buffer[] = []
+          for await (const chunk of req) chunks.push(chunk as Buffer)
+          sendJson(res, 200, { type: req.headers['content-type'], size: Buffer.concat(chunks).length })
+        },
+        { rawBody: true }
+      )
+    )
+
+    const response = await fetch(`${url}/files/a/b`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/png' },
+      body: new Uint8Array(BODY_LIMIT_BYTES + 1)
+    })
+
+    expect(await response.json()).toEqual({ type: 'image/png', size: BODY_LIMIT_BYTES + 1 })
+  })
+
   it('accepts JSON with parameters, in any case', async () => {
     const url = await start((router) => router.post('/items', echo))
 

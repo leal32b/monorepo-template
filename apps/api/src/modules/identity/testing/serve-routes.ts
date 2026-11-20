@@ -9,7 +9,12 @@ import { FakeCurrentSession } from './fake-current-session'
 import { FakeMembership, type GivenMember } from './fake-membership'
 
 /** Who a route test signs in as. */
-export const ada = { userId: 'user-ada', email: 'ada@example.com', name: 'Ada' }
+export const ada = {
+  userId: 'user-ada',
+  email: 'ada@example.com',
+  name: 'Ada',
+  signedInAt: new Date('2026-01-01T00:00:00Z')
+}
 
 /**
  * A module's routes on the real pipeline (ADR 0065), with the tenant guard on fakes of its two ports
@@ -32,7 +37,7 @@ export async function serveRoutes(register: (router: HttpRouter, ports: TenantGu
     /**
      * Ada signs in, a member of `organizationId` whose roles hold `permissions`, named `name` to the
      * audit trail. The organization pays for a plan that grants everything, with full access, unless
-     * `subscription` or `entitlements` say otherwise (ADR 0063).
+     * `subscription` or `entitlements` say otherwise (ADR 0063); an operator inside it with `impersonation` (ADR 0077).
      */
     signInAs(
       permissions: Permissions,
@@ -40,15 +45,19 @@ export async function serveRoutes(register: (router: HttpRouter, ports: TenantGu
         organizationId = 'org-1',
         name = ada.userId,
         ...plan
-      }: { organizationId?: string; name?: string } & Pick<GivenMember, 'subscription' | 'entitlements'> = {}
+      }: { organizationId?: string; name?: string } & Pick<
+        GivenMember,
+        'subscription' | 'entitlements' | 'impersonation'
+      > = {}
     ): void {
       session.actor = ada
       membership.add({ userId: ada.userId, organizationId, roles: ['custom'], permissions, ...plan }, name)
     },
-    /** A request to `path`, with `body` sent as JSON when there is one. */
+    /** A request to `path`, with `body` sent as JSON when there is one; a redirect is answered, not followed. */
     call(method: string, path: string, body?: unknown): Promise<Response> {
       return fetch(`${origin}${path}`, {
         method,
+        redirect: 'manual',
         headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
         body: body === undefined ? null : JSON.stringify(body)
       })

@@ -21,6 +21,7 @@ export function membershipOf(roles: string[], permissions: Permissions): Organiz
       cancelAtPeriodEnd: false,
       checkout: null
     },
-    entitlements: { capabilities: [...trial.entitlements.capabilities], limits: { ...trial.entitlements.limits } }
+    entitlements: { capabilities: [...trial.entitlements.capabilities], limits: { ...trial.entitlements.limits } },
+    logo: null
   }
 }

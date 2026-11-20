@@ -93,12 +93,17 @@ jobs:
           ASAAS_API_KEY: ${{ secrets.ASAAS_API_KEY }}
           ASAAS_API_URL: ${{ vars.ASAAS_API_URL }}
           ASAAS_WEBHOOK_TOKEN: ${{ secrets.ASAAS_WEBHOOK_TOKEN }}
+          STORAGE_ENDPOINT: ${{ vars.STORAGE_ENDPOINT }}
+          STORAGE_BUCKET: ${{ vars.STORAGE_BUCKET }}
+          STORAGE_ACCESS_KEY_ID: ${{ secrets.STORAGE_ACCESS_KEY_ID }}
+          STORAGE_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_SECRET_ACCESS_KEY }}
           IMAGE: ${{ needs.image.outputs.image }}
         run: |
           # Names only: a secret's value is never printed.
           missing=''
           for name in RENDER_SERVICE_ID API_ORIGIN WEB_ORIGIN PROXY_SECRET BETTER_AUTH_SECRET RESEND_API_KEY EMAIL_FROM \
-            ASAAS_API_KEY ASAAS_API_URL ASAAS_WEBHOOK_TOKEN; do
+            ASAAS_API_KEY ASAAS_API_URL ASAAS_WEBHOOK_TOKEN \
+            STORAGE_ENDPOINT STORAGE_BUCKET STORAGE_ACCESS_KEY_ID STORAGE_SECRET_ACCESS_KEY; do
             [ -n "$(printenv "$name")" ] || missing="$missing $name"
           done
           # Google sign-in is optional, but needs both (ADR 0020).
@@ -109,9 +114,10 @@ jobs:
             echo "::error::First deploy: create the Render service from $IMAGE, then re-run the failed jobs."
             exit 1
           fi
-          # Origins as the API and the Worker read them (ADR 0019): https and a host, nothing after it.
+          # Origins as the API and the Worker read them (ADR 0019): https and a host, nothing after it. The
+          # file store's endpoint too: the bucket is a variable of its own (ADR 0076).
           wrong=''
-          for name in API_ORIGIN WEB_ORIGIN; do
+          for name in API_ORIGIN WEB_ORIGIN STORAGE_ENDPOINT; do
             [[ "$(printenv "$name")" =~ ^https://[^/?#[:space:]]+$ ]] || wrong="$wrong $name"
           done
           if [ -n "$wrong" ]; then
@@ -142,6 +148,11 @@ jobs:
           ASAAS_API_KEY: ${{ secrets.ASAAS_API_KEY }}
           ASAAS_API_URL: ${{ vars.ASAAS_API_URL }}
           ASAAS_WEBHOOK_TOKEN: ${{ secrets.ASAAS_WEBHOOK_TOKEN }}
+          STORAGE_ENDPOINT: ${{ vars.STORAGE_ENDPOINT }}
+          STORAGE_BUCKET: ${{ vars.STORAGE_BUCKET }}
+          STORAGE_REGION: ${{ vars.STORAGE_REGION }}
+          STORAGE_ACCESS_KEY_ID: ${{ secrets.STORAGE_ACCESS_KEY_ID }}
+          STORAGE_SECRET_ACCESS_KEY: ${{ secrets.STORAGE_SECRET_ACCESS_KEY }}
         run: |
           # PUT replaces the whole set: GitHub is the only source of the service variables. The body is
           # built first, so a jq error stops the step before Render is called.
@@ -156,10 +167,16 @@ jobs:
             {key: "ASAAS_API_KEY", value: env.ASAAS_API_KEY},
             {key: "ASAAS_API_URL", value: env.ASAAS_API_URL},
             {key: "ASAAS_WEBHOOK_TOKEN", value: env.ASAAS_WEBHOOK_TOKEN},
+            {key: "STORAGE_ENDPOINT", value: env.STORAGE_ENDPOINT},
+            {key: "STORAGE_BUCKET", value: env.STORAGE_BUCKET},
+            {key: "STORAGE_ACCESS_KEY_ID", value: env.STORAGE_ACCESS_KEY_ID},
+            {key: "STORAGE_SECRET_ACCESS_KEY", value: env.STORAGE_SECRET_ACCESS_KEY},
             {key: "LOG_LEVEL", value: "info"}
           ] + if env.GOOGLE_CLIENT_ID == "" then [] else [
             {key: "GOOGLE_CLIENT_ID", value: env.GOOGLE_CLIENT_ID},
             {key: "GOOGLE_CLIENT_SECRET", value: env.GOOGLE_CLIENT_SECRET}
+          ] end + if env.STORAGE_REGION == "" then [] else [
+            {key: "STORAGE_REGION", value: env.STORAGE_REGION}
           ] end')
           printf '%s' "$body" | curl --fail-with-body --silent --show-error -X PUT "$RENDER_API/env-vars" \
             -H "Authorization: Bearer $RENDER_API_KEY" -H 'Content-Type: application/json' \
@@ -217,18 +234,26 @@ jobs:
       - name: Check the configuration
         env:
           PROXY_SECRET: ${{ secrets.PROXY_SECRET }}
+          STORAGE_ENDPOINT: ${{ vars.STORAGE_ENDPOINT }}
         run: |
           if [ -z "$PROXY_SECRET" ]; then
             echo "::error::Set the PROXY_SECRET secret in the production environment (ADR 0022)."
             exit 1
           fi
+          # The CSP names the file store, so the page may show logos and send uploads (ADR 0076).
+          if [ -z "$STORAGE_ENDPOINT" ]; then
+            echo "::error::Set the STORAGE_ENDPOINT variable in the production environment (ADR 0076)."
+            exit 1
+          fi
       - uses: ./.github/actions/setup
       # No VITE_API_BASE_URL: the web calls /api on its own origin and the Worker proxies it (ADR 0019).
       # VITE_RELEASE is the commit, so a browser error report names the build that threw (ADR 0072).
+      # STORAGE_ORIGIN puts the file store in the CSP of _headers (ADR 0076).
       - name: Build the web
         run: pnpm --filter @repo/web build
         env:
           VITE_RELEASE: ${{ needs.image.outputs.sha }}
+          STORAGE_ORIGIN: ${{ vars.STORAGE_ENDPOINT }}
       - id: deploy
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         env:
@@ -245,12 +270,16 @@ jobs:
       - name: Smoke test the page, its headers and the Worker
         env:
           WEB_URL: ${{ steps.deploy.outputs.deployment-url }}
+          STORAGE_ENDPOINT: ${{ vars.STORAGE_ENDPOINT }}
         run: |
           cd "$RUNNER_TEMP"
           curl --fail --silent --show-error --retry 3 --retry-all-errors --dump-header headers.txt --output index.html "$WEB_URL/"
           # The headers come from apps/web/public/_headers: a deploy that drops them fails here.
           grep -qi '^x-content-type-options: nosniff' headers.txt || { echo "::error::/ lacks X-Content-Type-Options"; exit 1; }
           grep -qi "^content-security-policy: default-src 'none'" headers.txt || { echo "::error::/ lacks the CSP"; exit 1; }
+          # The CSP lets the page show logos from the file store and send uploads to it (ADR 0076).
+          grep -qiF "img-src 'self' data: $STORAGE_ENDPOINT;" headers.txt && grep -qiF "connect-src 'self' $STORAGE_ENDPOINT;" headers.txt \
+            || { echo "::error::the CSP does not name the file store $STORAGE_ENDPOINT"; exit 1; }
           grep -qi '^strict-transport-security: max-age=' headers.txt || { echo "::error::/ lacks HSTS"; exit 1; }
           grep -qi '^permissions-policy: .*camera=()' headers.txt || { echo "::error::/ lacks the Permissions-Policy"; exit 1; }
           grep -qi '^cross-origin-opener-policy: same-origin' headers.txt || { echo "::error::/ lacks COOP"; exit 1; }

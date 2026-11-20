@@ -22,8 +22,13 @@ export async function requireMember(
   if (member === null) {
     throw new HttpProblem(404, 'organization_not_found', { detail: 'No organization of yours has this id.' })
   }
+  requirePermission(member, required)
+  return member
+}
+
+/** The 403 of the tenant guard, for a member whose roles do not hold every permission in `required`. */
+export function requirePermission(member: Member, required: Permissions): void {
   if (!covers(member.permissions, required)) {
     throw new HttpProblem(403, 'permission_denied', { detail: 'Your role in this organization does not allow this.' })
   }
-  return member
 }

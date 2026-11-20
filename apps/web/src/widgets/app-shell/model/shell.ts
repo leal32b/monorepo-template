@@ -1,3 +1,4 @@
+import type { OrganizationLogo } from '@repo/contracts'
 import { type Accessor, createContext, createSignal, useContext } from 'solid-js'
 import type { Organization } from '#entities/organizations'
 import type { AuthFailure } from '#shared/api'
@@ -7,6 +8,8 @@ export type ShellScreen = {
   title: Accessor<string>
   /** Kept by the screen as a plain value, so the frame can still read it after the screen has left. */
   organization: Accessor<Organization | undefined>
+  /** Its logo, from the membership the screen already has (ADR 0076); none outside an organization. */
+  logo?: Accessor<OrganizationLogo | null | undefined>
 }
 
 export type Shell = {
@@ -45,4 +48,10 @@ export const useShell = (): Shell | undefined => useContext(ShellContext)
 export function useShellOrganization(): Accessor<Organization | undefined> {
   const shell = useShell()
   return () => shell?.screen()?.organization()
+}
+
+/** The logo of the organization on view, which the side menu draws beside its name (ADR 0076). */
+export function useShellLogo(): Accessor<OrganizationLogo | null | undefined> {
+  const shell = useShell()
+  return () => shell?.screen()?.logo?.()
 }

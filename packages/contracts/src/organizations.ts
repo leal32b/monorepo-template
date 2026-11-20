@@ -1,6 +1,7 @@
 import * as z from 'zod/mini'
 import { entitlementsSchema, subscriptionSchema } from './billing'
 import { currencySchema } from './money'
+import { organizationLogoSchema } from './organization-logo'
 import { instantSchema, timeZoneSchema } from './time'
 
 /**
@@ -48,13 +49,14 @@ export const permissionsSchema = z.strictObject({
  * is what their roles resolve to, so the web never infers rights from a role name (ADR 0033).
  * `subscription` and `entitlements` come from the same read, so the frame learns the organization's
  * state and what its plan grants with no request of its own; it reads them through `entitlement`
- * (ADR 0063).
+ * (ADR 0063). `logo` comes the same way, so the frame draws it at once, or `null` (ADR 0076).
  */
 export const organizationMembershipSchema = z.object({
   roles: z.array(z.string()).check(z.minLength(1)),
   permissions: permissionsSchema,
   subscription: subscriptionSchema,
-  entitlements: entitlementsSchema
+  entitlements: entitlementsSchema,
+  logo: z.nullable(organizationLogoSchema)
 })
 
 export type OrganizationMembership = z.infer<typeof organizationMembershipSchema>

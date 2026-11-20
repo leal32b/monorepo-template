@@ -50,6 +50,19 @@ export function describeAuditTrail(label: string, make: () => Promise<AuditTrail
       expect(await trail.list('org-1', { limit: 10 })).toEqual([bySystem, byVisitor])
     })
 
+    it('keeps an operator with their id (ADR 0077)', async () => {
+      const byOperator = anEntry('e1', {
+        actor: { kind: 'operator', id: 'user-otto' },
+        resourceType: 'organization',
+        resourceId: 'org-1',
+        action: 'impersonation-started',
+        fields: []
+      })
+      await trail.record(byOperator)
+
+      expect(await trail.list('org-1', { limit: 10 })).toEqual([byOperator])
+    })
+
     it('lists the newest first, then by id from last to first', async () => {
       await trail.record(anEntry('e0', { at: minutes(-1) }))
       await trail.record(anEntry('e1'))

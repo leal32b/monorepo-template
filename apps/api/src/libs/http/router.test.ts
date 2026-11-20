@@ -16,6 +16,15 @@ describe('HttpRouter', () => {
     })
   })
 
+  it('says a route takes its body raw only when it was registered so (ADR 0076)', () => {
+    const router = new HttpRouter()
+    router.on('PUT', '/api/storage/*', handler, { rawBody: true })
+    router.put('/api/items/:id', handler)
+
+    expect(router.match('PUT', '/api/storage/a/b')).toMatchObject({ kind: 'found', rawBody: true })
+    expect(router.match('PUT', '/api/items/1')).not.toHaveProperty('rawBody')
+  })
+
   it('ignores a trailing slash', () => {
     const router = new HttpRouter()
     router.get('/api/health', handler)

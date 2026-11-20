@@ -1,8 +1,9 @@
 import { Sheet } from '@repo/ui'
 import { useLocation, useNavigate } from '@solidjs/router'
-import { createEffect, createSignal, on, type ParentProps, Show } from 'solid-js'
+import { createEffect, createSignal, lazy, on, type ParentProps, Show } from 'solid-js'
+import { useImpersonation } from '#entities/impersonations'
 import { createSignOut } from '#features/sign-out'
-import { useI18n, usePalette } from '#shared/config'
+import { loadGroups, useI18n, usePalette } from '#shared/config'
 import { useInSettings } from '../model/in-settings'
 import { createMarkedPath } from '../model/marked-path'
 import { createShell, ShellContext } from '../model/shell'
@@ -19,8 +20,16 @@ import { type Crumb, TopBar } from './top-bar'
  * to the settings from its own account menu: the settings have a menu of their own, and the user is
  * likely to want another screen than the first.
  */
+/** The banner of an operator's visit (ADR 0077), with its words, downloaded only by a device where one is on. */
+const ImpersonationBanner = lazy(() =>
+  Promise.all([import('#features/leave-impersonation'), loadGroups(['backOffice'])]).then(([m]) => ({
+    default: m.ImpersonationBanner
+  }))
+)
+
 export function AppFrame(props: ParentProps) {
   const { t } = useI18n()
+  const impersonation = useImpersonation()
   const navigate = useNavigate()
   const signOut = createSignOut(() => navigate('/login', { replace: true }))
   const palette = usePalette()
@@ -57,6 +66,9 @@ export function AppFrame(props: ParentProps) {
 
   return (
     <ShellContext.Provider value={shell}>
+      <Show when={impersonation.current()}>
+        <ImpersonationBanner />
+      </Show>
       <div class={framed() ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]' : undefined}>
         <Show when={framed()}>
           <aside class="sticky top-0 hidden h-screen border-r border-border-subtle md:block">{sidebar()}</aside>

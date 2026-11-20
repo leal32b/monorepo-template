@@ -9,11 +9,10 @@ import { KyselyJobs } from '#libs/database/kysely-jobs'
 import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../../../test/reset-database'
 import { KyselyOrganizationDirectory } from '../infrastructure/kysely-organization-directory'
-import { newExport, readied } from '../organization-export'
+import { newExport } from '../organization-export'
 import { exportRepositoryContract } from '../testing/export-repository.contract'
 import { notExported, pluginTables, tenantTables } from './export-tables'
 import { kyselyDataExportUnitOfWork } from './kysely-data-export-unit-of-work'
-import { purgeExpiredExports } from './purge-expired-exports'
 
 const migrations = fileURLToPath(new URL('../../../../migrations/', import.meta.url))
 const db = createDatabase(createPool(inject('databaseUrl'), pino({ level: 'silent' })))
@@ -157,26 +156,7 @@ describe('what the export holds (ADR 0074)', () => {
   })
 })
 
-describe('purgeExpiredExports (ADR 0074)', () => {
-  it('empties the file of an export past its expiry, keeps its row, and leaves a ready one', async () => {
-    await sql`truncate organization_export`.execute(db)
-    for (const [organizationId, readyAt] of [
-      ['org-1', new Date('2026-11-01T00:00:00Z')],
-      ['org-2', new Date('2026-11-18T00:00:00Z')]
-    ] as const) {
-      const record = newExport({ id: `${organizationId}-x`, organizationId, requestedBy: 'u', now: readyAt })
-      await unitOfWork.run(organizationId, async ({ exports }) => {
-        await exports.replace(record)
-        await exports.complete(readied(record, { now: readyAt, size: 3 }), Buffer.from('zip'))
-      })
-    }
-
-    expect(await purgeExpiredExports(db, clock.now())).toBe(1)
-    expect(await unitOfWork.run('org-1', ({ exports }) => exports.file('org-1'))).toBeNull()
-    expect(await unitOfWork.run('org-1', ({ exports }) => exports.find('org-1'))).not.toBeNull()
-    expect(await unitOfWork.run('org-2', ({ exports }) => exports.file('org-2'))).toEqual(Buffer.from('zip'))
-  })
-
+describe('organization_export (ADR 0074)', () => {
   it('goes with its organization', async () => {
     await sql`insert into auth.organization (id, name, slug, "createdAt") values ('org-x', 'X', 'org-x', now())`.execute(
       db

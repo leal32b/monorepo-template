@@ -12,6 +12,24 @@ export {
   listAuditEntriesQuerySchema
 } from './audit'
 export {
+  type BackOfficeListQuery,
+  type BackOfficeOrganization,
+  type BackOfficeOrganizationDetail,
+  type BackOfficeOrganizationPage,
+  type BackOfficeUser,
+  type BackOfficeUserPage,
+  backOfficeLimits,
+  backOfficeListQuerySchema,
+  backOfficeOrganizationDetailSchema,
+  backOfficeOrganizationPageSchema,
+  backOfficeOrganizationSchema,
+  backOfficePageSize,
+  backOfficeProblems,
+  backOfficeUserPageSchema,
+  backOfficeUserSchema,
+  impersonationPermissions
+} from './back-office'
+export {
   accessOf,
   type Billing,
   type BillingCheckoutInput,
@@ -106,7 +124,26 @@ export {
   meResponseSchema,
   passwordLength
 } from './identity'
+export {
+  type CurrentImpersonation,
+  currentImpersonationSchema,
+  type Impersonation,
+  impersonationSchema
+} from './impersonation'
 export { type Currency, currencies, currencySchema, type Money, minorDigitsOf, moneySchema } from './money'
+export {
+  type LogoInput,
+  type LogoType,
+  type LogoUploadInput,
+  logoInputSchema,
+  logoLimits,
+  logoProblems,
+  logoUploadInputSchema,
+  type OrganizationLogo,
+  organizationLogoSchema,
+  type SignedUpload,
+  signedUploadSchema
+} from './organization-logo'
 export {
   type Action,
   type BuiltInRole,
@@ -134,7 +171,9 @@ export {
 } from './organizations'
 export {
   type ApiProblem,
-  apiProblemSchema
+  apiProblemSchema,
+  type OperatorSessionRefusal,
+  operatorSessionRefusals
 } from './problem'
 export {
   type CalendarDate,

@@ -18,40 +18,34 @@ export function exportRepositoryContract(
       const { run } = await setup()
 
       expect(await run('org-1', (exports) => exports.find('org-1'))).toBeNull()
-      expect(await run('org-1', (exports) => exports.file('org-1'))).toBeNull()
     })
 
-    it('keeps a request, pending and without a file', async () => {
+    it('keeps a request, pending', async () => {
       const { run } = await setup()
       await run('org-1', (exports) => exports.replace(first))
 
       expect(await run('org-1', (exports) => exports.find('org-1'))).toEqual(first)
-      expect(await run('org-1', (exports) => exports.file('org-1'))).toBeNull()
     })
 
-    it('completes it with its file, once', async () => {
+    it('completes it, once', async () => {
       const { run } = await setup()
       await run('org-1', (exports) => exports.replace(first))
       const ready = readied(first, { now: later, size: 3 })
 
-      expect(await run('org-1', (exports) => exports.complete(ready, Buffer.from('zip')))).toBe(true)
-      expect(await run('org-1', (exports) => exports.complete(ready, Buffer.from('two')))).toBe(false)
+      expect(await run('org-1', (exports) => exports.complete(ready))).toBe(true)
+      expect(await run('org-1', (exports) => exports.complete(ready))).toBe(false)
       expect(await run('org-1', (exports) => exports.find('org-1'))).toEqual(ready)
-      expect(await run('org-1', (exports) => exports.file('org-1'))).toEqual(Buffer.from('zip'))
     })
 
-    it('replaces the last export and its file with a new request, and refuses to complete the old one', async () => {
+    it('replaces the last export with a new request, and refuses to complete the old one', async () => {
       const { run } = await setup()
       await run('org-1', (exports) => exports.replace(first))
-      await run('org-1', (exports) => exports.complete(readied(first, { now: later, size: 3 }), Buffer.from('zip')))
+      await run('org-1', (exports) => exports.complete(readied(first, { now: later, size: 3 })))
       const second = newExport({ id: 'export-2', organizationId: 'org-1', requestedBy: 'user-ada', now: later })
       await run('org-1', (exports) => exports.replace(second))
 
       expect(await run('org-1', (exports) => exports.find('org-1'))).toEqual(second)
-      expect(await run('org-1', (exports) => exports.file('org-1'))).toBeNull()
-      expect(
-        await run('org-1', (exports) => exports.complete(readied(first, { now: later, size: 3 }), Buffer.from('old')))
-      ).toBe(false)
+      expect(await run('org-1', (exports) => exports.complete(readied(first, { now: later, size: 3 })))).toBe(false)
     })
 
     it("keeps each organization's export apart", async () => {

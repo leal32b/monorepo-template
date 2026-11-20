@@ -431,14 +431,151 @@ app, which the template does not build: see the ADR.
 ## Organization exports
 
 An owner asks in General; `data-export.build` builds a zip of CSV files and `data-export.send-email` tells
-them. One request per organization every 15 minutes; the file is kept 7 days, then the purge empties it
-([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md)).
+them. One request per organization every 15 minutes; the zip is written to the file store and deleted 7 days
+later by `storage.delete-files`
+([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md),
+[ADR 0076](adr/0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md)).
 
 - **An owner says the export never arrived.** `job failed` with `kind: data-export.build` and its error:
   `Query read timeout` or the job's 60 s means the organization outgrew a one-shot export (see the ADR's
   "Revisit when"). The page lets them ask again 15 minutes after the first request; the email's failure is
   [a failed notification](#a-failed-notification), and the page shows the export as ready anyway.
 - **Who downloaded it.** `export downloaded` lines, with the organization and the member's id.
+- **The download opens an error page of the store.** The address lives 5 minutes; the page's button asks for
+  a new one each time. `SignatureDoesNotMatch` or `AccessDenied` means the store's keys or endpoint are wrong
+  (see [File storage](#file-storage)).
+
+## File storage
+
+Logos and exports live in an S3-compatible bucket; the browser uploads and downloads at addresses the API
+signs, so the bucket stays private
+([ADR 0076](adr/0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md)). In
+`pnpm dev` and the end-to-end suite a local folder plays the store, with nothing to set up.
+
+### What the owner creates (Cloudflare R2, the default)
+
+In the Cloudflare account that already serves the web:
+
+1. **A bucket**, private (no public access, no `r2.dev` address, no custom domain): R2 → Create bucket,
+   for example `<product>-files`, location automatic. Its S3 endpoint is
+   `https://<account id>.r2.cloudflarestorage.com` (R2 → the bucket → Settings → S3 API).
+2. **An API token for it**: R2 → Manage API tokens → Create API token, permission **Object Read & Write**,
+   applied to **that bucket only**, no expiry or the one your rotation uses. Keep the **Access Key ID** and the
+   **Secret Access Key** it shows once.
+3. **CORS on the bucket** (the bucket → Settings → CORS policy), so the page may `PUT` an upload and read an
+   image; nothing else is allowed:
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://<web origin>"],
+       "AllowedMethods": ["PUT", "GET", "HEAD"],
+       "AllowedHeaders": ["Content-Type"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+
+   Add a staging web origin to `AllowedOrigins` only if staging shares the bucket (better: a bucket of its own).
+4. **Lifecycle rules** (the bucket → Settings → Object lifecycle rules):
+   - prefix `uploads/`: delete objects **1 day** after creation (uploads never confirmed: a closed tab, a
+     refused file);
+   - prefix `exports/`: delete objects **8 days** after creation (the net under the job that deletes each
+     export at 7 days).
+
+   Never a rule on `logos/`: a logo stays until it is replaced or removed.
+
+### GitHub `production` environment
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `STORAGE_ENDPOINT` | variable | `https://<account id>.r2.cloudflarestorage.com` (https, no path, no slash) |
+| `STORAGE_BUCKET` | variable | the bucket's name |
+| `STORAGE_REGION` | variable, optional | empty on R2 (`auto`); the bucket's region on AWS S3 |
+| `STORAGE_ACCESS_KEY_ID` | secret | the token's Access Key ID |
+| `STORAGE_SECRET_ACCESS_KEY` | secret | the token's Secret Access Key |
+
+The deploy sends the five to Render and builds the web with `STORAGE_ORIGIN` set to `STORAGE_ENDPOINT`,
+which puts the store in the CSP's `img-src` and `connect-src`; its smoke test fails a deploy whose CSP does
+not name it. The API refuses to start behind https without a store.
+
+### Another provider
+
+Any S3-compatible store takes the same variables: AWS S3 (`https://s3.<region>.amazonaws.com` and its
+region, an IAM user limited to `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject` and `s3:ListBucket` on the
+bucket, Block Public Access on), Backblaze B2, Wasabi, DigitalOcean Spaces, MinIO, or Supabase Storage's S3
+endpoint. Set the same CORS rule and lifecycle rules in its console. A provider without the S3 API needs an
+adapter of `FileStorage` of its own.
+
+### Checking it after the first deploy
+
+Upload a logo in General on the deployed app, then replace it. If the page says the upload did not finish,
+the browser's console names the cause: a CORS error is the rule of step 3 (its origin must be exactly the web
+origin); a `403` from the store is a wrong key or endpoint, or a store that refuses the signed
+`Content-Length`. `job failed` with `kind: storage.delete-files` or `storage.delete-organization` means the
+API cannot delete in the bucket: check the token's permission.
+
+### Rotating the keys
+
+Create a new token, put its two values in the GitHub secrets, redeploy, then delete the old token. Addresses
+already handed out stop working with the old token: a logo shows its letter until the page reads the
+membership again.
+
+## Operators
+
+The back office at `/admin` ([ADR 0077](adr/0077-run-the-saas-from-an-operator-back-office-that-reads-through-a-role-of-its-own-and-enters-an-organization-read-only.md))
+is for the people who run the product. Nobody becomes an operator through the product: only the `operator`
+command does it, with the database owner's credentials (`DATABASE_URL`). To anyone else, every `/api/admin/*`
+route answers 404, as a path that does not exist.
+
+### Granting the first operator in production
+
+1. The person signs up in the product like anyone, confirms the email, and turns on two-step verification in
+   **Settings → Security**. If they linked Google, they unlink it there: Google sign-in asks for no code.
+2. Whoever holds the production `DATABASE_URL` runs, from a checkout of the deployed commit:
+
+   ```bash
+   DATABASE_URL='<production connection string>' pnpm --filter @repo/api operator grant ana@example.com --by "Your name"
+   ```
+
+   or, from a shell in the API's container on the host, `node dist/operator.js grant ana@example.com --by "Your name"`.
+   `--by` is recorded beside the grant. The command refuses an account with no confirmed email, no two-step
+   verification or a Google link, and says which.
+3. The operator signs out and in again, with the password and the code, and opens `<web origin>/admin`. A
+   session made before the grant, or more than 12 hours old, gets "Sign in again".
+
+### Revoking
+
+```bash
+DATABASE_URL='<production connection string>' pnpm --filter @repo/api operator revoke ana@example.com --by "Your name"
+```
+
+It takes effect on the next request: the back office answers 404 again, and an organization the operator was
+inside ends that visit at once, with its entry in the organization's activity. The record stays. Revoke first
+when someone leaves the team or loses a device; their account itself stays a plain user's.
+
+### Auditing
+
+- **Who is or was an operator**, granted and revoked when and on whose word:
+  `pnpm --filter @repo/api operator list` (one line each, active or revoked).
+- **Who entered which organization**, when, and how it ended (`left`, `expired` after 30 minutes, `revoked`), as
+  the database owner:
+
+  ```sql
+  select v.started_at, v.ended_at, v.end_reason, u.email as operator, o.slug
+  from impersonation v
+  left join auth."user" u on u.id = v.operator_id
+  join auth."organization" o on o.id = v.organization_id
+  order by v.started_at desc
+  limit 50;
+  ```
+
+- **What the organization sees**: its **Activity** screen lists "<name>, an operator of the service" entering and
+  leaving, from the same entries; they go after a year, with the rest of the trail.
+- **What an operator only read** in the back office's own screens is in the request log (route, status, time)
+  for the host's retention; it names no records.
+- A visit that never ended (its job failed) shows in the query above with no `ended_at` past `expires_at`; the
+  membership read already refuses it, and `job failed` names `back-office.end-impersonation`.
 
 ## Set up once per product
 
@@ -463,7 +600,7 @@ them. One request per organization every 15 minutes; the file is kept 7 days, th
 | --- | --- |
 | `/api/health` answers 503 | The database: Neon's status page and the project's compute; the API log's `idle database connection lost` |
 | Calls answer 503 `service_unavailable` after up to about 25 s | API log: `dependency unavailable` and its `reason`. `timeout exceeded when trying to connect` means every connection was busy (a slow query holding them, or more traffic than five connections serve); `Query read timeout`, a code `57014` or a connection error point at the database: `/api/health`, then the provider's status and the project's compute. The API recovers on its own once the database answers; a restart does not help |
-| A deploy fails in its migrations with `permission denied to create role` | Migration `0009_tenant_row_security` creates the role `app_tenant` ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), and the database user of `DATABASE_URL` lacks `CREATEROLE` (Neon's and most hosts' default users have it). As the host's administrator, run `create role app_tenant nologin; grant app_tenant to "<that user>" with admin option;`, then redeploy: the migration finds the role and carries on |
+| A deploy fails in its migrations with `permission denied to create role` | Migrations `0009_tenant_row_security` and `0019_operator_back_office` create the roles `app_tenant` ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)) and `app_operator` ([ADR 0077](adr/0077-run-the-saas-from-an-operator-back-office-that-reads-through-a-role-of-its-own-and-enters-an-organization-read-only.md)), and the database user of `DATABASE_URL` lacks `CREATEROLE` (Neon's and most hosts' default users have it). As the host's administrator, run `create role app_tenant nologin; grant app_tenant to "<that user>" with admin option;` (and the same for `app_operator`), then redeploy: the migration finds the role and carries on |
 | A tenant route answers 500 with `permission denied for table …` or `new row violates row-level security policy` in the log | The first: the table's migration lacks its three lines (policy and grant to `app_tenant`), see [using-the-template.md](using-the-template.md) step 5.3. The second: a use case passed one organization to `run` and wrote a row of another |
 | The `Purge` workflow fails, or stopped running | Its log: `purge failed` with the error, or `Invalid environment: DATABASE_URL`. A runner that cannot connect means the database refuses GitHub's addresses: allow them, or run `node dist/purge.js` from the API image on the host's cron. GitHub pauses a schedule after 60 days without activity: enable it again on the workflow's page. A missed day only lets rows wait |
 | `/api/health` does not answer | Render: the service's events and log; a crash leaves a `fatal` line |

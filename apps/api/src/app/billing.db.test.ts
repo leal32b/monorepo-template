@@ -14,6 +14,7 @@ import pino from 'pino'
 import { inject } from 'vitest'
 import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { InMemoryFileStorage } from '#libs/adapters/in-memory-file-storage'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
@@ -22,6 +23,9 @@ import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
 import { createJobs } from './create-jobs'
+
+/** The file store of the run (ADR 0076): the jobs and the app share it. */
+const storage = new InMemoryFileStorage()
 
 const webOrigin = 'http://localhost:5173'
 const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
@@ -57,6 +61,7 @@ describe('billing through the API (ADR 0063)', () => {
     autoComplete: { afterMs: 3_000, timer: development }
   })
   const jobs = createJobs({
+    storage,
     webOrigin,
     db,
     clock,
@@ -75,6 +80,7 @@ describe('billing through the API (ADR 0063)', () => {
     await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
+      storage,
       clock,
       logger,
       serviceName: 'api',

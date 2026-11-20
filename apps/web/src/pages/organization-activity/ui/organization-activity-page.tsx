@@ -97,11 +97,19 @@ function Activity() {
   const who = (entry: AuditEntry) => {
     const { actor } = entry
     if (actor.kind === 'member') return actor.name ?? t('activity.actors.formerMember')
+    // An operator of the SaaS who entered the organization, read only (ADR 0077).
+    if (actor.kind === 'operator') {
+      return actor.name === null
+        ? t('activity.actors.formerOperator')
+        : t('activity.actors.operator', { name: actor.name })
+    }
     return t(`activity.actors.${actor.kind}`)
   }
   const avatarOf = (entry: AuditEntry) => {
     const { actor } = entry
-    if (actor.kind === 'member') return actor.name === null ? <Avatar icon="profile" /> : <Avatar name={actor.name} />
+    if (actor.kind === 'member' || actor.kind === 'operator') {
+      return actor.name === null ? <Avatar icon="profile" /> : <Avatar name={actor.name} />
+    }
     return <Avatar icon={actor.kind === 'visitor' ? 'globe' : 'clock'} />
   }
   const fieldName = (entry: AuditEntry, field: string) => {

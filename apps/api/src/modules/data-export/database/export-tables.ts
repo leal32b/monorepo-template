@@ -117,5 +117,7 @@ export const tenantTables = [
 
 /** Tenant tables the export does not hold, with why. */
 export const notExported: Readonly<Record<string, string>> = {
-  organization_export: 'the export itself'
+  organization_export: 'the export itself',
+  organization_logo: "the logo's type, size and who set it: the image is the organization's own, in the file store",
+  impersonation: "the back office's record of operators' visits; the organization's trail holds each visit (ADR 0077)"
 }

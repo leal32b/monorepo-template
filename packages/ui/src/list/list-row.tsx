@@ -31,6 +31,11 @@ export type ListRowProps = Omit<ComponentProps<'div'>, 'title'> & {
    * user acted. The area is always there, so a change to it is read out.
    */
   status?: string | undefined
+  /**
+   * What went wrong where the user acted, such as "Use a PNG, JPEG or WebP image": in the same place as the
+   * status, in the colour of errors, an alert, which is announced as it appears.
+   */
+  error?: string | undefined
   /** The row's actions, such as `Button`s: on the right, and full width where the row is narrow. */
   action?: JSX.Element
   /**
@@ -79,6 +84,7 @@ function Row(props: ListRowProps & { noteId: string }) {
     'description',
     'note',
     'status',
+    'error',
     'action',
     'panel',
     'noteId'
@@ -122,6 +128,12 @@ function Row(props: ListRowProps & { noteId: string }) {
                 {local.status}
               </Show>
             </p>
+            <Show when={local.error}>
+              <p role="alert" class="mt-1.5 flex items-start gap-1.5 text-sm text-destructive">
+                <Icon name="error" class="mt-0.5 size-4" />
+                {local.error}
+              </p>
+            </Show>
           </div>
         </div>
         <Show when={drawn(action.toArray())}>

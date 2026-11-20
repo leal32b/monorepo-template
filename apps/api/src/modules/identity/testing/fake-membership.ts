@@ -27,6 +27,12 @@ const paid: Pick<Member, 'subscription' | 'entitlements'> = {
 /** Test double: the members a test adds, and nobody else. */
 export class FakeMembership implements Membership {
   readonly #members: { member: Member; name: string }[] = []
+  readonly #operators = new Map<string, string>()
+
+  /** An operator of the SaaS, by user id, with their name (ADR 0077). */
+  addOperator(userId: string, name: string): void {
+    this.#operators.set(userId, name)
+  }
 
   /** A member, named by their user id unless a name is given, of an organization that pays unless the test says otherwise. */
   add({ subscription, entitlements = paid.entitlements, ...member }: GivenMember, name = member.userId): void {
@@ -49,5 +55,9 @@ export class FakeMembership implements Membership {
         .filter(({ member }) => member.organizationId === organizationId && userIds.includes(member.userId))
         .map(({ member, name }) => [member.userId, name])
     )
+  }
+
+  async operatorNamesOf(userIds: readonly string[]): Promise<Map<string, string>> {
+    return new Map([...this.#operators].filter(([id]) => userIds.includes(id)))
   }
 }

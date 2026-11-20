@@ -2,6 +2,15 @@ import * as z from 'zod/mini'
 import { entitlementKeySchema } from './billing'
 
 /**
+ * Why an operator's session may not open the back office: two-step verification is off, the account signs in
+ * another way than its password (Google asks for no code), or the session is older than the grant or than
+ * `the back office's limit (ADR 0077)`.
+ */
+export const operatorSessionRefusals = ['two-factor', 'sign-in-method', 'sign-in-again'] as const
+
+export type OperatorSessionRefusal = (typeof operatorSessionRefusals)[number]
+
+/**
  * Every error response (`application/problem+json`, RFC 9457). Clients switch on `code`,
  * the stable machine-readable reason; `type` is the same reason as a URN.
  */
@@ -19,6 +28,8 @@ export const apiProblemSchema = z.object({
   entitlement: z.optional(entitlementKeySchema),
   /** The plan's number for the limit that `plan_limit_reached` names. */
   limit: z.optional(z.int().check(z.gte(0))),
+  /** Why `operator_session_refused` refused an operator's session (ADR 0077). */
+  reason: z.optional(z.enum(operatorSessionRefusals)),
   /** Same as the `X-Request-Id` header, to find the request in the API log. */
   requestId: z.optional(z.string())
 })

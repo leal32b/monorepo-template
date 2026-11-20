@@ -21,22 +21,30 @@ export class ListAuditEntriesService {
       audit.list(organizationId, { before, limit: auditPageSize + 1 })
     )
     const entries = read.slice(0, auditPageSize)
-    const members = new Set(entries.flatMap(({ actor }) => (actor.kind === 'member' ? [actor.id] : [])))
-    const names = await this.membership.namesOf(organizationId, [...members])
+    const idsOf = (kind: 'member' | 'operator') => [
+      ...new Set(entries.flatMap(({ actor }) => (actor.kind === kind ? [actor.id] : [])))
+    ]
+    const operators = idsOf('operator')
+    const [members, operatorNames] = await Promise.all([
+      this.membership.namesOf(organizationId, idsOf('member')),
+      // Rare: only a page with an operator's visit asks (ADR 0077).
+      operators.length === 0 ? new Map<string, string>() : this.membership.operatorNamesOf(operators)
+    ])
     const last = entries.at(-1)
     return {
-      items: entries.map((entry) => toResponse(entry, names)),
+      items: entries.map((entry) => toResponse(entry, { member: members, operator: operatorNames })),
       next: read.length > auditPageSize && last !== undefined ? encodeCursor(last) : null
     }
   }
 }
 
 /** An entry in the shape of the contract. Its codes are the ones the contract lists (`auditActions`). */
-function toResponse(entry: AuditEntry, names: Map<string, string>): AuditEntryResponse {
+function toResponse(entry: AuditEntry, names: Record<'member' | 'operator', Map<string, string>>): AuditEntryResponse {
   return {
     id: entry.id,
     at: entry.at.toISOString(),
-    actor: entry.actor.kind === 'member' ? { ...entry.actor, name: names.get(entry.actor.id) ?? null } : entry.actor,
+    actor:
+      'id' in entry.actor ? { ...entry.actor, name: names[entry.actor.kind].get(entry.actor.id) ?? null } : entry.actor,
     resource: { type: entry.resourceType as AuditEntryResponse['resource']['type'], id: entry.resourceId },
     action: entry.action as AuditEntryResponse['action'],
     fields: [...entry.fields]

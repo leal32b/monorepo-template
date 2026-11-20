@@ -35,6 +35,7 @@ export const coreGroups = ['shell', 'entry'] as const
 export const lazyGroups = [
   'account',
   'audit',
+  'backOffice',
   'billing',
   'customers',
   'legal',

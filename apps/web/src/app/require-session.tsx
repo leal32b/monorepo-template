@@ -1,6 +1,7 @@
 import { Button } from '@repo/ui'
 import { Navigate, query, useLocation, useNavigate } from '@solidjs/router'
 import { createResource, Match, onCleanup, type ParentProps, Suspense, Switch } from 'solid-js'
+import { ImpersonationProvider } from '#entities/impersonations'
 import { SessionProvider, sessionQuery } from '#entities/sessions'
 import { ApiError, ApiProvider, useApi, useAuth, whenUnauthorized } from '#shared/api'
 import { useI18n } from '#shared/config'
@@ -64,8 +65,10 @@ export function RequireSession(props: ParentProps) {
         {(user) => (
           <ApiProvider client={guarded}>
             <SessionProvider user={user()}>
-              <Suspense fallback={<ShellSkeleton />}>{props.children}</Suspense>
-              <PaletteShortcut />
+              <ImpersonationProvider>
+                <Suspense fallback={<ShellSkeleton />}>{props.children}</Suspense>
+                <PaletteShortcut />
+              </ImpersonationProvider>
             </SessionProvider>
           </ApiProvider>
         )}

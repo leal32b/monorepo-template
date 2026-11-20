@@ -43,9 +43,9 @@ the rest.
 | [P1-2](#p1-2-design-system-for-product-screens) | Design system for product screens | P1 | Sonnet | | In progress |
 | [P1-3](#p1-3-a-cheaper-mould) | A cheaper mould | P1 | Opus, then Sonnet | P0-1, P0-2, P1-2 | Done |
 | [P1-4](#p1-4-new-module-skill-and-product-mode) | `new-module` skill and product mode | P1 | Sonnet | P1-3 | Done |
-| [P1-5](#p1-5-file-storage) | File storage | P1 | Opus | | Todo |
+| [P1-5](#p1-5-file-storage) | File storage | P1 | Opus | | Done |
 | [P1-6](#p1-6-product-notifications) | Product notifications | P1 | Opus, then Sonnet | P0-4 | Done |
-| [P1-7](#p1-7-operator-back-office) | Operator back office | P1 | Opus | P1-1 | Todo |
+| [P1-7](#p1-7-operator-back-office) | Operator back office | P1 | Opus | P1-1 | Done |
 | [P1-8](#p1-8-browser-errors-reach-the-log) | Browser errors reach the log | P1 | Sonnet | | Done |
 | [P1-9](#p1-9-staging-and-backups) | Staging and backups | P1 | Opus | | Todo |
 | [P1-10](#p1-10-terms-privacy-and-data-export) | Terms, privacy and data export | P1 | Opus | P0-4 | Done |
@@ -246,7 +246,7 @@ then P1 by need.
 ### P1-5. File storage
 
 - **Model:** Opus
-- **Status:** Todo
+- **Status:** Done ([ADR 0076](adr/0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md)). S3-compatible (R2 by default) or a local folder, reached by signed URLs after the tenant guard; the logo is the first user and the export moved from `bytea` to the store. Not yet tried against a real bucket.
 - **Finding:** the pipeline accepts JSON bodies up to 1 MB and nothing else, by design. There is
   no place for a logo, an avatar, an attachment or a receipt.
 - **Scope:** a storage port (S3-compatible behind it, a local folder in development and tests);
@@ -273,7 +273,7 @@ then P1 by need.
 ### P1-7. Operator back office
 
 - **Model:** Opus
-- **Status:** Todo
+- **Status:** Done ([ADR 0077](adr/0077-run-the-saas-from-an-operator-back-office-that-reads-through-a-role-of-its-own-and-enters-an-organization-read-only.md)). Operators granted by a CLI only, reads through a read-only `app_operator` role, 404 for everyone else; impersonation is read only for 30 minutes, with a banner and audit entries.
 - **Depends on:** P1-1
 - **Finding:** the people who run the SaaS have no screen: finding a tenant, its plan or its
   owner means a SQL console. `admin` is already a reserved slug.

@@ -17,12 +17,18 @@ export const auditEn = {
     },
     actors: {
       formerMember: 'A former member',
+      operator: '{{name}}, an operator of the service',
+      formerOperator: 'An operator of the service',
       visitor: 'A visitor, through your public page',
       system: 'The system'
     },
     entries: {
       organization: {
-        'export-requested': 'Asked for an export of the data'
+        'export-requested': 'Asked for an export of the data',
+        'logo-changed': 'Changed the logo',
+        'logo-removed': 'Removed the logo',
+        'impersonation-started': 'Entered to see the organization as its owner, read only',
+        'impersonation-ended': 'Left the organization'
       },
       customer: {
         created: 'Added a customer',

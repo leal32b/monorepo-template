@@ -9,8 +9,12 @@ import { WakingJobQueue } from '#libs/jobs/waking-job-queue'
 import type { BillingProvider } from '#libs/ports/billing-provider.port'
 import type { Clock } from '#libs/ports/clock.port'
 import type { EmailSender } from '#libs/ports/email-sender.port'
+import type { FileStorage } from '#libs/ports/file-storage.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import type { Timer } from '#libs/ports/timer.port'
+import { registerStorageJobs } from '#libs/storage/delete-files'
+import { kyselyBackOfficeUnitOfWork } from '#modules/back-office/database/kysely-back-office-unit-of-work'
+import { registerBackOfficeJobs } from '#modules/back-office/index'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
 import { billingEmails, registerBillingJobs } from '#modules/billing/index'
 import { KyselyBillingDirectory } from '#modules/billing/infrastructure/kysely-billing-directory'
@@ -30,6 +34,8 @@ export type JobsDeps = {
   emailSender: EmailSender
   /** The payment provider a notice's sync reads (ADR 0063): the same instance the app was given. */
   billing: BillingProvider
+  /** The file store (ADR 0076): the export is written there, and files are deleted from it by jobs. */
+  storage: FileStorage
   /** The web app's origin (ADR 0019): the buttons of billing's emails open it (ADR 0073). */
   webOrigin: string
   /** How the worker waits; real time unless a test says otherwise. */
@@ -58,6 +64,7 @@ export function createJobs({
   logger,
   emailSender,
   billing,
+  storage,
   webOrigin,
   timer = new SystemTimer(),
   idlePollMs
@@ -70,6 +77,7 @@ export function createJobs({
   const bind = (transaction: Kysely<unknown>) => waking(new KyselyJobs(transaction, ids, clock))
 
   registerHealthJobs(registry, { clock, logger })
+  registerStorageJobs(registry, { storage, logger })
   registerIdentityJobs(registry, { emailSender })
   customersEmails.register(registry, emailSender)
   billingEmails.register(registry, emailSender)
@@ -77,6 +85,7 @@ export function createJobs({
   registerDataExportJobs(registry, {
     unitOfWork: kyselyDataExportUnitOfWork(db, bind),
     directory: new KyselyOrganizationDirectory(db),
+    storage,
     clock,
     webOrigin
   })
@@ -90,6 +99,7 @@ export function createJobs({
     owners: new KyselyOrganizationOwners(db),
     webOrigin
   })
+  registerBackOfficeJobs(registry, { unitOfWork: kyselyBackOfficeUnitOfWork(db, bind), ids, clock })
 
   return {
     queue: waking(store),
