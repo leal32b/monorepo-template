@@ -13,4 +13,7 @@ test('the page carries the security headers', async ({ page }) => {
   expect(headers['cross-origin-opener-policy']).toBe('same-origin')
   expect(headers['permissions-policy']).toContain('camera=()')
   expect(headers['permissions-policy']).toContain('clipboard-write=(self)')
+  // The local store is this origin: the build dropped the store's token (ADR 0076).
+  expect(headers['content-security-policy']).toContain("img-src 'self' data:;")
+  expect(headers['content-security-policy']).not.toContain('$STORAGE_ORIGIN')
 })

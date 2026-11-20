@@ -431,14 +431,95 @@ app, which the template does not build: see the ADR.
 ## Organization exports
 
 An owner asks in General; `data-export.build` builds a zip of CSV files and `data-export.send-email` tells
-them. One request per organization every 15 minutes; the file is kept 7 days, then the purge empties it
-([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md)).
+them. One request per organization every 15 minutes; the zip is written to the file store and deleted 7 days
+later by `storage.delete-files`
+([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md),
+[ADR 0076](adr/0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md)).
 
 - **An owner says the export never arrived.** `job failed` with `kind: data-export.build` and its error:
   `Query read timeout` or the job's 60 s means the organization outgrew a one-shot export (see the ADR's
   "Revisit when"). The page lets them ask again 15 minutes after the first request; the email's failure is
   [a failed notification](#a-failed-notification), and the page shows the export as ready anyway.
 - **Who downloaded it.** `export downloaded` lines, with the organization and the member's id.
+- **The download opens an error page of the store.** The address lives 5 minutes; the page's button asks for
+  a new one each time. `SignatureDoesNotMatch` or `AccessDenied` means the store's keys or endpoint are wrong
+  (see [File storage](#file-storage)).
+
+## File storage
+
+Logos and exports live in an S3-compatible bucket; the browser uploads and downloads at addresses the API
+signs, so the bucket stays private
+([ADR 0076](adr/0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md)). In
+`pnpm dev` and the end-to-end suite a local folder plays the store, with nothing to set up.
+
+### What the owner creates (Cloudflare R2, the default)
+
+In the Cloudflare account that already serves the web:
+
+1. **A bucket**, private (no public access, no `r2.dev` address, no custom domain): R2 → Create bucket,
+   for example `<product>-files`, location automatic. Its S3 endpoint is
+   `https://<account id>.r2.cloudflarestorage.com` (R2 → the bucket → Settings → S3 API).
+2. **An API token for it**: R2 → Manage API tokens → Create API token, permission **Object Read & Write**,
+   applied to **that bucket only**, no expiry or the one your rotation uses. Keep the **Access Key ID** and the
+   **Secret Access Key** it shows once.
+3. **CORS on the bucket** (the bucket → Settings → CORS policy), so the page may `PUT` an upload and read an
+   image; nothing else is allowed:
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://<web origin>"],
+       "AllowedMethods": ["PUT", "GET", "HEAD"],
+       "AllowedHeaders": ["Content-Type"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+
+   Add a staging web origin to `AllowedOrigins` only if staging shares the bucket (better: a bucket of its own).
+4. **Lifecycle rules** (the bucket → Settings → Object lifecycle rules):
+   - prefix `uploads/`: delete objects **1 day** after creation (uploads never confirmed: a closed tab, a
+     refused file);
+   - prefix `exports/`: delete objects **8 days** after creation (the net under the job that deletes each
+     export at 7 days).
+
+   Never a rule on `logos/`: a logo stays until it is replaced or removed.
+
+### GitHub `production` environment
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `STORAGE_ENDPOINT` | variable | `https://<account id>.r2.cloudflarestorage.com` (https, no path, no slash) |
+| `STORAGE_BUCKET` | variable | the bucket's name |
+| `STORAGE_REGION` | variable, optional | empty on R2 (`auto`); the bucket's region on AWS S3 |
+| `STORAGE_ACCESS_KEY_ID` | secret | the token's Access Key ID |
+| `STORAGE_SECRET_ACCESS_KEY` | secret | the token's Secret Access Key |
+
+The deploy sends the five to Render and builds the web with `STORAGE_ORIGIN` set to `STORAGE_ENDPOINT`,
+which puts the store in the CSP's `img-src` and `connect-src`; its smoke test fails a deploy whose CSP does
+not name it. The API refuses to start behind https without a store.
+
+### Another provider
+
+Any S3-compatible store takes the same variables: AWS S3 (`https://s3.<region>.amazonaws.com` and its
+region, an IAM user limited to `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject` and `s3:ListBucket` on the
+bucket, Block Public Access on), Backblaze B2, Wasabi, DigitalOcean Spaces, MinIO, or Supabase Storage's S3
+endpoint. Set the same CORS rule and lifecycle rules in its console. A provider without the S3 API needs an
+adapter of `FileStorage` of its own.
+
+### Checking it after the first deploy
+
+Upload a logo in General on the deployed app, then replace it. If the page says the upload did not finish,
+the browser's console names the cause: a CORS error is the rule of step 3 (its origin must be exactly the web
+origin); a `403` from the store is a wrong key or endpoint, or a store that refuses the signed
+`Content-Length`. `job failed` with `kind: storage.delete-files` or `storage.delete-organization` means the
+API cannot delete in the bucket: check the token's permission.
+
+### Rotating the keys
+
+Create a new token, put its two values in the GitHub secrets, redeploy, then delete the old token. Addresses
+already handed out stop working with the old token: a logo shows its letter until the page reads the
+membership again.
 
 ## Set up once per product
 

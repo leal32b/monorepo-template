@@ -50,13 +50,14 @@ the proxy to the API), on free tiers, deployed by GitHub Actions after CI passes
 work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
 1. Create the accounts: Neon, Render, Cloudflare, Resend with a verified sending domain, and Asaas
-   (step 5). Google sign-in is optional (an OAuth client whose redirect URI is
+   (step 5); in Cloudflare, an R2 bucket for files, with its token, CORS and lifecycle rules
+   ([operations](operations.md#file-storage)). Google sign-in is optional (an OAuth client whose redirect URI is
    `<web origin>/api/auth/callback/google`).
 2. In GitHub, **Settings → Environments → `production`**, add:
 
    | Secrets | Variables |
    | --- | --- |
-   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`) | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api.asaas.com/v3`, or the sandbox's `https://api-sandbox.asaas.com/v3` for a staging environment) |
+   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api.asaas.com/v3`, or the sandbox's `https://api-sandbox.asaas.com/v3` for a staging environment), `STORAGE_ENDPOINT` (`https://<account id>.r2.cloudflarestorage.com`), `STORAGE_BUCKET`, `STORAGE_REGION` (empty on R2) |
 
 3. Push to `main`. The first run publishes the API image and stops at the configuration check: make
    the image's package public on GHCR, create a Render web service from it (free plan, health check

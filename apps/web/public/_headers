@@ -2,7 +2,10 @@
 # They also reach index.html when the Worker serves it for a client-side route.
 
 # The CSP allows only this origin: no inline script or style, no other host. The API is on the
-# same origin (ADR 0019), so connect-src 'self' covers it.
+# same origin (ADR 0019), so connect-src 'self' covers it. The file store (ADR 0076) is the one other
+# host: logos are images from it and uploads go to it. The build replaces its token below with the
+# origin in the variable of that name (the deploy passes STORAGE_ENDPOINT), or with nothing where the
+# store is this origin (pnpm dev, the end-to-end suite): vite.config.ts does it.
 # HSTS holds on any domain, not only on the preloaded .dev of workers.dev; add `preload` only as
 # docs/using-the-template.md says. Permissions-Policy turns off every feature the app does not use
 # (it copies the backup codes, so clipboard-write stays on for itself): a feature added later is
@@ -10,7 +13,7 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: $STORAGE_ORIGIN; font-src 'self'; connect-src 'self' $STORAGE_ORIGIN; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Permissions-Policy: accelerometer=(), autoplay=(), camera=(), clipboard-read=(), clipboard-write=(self), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), hid=(), idle-detection=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=()
   Cross-Origin-Opener-Policy: same-origin
