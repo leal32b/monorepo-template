@@ -23,7 +23,9 @@ export const auditPtBR: typeof auditEn = {
     },
     entries: {
       organization: {
-        'export-requested': 'Pediu uma exportação dos dados'
+        'export-requested': 'Pediu uma exportação dos dados',
+        'logo-changed': 'Trocou o logo',
+        'logo-removed': 'Removeu o logo'
       },
       customer: {
         created: 'Adicionou um cliente',

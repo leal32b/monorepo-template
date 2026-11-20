@@ -92,8 +92,9 @@ module.exports = {
         path: ['^apps/api/src/modules/[^/]+/(database|infrastructure)/', '^apps/api/src/libs/'],
         // Of libs/, only what holds no infrastructure: an allowlist, so a new folder starts forbidden.
         // notifications writes texts and declares jobs, with no I/O (ADR 0073); archive writes CSV and zip in
-        // memory (ADR 0074).
-        pathNot: ['\\.port\\.ts$', '^apps/api/src/libs/(ports|exceptions|http|notifications|archive)/']
+        // memory (ADR 0074); files reads an image's header in memory, and storage builds keys and declares the
+        // store's jobs, with no I/O (ADR 0076).
+        pathNot: ['\\.port\\.ts$', '^apps/api/src/libs/(ports|exceptions|http|notifications|archive|files|storage)/']
       }
     },
     {

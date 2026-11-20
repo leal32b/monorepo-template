@@ -22,7 +22,9 @@ export const auditEn = {
     },
     entries: {
       organization: {
-        'export-requested': 'Asked for an export of the data'
+        'export-requested': 'Asked for an export of the data',
+        'logo-changed': 'Changed the logo',
+        'logo-removed': 'Removed the logo'
       },
       customer: {
         created: 'Added a customer',

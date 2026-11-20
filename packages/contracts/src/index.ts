@@ -108,6 +108,19 @@ export {
 } from './identity'
 export { type Currency, currencies, currencySchema, type Money, minorDigitsOf, moneySchema } from './money'
 export {
+  type LogoInput,
+  type LogoType,
+  type LogoUploadInput,
+  logoInputSchema,
+  logoLimits,
+  logoProblems,
+  logoUploadInputSchema,
+  type OrganizationLogo,
+  organizationLogoSchema,
+  type SignedUpload,
+  signedUploadSchema
+} from './organization-logo'
+export {
   type Action,
   type BuiltInRole,
   builtInRoles,

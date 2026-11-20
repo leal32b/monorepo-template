@@ -24,7 +24,7 @@ const member: Member = {
 
 describe('toMembershipResponse', () => {
   it("answers the member's roles, permissions, subscription with its dates in ISO 8601, and entitlements", () => {
-    const response = toMembershipResponse(member)
+    const response = toMembershipResponse(member, null)
 
     expect(organizationMembershipSchema.parse(response)).toEqual({
       roles: ['owner'],
@@ -41,8 +41,15 @@ describe('toMembershipResponse', () => {
         cancelAtPeriodEnd: false,
         checkout: { kind: 'upgrade', plan: 'pro', amount: { amount: 2000, currency: 'BRL' } }
       },
-      entitlements: plans.basic.entitlements
+      entitlements: plans.basic.entitlements,
+      logo: null
     })
+  })
+
+  it('answers the organization’s logo when it has one (ADR 0076)', () => {
+    const logo = { url: 'https://store.example.com/files/logos/org-1/l-1?X-Amz-Signature=x', width: 64, height: 64 }
+
+    expect(organizationMembershipSchema.parse(toMembershipResponse(member, logo)).logo).toEqual(logo)
   })
 
   it('answers null for the dates a subscription does not have', () => {
@@ -51,7 +58,7 @@ describe('toMembershipResponse', () => {
       subscription: { ...member.subscription, periodStartsAt: null, paidThrough: null, pastDueSince: null }
     }
 
-    expect(toMembershipResponse(trialing).subscription).toMatchObject({
+    expect(toMembershipResponse(trialing, null).subscription).toMatchObject({
       periodStartsAt: null,
       paidThrough: null,
       pastDueSince: null

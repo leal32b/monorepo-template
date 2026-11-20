@@ -35,8 +35,8 @@ describe('auditActions', () => {
 })
 
 describe('auditActions of the organization', () => {
-  it('lists the export an owner asked for (ADR 0074)', () => {
-    expect(auditActions.organization).toEqual(['export-requested'])
+  it('lists the export an owner asked for (ADR 0074) and the logo set or removed (ADR 0076)', () => {
+    expect(auditActions.organization).toEqual(['export-requested', 'logo-changed', 'logo-removed'])
   })
 })
 

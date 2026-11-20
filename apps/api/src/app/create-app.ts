@@ -47,6 +47,8 @@ import { GetMeController } from '#modules/identity/queries/get-me/get-me.http-co
 import { GetMembershipController } from '#modules/identity/queries/get-membership/get-membership.http-controller'
 import { GetPublicOrganizationController } from '#modules/identity/queries/get-public-organization/get-public-organization.http-controller'
 import { ReportClientErrorController } from '#modules/observability/commands/report-client-error/report-client-error.http-controller'
+import { kyselyOrganizationLogoUnitOfWork } from '#modules/organization-logo/database/kysely-organization-logo-unit-of-work'
+import { GetLogoService, registerOrganizationLogoRoutes } from '#modules/organization-logo/index'
 import { PUBLIC_PATHS, registerRoutes } from './http-routes'
 
 /** Long enough for Neon to wake from suspension, short enough for a status page to wait. */
@@ -138,13 +140,18 @@ export function createApp({
     organizations: new KyselyPublicOrganizations(db),
     logger
   }
+  // The organization's logo (ADR 0076): its routes, and the read the membership carries.
+  const logoUnitOfWork = kyselyOrganizationLogoUnitOfWork(db, jobsOn)
+  const getLogo = new GetLogoService({ unitOfWork: logoUnitOfWork, storage, clock })
   registerRoutes(router, {
     getHealth: new GetHealthController(new GetHealthService(clock, { name: serviceName, release }, databaseProbe)),
     getLiveness: new GetLivenessController(),
     auth: fromFetchHandler(auth.handler, webOrigin),
     getMe: new GetMeController(session),
     getAccountDeletion: new GetAccountDeletionController(session, new KyselyAccountDeletion(db, organizationDeletion)),
-    getMembership: new GetMembershipController(session, membership),
+    getMembership: new GetMembershipController(session, membership, {
+      logoOf: (organizationId) => getLogo.execute(organizationId)
+    }),
     getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
     getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined }),
     getPublicOrganization: new GetPublicOrganizationController(publicSurface),
@@ -162,6 +169,15 @@ export function createApp({
   })
   // The organization's audit trail, read only: every module writes its entries in its own unit of work (ADR 0061).
   registerAuditRoutes(router, { session, membership, unitOfWork: kyselyAuditUnitOfWork(db) })
+  registerOrganizationLogoRoutes(router, {
+    session,
+    membership,
+    unitOfWork: logoUnitOfWork,
+    storage,
+    limiter: publicSurface.limiter,
+    clock,
+    ids
+  })
   // The owner's export of the organization's data (ADR 0074): the request, its state and the file.
   registerDataExportRoutes(router, {
     session,
