@@ -34,12 +34,16 @@ export function LogoRow(props: LogoRowProps) {
   const refusal = usePlanRefusal()
   const [pending, setPending] = createSignal(false)
   const [status, setStatus] = createSignal<string>()
+  const [error, setError] = createSignal<string>()
   const current = useOrganization()
+  /** The button that picks a file, which takes focus when the remove button it sat beside goes. */
+  let chooser: HTMLButtonElement | undefined
   const waits = () => pending() || props.disabled === true
 
   const choose = async (file: File) => {
     const replacing = props.logo !== null
     setStatus(undefined)
+    setError(undefined)
     setPending(true)
     const result = await uploadLogo(api, props.organizationId, file)
     setPending(false)
@@ -49,7 +53,7 @@ export function LogoRow(props: LogoRowProps) {
         t(replacing ? 'organizationGeneral.details.logo.replaced' : 'organizationGeneral.details.logo.saved')
       )
     }
-    setStatus(
+    setError(
       result.failure === 'readOnly'
         ? refusal.readOnlyNote()
         : t(`organizationGeneral.details.logo.${result.failure}`, { size: formatSize(file.size, locale()) })
@@ -58,12 +62,14 @@ export function LogoRow(props: LogoRowProps) {
 
   const remove = async () => {
     setStatus(undefined)
+    setError(undefined)
     setPending(true)
     const failed = await callApi(() => removeLogo(api, props.organizationId))
     setPending(false)
-    if (failed !== undefined) return setStatus(t('organizationGeneral.details.logo.removeFailed'))
+    if (failed !== undefined) return setError(t('organizationGeneral.details.logo.removeFailed'))
     void current.refresh()
     setStatus(t('organizationGeneral.details.logo.removed'))
+    chooser?.focus()
   }
 
   return (
@@ -75,9 +81,17 @@ export function LogoRow(props: LogoRowProps) {
       )}
       note={props.canUpdate && props.readOnly ? refusal.readOnlyNote() : undefined}
       status={status()}
+      error={error()}
       action={
         <Show when={props.canUpdate}>
-          <ChooseButton waiting={waits()} readOnly={props.readOnly} onSelect={choose}>
+          <ChooseButton
+            ref={(button) => {
+              chooser = button
+            }}
+            waiting={waits()}
+            readOnly={props.readOnly}
+            onSelect={choose}
+          >
             {t(
               props.logo === null
                 ? 'organizationGeneral.details.logo.upload'
@@ -97,6 +111,7 @@ export function LogoRow(props: LogoRowProps) {
 
 /** The button that picks a file: disabled while it waits and, read only, pointing to the row's note, which says why. */
 function ChooseButton(props: {
+  ref: (button: HTMLButtonElement) => void
   waiting: boolean
   readOnly: boolean
   onSelect: (file: File) => void
@@ -105,6 +120,7 @@ function ChooseButton(props: {
   const note = useRowNote()
   return (
     <FileButton
+      ref={props.ref}
       variant="secondary"
       accept={logoLimits.types.join(',')}
       disabled={props.waiting || props.readOnly}

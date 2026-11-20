@@ -91,6 +91,7 @@ The same idea looks and behaves the same everywhere. Before building, find it he
 | Finding things in a list: a search and a filter | `ListToolbar` above the `ListSection`, the filter a `SegmentedControl` inside it: the search applies when asked, not on every keystroke | a search form and a layout of one's own |
 | What a list screen holds: the filter, the search, the page and the read of that page | `createList` (`#shared/lib`), from the entity's query; a list with no filter leaves it out | a signal per choice, the key and an effect in the page |
 | What a list says about what the user just did | `createListStatus` (`#shared/lib`): a line in the row acted on (`ListRow`'s `status`) and one below the section (`ListSection`'s) | a pair of signals and a `forget` in the page |
+| What went wrong in a row the user just acted on (a file refused, an action that failed) | `ListRow`'s `error`: the status's place, the colour of errors, an alert | the row's `status`, which reads as a success |
 | A row's form, opened inline | `PanelButton` + `ListPanel`, one `createPanels()` per screen | a signal per section, a `panel.tsx` per page |
 | The buttons that end a form | `FormActions` | `div.flex` with `w-full sm:w-auto` on each button |
 | Asking before removing (remove, leave, delete, revoke with consequences) | `ConfirmForm` in the row's panel, a field in it when the action cannot be undone | a dialog, a bespoke warning + buttons |

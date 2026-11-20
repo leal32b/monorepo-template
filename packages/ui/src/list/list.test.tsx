@@ -125,6 +125,15 @@ describe('ListRow', () => {
     render(() => <ListRow title="Password" />)
 
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('says what went wrong in the row, in the colour of errors, as an alert', () => {
+    render(() => <ListRow title="Logo" error="Use a PNG, JPEG or WebP image." />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Use a PNG, JPEG or WebP image.')
+    expect(screen.getByRole('alert')).toHaveClass('text-destructive')
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
   it('needs only a title: no description, action or panel', () => {

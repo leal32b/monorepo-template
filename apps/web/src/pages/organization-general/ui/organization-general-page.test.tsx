@@ -453,6 +453,7 @@ describe('OrganizationGeneralPage', () => {
 
       expect(await screen.findByText('Logo removed')).toBeInTheDocument()
       expect(refreshed).toHaveBeenCalledOnce()
+      expect(details().getByRole('button', { name: 'Replace' })).toHaveFocus()
       expect(calls).toContain('DELETE /api/organizations/org-1/logo')
     })
 
@@ -498,7 +499,7 @@ describe('OrganizationGeneralPage', () => {
 
       choose(file)
 
-      expect(await screen.findByText(message)).toBeInTheDocument()
+      expect(await screen.findByRole('alert')).toHaveTextContent(message)
     })
 
     it('says the organization is read only when the API refuses to sign', async () => {
