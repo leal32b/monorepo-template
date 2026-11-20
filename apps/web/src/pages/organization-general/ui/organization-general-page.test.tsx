@@ -59,7 +59,7 @@ function renderPage({
     auth ??
     (async (input) =>
       String(input).includes('/organization/list') ? Response.json([acme, globex]) : Response.json({ status: true }))
-  return renderOrganizationPage({
+  const rendered = renderOrganizationPage({
     page: OrganizationGeneralPage,
     path: '/settings/general',
     organization: acme,
@@ -71,8 +71,13 @@ function renderPage({
       const access = readOnly ? 'read-only' : membership.subscription.access
       return { ...membership, logo, subscription: { ...membership.subscription, access } }
     })()
-  }).history
+  })
+  refreshed = rendered.refresh
+  return rendered.history
 }
+
+/** How the page asks for the membership again, as the last `renderPage` drew it (ADR 0076: the logo). */
+let refreshed: () => Promise<undefined>
 
 const details = () => within(screen.getByRole('region', { name: 'Organization' }))
 const regional = () => within(screen.getByRole('region', { name: 'Time and money' }))
@@ -422,6 +427,7 @@ describe('OrganizationGeneralPage', () => {
       choose(png)
 
       expect(await screen.findByText('Logo saved')).toBeInTheDocument()
+      expect(refreshed).toHaveBeenCalledOnce()
       expect(globalThis.fetch).toHaveBeenCalledWith(upload.url, { method: 'PUT', headers: upload.headers, body: png })
       expect(calls.filter((call) => call.includes('/logo'))).toEqual([
         'POST /api/organizations/org-1/logo/uploads',
@@ -446,6 +452,7 @@ describe('OrganizationGeneralPage', () => {
       fireEvent.click(details().getByRole('button', { name: 'Remove' }))
 
       expect(await screen.findByText('Logo removed')).toBeInTheDocument()
+      expect(refreshed).toHaveBeenCalledOnce()
       expect(calls).toContain('DELETE /api/organizations/org-1/logo')
     })
 

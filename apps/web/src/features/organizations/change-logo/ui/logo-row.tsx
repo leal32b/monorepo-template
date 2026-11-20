@@ -1,9 +1,9 @@
-import { logoLimits, type OrganizationLogo, type OrganizationMembership } from '@repo/contracts'
+import { logoLimits, type OrganizationLogo } from '@repo/contracts'
 import { Avatar, Button, FileButton, ListRow, useRowNote } from '@repo/ui'
 import { createSignal, type JSX, Show } from 'solid-js'
-import { membershipQuery, removeLogo } from '#entities/organizations'
+import { removeLogo, useOrganization } from '#entities/organizations'
 import { usePlanRefusal } from '#entities/subscriptions'
-import { callApi, updateRead, useApi } from '#shared/api'
+import { callApi, useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { formatSize } from '#shared/lib'
 import { uploadLogo } from '../model/upload-logo'
@@ -25,7 +25,8 @@ export type LogoRowProps = {
  * The organization's logo (ADR 0076), one row of its details: the logo as the side menu draws it, what a
  * logo may be, and the buttons to upload, replace and remove it. A file of the wrong type or size is refused
  * at once, before anything is sent; the API's word on the bytes, a failed upload and success each say so in
- * the row. The membership read carries the logo, so the side menu shows the new one at once.
+ * the row. The membership read carries the logo: it is asked for again behind the screen, as after a change
+ * of plan, and the row and the side menu draw the answer.
  */
 export function LogoRow(props: LogoRowProps) {
   const api = useApi()
@@ -33,9 +34,7 @@ export function LogoRow(props: LogoRowProps) {
   const refusal = usePlanRefusal()
   const [pending, setPending] = createSignal(false)
   const [status, setStatus] = createSignal<string>()
-  const key = () => membershipQuery(api).keyFor(props.organizationId)
-  const show = (logo: OrganizationLogo | null) =>
-    updateRead<OrganizationMembership>(key(), (membership) => ({ ...membership, logo }))
+  const current = useOrganization()
   const waits = () => pending() || props.disabled === true
 
   const choose = async (file: File) => {
@@ -45,7 +44,7 @@ export function LogoRow(props: LogoRowProps) {
     const result = await uploadLogo(api, props.organizationId, file)
     setPending(false)
     if ('logo' in result) {
-      show(result.logo)
+      void current.refresh()
       return setStatus(
         t(replacing ? 'organizationGeneral.details.logo.replaced' : 'organizationGeneral.details.logo.saved')
       )
@@ -63,7 +62,7 @@ export function LogoRow(props: LogoRowProps) {
     const failed = await callApi(() => removeLogo(api, props.organizationId))
     setPending(false)
     if (failed !== undefined) return setStatus(t('organizationGeneral.details.logo.removeFailed'))
-    show(null)
+    void current.refresh()
     setStatus(t('organizationGeneral.details.logo.removed'))
   }
 
