@@ -78,5 +78,6 @@ A decision is never edited once accepted: supersede it with a new record.
 | [0071](0071-load-each-screens-dictionary-group-with-its-route.md) | Load each screen's dictionary group with its route | accepted |
 | [0072](0072-report-browser-errors-to-the-api-log.md) | Report browser errors to the API log | accepted; amends [0046](0046-observe-through-structured-logs-tagged-with-the-release.md) |
 | [0073](0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md) | Write each module's notifications through a shared library, and send them on its own job kind | accepted |
-| [0074](0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md) | Record the terms accepted at sign-up, and export an organization by a job and a link | proposed |
+| [0074](0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md) | Record the terms accepted at sign-up, and export an organization by a job and a link | proposed; its file moved to the store by [0076](0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md) |
 | [0075](0075-ask-a-waking-api-again-every-30-seconds.md) | Ask a waking API again every 30 seconds | accepted |
+| [0076](0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md) | Keep files in an S3-compatible store behind a port, reached by signed URLs the API issues | proposed |
