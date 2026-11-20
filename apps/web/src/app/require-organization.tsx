@@ -11,7 +11,7 @@ import {
   Suspense,
   Switch
 } from 'solid-js'
-import { useImpersonation } from '#entities/operators'
+import { useImpersonation } from '#entities/impersonations'
 import {
   CurrentOrganizationProvider,
   getMembership,

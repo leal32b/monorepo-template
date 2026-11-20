@@ -27,13 +27,7 @@ export {
   backOfficeProblems,
   backOfficeUserPageSchema,
   backOfficeUserSchema,
-  type CurrentImpersonation,
-  currentImpersonationSchema,
-  type Impersonation,
-  impersonationPermissions,
-  impersonationSchema,
-  type OperatorSessionRefusal,
-  operatorSessionRefusals
+  impersonationPermissions
 } from './back-office'
 export {
   accessOf,
@@ -130,6 +124,12 @@ export {
   meResponseSchema,
   passwordLength
 } from './identity'
+export {
+  type CurrentImpersonation,
+  currentImpersonationSchema,
+  type Impersonation,
+  impersonationSchema
+} from './impersonation'
 export { type Currency, currencies, currencySchema, type Money, minorDigitsOf, moneySchema } from './money'
 export {
   type LogoInput,
@@ -171,7 +171,9 @@ export {
 } from './organizations'
 export {
   type ApiProblem,
-  apiProblemSchema
+  apiProblemSchema,
+  type OperatorSessionRefusal,
+  operatorSessionRefusals
 } from './problem'
 export {
   type CalendarDate,

@@ -1,7 +1,7 @@
 import { Button } from '@repo/ui'
 import { Navigate, query, useLocation, useNavigate } from '@solidjs/router'
 import { createResource, Match, onCleanup, type ParentProps, Suspense, Switch } from 'solid-js'
-import { ImpersonationProvider } from '#entities/operators'
+import { ImpersonationProvider } from '#entities/impersonations'
 import { SessionProvider, sessionQuery } from '#entities/sessions'
 import { ApiError, ApiProvider, useApi, useAuth, whenUnauthorized } from '#shared/api'
 import { useI18n } from '#shared/config'

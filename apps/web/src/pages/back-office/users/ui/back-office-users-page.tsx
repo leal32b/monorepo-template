@@ -2,6 +2,7 @@ import type { BackOfficeUser } from '@repo/contracts'
 import { Avatar, Badge, EmptyState, ListRow, ListSection, ListToolbar } from '@repo/ui'
 import { For, Show } from 'solid-js'
 import { backOfficeUsersQuery } from '#entities/operators'
+import { useRoleLabel } from '#entities/organizations'
 import { useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { createList, formatDate } from '#shared/lib'
@@ -24,6 +25,7 @@ export function BackOfficeUsersPage() {
 function Users() {
   const { t, locale } = useI18n()
   const api = useApi()
+  const roleLabel = useRoleLabel()
   const list = createList({ query: backOfficeUsersQuery(api), args: ({ search, page }) => [search, page] })
 
   const description = (user: BackOfficeUser) =>
@@ -34,7 +36,15 @@ function Users() {
         : t('backOffice.users.row.lastSignIn', { date: formatDate(new Date(user.lastSignInAt), locale()) }),
       user.organizations.length === 0
         ? t('backOffice.users.row.noOrganization')
-        : user.organizations.map((organization) => `${organization.name} (${organization.role})`).join(', ')
+        : user.organizations
+            .map(
+              (organization) =>
+                `${organization.name} (${organization.role
+                  .split(',')
+                  .map((role) => roleLabel(role.trim()))
+                  .join(', ')})`
+            )
+            .join(', ')
     ].join(' · ')
 
   return (

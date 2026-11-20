@@ -1,6 +1,14 @@
 import * as z from 'zod/mini'
-import { operatorSessionRefusals } from './back-office'
 import { entitlementKeySchema } from './billing'
+
+/**
+ * Why an operator's session may not open the back office: two-step verification is off, the account signs in
+ * another way than its password (Google asks for no code), or the session is older than the grant or than
+ * `the back office's limit (ADR 0077)`.
+ */
+export const operatorSessionRefusals = ['two-factor', 'sign-in-method', 'sign-in-again'] as const
+
+export type OperatorSessionRefusal = (typeof operatorSessionRefusals)[number]
 
 /**
  * Every error response (`application/problem+json`, RFC 9457). Clients switch on `code`,

@@ -25,7 +25,7 @@ describe('BackOfficeUsersPage (ADR 0077)', () => {
     renderPage([user('ada'), user('bob', { lastSignInAt: null, twoFactor: false, organizations: [] })])
 
     const section = within(await screen.findByRole('region', { name: 'Every user' }))
-    expect(section.getByText('ada@example.test · last sign-in Nov 19, 2026 · Acme (owner)')).toBeInTheDocument()
+    expect(section.getByText('ada@example.test · last sign-in Nov 19, 2026 · Acme (Owner)')).toBeInTheDocument()
     expect(section.getAllByText('Two-step on')).toHaveLength(1)
     expect(section.getByText('bob@example.test · no sign-in in 30 days · No organization')).toBeInTheDocument()
   })

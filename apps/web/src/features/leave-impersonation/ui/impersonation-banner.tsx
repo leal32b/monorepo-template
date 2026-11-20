@@ -2,7 +2,7 @@ import type { Impersonation } from '@repo/contracts'
 import { Alert, Button } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { createEffect, createSignal, onCleanup, Show } from 'solid-js'
-import { leaveImpersonation, useImpersonation } from '#entities/operators'
+import { leaveImpersonation, useImpersonation } from '#entities/impersonations'
 import { useApi } from '#shared/api'
 import { useI18n } from '#shared/config'
 import { formatDateTime } from '#shared/lib'
@@ -51,16 +51,16 @@ function Banner(props: { visit: Impersonation }) {
     <Alert
       variant="warning"
       class="rounded-none border-x-0 border-t-0"
-      title={t('impersonation.title', { name: props.visit.organization.name })}
+      title={t('backOffice.banner.title', { name: props.visit.organization.name })}
       action={
         <Button variant="secondary" disabled={pending()} onClick={() => leave(props.visit.organization.id)}>
-          {t('impersonation.leave')}
+          {t('backOffice.banner.leave')}
         </Button>
       }
     >
       {failed()
-        ? t('impersonation.leaveFailed')
-        : t('impersonation.description', {
+        ? t('backOffice.banner.leaveFailed')
+        : t('backOffice.banner.description', {
             time: formatDateTime(
               new Date(props.visit.endsAt),
               Intl.DateTimeFormat().resolvedOptions().timeZone,

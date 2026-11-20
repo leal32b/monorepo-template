@@ -13,7 +13,7 @@ const linkClass =
 
 /**
  * The back office's own frame (ADR 0077), apart from the app's: a top bar with its name, its two sections and
- * the way back to the app, and below it the banner of an operator's visit, the same one the app's frame draws.
+ * the way back to the app (its menu on a row of its own on phones), and above it the banner of an operator's visit, the same one the app's frame draws.
  * It stays while the operator moves between its screens.
  */
 export function BackOfficeFrame(props: ParentProps) {
@@ -27,7 +27,7 @@ export function BackOfficeFrame(props: ParentProps) {
       <header class="border-b border-border-subtle bg-surface">
         <div class="mx-auto flex w-full max-w-2xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-6">
           <span class="font-semibold tracking-tight">{t('backOffice.name')}</span>
-          <nav aria-label={t('backOffice.nav.label')} class="flex-1">
+          <nav aria-label={t('backOffice.nav.label')} class="order-last w-full sm:order-none sm:w-auto sm:flex-1">
             <ul class="m-0 flex list-none gap-1 p-0">
               <For each={sections}>
                 {(section) => (
@@ -46,7 +46,7 @@ export function BackOfficeFrame(props: ParentProps) {
               </For>
             </ul>
           </nav>
-          <A href="/" class={linkClass}>
+          <A href="/" class={`${linkClass} ml-auto sm:ml-0`}>
             {t('backOffice.nav.app')}
           </A>
         </div>

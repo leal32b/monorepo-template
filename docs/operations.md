@@ -521,6 +521,62 @@ Create a new token, put its two values in the GitHub secrets, redeploy, then del
 already handed out stop working with the old token: a logo shows its letter until the page reads the
 membership again.
 
+## Operators
+
+The back office at `/admin` ([ADR 0077](adr/0077-run-the-saas-from-an-operator-back-office-that-reads-through-a-role-of-its-own-and-enters-an-organization-read-only.md))
+is for the people who run the product. Nobody becomes an operator through the product: only the `operator`
+command does it, with the database owner's credentials (`DATABASE_URL`). To anyone else, every `/api/admin/*`
+route answers 404, as a path that does not exist.
+
+### Granting the first operator in production
+
+1. The person signs up in the product like anyone, confirms the email, and turns on two-step verification in
+   **Settings → Security**. If they linked Google, they unlink it there: Google sign-in asks for no code.
+2. Whoever holds the production `DATABASE_URL` runs, from a checkout of the deployed commit:
+
+   ```bash
+   DATABASE_URL='<production connection string>' pnpm --filter @repo/api operator grant ana@example.com --by "Your name"
+   ```
+
+   or, from a shell in the API's container on the host, `node dist/operator.js grant ana@example.com --by "Your name"`.
+   `--by` is recorded beside the grant. The command refuses an account with no confirmed email, no two-step
+   verification or a Google link, and says which.
+3. The operator signs out and in again, with the password and the code, and opens `<web origin>/admin`. A
+   session made before the grant, or more than 12 hours old, gets "Sign in again".
+
+### Revoking
+
+```bash
+DATABASE_URL='<production connection string>' pnpm --filter @repo/api operator revoke ana@example.com --by "Your name"
+```
+
+It takes effect on the next request: the back office answers 404 again, and an organization the operator was
+inside ends that visit at once, with its entry in the organization's activity. The record stays. Revoke first
+when someone leaves the team or loses a device; their account itself stays a plain user's.
+
+### Auditing
+
+- **Who is or was an operator**, granted and revoked when and on whose word:
+  `pnpm --filter @repo/api operator list` (one line each, active or revoked).
+- **Who entered which organization**, when, and how it ended (`left`, `expired` after 30 minutes, `revoked`), as
+  the database owner:
+
+  ```sql
+  select v.started_at, v.ended_at, v.end_reason, u.email as operator, o.slug
+  from impersonation v
+  left join auth."user" u on u.id = v.operator_id
+  join auth."organization" o on o.id = v.organization_id
+  order by v.started_at desc
+  limit 50;
+  ```
+
+- **What the organization sees**: its **Activity** screen lists "<name>, an operator of the service" entering and
+  leaving, from the same entries; they go after a year, with the rest of the trail.
+- **What an operator only read** in the back office's own screens is in the request log (route, status, time)
+  for the host's retention; it names no records.
+- A visit that never ended (its job failed) shows in the query above with no `ended_at` past `expires_at`; the
+  membership read already refuses it, and `job failed` names `back-office.end-impersonation`.
+
 ## Set up once per product
 
 - An uptime monitor (any free one) on `<web origin>/api/health` every 5 to 10 minutes, alerting on a
@@ -544,7 +600,7 @@ membership again.
 | --- | --- |
 | `/api/health` answers 503 | The database: Neon's status page and the project's compute; the API log's `idle database connection lost` |
 | Calls answer 503 `service_unavailable` after up to about 25 s | API log: `dependency unavailable` and its `reason`. `timeout exceeded when trying to connect` means every connection was busy (a slow query holding them, or more traffic than five connections serve); `Query read timeout`, a code `57014` or a connection error point at the database: `/api/health`, then the provider's status and the project's compute. The API recovers on its own once the database answers; a restart does not help |
-| A deploy fails in its migrations with `permission denied to create role` | Migration `0009_tenant_row_security` creates the role `app_tenant` ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)), and the database user of `DATABASE_URL` lacks `CREATEROLE` (Neon's and most hosts' default users have it). As the host's administrator, run `create role app_tenant nologin; grant app_tenant to "<that user>" with admin option;`, then redeploy: the migration finds the role and carries on |
+| A deploy fails in its migrations with `permission denied to create role` | Migrations `0009_tenant_row_security` and `0019_operator_back_office` create the roles `app_tenant` ([ADR 0055](adr/0055-keep-tenants-apart-with-row-level-security-set-by-the-unit-of-work.md)) and `app_operator` ([ADR 0077](adr/0077-run-the-saas-from-an-operator-back-office-that-reads-through-a-role-of-its-own-and-enters-an-organization-read-only.md)), and the database user of `DATABASE_URL` lacks `CREATEROLE` (Neon's and most hosts' default users have it). As the host's administrator, run `create role app_tenant nologin; grant app_tenant to "<that user>" with admin option;` (and the same for `app_operator`), then redeploy: the migration finds the role and carries on |
 | A tenant route answers 500 with `permission denied for table …` or `new row violates row-level security policy` in the log | The first: the table's migration lacks its three lines (policy and grant to `app_tenant`), see [using-the-template.md](using-the-template.md) step 5.3. The second: a use case passed one organization to `run` and wrote a row of another |
 | The `Purge` workflow fails, or stopped running | Its log: `purge failed` with the error, or `Invalid environment: DATABASE_URL`. A runner that cannot connect means the database refuses GitHub's addresses: allow them, or run `node dist/purge.js` from the API image on the host's cron. GitHub pauses a schedule after 60 days without activity: enable it again on the workflow's page. A missed day only lets rows wait |
 | `/api/health` does not answer | Render: the service's events and log; a crash leaves a `fatal` line |

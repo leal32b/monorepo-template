@@ -2,7 +2,7 @@ import type { Impersonation } from '@repo/contracts'
 import { createMemoryHistory, MemoryRouter, Route, useLocation } from '@solidjs/router'
 import { render } from '@solidjs/testing-library'
 import type { Component, JSX } from 'solid-js'
-import { ImpersonationProvider } from '#entities/operators'
+import { ImpersonationProvider } from '#entities/impersonations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
 

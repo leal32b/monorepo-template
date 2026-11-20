@@ -287,7 +287,7 @@ export const routes: RouteDefinition[] = [
             path: '/organizations/:organizationId',
             ...screenOf(BackOfficeOrganizationPage, ['backOffice', 'billing', 'team'], preloadBackOfficeOrganization)
           },
-          { path: '/users', ...screenOf(BackOfficeUsersPage, ['backOffice'], preloadBackOfficeUsers) }
+          { path: '/users', ...screenOf(BackOfficeUsersPage, ['backOffice', 'team'], preloadBackOfficeUsers) }
         ]
       },
       {

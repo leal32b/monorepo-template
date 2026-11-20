@@ -1,7 +1,7 @@
 import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
 import { A } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
-import { useImpersonation } from '#entities/operators'
+import { useImpersonation } from '#entities/impersonations'
 import { homeOf, startingOrganization, useOptionalOrganizations } from '#entities/organizations'
 import { useI18n } from '#shared/config'
 import { useInSettings } from '../model/in-settings'

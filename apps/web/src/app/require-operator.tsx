@@ -2,7 +2,7 @@ import { backOfficeProblems, type OperatorSessionRefusal } from '@repo/contracts
 import { Button } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { createResource, Match, type ParentProps, Switch } from 'solid-js'
-import { getImpersonation, useImpersonation } from '#entities/operators'
+import { getImpersonation, useImpersonation } from '#entities/impersonations'
 import { createSignOut } from '#features/sign-out'
 import { NotFoundPage } from '#pages/not-found'
 import { ApiError, useApi } from '#shared/api'

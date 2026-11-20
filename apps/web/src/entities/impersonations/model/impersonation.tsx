@@ -1,7 +1,7 @@
 import type { Impersonation } from '@repo/contracts'
 import { type Accessor, createContext, createSignal, type ParentProps, useContext } from 'solid-js'
 import { useApi } from '#shared/api'
-import { getImpersonation } from '../api/back-office-api'
+import { getImpersonation } from '../api/impersonation-api'
 import { forgetImpersonation, hasImpersonation, rememberImpersonation } from './impersonation-hint'
 
 type ImpersonationState = {

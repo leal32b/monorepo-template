@@ -253,13 +253,17 @@ create unique index impersonation_active_idx on impersonation (operator_id) wher
   `database/` (with `OperatorGrants`, which the `operator` command, `src/operator.ts`, alone uses), the job
   in `jobs/`, the guard in `back-office-route.ts`. Identity gains the impersonation
   branch of `memberOf` and `operatorNamesOf`; `tenantRoutes` gains the read-only refusal.
-- **Web:** `/admin` sits behind the session guard but outside the app's frame, in `BackOfficeFrame`
-  (`widgets/back-office-frame`), a top bar with its own menu (Organizations, Users) and the banner. Its
-  screens are `pages/back-office-organizations`, `pages/back-office-organization`,
-  `pages/back-office-users`, built with `screenOf(…, ['backOffice'])`: the `backOffice` dictionary group,
-  in en, pt-BR and es, loads with its route and never reaches a tenant's download. The banner's few words
-  are in the core `shell` group, since it is drawn over every screen. The entity `back-office` holds the
-  queries and the impersonation's hint; the feature `leave-impersonation` holds the banner and its button.
+- **Web:** `/admin` sits behind the session guard but outside the app's frame: `RequireOperator` (app layer)
+  asks `GET /api/admin/impersonation`, shows "not found" on its 404 and "sign in again" on
+  `operator_session_refused`, and draws `BackOfficeFrame` (`widgets/back-office-frame`), a top bar with its own
+  menu (Organizations, Users) and the banner. Its screens are `pages/back-office/organizations`,
+  `pages/back-office/organization` and `pages/back-office/users` (a group, so the pages layer stays under
+  Steiger's limit), each built with `screenOf(…, ['backOffice'])`: the `backOffice` dictionary group, in en,
+  pt-BR and es, loads with its route and never reaches a tenant's download. The banner's few words are in the
+  `backOffice` group too: the app's frame downloads the banner and its words only on a device where a visit is
+  on. The entity `impersonations` holds the visit (its API, its hint, `ImpersonationProvider`), the entity
+  `operators` the back office's lists, and the feature `leave-impersonation` the banner and its button, so no
+  other user downloads the lists.
 
 ### Threat model
 
@@ -317,6 +321,9 @@ Read on 2026-11-20.
   products sharing a cluster applies to both).
 - Bad: Better Auth's "trust this device", sent to the API by hand, lets an operator skip the code on
   that device for 30 days.
+- Bad: every user's first download grows by about 1 KB (the back office's routes in the route table) and the
+  first signed-in screen's by about 2 KB (the visit's provider behind the session); the budgets of ADR 0045 rose
+  by as much, to the measure.
 - Bad: the back office keeps no log of what an operator only looked at in its own screens (the list, a
   user); the request log has each route, status and time for a few days.
 

@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@solidjs/testing-library'
-import { rememberImpersonation } from '#entities/operators'
+import { rememberImpersonation } from '#entities/impersonations'
 import { type Fetch, problem, renderBackOffice, visitToAcme } from '../../../test-back-office'
 import { ImpersonationBanner } from './impersonation-banner'
 

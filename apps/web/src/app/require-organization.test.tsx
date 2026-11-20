@@ -1,7 +1,7 @@
 import { A, createMemoryHistory, MemoryRouter, Route, useNavigate } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
 import { type Component, createResource, type ParentProps, Show, Suspense } from 'solid-js'
-import { ImpersonationProvider, rememberImpersonation } from '#entities/operators'
+import { ImpersonationProvider, rememberImpersonation } from '#entities/impersonations'
 import { OrganizationsProvider, useOrganization, useOrganizations } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider } from '#shared/config'

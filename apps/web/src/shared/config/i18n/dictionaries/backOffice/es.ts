@@ -3,6 +3,13 @@ import type { backOfficeEn } from './en'
 export const backOfficeEs: typeof backOfficeEn = {
   backOffice: {
     name: 'Back office',
+    /** The banner of an operator's visit, over every screen: fetched with it, never by another user. */
+    banner: {
+      title: 'Estás viendo {{name}} como lo ve su dueño',
+      description: 'Solo lectura: nada de lo que hagas aquí la cambia. Tu visita termina el {{time}}.',
+      leave: 'Salir',
+      leaveFailed: 'No se pudo salir. Revisa tu conexión e inténtalo de nuevo.'
+    },
     nav: {
       label: 'Back office',
       organizations: 'Organizaciones',

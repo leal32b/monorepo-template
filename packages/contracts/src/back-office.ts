@@ -20,7 +20,7 @@ export const backOfficeLimits = { impersonationMinutes: 30, sessionHours: 12 } a
  * What an impersonated member holds: the `read` action of every resource that has one, and nothing else, so
  * the screens hide every write and the permission checks refuse it (ADR 0077).
  */
-export const impersonationPermissions = Object.fromEntries(
+export const impersonationPermissions = /* @__PURE__ */ Object.fromEntries(
   Object.entries(statements).flatMap(([resource, actions]) =>
     (actions as readonly string[]).includes('read') ? [[resource, ['read']]] : []
   )
@@ -35,15 +35,6 @@ export const backOfficeProblems = {
   /** A write from an operator inside an organization, which is read only. */
   readOnly: 'impersonation_read_only'
 } as const
-
-/**
- * Why an operator's session may not open the back office: two-step verification is off, the account signs in
- * another way than its password (Google asks for no code), or the session is older than the grant or than
- * `backOfficeLimits.sessionHours`.
- */
-export const operatorSessionRefusals = ['two-factor', 'sign-in-method', 'sign-in-again'] as const
-
-export type OperatorSessionRefusal = (typeof operatorSessionRefusals)[number]
 
 /** `GET /api/admin/organizations?search=&page=` and `GET /api/admin/users?search=&page=`. */
 export const backOfficeListQuerySchema = z.strictObject({
@@ -116,24 +107,3 @@ export type BackOfficeUser = z.infer<typeof backOfficeUserSchema>
 export const backOfficeUserPageSchema = pageOf(backOfficeUserSchema)
 
 export type BackOfficeUserPage = z.infer<typeof backOfficeUserPageSchema>
-
-/** An operator's visit to an organization, until `endsAt` (ADR 0077). */
-export const impersonationSchema = z.object({
-  /** What the tenant screens draw it with, as Better Auth's list gives a member's organizations. */
-  organization: z.object({
-    id: z.string(),
-    name: z.string(),
-    slug: z.string(),
-    timeZone: timeZoneSchema,
-    currency: currencySchema
-  }),
-  startedAt: instantSchema,
-  endsAt: instantSchema
-})
-
-export type Impersonation = z.infer<typeof impersonationSchema>
-
-/** `GET /api/admin/impersonation`: the operator's visit now, or `null`. */
-export const currentImpersonationSchema = z.object({ impersonation: z.nullable(impersonationSchema) })
-
-export type CurrentImpersonation = z.infer<typeof currentImpersonationSchema>

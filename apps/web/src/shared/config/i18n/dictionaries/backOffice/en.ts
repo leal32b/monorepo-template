@@ -2,6 +2,13 @@
 export const backOfficeEn = {
   backOffice: {
     name: 'Back office',
+    /** The banner of an operator's visit, over every screen: fetched with it, never by another user. */
+    banner: {
+      title: 'You are viewing {{name}} as its owner sees it',
+      description: 'Read only: nothing you do here changes it. Your visit ends on {{time}}.',
+      leave: 'Leave',
+      leaveFailed: 'Could not leave. Check your connection and try again.'
+    },
     nav: {
       label: 'Back office',
       organizations: 'Organizations',
