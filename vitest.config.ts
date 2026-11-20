@@ -14,6 +14,7 @@ export default defineConfig({
         '**/main.{ts,tsx}',
         'apps/api/src/main.e2e.ts',
         'apps/api/src/migrate.ts',
+        'apps/api/src/operator.ts',
         'apps/api/src/purge.ts',
         'apps/api/src/worker.ts'
       ],

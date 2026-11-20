@@ -120,6 +120,22 @@ module.exports = {
       to: { path: '^apps/api/src/libs/database/kysely-platform-unit-of-work\\.ts$' }
     },
     {
+      name: 'api-operator-role-stays-in-the-back-office',
+      comment:
+        'The back office reads every tenant as app_operator (ADR 0077): only its own module and the composition ' +
+        'root reach the unit of work that switches to that role.',
+      severity: 'error',
+      from: {
+        pathNot: [
+          '^apps/api/src/modules/back-office/',
+          '^apps/api/src/app/create-(app|jobs)\\.ts$',
+          '^apps/api/src/operator\\.ts$',
+          NOT_PRODUCTION
+        ]
+      },
+      to: { path: '^apps/api/src/modules/back-office/database/' }
+    },
+    {
       name: 'api-webhook-inbox-binds-platform-tables',
       comment: 'The webhook inbox writes webhook_event and enqueues jobs, and binds no other adapter (ADR 0063).',
       severity: 'error',

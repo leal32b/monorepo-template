@@ -13,6 +13,8 @@ import type { FileStorage } from '#libs/ports/file-storage.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
 import type { Timer } from '#libs/ports/timer.port'
 import { registerStorageJobs } from '#libs/storage/delete-files'
+import { kyselyBackOfficeUnitOfWork } from '#modules/back-office/database/kysely-back-office-unit-of-work'
+import { registerBackOfficeJobs } from '#modules/back-office/index'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
 import { billingEmails, registerBillingJobs } from '#modules/billing/index'
 import { KyselyBillingDirectory } from '#modules/billing/infrastructure/kysely-billing-directory'
@@ -97,6 +99,7 @@ export function createJobs({
     owners: new KyselyOrganizationOwners(db),
     webOrigin
   })
+  registerBackOfficeJobs(registry, { unitOfWork: kyselyBackOfficeUnitOfWork(db, bind), ids, clock })
 
   return {
     queue: waking(store),

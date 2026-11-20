@@ -158,18 +158,21 @@ tenant role without a policy.
 
 ### The guard: 404 for everyone else
 
-`backOfficeRoutes(router, deps)` is the module's route helper, the back office's `tenantRoutes`. Each
-request:
+`backOfficeRoutes(router, deps)` is the module's route helper, the back office's `tenantRoutes`. It
+registers one route, `/api/admin/*`, for every method, and matches the back office's own routes behind the
+guard, so a path or a method that does not exist is answered after the guard too. Each request:
 
 1. reads the session; **none is a 404**;
 2. reads the operator row, in a read-only operator transaction; **not an operator, or revoked, is a 404**;
 3. checks two-step verification, the other sign-in methods and the session's age: `403
    operator_session_refused`, with `reason` (`two-factor`, `sign-in-method`, `sign-in-again`), an answer
    only an operator ever sees;
-4. parses the input with the contract's schema, then runs the use case.
+4. matches the route (an operator alone may see a 404 for an unknown path, or a 405), parses the input with
+   the contract's schema, then runs the use case.
 
-The 404 is the router's own `not_found` body, byte for byte, so `/api/admin/organizations` answers a
-non-operator exactly as `/api/admin/nothing-here` does. The web's `/admin` screens show "not found" on
+The 404 is the router's own `not_found` body, so `/api/admin/organizations` answers a non-operator exactly
+as `/api/admin/nothing-here` does, whatever the method: not even a 405 or an `OPTIONS` tells a route
+exists. The web's `/admin` screens show "not found" on
 that 404.
 
 ### The screens
@@ -247,7 +250,8 @@ create unique index impersonation_active_idx on impersonation (operator_id) wher
 
 - **API:** `modules/back-office/` with `back-office.routes.ts` (the six routes), its use cases in
   `queries/` and `commands/`, the ports `BackOfficeUnitOfWork`, the Kysely unit of work and adapters in
-  `database/`, the job in `jobs/`, the guard in `back-office-route.ts`. Identity gains the impersonation
+  `database/` (with `OperatorGrants`, which the `operator` command, `src/operator.ts`, alone uses), the job
+  in `jobs/`, the guard in `back-office-route.ts`. Identity gains the impersonation
   branch of `memberOf` and `operatorNamesOf`; `tenantRoutes` gains the read-only refusal.
 - **Web:** `/admin` sits behind the session guard but outside the app's frame, in `BackOfficeFrame`
   (`widgets/back-office-frame`), a top bar with its own menu (Organizations, Users) and the banner. Its

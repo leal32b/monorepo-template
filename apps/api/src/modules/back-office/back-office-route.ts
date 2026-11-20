@@ -1,11 +1,11 @@
-import type { IncomingMessage } from 'node:http'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { backOfficeLimits, backOfficeProblems, type OperatorSessionRefusal } from '@repo/contracts'
 import type * as z from 'zod/mini'
 import { readValidJson } from '#libs/http/body'
 import { sendJson } from '#libs/http/json'
 import { HttpProblem } from '#libs/http/problem'
 import { readValidQuery } from '#libs/http/query'
-import type { HttpHandler, HttpRouter } from '#libs/http/router'
+import { type HttpHandler, HttpRouter } from '#libs/http/router'
 import type { Clock } from '#libs/ports/clock.port'
 import type { Actor, CurrentSession } from '#modules/identity/index'
 import type { OperatorAccount, Operators } from './back-office-unit-of-work.port'
@@ -75,13 +75,11 @@ async function requireOperator(guard: OperatorGuard, req: IncomingMessage): Prom
 }
 
 function handler<Path extends BackOfficePath, Schema extends InputSchema>(
-  guard: OperatorGuard,
   method: Method,
   spec: BackOfficeRouteSpec<Schema>,
   run: (request: BackOfficeRequest<Path, Schema>) => Promise<unknown>
-): HttpHandler {
-  return async (req, res, { params }) => {
-    const operator = await requireOperator(guard, req)
+): OperatorHandler {
+  return async (req, res, params, operator) => {
     const schema = spec.input
     const input = (
       schema === undefined
@@ -96,17 +94,44 @@ function handler<Path extends BackOfficePath, Schema extends InputSchema>(
   }
 }
 
+type OperatorHandler = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+  operator: Actor
+) => Promise<void>
+
+/** Every method a request may carry: each one reaches the guard before anything is said of the path. */
+const everyMethod = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+
 /**
- * How the back office declares its routes (ADR 0077), its `tenantRoutes`. Each request reads the session and
- * the operator: no session, or no active operator, is the router's own 404, so the back office cannot be found;
- * an operator whose session lacks two-step verification, signs in another way, or is older than the grant or
- * than `backOfficeLimits.sessionHours`, gets `403 operator_session_refused` with the reason. Then the input,
- * then the use case.
+ * How the back office declares its routes (ADR 0077), its `tenantRoutes`. Every request under `/api/admin/`,
+ * whatever its method and whether its path exists, first reads the session and the operator: no session, or no
+ * active operator, is the router's own 404, so the back office cannot be found, not even by a 405. An operator
+ * whose session lacks two-step verification, signs in another way, or is older than the grant or than
+ * `backOfficeLimits.sessionHours`, gets `403 operator_session_refused` with the reason. Then the route, its
+ * input and the use case.
  */
 export function backOfficeRoutes(router: HttpRouter, guard: OperatorGuard): Record<Lowercase<Method>, Declare> {
+  const routes = new HttpRouter()
+  const handlers = new Map<HttpHandler, OperatorHandler>()
+  const serve: HttpHandler = async (req, res) => {
+    const operator = await requireOperator(guard, req)
+    const match = routes.match(req.method as string, (req.url as string).split('?')[0] as string)
+    if (match.kind === 'not-found') throw notFound()
+    if (match.kind === 'method-not-allowed') {
+      throw new HttpProblem(405, 'method_not_allowed', { headers: { Allow: match.allow.join(', ') } })
+    }
+    await (handlers.get(match.handler) as OperatorHandler)(req, res, match.params, operator)
+  }
+  for (const method of everyMethod) router.on(method, '/api/admin/*', serve)
   const on =
     (method: Method): Declare =>
-    (path, spec, run) =>
-      router.on(method, path, handler(guard, method, spec, run))
+    (path, spec, run) => {
+      // The inner router only matches: its handler is a key for the operator's handler, which needs the operator.
+      const key: HttpHandler = () => undefined
+      handlers.set(key, handler(method, spec, run))
+      routes.on(method, path, key)
+    }
   return { get: on('GET'), post: on('POST'), delete: on('DELETE') }
 }

@@ -16,6 +16,8 @@ import type { JobQueue } from '#libs/ports/job-queue.port'
 import { StorageOrganizationDeletion } from '#libs/storage/delete-files'
 import { kyselyAuditUnitOfWork } from '#modules/audit/database/kysely-audit-unit-of-work'
 import { registerAuditRoutes } from '#modules/audit/index'
+import { kyselyBackOfficeUnitOfWork } from '#modules/back-office/database/kysely-back-office-unit-of-work'
+import { registerBackOfficeRoutes } from '#modules/back-office/index'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
 import {
   cancelAtProvider,
@@ -209,6 +211,8 @@ export function createApp({
     inbox,
     logger
   })
+  // The operator back office (ADR 0077): every route under /api/admin/ answers 404 to whoever is not an operator.
+  registerBackOfficeRoutes(router, { session, unitOfWork: kyselyBackOfficeUnitOfWork(db, jobsOn), ids, clock })
   return createHttpServer({
     router,
     logger,

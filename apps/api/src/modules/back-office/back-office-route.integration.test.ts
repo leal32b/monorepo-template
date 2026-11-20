@@ -29,7 +29,7 @@ async function serve() {
   const seen: unknown[] = []
   const admin = backOfficeRoutes(router, {
     session,
-    operators: { find: async (id) => operators.get(id) ?? null, namesOf: async () => new Map() },
+    operators: { find: async (id) => operators.get(id) ?? null },
     clock: new FixedClock(now)
   })
   admin.get('/api/admin/things/:thingId', { input: z.strictObject({ q: z.optional(z.string()) }) }, async (request) => {
@@ -68,6 +68,20 @@ describe('backOfficeRoutes (ADR 0077)', () => {
     expect(await problemOf(await call('GET', '/api/admin/things/t-1'))).toEqual(missing)
     expect(await problemOf(await call('POST', '/api/admin/things', { wrong: true }))).toEqual(missing)
     expect(await problemOf(await call('DELETE', '/api/admin/things'))).toEqual(missing)
+    // Not even a method the path does not take tells it exists.
+    expect(await problemOf(await call('PUT', '/api/admin/things'))).toEqual(missing)
+    expect(await problemOf(await call('OPTIONS', '/api/admin/things'))).toEqual(missing)
+  })
+
+  it('tells an operator of a path that does not exist, and of a method a path does not take', async () => {
+    const { session, operators, call } = await serve()
+    session.actor = otto
+    operators.set(otto.userId, operator)
+
+    expect((await call('GET', '/api/admin/nothing-here')).status).toBe(404)
+    const wrong = await call('PUT', '/api/admin/things')
+    expect(wrong.status).toBe(405)
+    expect(wrong.headers.get('allow')).toBe('POST, DELETE, OPTIONS')
   })
 
   it('serves an operator, with the input, the parameters and the operator', async () => {

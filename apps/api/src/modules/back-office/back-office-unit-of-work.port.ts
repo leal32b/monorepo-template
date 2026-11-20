@@ -15,8 +15,6 @@ export type OperatorAccount = {
 export interface Operators {
   /** The active operator of this user id, or `null`: never one, or revoked. */
   find(userId: string): Promise<OperatorAccount | null>
-  /** Names of operators by user id, revoked ones included, for the audit trail; an account deleted is not in the map. */
-  namesOf(userIds: readonly string[]): Promise<Map<string, string>>
 }
 
 /** A page of one of the back office's searches: words to find (none is `undefined`), the page and its size. */
@@ -80,19 +78,18 @@ export interface Impersonations {
   end(id: string, at: Date, reason: EndReason): Promise<{ organizationId: string; operatorId: string } | null>
 }
 
+/** What the back office reads, in a read-only transaction. */
+export type BackOfficeReads = { operators: Operators; directory: BackOfficeDirectory; impersonations: Impersonations }
+
+/** What entering and leaving an organization write. */
+export type BackOfficeWrites = { impersonations: Impersonations; audit: AuditTrail; jobs: JobQueue }
+
 /**
  * The back office's database work (ADR 0077), as the role `app_operator`: `read` in a read-only transaction,
- * `write` for entering and leaving an organization, whose grants are all it can write.
+ * `write` for entering and leaving an organization, whose grants are all it can write. When `work` throws,
+ * nothing it wrote is kept.
  */
 export interface BackOfficeUnitOfWork {
-  read<T>(
-    work: (repositories: {
-      operators: Operators
-      directory: BackOfficeDirectory
-      impersonations: Impersonations
-    }) => Promise<T>
-  ): Promise<T>
-  write<T>(
-    work: (repositories: { impersonations: Impersonations; audit: AuditTrail; jobs: JobQueue }) => Promise<T>
-  ): Promise<T>
+  read<T>(work: (repositories: BackOfficeReads) => Promise<T>): Promise<T>
+  write<T>(work: (repositories: BackOfficeWrites) => Promise<T>): Promise<T>
 }
