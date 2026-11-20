@@ -164,18 +164,21 @@ describe('the organization export on the database (ADR 0074)', () => {
     expect(state).toMatchObject({ status: 'ready', expiresAt: '2026-11-26T12:00:00.000Z' })
   })
 
-  it("downloads the organization's data as a zip of CSV files, and logs who took it", async () => {
+  it("downloads the organization's data from the store, as a zip of CSV files, and logs who took it (ADR 0076)", async () => {
     const { owner, id, base } = await acme()
     await call('POST', base, owner.cookie)
     await jobs.worker.drain()
 
-    const response = await call('GET', `${base}/file`, owner.cookie)
+    const response = await fetch(`${url}${base}/file`, { headers: { Cookie: owner.cookie }, redirect: 'manual' })
 
-    expect(response.status).toBe(200)
-    expect(response.headers.get('content-disposition')).toBe(
-      'attachment; filename="organization-export-2026-11-19.zip"'
-    )
-    const files = unzip(Buffer.from(await response.arrayBuffer()))
+    expect(response.status).toBe(302)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    // The in-memory store's address: `memory://<key>?…`, what it grants in the query.
+    const [key, query] = (response.headers.get('location') as string).slice('memory://'.length).split('?')
+    expect(key).toMatch(new RegExp(`^exports/${id}/[\\w-]+\\.zip$`))
+    expect(new URLSearchParams(query).get('name')).toBe('organization-export-2026-11-19.zip')
+    expect(new URLSearchParams(query).get('expires')).toBe('300')
+    const files = unzip(storage.files.get(key as string)?.content as Buffer)
     expect(Object.keys(files)).toEqual([
       'organization.csv',
       'members.csv',

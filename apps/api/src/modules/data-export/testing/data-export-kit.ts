@@ -1,5 +1,6 @@
 import { FixedClock } from '#libs/adapters/fixed-clock'
 import { InMemoryAuditTrail } from '#libs/adapters/in-memory-audit-trail'
+import { InMemoryFileStorage } from '#libs/adapters/in-memory-file-storage'
 import { InMemoryJobs } from '#libs/adapters/in-memory-jobs'
 import { InMemoryUnitOfWork } from '#libs/adapters/in-memory-unit-of-work'
 import type { ExportTable } from '../export-table'
@@ -16,7 +17,8 @@ export const acme: DirectoryRead = {
 
 /**
  * What a data-export use-case or job test runs on (ADR 0074): the in-memory exports, trail and jobs, and tenant
- * records a test sets, in one unit of work, on a fixed clock, 19 November 2026 at noon, and a counter for ids.
+ * records a test sets, in one unit of work, and the in-memory store (ADR 0076), on a fixed clock, 19 November
+ * 2026 at noon, and a counter for ids.
  * The directory knows `org-1` as `acme` unless a test changes `directory.read`.
  */
 export function dataExportKit(now = new Date('2026-11-19T12:00:00.000Z')) {
@@ -37,5 +39,6 @@ export function dataExportKit(now = new Date('2026-11-19T12:00:00.000Z')) {
       organizationId === 'org-1' ? { ...acme, requester: requesterId === 'user-ada' ? acme.requester : null } : null
   }
   const webOrigin = 'https://app.example.com'
-  return { clock, ids, exports, audit, jobs, unitOfWork, directory, webOrigin }
+  const storage = new InMemoryFileStorage()
+  return { clock, ids, exports, audit, jobs, unitOfWork, directory, storage, webOrigin }
 }

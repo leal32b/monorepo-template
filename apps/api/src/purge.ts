@@ -6,7 +6,6 @@ import { purgeFinishedJobs } from '#libs/database/kysely-jobs'
 import { purgeRateLimits } from '#libs/database/kysely-rate-limiter'
 import { purgeWebhookEvents } from '#libs/database/kysely-webhook-inbox'
 import { createLogger } from '#libs/logging/create-logger'
-import { purgeExpiredExports } from '#modules/data-export/database/purge-expired-exports'
 import { purgeExpiredIdentityRows } from '#modules/identity/infrastructure/purge-expired'
 
 /**
@@ -37,9 +36,8 @@ try {
   const audit = await purgeAuditEntries(db, now)
   // Event ids of providers' notices (ADR 0063), after 30 days.
   const webhookEvents = await purgeWebhookEvents(db, now)
-  // Organization exports' files, 7 days after they were ready (ADR 0074); the rows stay.
-  const exports = await purgeExpiredExports(db, now)
-  logger.info({ removed: { identity, jobs, rateLimits, audit, webhookEvents, exports } }, 'expired rows purged')
+  // Organization exports' files are deleted from the store by a job at their expiry (ADR 0076), not here.
+  logger.info({ removed: { identity, jobs, rateLimits, audit, webhookEvents } }, 'expired rows purged')
 } catch (error) {
   logger.fatal({ err: error }, 'purge failed')
   process.exitCode = 1

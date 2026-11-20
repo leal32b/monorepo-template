@@ -1,4 +1,5 @@
 import { inflateRawSync } from 'node:zlib'
+import { deleteFiles } from '#libs/storage/delete-files'
 import { dataExportEmails } from '../../emails/data-export-emails'
 import { newExport } from '../../organization-export'
 import { dataExportKit } from '../../testing/data-export-kit'
@@ -31,13 +32,17 @@ async function requested(requestedBy = 'user-ada', organizationId = 'org-1') {
   return { kit, record, service }
 }
 
+const zipOf = (kit: ReturnType<typeof dataExportKit>, organizationId = 'org-1') =>
+  kit.storage.files.get(`exports/${organizationId}/export-1.zip`)
+
 describe('BuildExportService (ADR 0074)', () => {
-  it("builds a zip of one CSV per table, the plugin's and the tenant's, and keeps it ready for 7 days", async () => {
+  it("writes a zip of one CSV per table, the plugin's and the tenant's, to the store, and keeps it ready for 7 days", async () => {
     const { kit, service } = await requested()
 
     await service.execute({ organizationId: 'org-1', exportId: 'export-1' })
 
-    const file = (await kit.exports.file('org-1')) as Buffer
+    expect(zipOf(kit)?.type).toBe('application/zip')
+    const file = zipOf(kit)?.content as Buffer
     expect(filesOf(file)).toEqual({
       'organization.csv': '﻿id,name\r\norg-1,Acme Barbers\r\n',
       'customers.csv': '﻿id,name\r\nc-1,Grace\r\n'
@@ -49,12 +54,24 @@ describe('BuildExportService (ADR 0074)', () => {
     })
   })
 
+  it('deletes the file from the store when it expires (ADR 0076)', async () => {
+    const { kit, service } = await requested()
+
+    await service.execute({ organizationId: 'org-1', exportId: 'export-1' })
+
+    expect(kit.jobs.all[0]).toMatchObject({
+      kind: deleteFiles.kind,
+      payload: { keys: ['exports/org-1/export-1.zip'] },
+      runAt: new Date('2026-11-26T12:00:05.000Z')
+    })
+  })
+
   it('emails the owner who asked, in their language, with the day it expires in the organization’s calendar', async () => {
     const { kit, service } = await requested()
 
     await service.execute({ organizationId: 'org-1', exportId: 'export-1' })
 
-    expect(kit.jobs.all).toMatchObject([
+    expect(kit.jobs.all.slice(1)).toMatchObject([
       {
         kind: dataExportEmails.job.kind,
         payload: {
@@ -73,25 +90,25 @@ describe('BuildExportService (ADR 0074)', () => {
 
     await service.execute({ organizationId: 'org-1', exportId: 'export-1' })
 
-    expect(await kit.exports.file('org-1')).not.toBeNull()
-    expect(kit.jobs.all).toEqual([])
+    expect(zipOf(kit)).toBeDefined()
+    expect(kit.jobs.all.map(({ kind }) => kind)).toEqual([deleteFiles.kind])
   })
 
   it('does nothing for an export a new request replaced, one already built, or an organization gone', async () => {
     const { kit, service } = await requested()
     await service.execute({ organizationId: 'org-1', exportId: 'export-0' })
-    expect(await kit.exports.file('org-1')).toBeNull()
+    expect(kit.storage.files.size).toBe(0)
 
     await service.execute({ organizationId: 'org-1', exportId: 'export-1' })
     await service.execute({ organizationId: 'org-1', exportId: 'export-1' })
-    expect(kit.jobs.all).toHaveLength(1)
+    expect(kit.jobs.all).toHaveLength(2)
 
     const gone = await requested('user-ada', 'org-9')
     await gone.service.execute({ organizationId: 'org-9', exportId: 'export-1' })
-    expect(await gone.kit.exports.file('org-9')).toBeNull()
+    expect(zipOf(gone.kit, 'org-9')).toBeUndefined()
   })
 
-  it('sends nothing when a request replaced the export while it was being built', async () => {
+  it('sends nothing, and deletes the file it wrote, when a request replaced the export while it was being built', async () => {
     const { kit, record, service } = await requested()
     const read = kit.directory.read
     kit.directory.read = async (organizationId, requesterId) => {
@@ -101,7 +118,7 @@ describe('BuildExportService (ADR 0074)', () => {
 
     await service.execute({ organizationId: 'org-1', exportId: 'export-1' })
 
-    expect(await kit.exports.file('org-1')).toBeNull()
+    expect(kit.storage.files.size).toBe(0)
     expect(kit.jobs.all).toEqual([])
   })
 })

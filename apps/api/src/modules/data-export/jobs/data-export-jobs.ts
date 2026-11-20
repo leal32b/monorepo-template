@@ -1,5 +1,6 @@
 import * as z from 'zod/mini'
 import type { Clock } from '#libs/ports/clock.port'
+import type { FileStorage } from '#libs/ports/file-storage.port'
 import type { JobDefinition, JobRegistrar } from '#libs/ports/job-queue.port'
 import { type BuildExport, BuildExportService } from '../commands/build-export/build-export.service'
 import type { DataExportUnitOfWork } from '../data-export-unit-of-work.port'
@@ -19,6 +20,8 @@ export const buildExport: JobDefinition<BuildExport> = {
 export type DataExportJobsDeps = {
   unitOfWork: DataExportUnitOfWork
   directory: OrganizationDirectory
+  /** Where the zip is written (ADR 0076). */
+  storage: FileStorage
   clock: Clock
   /** The web origin the email's button opens. */
   webOrigin: string

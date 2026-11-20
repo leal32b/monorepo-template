@@ -2,7 +2,7 @@ import type { IncomingMessage } from 'node:http'
 import { type Capability, entitlement, type Permissions, subscriptionProblems } from '@repo/contracts'
 import type * as z from 'zod/mini'
 import { readValidJson } from '#libs/http/body'
-import { FileDownload, sendFile } from '#libs/http/file'
+import { FileRedirect, sendRedirect } from '#libs/http/file'
 import { sendJson } from '#libs/http/json'
 import { HttpProblem } from '#libs/http/problem'
 import { readValidQuery } from '#libs/http/query'
@@ -97,7 +97,7 @@ function handler<Path extends TenantPath, Schema extends InputSchema>(
     const input = (await readInput(req, method, spec.input)) as TenantRequest<Path, Schema>['input']
     const output = await run({ organizationId, input, params, actor: { kind: 'member', id: member.userId }, member })
     if (output === undefined) res.writeHead(204).end()
-    else if (output instanceof FileDownload) sendFile(res, output)
+    else if (output instanceof FileRedirect) sendRedirect(res, output)
     else sendJson(res, spec.status ?? 200, output)
   }
 }
@@ -108,7 +108,7 @@ function handler<Path extends TenantPath, Schema extends InputSchema>(
  * the route's permission, then what the subscription refuses (ADR 0063), then parses its input with
  * the contract schema, then hands the use case the organization's id, the input, the path's
  * parameters, the member as the audit actor (ADR 0061) and the member itself, and answers with what
- * it returns: JSON, nothing (204), or a `FileDownload` as an attachment (ADR 0074). The organization's id comes only out of here, so no tenant route runs without the
+ * it returns: JSON, nothing (204), or a `FileRedirect` to the store's signed address (ADR 0076). The organization's id comes only out of here, so no tenant route runs without the
  * guard; a use case does its database work in `unitOfWork.run(organizationId, …)` (ADR 0055).
  */
 export function tenantRoutes(router: HttpRouter, guard: TenantGuard): Record<Lowercase<Method>, Declare> {

@@ -83,6 +83,7 @@ export function createJobs({
   registerDataExportJobs(registry, {
     unitOfWork: kyselyDataExportUnitOfWork(db, bind),
     directory: new KyselyOrganizationDirectory(db),
+    storage,
     clock,
     webOrigin
   })

@@ -45,10 +45,11 @@ export async function serveRoutes(register: (router: HttpRouter, ports: TenantGu
       session.actor = ada
       membership.add({ userId: ada.userId, organizationId, roles: ['custom'], permissions, ...plan }, name)
     },
-    /** A request to `path`, with `body` sent as JSON when there is one. */
+    /** A request to `path`, with `body` sent as JSON when there is one; a redirect is answered, not followed. */
     call(method: string, path: string, body?: unknown): Promise<Response> {
       return fetch(`${origin}${path}`, {
         method,
+        redirect: 'manual',
         headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
         body: body === undefined ? null : JSON.stringify(body)
       })

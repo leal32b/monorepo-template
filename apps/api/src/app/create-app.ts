@@ -183,6 +183,7 @@ export function createApp({
     session,
     membership,
     unitOfWork: kyselyDataExportUnitOfWork(db, jobsOn),
+    storage,
     clock,
     ids,
     logger

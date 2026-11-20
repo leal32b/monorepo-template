@@ -1,5 +1,5 @@
 import * as z from 'zod/mini'
-import { FileDownload } from '#libs/http/file'
+import { FileRedirect } from '#libs/http/file'
 import { HttpRouter } from '#libs/http/router'
 import { tenantRoutes } from './tenant-route'
 import { FakeCurrentSession } from './testing/fake-current-session'
@@ -32,11 +32,11 @@ async function serve() {
       input: input ?? 'none'
     }))
     tenant.delete(`${base}/:thingId`, { permission: { customer: ['delete'] } }, async () => undefined)
-    // A file to download (ADR 0074).
+    // A file to download, at the store's signed address (ADR 0076).
     tenant.get(
       `${base}/:thingId/file`,
       { permission: { customer: ['read'] } },
-      async () => new FileDownload('things 2026.zip', 'application/zip', Buffer.from('PK\u0003\u0004'))
+      async () => new FileRedirect('https://store.example.com/files/things.zip?X-Amz-Signature=abc')
     )
     // A capability of the plan, on a read and on a write (ADR 0063).
     tenant.get(`${base}/report`, { permission: { customer: ['read'] }, entitlement: 'activity-log' }, async () => ({
@@ -164,20 +164,17 @@ describe('tenantRoutes (ADR 0065)', () => {
     expect(await response.text()).toBe('')
   })
 
-  it('answers a file as an attachment that no cache keeps (ADR 0074)', async () => {
+  it('answers a file with a redirect to the store’s signed address, which no cache keeps (ADR 0076)', async () => {
     const { signInWith, call } = await serve()
     signInWith(['read'])
 
     const response = await call('GET', 'org-1/things/t-1/file')
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(302)
     expect(Object.fromEntries(response.headers)).toMatchObject({
-      'content-type': 'application/zip',
-      'content-length': '4',
-      'content-disposition': 'attachment; filename="things 2026.zip"',
+      location: 'https://store.example.com/files/things.zip?X-Amz-Signature=abc',
       'cache-control': 'no-store'
     })
-    expect(Buffer.from(await response.arrayBuffer())).toEqual(Buffer.from('PK\u0003\u0004'))
   })
 
   describe('the subscription (ADR 0063)', () => {
