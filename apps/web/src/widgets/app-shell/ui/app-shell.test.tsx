@@ -2,10 +2,12 @@ import type { OrganizationMembership } from '@repo/contracts'
 import { createMemoryHistory, MemoryRouter, Route } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor, within } from '@solidjs/testing-library'
 import { createResource, Suspense } from 'solid-js'
+import { ImpersonationProvider, rememberImpersonation } from '#entities/operators'
 import { CurrentOrganizationProvider, type Organization, OrganizationsProvider } from '#entities/organizations'
 import { hasSession, rememberSession, SessionProvider } from '#entities/sessions'
-import { AuthProvider, createAuthClient } from '#shared/api'
+import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale, PaletteProvider, ThemeProvider } from '#shared/config'
+import { visitToAcme } from '../../../test-back-office'
 import { membershipOf } from '../../../test-membership'
 import { AppFrame } from './app-frame'
 import { AppShell } from './app-shell'
@@ -22,6 +24,8 @@ type Options = {
   members?: () => Promise<string>
   /** The caller's membership in the organization: an owner on trial unless said. */
   membership?: OrganizationMembership
+  /** An operator's visit to the organization, read only (ADR 0077). */
+  visiting?: boolean
 }
 
 /** A screen that reads what it shows, so a navigation to it waits, as the app's screens do. */
@@ -41,8 +45,14 @@ function renderShell({
   path = '/projects',
   organization,
   members = async () => 'The members',
-  membership = membershipOf(['owner'], {})
+  membership = membershipOf(['owner'], {}),
+  visiting = false
 }: Options = {}) {
+  if (visiting) rememberImpersonation()
+  const api = createApiClient({
+    fetch: async () =>
+      Response.json({ impersonation: visiting && organization ? { ...visitToAcme, organization } : null })
+  })
   const authFetch: Fetch =
     auth ??
     (async (input) =>
@@ -57,82 +67,86 @@ function renderShell({
         <PaletteProvider>
           <AuthProvider client={createAuthClient({ fetch: authFetch })}>
             <SessionProvider user={{ id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace' }}>
-              <MemoryRouter
-                history={history}
-                // As in the app: the screens sit in the session's `Suspense`, which has already shown its content.
-                root={(root) => (
-                  <Suspense>
-                    {organization === undefined ? (
-                      <AppFrame>{root.children}</AppFrame>
-                    ) : (
-                      <OrganizationsProvider>
-                        <CurrentOrganizationProvider organization={organization} membership={membership}>
+              <ApiProvider client={api}>
+                <ImpersonationProvider>
+                  <MemoryRouter
+                    history={history}
+                    // As in the app: the screens sit in the session's `Suspense`, which has already shown its content.
+                    root={(root) => (
+                      <Suspense>
+                        {organization === undefined ? (
                           <AppFrame>{root.children}</AppFrame>
-                        </CurrentOrganizationProvider>
-                      </OrganizationsProvider>
+                        ) : (
+                          <OrganizationsProvider>
+                            <CurrentOrganizationProvider organization={organization} membership={membership}>
+                              <AppFrame>{root.children}</AppFrame>
+                            </CurrentOrganizationProvider>
+                          </OrganizationsProvider>
+                        )}
+                      </Suspense>
                     )}
-                  </Suspense>
-                )}
-              >
-                <Route
-                  path="/projects"
-                  component={() => (
-                    <AppShell title="Projects">
-                      <p>The projects</p>
-                    </AppShell>
-                  )}
-                />
-                <Route
-                  path="/"
-                  component={() => (
-                    <AppShell title="Start">
-                      <p>The start</p>
-                    </AppShell>
-                  )}
-                />
-                <Route
-                  path="/acme/settings/general"
-                  component={() => (
-                    <AppShell title="General">
-                      <p>The general</p>
-                    </AppShell>
-                  )}
-                />
-                <Route path="/acme/settings/members" component={() => <Members read={members} />} />
-                <Route
-                  path="/acme/settings/billing"
-                  component={() => (
-                    <AppShell title="Plan and billing">
-                      <p>The plans</p>
-                    </AppShell>
-                  )}
-                />
-                <Route
-                  path="/invitation"
-                  component={() => (
-                    <AppShell title="Invitation to Globex" description="Grace Hopper invited you to Globex.">
-                      <p>The answer</p>
-                    </AppShell>
-                  )}
-                />
-                <Route
-                  path="/settings/security"
-                  component={() => (
-                    <AppShell title="Security">
-                      <p>The security</p>
-                    </AppShell>
-                  )}
-                />
-                <Route
-                  path="/settings/profile"
-                  component={() => (
-                    <AppShell title="Profile">
-                      <p>The profile</p>
-                    </AppShell>
-                  )}
-                />
-                <Route path="/login" component={() => <p>The sign-in</p>} />
-              </MemoryRouter>
+                  >
+                    <Route
+                      path="/projects"
+                      component={() => (
+                        <AppShell title="Projects">
+                          <p>The projects</p>
+                        </AppShell>
+                      )}
+                    />
+                    <Route
+                      path="/"
+                      component={() => (
+                        <AppShell title="Start">
+                          <p>The start</p>
+                        </AppShell>
+                      )}
+                    />
+                    <Route
+                      path="/acme/settings/general"
+                      component={() => (
+                        <AppShell title="General">
+                          <p>The general</p>
+                        </AppShell>
+                      )}
+                    />
+                    <Route path="/acme/settings/members" component={() => <Members read={members} />} />
+                    <Route
+                      path="/acme/settings/billing"
+                      component={() => (
+                        <AppShell title="Plan and billing">
+                          <p>The plans</p>
+                        </AppShell>
+                      )}
+                    />
+                    <Route
+                      path="/invitation"
+                      component={() => (
+                        <AppShell title="Invitation to Globex" description="Grace Hopper invited you to Globex.">
+                          <p>The answer</p>
+                        </AppShell>
+                      )}
+                    />
+                    <Route
+                      path="/settings/security"
+                      component={() => (
+                        <AppShell title="Security">
+                          <p>The security</p>
+                        </AppShell>
+                      )}
+                    />
+                    <Route
+                      path="/settings/profile"
+                      component={() => (
+                        <AppShell title="Profile">
+                          <p>The profile</p>
+                        </AppShell>
+                      )}
+                    />
+                    <Route path="/login" component={() => <p>The sign-in</p>} />
+                  </MemoryRouter>
+                </ImpersonationProvider>
+              </ApiProvider>
             </SessionProvider>
           </AuthProvider>
         </PaletteProvider>
@@ -508,6 +522,19 @@ describe('AppShell', () => {
   })
 
   describe('in the settings', () => {
+    it("offers an operator inside the organization only the settings it can read, under the visit's banner (ADR 0077)", async () => {
+      const acme = { id: 'org-1', name: 'Acme', slug: 'acme', timeZone: 'UTC', currency: 'USD' as const }
+      renderShell({ path: '/acme/settings/general', organization: acme, visiting: true })
+
+      expect(await screen.findByText('You are viewing Acme as its owner sees it')).toBeInTheDocument()
+      const settings = within(screen.getByRole('navigation', { name: 'Settings' }))
+      const list = within(settings.getByRole('list', { name: 'Organization' }))
+      await waitFor(() =>
+        expect(list.getAllByRole('link').map((link) => link.textContent)).toEqual(['General', 'Activity'])
+      )
+      window.localStorage.clear()
+    })
+
     it('swaps the side menu for the way back and the settings, the current one marked', () => {
       renderShell({ path: '/settings/security' })
 

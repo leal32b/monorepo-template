@@ -54,14 +54,13 @@ export class InMemoryBackOffice implements BackOfficeUnitOfWork {
       return record
     },
     start: async ({ id, operatorId, organizationId, startedAt, expiresAt }) => {
-      const { name, slug } = this.organizations.find((organization) => organization.id === organizationId) as {
-        name: string
-        slug: string
-      }
+      const { name, slug, timeZone, currency } = this.organizations.find(
+        (organization) => organization.id === organizationId
+      ) as DirectoryOrganizationDetail
       this.visits.push({
         id,
         operatorId,
-        organization: { id: organizationId, name, slug },
+        organization: { id: organizationId, name, slug, timeZone, currency },
         startedAt,
         expiresAt,
         endedAt: null,

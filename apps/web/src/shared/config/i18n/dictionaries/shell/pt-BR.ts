@@ -34,6 +34,13 @@ export const shellPtBR: typeof shellEn = {
       page: 'Página {{page}} de {{pages}}'
     }
   },
+  /** An operator inside an organization, read only (ADR 0077): the banner every screen draws. */
+  impersonation: {
+    title: 'Você está vendo {{name}} como o dono vê',
+    description: 'Somente leitura: nada do que você fizer aqui muda a organização. A visita termina em {{time}}.',
+    leave: 'Sair',
+    leaveFailed: 'Não foi possível sair. Verifique sua conexão e tente de novo.'
+  },
   notFound: {
     title: 'Página não encontrada',
     description: 'O endereço pode estar errado, ou a página pode ter mudado.',

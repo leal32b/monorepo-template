@@ -48,7 +48,13 @@ export class StartImpersonationService {
       return impersonationResponse({
         id,
         operatorId,
-        organization: { id: organization.id, name: organization.name, slug: organization.slug },
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          timeZone: organization.timeZone,
+          currency: organization.currency
+        },
         startedAt,
         expiresAt
       })

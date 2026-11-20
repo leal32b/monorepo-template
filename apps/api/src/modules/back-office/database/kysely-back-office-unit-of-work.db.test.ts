@@ -37,7 +37,8 @@ beforeAll(async () => {
         ('s-2', '2026-12-01', 't-2', '2026-11-12T08:00:00Z', now(), 'user-ada');
       insert into auth."organization" (id, name, slug, "createdAt", "timeZone", currency) values
         ('org-acme', 'Acme', 'acme', '2026-11-01T09:00:00Z', 'America/Sao_Paulo', 'BRL'),
-        ('org-beta', 'Beta', 'beta', '2026-11-05T09:00:00Z', 'UTC', 'USD');
+        ('org-beta', 'Beta', 'beta', '2026-11-05T09:00:00Z', 'UTC', 'USD'),
+        ('org-new', 'New', 'new', '2026-10-01T09:00:00Z', 'UTC', 'USD');
       insert into auth."member" (id, "organizationId", "userId", role, "createdAt") values
         ('m-1', 'org-acme', 'user-ada', 'owner', '2026-11-01T09:00:00Z'),
         ('m-2', 'org-acme', 'user-bob', 'member,editor', '2026-11-03T09:00:00Z'),
@@ -45,7 +46,9 @@ beforeAll(async () => {
       insert into subscription (organization_id, status, plan, trial_ends_at, period_starts_at, paid_through,
           cancel_at_period_end, checkout_kind, checkout_plan, checkout_amount, created_at, updated_at)
         values ('org-acme', 'active', 'basic', '2026-11-15T09:00:00Z', '2026-11-15T09:00:00Z', '2026-12-15T09:00:00Z',
-          false, 'upgrade', 'pro', 2000, now(), now());
+          false, 'upgrade', 'pro', 2000, now(), now()),
+        ('org-new', 'cancelled', 'basic', '2026-10-15T09:00:00Z', '2026-10-15T09:00:00Z', '2026-11-15T09:00:00Z',
+          false, null, null, null, now(), now());
       insert into operator (id, user_id, granted_at, granted_by, revoked_at, revoked_by) values
         ('op-ada', 'user-ada', '2026-11-10T00:00:00Z', 'test', null, null),
         ('op-bob', 'user-bob', '2026-11-10T00:00:00Z', 'test', null, null),
@@ -104,7 +107,7 @@ describe('kyselyBackOfficeUnitOfWork (ADR 0077)', () => {
       directory.organizations({ search: undefined, page: 1, pageSize: 1 })
     )
 
-    expect(page.total).toBe(2)
+    expect(page.total).toBe(3)
     expect(page.items).toEqual([
       {
         id: 'org-beta',
@@ -124,6 +127,16 @@ describe('kyselyBackOfficeUnitOfWork (ADR 0077)', () => {
       owner: { id: 'user-ada' },
       members: 2,
       subscription: { status: 'active', plan: 'basic', checkout: { kind: 'upgrade', plan: 'pro' } }
+    })
+    // An organization whose owner is gone, as for a moment while it is created, has none.
+    const third = await unitOfWork.read(({ directory }) =>
+      directory.organizations({ search: undefined, page: 3, pageSize: 1 })
+    )
+    expect(third.items[0]).toMatchObject({
+      id: 'org-new',
+      owner: null,
+      members: 0,
+      subscription: { status: 'cancelled', checkout: null }
     })
   })
 
@@ -221,7 +234,7 @@ describe('kyselyBackOfficeUnitOfWork (ADR 0077)', () => {
     expect(await unitOfWork.read(({ impersonations }) => impersonations.active('user-ada'))).toEqual({
       id: 'v-1',
       operatorId: 'user-ada',
-      organization: { id: 'org-beta', name: 'Beta', slug: 'beta' },
+      organization: { id: 'org-beta', name: 'Beta', slug: 'beta', timeZone: 'UTC', currency: 'USD' },
       startedAt,
       expiresAt
     })

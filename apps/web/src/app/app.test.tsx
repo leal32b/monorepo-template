@@ -1113,6 +1113,78 @@ describe('App', () => {
     })
   })
 
+  describe('the operator back office (ADR 0077)', () => {
+    const user = { id: 'u9', email: 'otto@example.com', name: 'Otto', twoFactorEnabled: true, locale: 'en' }
+    const page = { total: 0, page: 1, pageSize: 20 }
+    const acme = {
+      id: 'org-1',
+      name: 'Acme',
+      slug: 'acme',
+      createdAt: '2026-11-01T00:00:00.000Z',
+      timeZone: 'UTC',
+      currency: 'USD',
+      subscription: {
+        status: 'trialing',
+        access: 'full',
+        plan: null,
+        nextPlan: null,
+        trialEndsAt: '2026-11-15T00:00:00.000Z',
+        periodStartsAt: null,
+        paidThrough: null,
+        pastDueSince: null,
+        cancelAtPeriodEnd: false,
+        checkout: null
+      },
+      members: []
+    }
+    /** An operator signed in, the back office answering each of its reads; returns what was asked. */
+    const asOperator = () => {
+      rememberSession()
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/admin/impersonation') return Response.json({ impersonation: null })
+          if (path.startsWith('/api/admin/organizations/')) return Response.json(acme)
+          if (path.startsWith('/api/admin/organizations')) return Response.json({ ...page, items: [] })
+          return Response.json({ ...page, items: [] })
+        }
+      })
+      const auth = createAuthClient({
+        fetch: async (input) =>
+          String(input).includes('/organization/list')
+            ? Response.json([])
+            : Response.json({ session: { id: 's9' }, user })
+      })
+      return { client, auth, asked }
+    }
+
+    it('opens on the organizations, read as the screen opens, in the frame of its own', async () => {
+      window.history.replaceState(null, '', '/admin')
+      const { client, auth, asked } = asOperator()
+
+      render(() => <App client={client} auth={auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'Organizations' })).toBeInTheDocument()
+      await waitFor(() => expect(window.location.pathname).toBe('/admin/organizations'))
+      expect(await screen.findByText('No organization yet')).toBeInTheDocument()
+      expect(asked).toContain('/api/admin/organizations?page=1')
+    })
+
+    it("serves an organization's page and the users, each read as it opens", async () => {
+      window.history.replaceState(null, '', '/admin/organizations/org-1')
+      const { client, auth, asked } = asOperator()
+
+      render(() => <App client={client} auth={auth} locale="en" />)
+
+      expect(await screen.findByRole('region', { name: 'Acme' })).toBeInTheDocument()
+      expect(asked).toContain('/api/admin/organizations/org-1')
+      follow('/admin/users')
+      expect(await screen.findByText('No user yet')).toBeInTheDocument()
+      expect(asked).toContain('/api/admin/users?page=1')
+    })
+  })
+
   it('answers an address that does not exist with a page that says so', () => {
     const client = createApiClient({ fetch: async () => Response.json(null) })
     const auth = createAuthClient({ fetch: async () => Response.json(null) })

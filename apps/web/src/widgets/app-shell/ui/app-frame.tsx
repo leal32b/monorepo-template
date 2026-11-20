@@ -1,6 +1,7 @@
 import { Sheet } from '@repo/ui'
 import { useLocation, useNavigate } from '@solidjs/router'
 import { createEffect, createSignal, on, type ParentProps, Show } from 'solid-js'
+import { ImpersonationBanner } from '#features/leave-impersonation'
 import { createSignOut } from '#features/sign-out'
 import { useI18n, usePalette } from '#shared/config'
 import { useInSettings } from '../model/in-settings'
@@ -57,6 +58,7 @@ export function AppFrame(props: ParentProps) {
 
   return (
     <ShellContext.Provider value={shell}>
+      <ImpersonationBanner />
       <div class={framed() ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]' : undefined}>
         <Show when={framed()}>
           <aside class="sticky top-0 hidden h-screen border-r border-border-subtle md:block">{sidebar()}</aside>

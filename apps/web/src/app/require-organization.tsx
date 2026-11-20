@@ -11,6 +11,7 @@ import {
   Suspense,
   Switch
 } from 'solid-js'
+import { useImpersonation } from '#entities/operators'
 import {
   CurrentOrganizationProvider,
   getMembership,
@@ -41,7 +42,20 @@ import { OrganizationsUnavailable } from './organizations-unavailable'
  */
 export function RequireOrganization(props: ParentProps) {
   const params = useParams<{ orgSlug: string }>()
-  const { list, known, refetch } = useOrganizations()
+  const { list, known: own, refetch } = useOrganizations()
+  const impersonation = useImpersonation()
+  /**
+   * The user's organizations, and the one an operator is inside, read only, though no member (ADR 0077); unknown
+   * while the back office is asked which visit is on.
+   */
+  const known = (): Organization[] | undefined => {
+    const organizations = own()
+    const visit = impersonation.current()
+    if (organizations === undefined || visit === undefined) return undefined
+    if (visit === null || organizations.some((candidate) => candidate.id === visit.organization.id))
+      return organizations
+    return [...organizations, visit.organization]
+  }
   const organization = createMemo<Organization | undefined>((previous) => {
     const organizations = known()
     if (organizations === undefined) return undefined
@@ -58,7 +72,7 @@ export function RequireOrganization(props: ParentProps) {
       <Match when={list.error}>
         <OrganizationsUnavailable retry={refetch} />
       </Match>
-      <Match when={list.state === 'ready' && organization() === undefined}>
+      <Match when={list.state === 'ready' && impersonation.current() !== undefined && organization() === undefined}>
         <NotFoundPage />
       </Match>
       <Match when={organization()?.id} keyed>

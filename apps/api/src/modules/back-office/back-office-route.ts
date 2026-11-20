@@ -114,7 +114,8 @@ const everyMethod = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
  */
 export function backOfficeRoutes(router: HttpRouter, guard: OperatorGuard): Record<Lowercase<Method>, Declare> {
   const routes = new HttpRouter()
-  const handlers = new Map<HttpHandler, OperatorHandler>()
+  // The operator each request was served for, which the inner router's handlers read back.
+  const operators = new WeakMap<IncomingMessage, Actor>()
   const serve: HttpHandler = async (req, res) => {
     const operator = await requireOperator(guard, req)
     const match = routes.match(req.method as string, (req.url as string).split('?')[0] as string)
@@ -122,16 +123,15 @@ export function backOfficeRoutes(router: HttpRouter, guard: OperatorGuard): Reco
     if (match.kind === 'method-not-allowed') {
       throw new HttpProblem(405, 'method_not_allowed', { headers: { Allow: match.allow.join(', ') } })
     }
-    await (handlers.get(match.handler) as OperatorHandler)(req, res, match.params, operator)
+    operators.set(req, operator)
+    await match.handler(req, res, { params: match.params, requestId: '' })
   }
   for (const method of everyMethod) router.on(method, '/api/admin/*', serve)
   const on =
     (method: Method): Declare =>
     (path, spec, run) => {
-      // The inner router only matches: its handler is a key for the operator's handler, which needs the operator.
-      const key: HttpHandler = () => undefined
-      handlers.set(key, handler(method, spec, run))
-      routes.on(method, path, key)
+      const serveOperator = handler(method, spec, run)
+      routes.on(method, path, (req, res, { params }) => serveOperator(req, res, params, operators.get(req) as Actor))
     }
   return { get: on('GET'), post: on('POST'), delete: on('DELETE') }
 }

@@ -1,6 +1,7 @@
 import { cn, hasDuotone, Icon, type IconName } from '@repo/ui'
 import { A } from '@solidjs/router'
 import { createUniqueId, For, type JSX, Show } from 'solid-js'
+import { useImpersonation } from '#entities/operators'
 import { homeOf, startingOrganization, useOptionalOrganizations } from '#entities/organizations'
 import { useI18n } from '#shared/config'
 import { useInSettings } from '../model/in-settings'
@@ -39,6 +40,9 @@ const accountItems: Item<'profile' | 'security' | 'preferences'>[] = [
   { href: '/settings/security', label: 'security', icon: 'security' },
   { href: '/settings/preferences', label: 'preferences', icon: 'monitor' }
 ]
+
+/** The settings an operator inside the organization can read (ADR 0077): the others ask Better Auth, which knows no visit. */
+const visitable = new Set(['general', 'activity'])
 
 /** The settings of the organization, under its slug (ADR 0034). */
 const organizationItems = (home: string): Item<'general' | 'members' | 'roles' | 'activity' | 'billing'>[] => [
@@ -95,6 +99,7 @@ export function Sidebar(props: SidebarProps) {
   const current = useShellOrganization()
   const home = () => homeOf(current())
   const organizations = useOptionalOrganizations()
+  const impersonation = useImpersonation()
   /**
    * The organization the settings' own part is about: the screen's, or, on an account screen, the one
    * `/` would open (the last one used here, else the first), once the list is read.
@@ -175,7 +180,12 @@ export function Sidebar(props: SidebarProps) {
                   {t('appShell.nav.organization')}
                 </p>
                 <ul aria-labelledby={organizationLabel} class="m-0 flex list-none flex-col gap-1 p-0">
-                  <For each={organizationItems(homeOf(organization()))}>
+                  <For
+                    each={organizationItems(homeOf(organization())).filter(
+                      (item) =>
+                        impersonation.current()?.organization.id !== organization().id || visitable.has(item.label)
+                    )}
+                  >
                     {(item) => (
                       <li>
                         <NavLink href={item.href} icon={item.icon} path={props.path} onNavigate={props.onNavigate}>

@@ -36,7 +36,7 @@ describe('entering and leaving an organization (ADR 0077)', () => {
     const visit = await start.execute('user-otto', 'org-acme')
 
     expect(visit).toEqual({
-      organization: { id: 'org-acme', name: 'Name of org-acme', slug: 'org-acme' },
+      organization: { id: 'org-acme', name: 'Name of org-acme', slug: 'org-acme', timeZone: 'UTC', currency: 'USD' },
       startedAt: '2026-11-20T12:00:00.000Z',
       endsAt: '2026-11-20T12:30:00.000Z'
     })

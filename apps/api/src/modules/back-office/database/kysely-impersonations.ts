@@ -17,8 +17,11 @@ export class KyselyImpersonations implements Impersonations {
       organization_id: string
       name: string
       slug: string
+      timeZone: string
+      currency: string
     }>`
-      select visit.id, visit.started_at, visit.expires_at, visit.organization_id, organization.name, organization.slug
+      select visit.id, visit.started_at, visit.expires_at, visit.organization_id, organization.name, organization.slug,
+        organization."timeZone", organization.currency
       from impersonation visit
       join auth."organization" organization on organization.id = visit.organization_id
       where visit.operator_id = ${operatorId} and visit.ended_at is null
@@ -29,7 +32,13 @@ export class KyselyImpersonations implements Impersonations {
       : {
           id: row.id,
           operatorId,
-          organization: { id: row.organization_id, name: row.name, slug: row.slug },
+          organization: {
+            id: row.organization_id,
+            name: row.name,
+            slug: row.slug,
+            timeZone: row.timeZone,
+            currency: row.currency
+          },
           startedAt: row.started_at,
           expiresAt: row.expires_at
         }

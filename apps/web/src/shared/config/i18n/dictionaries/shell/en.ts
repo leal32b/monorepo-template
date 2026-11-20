@@ -32,6 +32,13 @@ export const shellEn = {
       page: 'Page {{page}} of {{pages}}'
     }
   },
+  /** An operator inside an organization, read only (ADR 0077): the banner every screen draws. */
+  impersonation: {
+    title: 'You are viewing {{name}} as its owner sees it',
+    description: 'Read only: nothing you do here changes it. Your visit ends on {{time}}.',
+    leave: 'Leave',
+    leaveFailed: 'Could not leave. Check your connection and try again.'
+  },
   notFound: {
     title: 'Page not found',
     description: 'The address may be wrong, or the page may have moved.',

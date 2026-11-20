@@ -119,7 +119,14 @@ export type BackOfficeUserPage = z.infer<typeof backOfficeUserPageSchema>
 
 /** An operator's visit to an organization, until `endsAt` (ADR 0077). */
 export const impersonationSchema = z.object({
-  organization: z.object({ id: z.string(), name: z.string(), slug: z.string() }),
+  /** What the tenant screens draw it with, as Better Auth's list gives a member's organizations. */
+  organization: z.object({
+    id: z.string(),
+    name: z.string(),
+    slug: z.string(),
+    timeZone: timeZoneSchema,
+    currency: currencySchema
+  }),
   startedAt: instantSchema,
   endsAt: instantSchema
 })

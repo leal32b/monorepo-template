@@ -58,7 +58,7 @@ export type EndReason = 'left' | 'expired' | 'revoked'
 export type ImpersonationRecord = {
   id: string
   operatorId: string
-  organization: { id: string; name: string; slug: string }
+  organization: { id: string; name: string; slug: string; timeZone: string; currency: string }
   startedAt: Date
   expiresAt: Date
 }

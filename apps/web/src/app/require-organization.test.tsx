@@ -1,9 +1,11 @@
 import { A, createMemoryHistory, MemoryRouter, Route, useNavigate } from '@solidjs/router'
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library'
 import { type Component, createResource, type ParentProps, Show, Suspense } from 'solid-js'
+import { ImpersonationProvider, rememberImpersonation } from '#entities/operators'
 import { OrganizationsProvider, useOrganization, useOrganizations } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, PaletteProvider } from '#shared/config'
+import { visitToAcme } from '../test-back-office'
 import { membershipOf } from '../test-membership'
 import { RequireOrganization } from './require-organization'
 
@@ -45,6 +47,70 @@ function renderAt(path: string, api: ApiFetch, organizations: unknown = [acme]) 
 
 describe('RequireOrganization', () => {
   afterEach(() => window.localStorage.clear())
+
+  it("adds the organization an operator is inside, read only, to the user's own, once the back office says so (ADR 0077)", async () => {
+    rememberImpersonation()
+    const beta = { id: 'org-2', name: 'Beta', slug: 'beta', timeZone: 'UTC', currency: 'USD' as const }
+    const api = vi.fn<ApiFetch>(async (path) =>
+      path === '/api/admin/impersonation'
+        ? Response.json({ impersonation: { ...visitToAcme, organization: beta } })
+        : Response.json(membershipOf(['owner'], { customer: ['read'] }))
+    )
+    const history = createMemoryHistory()
+    history.set({ value: '/beta' })
+    render(() => (
+      <I18nProvider locale="en">
+        <PaletteProvider>
+          <ApiProvider client={createApiClient({ fetch: api })}>
+            <AuthProvider client={createAuthClient({ fetch: async () => Response.json([acme]) })}>
+              <ImpersonationProvider>
+                <MemoryRouter history={history}>
+                  <Route path="/" component={OrganizationsProvider}>
+                    <Route path="/:orgSlug" component={RequireOrganization}>
+                      <Route path="/" component={Rights} />
+                    </Route>
+                  </Route>
+                </MemoryRouter>
+              </ImpersonationProvider>
+            </AuthProvider>
+          </ApiProvider>
+        </PaletteProvider>
+      </I18nProvider>
+    ))
+
+    expect(await screen.findByText('Beta: add members false')).toBeInTheDocument()
+    expect(api).toHaveBeenCalledWith('/api/organizations/org-2/me', expect.anything())
+  })
+
+  it('keeps the list as it is when the operator is inside an organization of their own', async () => {
+    rememberImpersonation()
+    const api = vi.fn<ApiFetch>(async (path) =>
+      path === '/api/admin/impersonation' ? Response.json({ impersonation: visitToAcme }) : Response.json(admin)
+    )
+    const history = createMemoryHistory()
+    history.set({ value: '/acme' })
+    render(() => (
+      <I18nProvider locale="en">
+        <PaletteProvider>
+          <ApiProvider client={createApiClient({ fetch: api })}>
+            <AuthProvider client={createAuthClient({ fetch: async () => Response.json([acme]) })}>
+              <ImpersonationProvider>
+                <MemoryRouter history={history}>
+                  <Route path="/" component={OrganizationsProvider}>
+                    <Route path="/:orgSlug" component={RequireOrganization}>
+                      <Route path="/" component={Rights} />
+                    </Route>
+                  </Route>
+                </MemoryRouter>
+              </ImpersonationProvider>
+            </AuthProvider>
+          </ApiProvider>
+        </PaletteProvider>
+      </I18nProvider>
+    ))
+
+    expect(await screen.findByText('Acme: add members true')).toBeInTheDocument()
+  })
 
   it('gives the screen its organization and what the caller may do there, and remembers it on this device', async () => {
     const api = vi.fn<ApiFetch>(async () => Response.json(admin))

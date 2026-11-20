@@ -61,6 +61,17 @@ const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default
 /** The terms and the privacy notice (ADR 0074), with their texts: neither the sign-in nor the sign-up pays for them. */
 const TermsPage = lazy(() => import('#pages/legal/terms').then((m) => ({ default: m.TermsPage })))
 const PrivacyPage = lazy(() => import('#pages/legal/privacy').then((m) => ({ default: m.PrivacyPage })))
+/** The operator back office (ADR 0077): its frame and screens, a chunk of their own no tenant downloads. */
+const RequireOperator = lazy(() => import('./require-operator').then((m) => ({ default: m.RequireOperator })))
+const BackOfficeOrganizationsPage = lazy(() =>
+  import('#pages/back-office/organizations').then((m) => ({ default: m.BackOfficeOrganizationsPage }))
+)
+const BackOfficeOrganizationPage = lazy(() =>
+  import('#pages/back-office/organization').then((m) => ({ default: m.BackOfficeOrganizationPage }))
+)
+const BackOfficeUsersPage = lazy(() =>
+  import('#pages/back-office/users').then((m) => ({ default: m.BackOfficeUsersPage }))
+)
 const PublicOrganizationPage = lazy(() =>
   import('#pages/public-organization').then((m) => ({ default: m.PublicOrganizationPage }))
 )
@@ -177,6 +188,18 @@ const preloadGeneral = onOpen(({ params }) => {
     await organizationExportQuery(api)(organization.id)
   })
 })
+const backOffice = () => import('#entities/operators')
+/** The back office's first page of each list, and an organization's page, as they open (ADR 0077). */
+const preloadBackOfficeOrganizations = onOpen(() =>
+  preload(backOffice, (entity, { api }) => entity.backOfficeOrganizationsQuery(api)('', 1))
+)
+const preloadBackOfficeOrganization = onOpen(({ params }) => {
+  const id = params.organizationId as string
+  preload(backOffice, (entity, { api }) => entity.backOfficeOrganizationQuery(api)(id))
+})
+const preloadBackOfficeUsers = onOpen(() =>
+  preload(backOffice, (entity, { api }) => entity.backOfficeUsersQuery(api)('', 1))
+)
 const identityOptions = () => import('#entities/identity-options')
 /** The security screen reads the ways to sign in, and whether the API has Google for the Google row. */
 const preloadSecurity = onOpen(() => {
@@ -250,6 +273,23 @@ export const routes: RouteDefinition[] = [
     component: RequireSession,
     preload: preloadSession,
     children: [
+      {
+        // The operator back office (ADR 0077), in a frame of its own, apart from the organizations'.
+        path: '/admin',
+        ...screenOf(RequireOperator, ['backOffice']),
+        children: [
+          { path: '/', component: () => <Navigate href="/admin/organizations" /> },
+          {
+            path: '/organizations',
+            ...screenOf(BackOfficeOrganizationsPage, ['backOffice'], preloadBackOfficeOrganizations)
+          },
+          {
+            path: '/organizations/:organizationId',
+            ...screenOf(BackOfficeOrganizationPage, ['backOffice', 'billing', 'team'], preloadBackOfficeOrganization)
+          },
+          { path: '/users', ...screenOf(BackOfficeUsersPage, ['backOffice'], preloadBackOfficeUsers) }
+        ]
+      },
       {
         // The organizations are read for every screen behind the session, the account settings
         // included: their side menu offers the organization's settings beside the account's.

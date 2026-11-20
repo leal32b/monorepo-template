@@ -18,6 +18,8 @@ export const auditEs: typeof auditEn = {
     },
     actors: {
       formerMember: 'Alguien que ya no es miembro',
+      operator: '{{name}}, operador del servicio',
+      formerOperator: 'Un operador del servicio',
       visitor: 'Una visita, desde tu página pública',
       system: 'El sistema'
     },
@@ -25,7 +27,9 @@ export const auditEs: typeof auditEn = {
       organization: {
         'export-requested': 'Pidió una exportación de los datos',
         'logo-changed': 'Cambió el logo',
-        'logo-removed': 'Quitó el logo'
+        'logo-removed': 'Quitó el logo',
+        'impersonation-started': 'Entró para ver la organización como la ve su dueño, solo lectura',
+        'impersonation-ended': 'Salió de la organización'
       },
       customer: {
         created: 'Agregó un cliente',

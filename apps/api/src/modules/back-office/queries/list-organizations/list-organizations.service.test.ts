@@ -30,4 +30,14 @@ describe('ListOrganizationsService (ADR 0077)', () => {
       pageSize: backOfficePageSize
     })
   })
+
+  it('says an organization has no owner while it has no member', async () => {
+    const clock = new FixedClock(new Date('2026-11-02T00:00:00Z'))
+    const backOffice = new InMemoryBackOffice(new CountingIds(), clock)
+    backOffice.organizations.push(anOrganization('org-empty', { members: [] }))
+
+    const page = await new ListOrganizationsService(backOffice, clock).execute({ page: 1, search: undefined })
+
+    expect(page.items[0]).toMatchObject({ owner: null, members: 0, subscription: { access: 'full' } })
+  })
 })

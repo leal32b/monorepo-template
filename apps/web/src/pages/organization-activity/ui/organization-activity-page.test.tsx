@@ -99,6 +99,32 @@ describe('OrganizationActivityPage (ADR 0061)', () => {
     expect(rows.getByText('The system')).toBeInTheDocument()
   })
 
+  it('names an operator who entered and left, and one whose account is gone (ADR 0077)', async () => {
+    const visit = { resource: { type: 'organization' as const, id: 'org-1' }, fields: [] }
+    renderPage({
+      api: fakeApi([
+        entry('e2', {
+          ...visit,
+          actor: { kind: 'operator', id: 'user-otto', name: 'Otto' },
+          action: 'impersonation-ended'
+        }),
+        entry('e1', {
+          ...visit,
+          actor: { kind: 'operator', id: 'user-gone', name: null },
+          action: 'impersonation-started'
+        })
+      ])
+    })
+
+    const rows = await section()
+    expect(rows.getByText('Otto, an operator of the service')).toBeInTheDocument()
+    expect(rows.getByText('An operator of the service')).toBeInTheDocument()
+    expect(rows.getByText('Left the organization · Nov 7, 2026, 10:00 AM UTC')).toBeInTheDocument()
+    expect(
+      rows.getByText('Entered to see the organization as its owner, read only · Nov 7, 2026, 10:00 AM UTC')
+    ).toBeInTheDocument()
+  })
+
   it('shows a field it has no word for by its code', async () => {
     renderPage({ api: fakeApi([entry('e1', { fields: ['nickname'] })]) })
 

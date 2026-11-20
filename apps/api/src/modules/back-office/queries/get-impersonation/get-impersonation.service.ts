@@ -1,10 +1,10 @@
-import type { CurrentImpersonation, Impersonation } from '@repo/contracts'
+import type { Currency, CurrentImpersonation, Impersonation } from '@repo/contracts'
 import type { Clock } from '#libs/ports/clock.port'
 import type { BackOfficeUnitOfWork, ImpersonationRecord } from '../../back-office-unit-of-work.port'
 
 /** A visit in the shape of the contract. */
 export const impersonationResponse = (visit: ImpersonationRecord): Impersonation => ({
-  organization: visit.organization,
+  organization: { ...visit.organization, currency: visit.organization.currency as Currency },
   startedAt: visit.startedAt.toISOString(),
   endsAt: visit.expiresAt.toISOString()
 })
