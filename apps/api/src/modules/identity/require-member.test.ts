@@ -5,7 +5,12 @@ import { FakeCurrentSession } from './testing/fake-current-session'
 import { FakeMembership } from './testing/fake-membership'
 
 const req = { headers: {} } as IncomingMessage
-const ada = { userId: 'user-ada', email: 'ada@example.com', name: 'Ada' }
+const ada = {
+  userId: 'user-ada',
+  email: 'ada@example.com',
+  name: 'Ada',
+  signedInAt: new Date('2026-01-01T00:00:00Z')
+}
 const member = {
   userId: 'user-ada',
   organizationId: 'org-acme',

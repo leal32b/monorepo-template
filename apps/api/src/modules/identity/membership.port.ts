@@ -14,6 +14,11 @@ export type Member = {
   subscription: SubscriptionState & { access: SubscriptionAccess }
   /** What the subscription grants; code reads it through `entitlement` from `@repo/contracts`. */
   entitlements: Entitlements
+  /**
+   * Set when the caller is no member but an operator inside the organization (ADR 0077): roles `owner`, the
+   * `read` permissions only, until `endsAt`. Every write is refused by `tenantRoutes`.
+   */
+  impersonation?: { endsAt: Date }
 }
 
 /** Who belongs to which organization. */
@@ -28,4 +33,9 @@ export interface Membership {
    * left, or whose account is gone, is not in the map. How the audit trail names its actors (ADR 0061).
    */
   namesOf(organizationId: string, userIds: readonly string[]): Promise<Map<string, string>>
+  /**
+   * The names of those of `userIds` who are or were operators of the SaaS and whose account exists, by user id:
+   * how the audit trail names an operator who entered an organization they are no member of (ADR 0077).
+   */
+  operatorNamesOf(userIds: readonly string[]): Promise<Map<string, string>>
 }

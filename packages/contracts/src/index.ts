@@ -12,6 +12,30 @@ export {
   listAuditEntriesQuerySchema
 } from './audit'
 export {
+  type BackOfficeListQuery,
+  type BackOfficeOrganization,
+  type BackOfficeOrganizationDetail,
+  type BackOfficeOrganizationPage,
+  type BackOfficeUser,
+  type BackOfficeUserPage,
+  backOfficeLimits,
+  backOfficeListQuerySchema,
+  backOfficeOrganizationDetailSchema,
+  backOfficeOrganizationPageSchema,
+  backOfficeOrganizationSchema,
+  backOfficePageSize,
+  backOfficeProblems,
+  backOfficeUserPageSchema,
+  backOfficeUserSchema,
+  type CurrentImpersonation,
+  currentImpersonationSchema,
+  type Impersonation,
+  impersonationPermissions,
+  impersonationSchema,
+  type OperatorSessionRefusal,
+  operatorSessionRefusals
+} from './back-office'
+export {
   accessOf,
   type Billing,
   type BillingCheckoutInput,

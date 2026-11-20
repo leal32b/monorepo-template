@@ -1,8 +1,12 @@
 /**
- * Who made a change (ADR 0061): a member of the organization, by user id; a visitor of its public
- * surface, who has none (ADR 0059); or the system, such as a job. An operator (P1-7) joins the union.
+ * Who made a change (ADR 0061): a member of the organization, by user id; an operator of the SaaS, by user
+ * id (ADR 0077); a visitor of its public surface, who has none (ADR 0059); or the system, such as a job.
  */
-export type AuditActor = { kind: 'member'; id: string } | { kind: 'visitor' } | { kind: 'system' }
+export type AuditActor =
+  | { kind: 'member'; id: string }
+  | { kind: 'operator'; id: string }
+  | { kind: 'visitor' }
+  | { kind: 'system' }
 
 /**
  * One line of an organization's audit trail (ADR 0061): who did what to which record, and when. Ids,

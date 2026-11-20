@@ -5,6 +5,8 @@ export type Actor = {
   userId: string
   email: string
   name: string
+  /** When the session behind the request was created: the back office serves only a recent one (ADR 0077). */
+  signedInAt: Date
 }
 
 /** The session behind a request. */

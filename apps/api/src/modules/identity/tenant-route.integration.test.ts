@@ -246,4 +246,29 @@ describe('tenantRoutes (ADR 0065)', () => {
       })
     })
   })
+
+  describe("an operator's visit (ADR 0077)", () => {
+    const visit = { impersonation: { endsAt: new Date('2026-11-20T12:30:00Z') } }
+
+    it('refuses every POST, PUT and DELETE with 403 impersonation_read_only, before the permission, the input and duringReadOnly', async () => {
+      const { signInWith, call, code } = await serve()
+      signInWith([], visit)
+
+      for (const [method, path, body] of [
+        ['POST', 'org-1/things', {}],
+        ['PUT', 'org-1/things/t-1', {}],
+        ['DELETE', 'org-1/things/t-1', undefined],
+        ['POST', 'org-1/billing/checkout', undefined]
+      ] as const) {
+        expect(await code(await call(method, path, body))).toEqual({ status: 403, code: 'impersonation_read_only' })
+      }
+    })
+
+    it('lets a GET through, by its permission', async () => {
+      const { signInWith, call } = await serve()
+      signInWith(['read'], visit)
+
+      expect((await call('GET', 'org-1/things?page=1')).status).toBe(200)
+    })
+  })
 })

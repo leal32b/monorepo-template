@@ -8,10 +8,11 @@ import { instantSchema } from './time'
  */
 export const auditActions = {
   /**
-   * The organization itself, whose resource id is its own: what its owner asked of it (ADR 0074), and its
-   * logo, set, replaced or removed by an owner or an admin (ADR 0076).
+   * The organization itself, whose resource id is its own: what its owner asked of it (ADR 0074), its
+   * logo, set, replaced or removed by an owner or an admin (ADR 0076), and an operator's visit, entered and
+   * ended (ADR 0077).
    */
-  organization: ['export-requested', 'logo-changed', 'logo-removed'],
+  organization: ['export-requested', 'logo-changed', 'logo-removed', 'impersonation-started', 'impersonation-ended'],
   customer: ['created', 'updated', 'archived', 'restored', 'deleted'],
   /**
    * The organization's subscription (ADR 0063), whose resource id is the organization's: by the owner
@@ -48,10 +49,12 @@ export const auditPageSize = 25
 
 /**
  * Who made a change: a member, by id, with their name while they are still a member (`null` once
- * they left or deleted their account); a visitor of the public surface; or the system, such as a job.
+ * they left or deleted their account); an operator of the SaaS, by id, with their name while their
+ * account exists (ADR 0077); a visitor of the public surface; or the system, such as a job.
  */
 export const auditActorSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('member'), id: z.string(), name: z.nullable(z.string()) }),
+  z.object({ kind: z.literal('operator'), id: z.string(), name: z.nullable(z.string()) }),
   z.object({ kind: z.literal('visitor') }),
   z.object({ kind: z.literal('system') })
 ])

@@ -1,4 +1,5 @@
 import * as z from 'zod/mini'
+import { operatorSessionRefusals } from './back-office'
 import { entitlementKeySchema } from './billing'
 
 /**
@@ -19,6 +20,8 @@ export const apiProblemSchema = z.object({
   entitlement: z.optional(entitlementKeySchema),
   /** The plan's number for the limit that `plan_limit_reached` names. */
   limit: z.optional(z.int().check(z.gte(0))),
+  /** Why `operator_session_refused` refused an operator's session (ADR 0077). */
+  reason: z.optional(z.enum(operatorSessionRefusals)),
   /** Same as the `X-Request-Id` header, to find the request in the API log. */
   requestId: z.optional(z.string())
 })

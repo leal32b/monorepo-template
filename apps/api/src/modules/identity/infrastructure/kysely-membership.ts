@@ -12,6 +12,7 @@ import { OrganizationReader } from './organization-rules'
 type MemberTables = {
   member: { organizationId: string; userId: string }
   user: { id: string; name: string }
+  'public.operator': { user_id: string }
 }
 
 export class KyselyMembership implements Membership {
@@ -26,16 +27,18 @@ export class KyselyMembership implements Membership {
   }
 
   async memberOf(organizationId: string, userId: string): Promise<Member | null> {
-    const member = await this.#reader.memberOf(organizationId, userId)
+    const now = this.#clock.now()
+    const member = await this.#reader.memberOf(organizationId, userId, now)
     if (member === undefined) return null
-    const { subscription } = member
+    const { subscription, impersonationEndsAt } = member
     return {
       userId,
       organizationId,
       roles: member.roles.split(',').map((role) => role.trim()),
       permissions: member.permissions,
-      subscription: { ...subscription, access: accessOf(subscription, this.#clock.now()) },
-      entitlements: entitlementsOf(subscription)
+      subscription: { ...subscription, access: accessOf(subscription, now) },
+      entitlements: entitlementsOf(subscription),
+      ...(impersonationEndsAt === undefined ? {} : { impersonation: { endsAt: impersonationEndsAt } })
     }
   }
 
@@ -47,6 +50,16 @@ export class KyselyMembership implements Membership {
       .select(['user.id', 'user.name'])
       .where('member.organizationId', '=', organizationId)
       .where('member.userId', 'in', [...userIds])
+      .execute()
+    return new Map(rows.map((row) => [row.id, row.name]))
+  }
+
+  async operatorNamesOf(userIds: readonly string[]): Promise<Map<string, string>> {
+    const rows = await this.#db
+      .selectFrom('user')
+      .select(['user.id', 'user.name'])
+      .where('user.id', 'in', [...userIds])
+      .where((eb) => eb.exists(eb.selectFrom('public.operator').select('user_id').whereRef('user_id', '=', 'user.id')))
       .execute()
     return new Map(rows.map((row) => [row.id, row.name]))
   }
