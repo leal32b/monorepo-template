@@ -11,10 +11,12 @@ import { expect, newPerson, test } from '../support/test'
  * 1 KB on 2026-11-18 for the payer's words and the CPF or CNPJ check that `@repo/contracts` brings to the
  * first download (ADR 0069); lowered on 2026-11-18 to the measure plus 1 KB when each screen's texts began to load
  * with its route (ADR 0071); the public page's and the signed-in screen's raised by 1 KB on 2026-11-19, which both sat
- * on exactly, for the links to the terms and privacy notice and the export's route (ADR 0074). Lower a budget when the number drops; raising one is a decision to write down
+ * on exactly, for the links to the terms and privacy notice and the export's route (ADR 0074); all three by 1 KB on
+ * 2026-11-20 for the avatar's image and a row's error in `@repo/ui`, and the logo's contract (ADR 0076). Lower a
+ * budget when the number drops; raising one is a decision to write down
  * (it checks the choice of `zod/mini`, ADR 0024).
  */
-const BUDGET_KB = { signIn: 73, signedIn: 116, publicPage: 77 }
+const BUDGET_KB = { signIn: 74, signedIn: 117, publicPage: 78 }
 
 /** Starts collecting every script the page fetches; the result is their gzipped size in KB. */
 function countScripts(page: Page): () => Promise<number> {

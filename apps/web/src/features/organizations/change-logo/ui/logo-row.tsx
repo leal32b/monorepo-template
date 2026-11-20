@@ -85,7 +85,7 @@ export function LogoRow(props: LogoRowProps) {
       action={
         <Show when={props.canUpdate}>
           <ChooseButton
-            ref={(button) => {
+            onButton={(button) => {
               chooser = button
             }}
             waiting={waits()}
@@ -111,7 +111,7 @@ export function LogoRow(props: LogoRowProps) {
 
 /** The button that picks a file: disabled while it waits and, read only, pointing to the row's note, which says why. */
 function ChooseButton(props: {
-  ref: (button: HTMLButtonElement) => void
+  onButton: (button: HTMLButtonElement) => void
   waiting: boolean
   readOnly: boolean
   onSelect: (file: File) => void
@@ -120,7 +120,7 @@ function ChooseButton(props: {
   const note = useRowNote()
   return (
     <FileButton
-      ref={props.ref}
+      ref={(button) => props.onButton(button)}
       variant="secondary"
       accept={logoLimits.types.join(',')}
       disabled={props.waiting || props.readOnly}

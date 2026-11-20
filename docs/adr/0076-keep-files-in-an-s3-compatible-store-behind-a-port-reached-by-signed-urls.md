@@ -186,7 +186,7 @@ at once. The daily purge no longer empties export files (`purge-expired-exports`
 deleting `exports/` after 8 days is the net under a job that failed for good. The key is the export's id, so
 the row stores no key.
 
-Migration `0017` drops `organization_export.file`. The rows that still hold a file are marked expired at that
+Migration `0018` drops `organization_export.file` (`0017` creates `organization_logo`). The rows that still hold a file are marked expired at that
 instant rather than moved: SQL cannot write to the store, a move job would keep the column alive for one more
 deploy, and what it moves is a copy at most 7 days old that the owner rebuilds with one click (the page says
 "expired on" that day, and the 15 minutes since the request are long past).
@@ -217,6 +217,13 @@ suite's `vite preview`, on the web's own origin: the same requests as production
   R2 API token with Object Read & Write on that bucket alone. [operations](../operations.md#file-storage) lists
   what the owner creates.
 
+### What it costs the first download
+
+The `Avatar` draws an image and `ListRow` an error, both in `@repo/ui`, which the first download carries, and
+the membership's contract gains the logo's schema. The sign-in, the public page and the first signed-in screen
+each pass their JavaScript budget (ADR 0045) by under 1 KB: all three are raised by 1 KB, to 74, 78 and
+117 KB. The logo's row, its upload and its texts load with the General route (ADR 0071).
+
 ### Consequences
 
 - Good: an organization's logo, and any file a product adds, goes straight to a store any S3-compatible
@@ -232,7 +239,8 @@ suite's `vite preview`, on the web's own origin: the same requests as production
 - Bad: one more provider account, a bucket, a token and a CORS rule to keep; a CORS rule left out shows as an
   upload that fails in the browser, which the page says.
 - Bad: the deployed CSP depends on a variable of the build; the smoke test fails a deploy that leaves it out.
-- Bad: an export that was ready when `0017` ran must be asked for again.
+- Bad: an export that was ready when `0018` ran must be asked for again.
+- Bad: three JavaScript budgets grow by 1 KB.
 
 ## Revisit when
 

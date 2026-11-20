@@ -110,7 +110,13 @@ describe('LocalFileStorage (ADR 0076)', () => {
       body: logo
     })
 
-    expect([wrongType.status, wrongSize.status, tamperedSize.status]).toEqual([403, 403, 403])
+    const unsigned = await fetch(at(upload.url.replace(/type=[^&]*&size=4&/, '')), {
+      method: 'PUT',
+      headers: upload.headers,
+      body: 'abcd'
+    })
+
+    expect([wrongType.status, wrongSize.status, tamperedSize.status, unsigned.status]).toEqual([403, 403, 403, 403])
     expect(await storage.stat('uploads/org-1/u-1')).toBeNull()
   })
 
@@ -122,6 +128,16 @@ describe('LocalFileStorage (ADR 0076)', () => {
     expect((await fetch(at(missing))).status).toBe(404)
     expect(await storage.read('logos/org-1/none')).toBeNull()
     await expect(storage.write('../x', logo, { type: 'image/png' })).rejects.toThrow('Invalid file key')
+  })
+
+  it('deletes no key of a folder that was never made', async () => {
+    const storage = new LocalFileStorage({
+      root: path.join(tmpdir(), 'storage-never-made', String(Date.now())),
+      secret: 'x'.repeat(32),
+      clock: new FixedClock(new Date())
+    })
+
+    expect(await storage.deletePrefix('logos/org-1/')).toBe(0)
   })
 
   it('deletes a key, harmlessly when it is gone, and every key of a prefix', async () => {

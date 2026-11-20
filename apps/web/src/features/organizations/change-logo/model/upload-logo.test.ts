@@ -60,6 +60,12 @@ describe('uploadLogo (ADR 0076)', () => {
     expect(await uploadLogo(api, 'org-1', png, put as typeof fetch)).toEqual({ failure })
   })
 
+  it('says the upload did not finish when the API is out of reach', async () => {
+    const api = createApiClient({ fetch: vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))) })
+
+    expect(await uploadLogo(api, 'org-1', png, vi.fn() as unknown as typeof fetch)).toEqual({ failure: 'failed' })
+  })
+
   it.each([
     [problem(409, 'logo_uploads_too_many'), 'tooMany'],
     [problem(403, 'subscription_read_only'), 'readOnly']

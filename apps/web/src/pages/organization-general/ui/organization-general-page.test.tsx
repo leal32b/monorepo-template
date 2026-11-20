@@ -435,6 +435,24 @@ describe('OrganizationGeneralPage', () => {
       ])
     })
 
+    it('makes the row’s buttons wait while a file is on its way', async () => {
+      let answer: (response: Response) => void = () => undefined
+      renderPage({
+        api: async (input, init) =>
+          input.endsWith('/uploads')
+            ? new Promise<Response>((resolve) => (answer = resolve))
+            : logoApi().api(input, init),
+        logo: saved
+      })
+
+      choose(png)
+
+      await waitFor(() => expect(details().getByRole('button', { name: 'Replace' })).toBeDisabled())
+      expect(details().getByRole('button', { name: 'Remove' })).toBeDisabled()
+      answer(Response.json(upload, { status: 201 }))
+      expect(await screen.findByText('Logo replaced')).toBeInTheDocument()
+    })
+
     it('shows the logo there is, and replaces it', async () => {
       renderPage({ api: logoApi().api, logo: saved })
 
