@@ -472,8 +472,10 @@ A product that does not sell in a language (say `es`) removes it in these places
 2. `messages.ts`: its line in `loaders` and in `localeNames`; `detect-locale.ts`: its branch.
 3. The tests that name it (`messages.test.ts`, `context.test.tsx`, `detect-locale.test.ts`, and any page test
    that renders in it).
-4. `apps/api/src/modules/identity/emails/locales/es.ts` and its line in `emails/email-texts.ts`: emails are
-   written in the language chosen at sign-up, so a language the web no longer offers must go there too.
+4. `apps/api/src/libs/notifications/locales.ts`: its entry in `locales`; then each module's
+   `emails/locales/es.ts` and its line in that module's `<module>-emails.ts` (identity, customers, billing),
+   which the typecheck names. Emails are written in the recipient's language, chosen at sign-up, so a
+   language the web no longer offers must go there too ([ADR 0073](adr/0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md)).
 5. The API tests that sign up in it (`authentication.db.test.ts`, `organizations.db.test.ts`,
    `account-deletion.db.test.ts` use `pt-BR`; check the others with `grep -rn "'es'" apps`).
 

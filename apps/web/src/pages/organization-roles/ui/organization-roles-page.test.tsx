@@ -119,9 +119,9 @@ describe('OrganizationRolesPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Roles' })).toBeInTheDocument()
     const builtIn = within(await screen.findByRole('region', { name: 'Built-in roles' }))
     expect(builtIn.getAllByText('Built in')).toHaveLength(3)
-    expect((await rowOf('Owner')).getByText('17 of 17 permissions')).toBeInTheDocument()
-    expect((await rowOf('Admin')).getByText('15 of 17 permissions')).toBeInTheDocument()
-    expect((await rowOf('Member')).getByText('4 of 17 permissions')).toBeInTheDocument()
+    expect((await rowOf('Owner')).getByText('18 of 18 permissions')).toBeInTheDocument()
+    expect((await rowOf('Admin')).getByText('15 of 18 permissions')).toBeInTheDocument()
+    expect((await rowOf('Member')).getByText('4 of 18 permissions')).toBeInTheDocument()
     expect(await buttonsOf('Owner')).toEqual(['View permissions'])
   })
 
@@ -209,7 +209,7 @@ describe('OrganizationRolesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create role' }))
 
     expect(await screen.findByText('Role Support created')).toBeInTheDocument()
-    expect((await rowOf('Support')).getByText('2 of 17 permissions')).toBeInTheDocument()
+    expect((await rowOf('Support')).getByText('2 of 18 permissions')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
@@ -221,7 +221,7 @@ describe('OrganizationRolesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save role' }))
 
     expect(await screen.findByText('Role Billing saved')).toBeInTheDocument()
-    expect((await rowOf('Billing')).getByText('2 of 17 permissions')).toBeInTheDocument()
+    expect((await rowOf('Billing')).getByText('2 of 18 permissions')).toBeInTheDocument()
   })
 
   it('opens one form at a time, and closes one from Cancel', async () => {

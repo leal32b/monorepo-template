@@ -18,11 +18,14 @@ import {
   cancelAtProvider,
   EnqueueCancellationService,
   registerBillingRoutes,
+  ScheduleTrialReminderService,
   syncPayloadOf,
   syncSubscription
 } from '#modules/billing/index'
 import { kyselyCustomersUnitOfWork } from '#modules/customers/database/kysely-customers-unit-of-work'
 import { registerCustomerRoutes } from '#modules/customers/index'
+import { kyselyDataExportUnitOfWork } from '#modules/data-export/database/kysely-data-export-unit-of-work'
+import { registerDataExportRoutes } from '#modules/data-export/index'
 import { PostgresDatabaseProbe } from '#modules/health/database/postgres-database-probe'
 import { GetHealthController } from '#modules/health/queries/get-health/get-health.http-controller'
 import { GetHealthService } from '#modules/health/queries/get-health/get-health.service'
@@ -32,6 +35,7 @@ import { BetterAuthCurrentSession } from '#modules/identity/infrastructure/bette
 import { KyselyAccountDeletion } from '#modules/identity/infrastructure/kysely-account-deletion'
 import { KyselyInvitations } from '#modules/identity/infrastructure/kysely-invitations'
 import { KyselyMembership } from '#modules/identity/infrastructure/kysely-membership'
+import { KyselyOrganizationOwners } from '#modules/identity/infrastructure/kysely-organization-owners'
 import { KyselyPublicOrganizations } from '#modules/identity/infrastructure/kysely-public-organizations'
 import { GetAccountDeletionController } from '#modules/identity/queries/get-account-deletion/get-account-deletion.http-controller'
 import { GetIdentityOptionsController } from '#modules/identity/queries/get-identity-options/get-identity-options.http-controller'
@@ -39,6 +43,7 @@ import { GetInvitationController } from '#modules/identity/queries/get-invitatio
 import { GetMeController } from '#modules/identity/queries/get-me/get-me.http-controller'
 import { GetMembershipController } from '#modules/identity/queries/get-membership/get-membership.http-controller'
 import { GetPublicOrganizationController } from '#modules/identity/queries/get-public-organization/get-public-organization.http-controller'
+import { ReportClientErrorController } from '#modules/observability/commands/report-client-error/report-client-error.http-controller'
 import { PUBLIC_PATHS, registerRoutes } from './http-routes'
 
 /** Long enough for Neon to wake from suspension, short enough for a status page to wait. */
@@ -94,10 +99,24 @@ export function createApp({
   const billingUnitOfWork = kyselyBillingUnitOfWork(db, jobsOn)
   // Deleting an organization, alone or with its only member's account, ends its subscription (ADR 0063).
   const organizationDeletion = new EnqueueCancellationService(billingUnitOfWork, jobs, clock, cancelAtProvider)
-  const auth = createAuth({ db, logger, jobs, webOrigin, secret: authSecret, google, organizationDeletion })
+  // A new organization's trial is recalled 3 days before it ends (ADR 0073).
+  const organizationCreation = new ScheduleTrialReminderService(jobs, logger)
+  const auth = createAuth({
+    db,
+    logger,
+    clock,
+    jobs,
+    webOrigin,
+    secret: authSecret,
+    google,
+    organizationDeletion,
+    organizationCreation
+  })
   const session = new BetterAuthCurrentSession(auth)
   const membership = new KyselyMembership(db, clock)
   const ids = new UuidGenerator()
+  // Whom a module tells of its organization's state (ADR 0073): customers and billing write to the owner.
+  const owners = new KyselyOrganizationOwners(db)
   // What routes without a session are built from (ADR 0059): the limiter first, then the slug.
   const publicSurface = {
     limiter: new KyselyRateLimiter(db, clock),
@@ -113,18 +132,30 @@ export function createApp({
     getMembership: new GetMembershipController(session, membership),
     getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
     getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined }),
-    getPublicOrganization: new GetPublicOrganizationController(publicSurface)
+    getPublicOrganization: new GetPublicOrganizationController(publicSurface),
+    reportClientError: new ReportClientErrorController({ limiter: publicSurface.limiter, logger })
   })
   registerCustomerRoutes(router, {
     session,
     membership,
     publicSurface,
-    unitOfWork: kyselyCustomersUnitOfWork(db),
+    unitOfWork: kyselyCustomersUnitOfWork(db, jobsOn),
     clock,
-    ids
+    ids,
+    owners,
+    webOrigin
   })
   // The organization's audit trail, read only: every module writes its entries in its own unit of work (ADR 0061).
   registerAuditRoutes(router, { session, membership, unitOfWork: kyselyAuditUnitOfWork(db) })
+  // The owner's export of the organization's data (ADR 0074): the request, its state and the file.
+  registerDataExportRoutes(router, {
+    session,
+    membership,
+    unitOfWork: kyselyDataExportUnitOfWork(db, jobsOn),
+    clock,
+    ids,
+    logger
+  })
   // The owner's plan page and the provider's webhook (ADR 0063): the subscription row in billing's unit
   // of work, the provider called outside it, and each notice's event id recorded with its sync job.
   const inbox = new KyselyWebhookInbox({ db, clock, jobsOn, job: syncSubscription, payloadOf: syncPayloadOf })

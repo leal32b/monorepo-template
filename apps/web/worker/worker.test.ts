@@ -95,10 +95,23 @@ describe('web Worker', () => {
         api.mockResolvedValueOnce(asleep()).mockResolvedValueOnce(asleep())
 
         const answer = worker.fetch(new Request('https://web.example.com/api/auth/get-session'), env)
-        await vi.advanceTimersByTimeAsync(10_000)
+        await vi.advanceTimersByTimeAsync(60_000)
 
         expect((await answer).status).toBe(200)
         expect(api).toHaveBeenCalledTimes(3)
+      })
+
+      it('waits 30 s between two asks, so a wake costs Render a few requests (ADR 0075)', async () => {
+        const { api, env } = setup()
+        api.mockResolvedValueOnce(asleep())
+
+        const answer = worker.fetch(new Request('https://web.example.com/api/auth/get-session'), env)
+        await vi.advanceTimersByTimeAsync(29_999)
+        expect(api).toHaveBeenCalledTimes(1)
+        await vi.advanceTimersByTimeAsync(1)
+
+        expect((await answer).status).toBe(200)
+        expect(api).toHaveBeenCalledTimes(2)
       })
 
       it('sends a write again with its body, since Render refused it before the API saw it', async () => {
@@ -110,7 +123,7 @@ describe('web Worker', () => {
         })
 
         const answer = worker.fetch(request, env)
-        await vi.advanceTimersByTimeAsync(10_000)
+        await vi.advanceTimersByTimeAsync(30_000)
         await answer
 
         const bodies = await Promise.all(api.mock.calls.map(([, init]) => new Response(init.body).text()))

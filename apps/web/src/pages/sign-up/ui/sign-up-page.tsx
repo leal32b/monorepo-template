@@ -7,14 +7,15 @@ import { SignUpForm, type SignUpValues } from '#features/sign-up'
 import { useI18n } from '#shared/config'
 import { safeNext, withNext } from '#shared/lib'
 import { OpenMail } from '#shared/ui'
-import { EntryLayout } from '#widgets/entry-layout'
+import { EntryLayout, LegalNotice } from '#widgets/entry-layout'
 
 /**
  * `/signup`: the form, or Google, as on the sign-in; then "check your email" in the same frame, with
  * a way to send the link again or to go back and fix the address. What was sent stays in the page,
  * not in the URL, where it would be personal data in a query string. `next`, a path on this site
  * (T11), is where the confirmation link and Google land, as on the sign-in: an invitation opened while
- * signed out ends up where it started.
+ * signed out ends up where it started. Below the form, the sentence that the account accepts the terms and the
+ * privacy notice in force (ADR 0074), for Google's button and the form's alike.
  */
 export function SignUpPage() {
   const { t } = useI18n()
@@ -44,6 +45,7 @@ export function SignUpPage() {
         >
           <SignInWithGoogle next={next()} />
           <SignUpForm initial={sent()} onSignedUp={signedUp} next={next()} />
+          <LegalNotice />
         </EntryLayout>
       }
     >

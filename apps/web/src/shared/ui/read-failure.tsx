@@ -1,7 +1,7 @@
 import { Alert, Button } from '@repo/ui'
 import { Navigate, useLocation } from '@solidjs/router'
 import { ErrorBoundary, type JSX, type ParentProps } from 'solid-js'
-import { ApiError } from '#shared/api'
+import { ApiError, useErrorReporter } from '#shared/api'
 import { useI18n } from '#shared/config'
 
 export type ReadFailureProps = ParentProps<{
@@ -20,15 +20,28 @@ export type ReadFailureProps = ParentProps<{
 export function ReadFailure(props: ReadFailureProps) {
   const { t } = useI18n()
   const location = useLocation()
+  const reporter = useErrorReporter()
   return (
     <ErrorBoundary
       fallback={(error, retry) => {
         if (error instanceof ApiError && error.status === 401) {
           return <Navigate href={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} />
         }
+        // What the API answered is in its log, and a network failure never reached it; anything else is a bug of
+        // ours that only the browser knows about (ADR 0072).
+        const reference =
+          error instanceof ApiError && error.kind !== 'contract' ? undefined : reporter.report('render', error)
         return (
           props.fallback?.(error, retry) ?? (
-            <Alert variant="error" action={<Button onClick={retry}>{t('actions.retry')}</Button>}>
+            <Alert
+              variant="error"
+              reference={
+                reference === undefined
+                  ? undefined
+                  : t('failure.reference', { reference: `client_error · ${reference}` })
+              }
+              action={<Button onClick={retry}>{t('actions.retry')}</Button>}
+            >
               {props.message}
             </Alert>
           )

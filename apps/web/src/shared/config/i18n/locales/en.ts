@@ -3,6 +3,7 @@ import type { auditEn } from '../dictionaries/audit/en'
 import type { billingEn } from '../dictionaries/billing/en'
 import type { customersEn } from '../dictionaries/customers/en'
 import { entryEn } from '../dictionaries/entry/en'
+import type { legalEn } from '../dictionaries/legal/en'
 import type { organizationsEn } from '../dictionaries/organizations/en'
 import type { publicEn } from '../dictionaries/public/en'
 import { shellEn } from '../dictionaries/shell/en'
@@ -23,6 +24,7 @@ export type Messages = typeof en &
   typeof auditEn &
   typeof billingEn &
   typeof customersEn &
+  typeof legalEn &
   typeof organizationsEn &
   typeof publicEn &
   typeof teamEn

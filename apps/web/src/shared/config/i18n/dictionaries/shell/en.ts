@@ -112,7 +112,10 @@ export const shellEn = {
     rateLimited: 'Too many attempts. Wait a minute, then try again.',
     rateLimitedFor: 'Too many attempts from this connection. Try again in {{wait}}.',
     unexpected: 'Something went wrong on our side. Try again in a moment.',
-    reference: 'If it keeps happening, tell support: {{reference}}'
+    reference: 'If it keeps happening, tell support: {{reference}}',
+    crashedTitle: 'Something went wrong',
+    crashed: 'This screen stopped working. Reload the page to go on.',
+    reload: 'Reload the page'
   },
   confirmPassword: {
     label: 'Your password',

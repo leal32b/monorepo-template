@@ -7,7 +7,7 @@ import { memoryLogger } from '#libs/jobs/testing/memory-logger'
 import type { BillingNotice } from '#libs/ports/billing-provider.port'
 import { billingKit } from '../testing/billing-kit'
 import { subscribed } from '../testing/subscribed'
-import { cancelAtProvider, registerBillingJobs, syncPayloadOf, syncSubscription } from './billing-jobs'
+import { cancelAtProvider, registerBillingJobs, remindTrialEnd, syncPayloadOf, syncSubscription } from './billing-jobs'
 
 describe('billing.sync-subscription (ADR 0063)', () => {
   it("runs a notice's job through the queue: the row follows the provider", async () => {
@@ -69,5 +69,30 @@ describe('billing.cancel-at-provider (ADR 0063)', () => {
     expect(lines).toContainEqual(
       expect.objectContaining({ msg: 'billing cancellation skipped', reason: 'organization kept' })
     )
+  })
+})
+
+describe('billing.remind-trial-end (ADR 0073)', () => {
+  it('runs on its day and leaves the owner’s email on the queue', async () => {
+    const kit = billingKit()
+    const { logger } = memoryLogger()
+    const registry = new JobRegistry()
+    registerBillingJobs(registry, { ...kit, directory: kit.subscriptions, logger })
+    const worker = new JobWorker({
+      store: kit.jobs,
+      registry,
+      clock: kit.clock,
+      timer: new ManualTimer(kit.clock),
+      logger,
+      idlePollMs: 1
+    })
+
+    await kit.jobs.enqueue(remindTrialEnd, { organizationId: 'org-1', trialEndsAt: '2026-11-22T12:00:00.000Z' })
+    await worker.runNext()
+
+    expect(kit.jobs.all).toMatchObject([
+      { kind: 'billing.remind-trial-end', state: 'done' },
+      { kind: 'billing.send-email', state: 'pending', payload: { email: 'trialEnding' } }
+    ])
   })
 })

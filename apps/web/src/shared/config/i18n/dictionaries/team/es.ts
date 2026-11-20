@@ -53,6 +53,21 @@ export const teamEs: typeof teamEn = {
         saved: 'Moneda guardada'
       }
     },
+    export: {
+      title: 'Tus datos',
+      description: 'Una copia de todo lo que hay en {{name}}, para guardar o llevar a otro lugar.',
+      row: 'Exportar datos',
+      none: 'Un archivo zip con una hoja de cálculo por cada tipo de registro: miembros, clientes, actividad y más. Te enviamos un correo cuando esté listo.',
+      pending: 'Preparándose. Te enviamos un correo cuando esté listo, y puedes descargarlo aquí.',
+      ready: 'Listo para descargar hasta el {{date}} ({{size}}).',
+      expired: 'La última exportación se eliminó el {{date}}. Pide una nueva.',
+      again: 'Puedes pedir una nueva a partir de: {{time}}.',
+      request: 'Exportar datos',
+      requestAgain: 'Exportar de nuevo',
+      download: 'Descargar',
+      failed: 'No pudimos pedir la exportación. Inténtalo de nuevo en un momento.',
+      unavailable: 'No pudimos leer la última exportación. Revisa tu conexión e inténtalo de nuevo.'
+    },
     delete: {
       title: 'Eliminar organización',
       description: 'Para todos los miembros, esto elimina la organización y todo lo que contiene.',
@@ -157,7 +172,8 @@ export const teamEs: typeof teamEn = {
     permissions: {
       organization: {
         update: 'Cambiar el nombre y la dirección',
-        delete: 'Eliminar la organización'
+        delete: 'Eliminar la organización',
+        export: 'Exportar todos sus datos'
       },
       member: {
         create: 'Añadir miembros',

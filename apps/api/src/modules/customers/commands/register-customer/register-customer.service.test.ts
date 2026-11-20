@@ -4,13 +4,16 @@ import { RegisterCustomerService } from './register-customer.service'
 
 describe('RegisterCustomerService (ADR 0059)', () => {
   const setup = () => {
-    const { repository, audit, unitOfWork, clock, ids } = testCustomers()
+    const { repository, audit, jobs, unitOfWork, clock, ids, owners, webOrigin } = testCustomers()
     return {
       repository,
       audit,
+      jobs,
       unitOfWork,
       clock,
-      service: new RegisterCustomerService(unitOfWork, clock, ids),
+      owners,
+      webOrigin,
+      service: new RegisterCustomerService(unitOfWork, clock, ids, { owners, webOrigin }),
       create: new CreateCustomerService(unitOfWork, clock, ids)
     }
   }
@@ -73,18 +76,69 @@ describe('RegisterCustomerService (ADR 0059)', () => {
   })
 
   it('keeps no customer when its record cannot be written, and says so', async () => {
-    const { repository, unitOfWork, clock } = setup()
-    const service = new RegisterCustomerService(unitOfWork, clock, { generate: () => 'the-same-id' })
+    const { repository, jobs, unitOfWork, clock, owners, webOrigin } = setup()
+    const service = new RegisterCustomerService(
+      unitOfWork,
+      clock,
+      { generate: () => 'the-same-id' },
+      { owners, webOrigin }
+    )
     await service.execute('org-1', { name: 'Grace', phone: '555 0100' })
-    const second = new RegisterCustomerService(unitOfWork, clock, {
-      generate: (() => {
-        const ids = ['another-id', 'the-same-id']
-        return () => ids.shift() as string
-      })()
-    })
+    const second = new RegisterCustomerService(
+      unitOfWork,
+      clock,
+      {
+        generate: (() => {
+          const ids = ['another-id', 'the-same-id']
+          return () => ids.shift() as string
+        })()
+      },
+      { owners, webOrigin }
+    )
 
     await expect(second.execute('org-1', { name: 'Ada', phone: '555 0101' })).rejects.toThrow()
 
     expect(await repository.findById('org-1', 'another-id')).toBeNull()
+    expect(jobs.all).toHaveLength(1)
+  })
+
+  describe('the owner’s email (ADR 0073)', () => {
+    it('tells the owner through the queue, in their language and the organization’s time zone', async () => {
+      const { jobs, service } = setup()
+
+      await service.execute('org-1', { name: 'Grace', phone: '555 0100' })
+
+      expect(jobs.all).toMatchObject([
+        {
+          kind: 'customers.send-email',
+          state: 'pending',
+          payload: {
+            email: 'customerRegistered',
+            to: 'ada@example.com',
+            locale: 'pt-BR',
+            url: 'https://app.example.com/acme/customers',
+            values: { name: 'Grace', organization: 'Acme Barbers', day: '7 de novembro de 2026' }
+          }
+        }
+      ])
+    })
+
+    it('sends nothing for an email that is already a customer, nor to the visitor', async () => {
+      const { jobs, service, create } = setup()
+      await create.execute('org-1', { name: 'Grace Hopper', email: 'grace@example.com' }, byAda, null)
+
+      await service.execute('org-1', { name: 'Someone else', email: 'grace@example.com' })
+
+      expect(jobs.all).toEqual([])
+    })
+
+    it('registers the customer and sends nothing when the organization has no owner', async () => {
+      const { repository, jobs, service } = setup()
+
+      await service.execute('org-2', { name: 'Grace', phone: '555 0100' })
+
+      expect(await repository.findById('org-2', 'id-1')).toMatchObject({ name: 'Grace' })
+      expect(jobs.all).toEqual([])
+    })
   })
 })

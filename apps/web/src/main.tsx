@@ -1,7 +1,15 @@
 import 'virtual:uno.css'
 import { render } from 'solid-js/web'
 import { loadIdentityOptions } from '#entities/identity-options'
-import { createApiClient, createAuthClient, createRequests, limitReads } from '#shared/api'
+import {
+  createApiClient,
+  createAuthClient,
+  createErrorReporter,
+  createRequests,
+  limitReads,
+  listenForErrors,
+  sendReport
+} from '#shared/api'
 import { detectLocale, loadMessages, readDeviceLocale, readWebEnv } from '#shared/config'
 import { reloadOnStaleBuild } from '#shared/lib'
 import { App } from './app/app'
@@ -13,6 +21,22 @@ const env = readWebEnv(import.meta.env)
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Element #root not found')
+
+// An error nobody handles reaches the API's log, tagged with this build's commit (ADR 0072). Its own `fetch`, not
+// the counted one: a report must not light the progress bar.
+const reporter = createErrorReporter({
+  release: env.release,
+  send: (report) =>
+    sendReport(
+      {
+        url: `${env.apiBaseUrl}/api/client-errors`,
+        beacon: navigator.sendBeacon?.bind(navigator),
+        fetch: window.fetch.bind(window)
+      },
+      report
+    )
+})
+listenForErrors(window, reporter)
 
 // Every request goes through one counted `fetch`, which the progress bar follows (ADR 0035).
 const requests = createRequests()
@@ -29,5 +53,10 @@ const locale = readDeviceLocale() ?? detectLocale(navigator.languages)
 // wait for it (ADR 0038); one that leads to an entry screen later asks there.
 const identity = opensOnEntryScreen(window.location.pathname) ? loadIdentityOptions(client, 1500) : undefined
 Promise.all([loadMessages(locale), identity]).then(([, options]) =>
-  render(() => <App client={client} auth={auth} requests={requests} locale={locale} identity={options} />, root)
+  render(
+    () => (
+      <App client={client} auth={auth} requests={requests} reporter={reporter} locale={locale} identity={options} />
+    ),
+    root
+  )
 )

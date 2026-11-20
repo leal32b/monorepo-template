@@ -60,6 +60,12 @@ export {
   webhookReceiptSchema
 } from './billing'
 export {
+  type ClientErrorReport,
+  clientErrorKinds,
+  clientErrorLimits,
+  clientErrorReportSchema
+} from './client-errors'
+export {
   type Customer,
   type CustomerInput,
   type CustomerList,
@@ -82,6 +88,12 @@ export {
   publicCustomerRegistrationInputSchema,
   publicCustomerRegistrationSchema
 } from './customers'
+export {
+  exportLimits,
+  exportProblems,
+  type OrganizationExport,
+  organizationExportSchema
+} from './data-export'
 export { type HealthResponse, healthResponseSchema, type LivenessResponse, livenessResponseSchema } from './health'
 export {
   type AccountDeletion,
@@ -89,6 +101,7 @@ export {
   accountDeletionSchema,
   type IdentityOptions,
   identityOptionsSchema,
+  legal,
   type MeResponse,
   meResponseSchema,
   passwordLength

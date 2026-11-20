@@ -33,7 +33,15 @@ const clock = new SystemClock()
 const emailSender = new FileEmailSender(outbox)
 // The billing fake, with no completion of its own: the suite sends its commands (ADR 0063).
 const billing = createBillingProvider(env.billing, { clock, ids: new UuidGenerator() })
-const jobs = createJobs({ db, clock, logger, emailSender, billing, idlePollMs: env.jobs.idlePollMs })
+const jobs = createJobs({
+  db,
+  clock,
+  logger,
+  emailSender,
+  billing,
+  webOrigin: env.webOrigin,
+  idlePollMs: env.jobs.idlePollMs
+})
 const server = createApp({
   clock,
   logger,

@@ -13,7 +13,9 @@ export type {
   Member,
   Membership
 } from './membership.port'
+export type { OrganizationCreationListener } from './organization-creation.port'
 export type { OrganizationDeletionListener } from './organization-deletion.port'
+export type { OrganizationOwners } from './organization-owners.port'
 export type {
   /** @public */
   PublicOrganization,

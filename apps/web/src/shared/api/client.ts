@@ -89,5 +89,8 @@ export function createApiClient({ fetch, baseUrl = '' }: ApiClientOptions) {
     )
   }
 
-  return { get, send }
+  /** Where `path` is on the API, for what the browser fetches itself: a file to download (ADR 0074). */
+  const url = (path: string) => `${baseUrl}${path}`
+
+  return { get, send, url }
 }

@@ -59,6 +59,7 @@ export function OrganizationActivityPage() {
 
 /** The fields each kind of record has words for; another field is shown by its code. */
 const fieldsWithWords = {
+  organization: [],
   customer: ['name', 'email', 'phone', 'company', 'notes'],
   subscription: [
     'status',

@@ -9,6 +9,7 @@ import {
   RenameOrganizationForm,
   type Setting
 } from '#features/organizations/edit-organization'
+import { ExportDataRow } from '#features/organizations/export-data'
 import { useI18n } from '#shared/config'
 import { formatDateTime, formatMoney } from '#shared/lib'
 import { AppShell } from '#widgets/app-shell'
@@ -20,7 +21,8 @@ const EXAMPLE_AMOUNT = 123456
  * `/:orgSlug/settings/general`: the organization's name and address, its time zone and currency (ADR
  * 0053, each shown as it reads: the time there now, an amount in it), and deleting it. What each role
  * may do comes from the permissions the API resolved (ADR 0033): whoever may update sees the buttons to
- * rename and to change the address, whoever may delete sees the deletion, and anyone else sees the
+ * rename and to change the address, whoever may export sees the export of the data (ADR 0074), whoever may
+ * delete sees the deletion, and anyone else sees the
  * details and why they cannot change them. A form opens inline below its row, one at a time. A new
  * address moves the page to it; a deleted organization leaves for `/`, which opens another or onboarding.
  */
@@ -164,6 +166,18 @@ export function OrganizationGeneralPage() {
         <SettingRow setting="timeZone" icon="clock" />
         <SettingRow setting="currency" icon="coins" />
       </ListSection>
+      <Show when={current.can('organization', 'export')}>
+        <ListSection
+          title={t('organizationGeneral.export.title')}
+          description={t('organizationGeneral.export.description', { name: organization().name })}
+        >
+          <ExportDataRow
+            organizationId={organization().id}
+            timeZone={organization().timeZone}
+            disabled={panels.busy()}
+          />
+        </ListSection>
+      </Show>
       <Show when={current.can('organization', 'delete')}>
         <ListSection
           title={t('organizationGeneral.delete.title')}

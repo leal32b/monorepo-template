@@ -41,7 +41,16 @@ function setup() {
     clock,
     timer,
     lines,
-    jobs: createJobs({ db, clock, logger, emailSender, billing: fakeBilling(clock), timer, idlePollMs: IDLE })
+    jobs: createJobs({
+      webOrigin: 'http://localhost:5173',
+      db,
+      clock,
+      logger,
+      emailSender,
+      billing: fakeBilling(clock),
+      timer,
+      idlePollMs: IDLE
+    })
   }
 }
 const states = async () =>
@@ -91,6 +100,7 @@ describe('createJobs (ADR 0056)', () => {
   it('waits in real time when no timer is given', async () => {
     const { logger } = memoryLogger()
     const jobs = createJobs({
+      webOrigin: 'http://localhost:5173',
       db,
       clock: new FixedClock(new Date()),
       logger,

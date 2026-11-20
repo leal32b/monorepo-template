@@ -12,6 +12,7 @@ export function whenUnauthorized(client: ApiClient, handle: () => void): ApiClie
   }
   return {
     get: (path, schema, options) => client.get(path, schema, options).catch(watch),
-    send: (method, path, body, schema) => client.send(method, path, body, schema).catch(watch)
+    send: (method, path, body, schema) => client.send(method, path, body, schema).catch(watch),
+    url: client.url
   }
 }

@@ -6,7 +6,8 @@ How to see what production is doing, and what to do when it misbehaves. The deci
 [ADR 0047](adr/0047-put-time-limits-on-every-database-wait.md) (time limits on the database),
 [ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md) (the daily purge),
 [ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md) (background jobs) and
-[ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) (public routes and their rate limits).
+[ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) (public routes and their rate limits) and
+[ADR 0072](adr/0072-report-browser-errors-to-the-api-log.md) (browser errors).
 Neon, Render and Cloudflare are the template's own hosts; on others, the same signals live elsewhere.
 
 ## Signals
@@ -19,6 +20,7 @@ Neon, Render and Cloudflare are the template's own hosts; on others, the same si
 | Worker log | Cloudflare dashboard, Workers Logs | Each request through the web origin, its status and any exception |
 | Deploy | GitHub Actions, `Deploy` workflow | Which commit went live, and the smoke tests it passed |
 | Purge | GitHub Actions, `Purge` workflow, daily | The log line `expired rows purged`, with how many sessions, tokens, counters, invitations and unconfirmed accounts went, how many finished jobs, how many of our own rate-limit counters, and how many audit entries older than a year ([ADR 0061](adr/0061-keep-one-append-only-audit-trail-per-organization.md)) |
+| Browser errors | API log | `client error` (warn): an error the browser could not handle, with the commit that threw it and the reference the user saw ([Browser errors](#browser-errors)) |
 | Rate limits | API log; the `rate_limit` table | `rate limited` when an address passes a limit of a public route, with the limit's name; which addresses are counting now |
 | Jobs | API log (or the worker's, `service: worker`); the `job` table | `job queue working` after every start; `job attempt failed` and `job failed` when a handler fails; what is waiting, running or failed |
 | Billing | API log; the `webhook_event`, `job` and `subscription` tables | `webhook received` per notice (`repeat: true` for one already taken in), `webhook refused` (warn), `billing synced` with the audit action, `billing event ignored`, and at error `billing duplicate subscription` or `billing reference names another organization` |
@@ -58,10 +60,15 @@ A job line has `jobId`, `kind` and `attempt` instead of a request's fields:
 - `job queue working` (info): the check the API enqueues as it starts was run, `waitedMs` after it
   was enqueued.
 
-A job's payload is never logged: it may hold an address or a link. Identity's emails are jobs of the
-kind `identity.send-email` ([ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)):
-a provider's refusal shows as `job attempt failed`, with the provider's status and error code in
-`err`, and an email that failed every attempt as `job failed`.
+A job's payload is never logged: it may hold an address or a link. Each module's emails are jobs of
+its own kind, `<module>.send-email`
+([ADR 0073](adr/0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md)):
+`identity.send-email` ([ADR 0057](adr/0057-send-identity-emails-through-the-job-queue.md)),
+`customers.send-email` and `billing.send-email`. A provider's refusal shows as `job attempt failed`,
+with the provider's status and error code in `err`, and an email that failed every attempt as
+`job failed`; see [A failed notification](#a-failed-notification).
+
+A browser error is a line of its own: see [Browser errors](#browser-errors).
 
 Headers, cookies and bodies are never logged. Keep it that way: a log line may be read by anyone with
 access to the host.
@@ -74,8 +81,31 @@ access to the host.
    5xx, the stack.
 3. The `release` is the commit: `git show <release>` is the code that answered.
 
+A reference that starts with `client_error` is not a request id but a browser error: search the log for the
+hex part, as in [Browser errors](#browser-errors).
+
 No reference on the screen means the browser could not reach the API: look at the Worker log and at
 `/api/health`.
+
+## Browser errors
+
+A screen that throws while it draws, an uncaught error and an uncaught promise rejection are posted by the
+browser to `POST /api/client-errors` ([ADR 0072](adr/0072-report-browser-errors-to-the-api-log.md)) and leave one
+`warn` line, `client error`. The screen of a crash shows the reference as `client_error · 3fa9c1d2e4b5`; search the
+log for the 12 hex characters (`reference`). The line has:
+
+- `release`: the API that took the report. `clientRelease`: the commit of the **web build that threw**, which an
+  old tab keeps until it is reloaded. `git show <clientRelease>` is the code; its stack is the minified one, read
+  against that commit's build.
+- `kind` (`render`, `error` or `unhandledrejection`), `route` (the router's pattern, such as
+  `/:organizationSlug/customers/:customerId`, never the address), `clientMessage` and `clientStack`.
+- `reqId`, the request that carried the report.
+
+A spike of these lines right after a deploy, all with the new `clientRelease`, is a bad release: roll back. Lines
+with an old `clientRelease` are tabs not yet reloaded. Reports are limited to 5 per page and 30 per address per 10
+minutes (`client-errors` in the `rate limited` line), so a count is a floor, not a total. Messages are cleaned of
+email addresses and query strings, but may still quote what a library put in them: treat them as logs, not as a
+place for personal data.
 
 ## Background jobs
 
@@ -124,6 +154,39 @@ when the next request wakes the container. Jobs caused by a request are not affe
 jobs to run on time, keep the container awake (the uptime monitor below, on an interval shorter
 than the host's idle limit) or move to an always-on plan. An idle worker sends no queries, so
 keeping the container awake does not keep the database awake.
+
+### A failed notification
+
+`job failed` with a kind that ends in `.send-email` is an email that was refused on every attempt,
+about 43 minutes. First, the cause: `err` and `last_error` hold the provider's status and code (a
+`401` or `403` is the key, `422` a sending domain not verified or an address refused, `429` the
+plan's quota, `5xx` the provider down). Fix it, then:
+
+| Kind | Who it was for | What to do |
+| --- | --- | --- |
+| `identity.send-email` | The person who asked: a confirmation, reset, deletion or invitation | Nothing to put back: its payload is gone and its link has expired. The user asks again from the screen; an inviter presses Resend. |
+| `customers.send-email` | The owner, of a visitor's registration | Put it back (below), or let it go: the customer is in the list, marked as created by a visitor. |
+| `billing.send-email` | The owner: the trial ends in 3 days, or a payment is late | Put it back while it is still true: the plan page shows the trial's end or the day to pay by in any case. A late payment's email may already be stale if the organization paid since. |
+
+A failed `billing.remind-trial-end` means the row or the owner could not be read: put it back
+before the trial ends, or it sends nothing. What a payload holds, to decide (it names an address,
+so read it only for this):
+
+```sql
+select id, kind, payload->>'email' as email, payload->>'locale' as locale, last_error, finished_at
+from job where kind like '%.send-email' and state = 'failed' order by finished_at desc;
+```
+
+The reminder is a delayed job: on a host that sleeps when idle it runs when the next request wakes the
+container (see above), so keep the container awake for it to arrive on its day.
+
+Many at once, all with the same error, is the provider or its configuration, not the messages: fix
+it, then put them back together, leaving identity's out:
+
+```sql
+update job set state = 'pending', attempts = 0, run_at = now(), finished_at = null
+where kind in ('customers.send-email', 'billing.send-email') and state = 'failed' and finished_at > '<since>';
+```
 
 ## Public routes and rate limits
 
@@ -244,9 +307,12 @@ sandbox for staging, production for the product):
    `PAYMENT_CREDIT_CARD_CAPTURE_REFUSED`, `PAYMENT_DELETED`, `SUBSCRIPTION_CREATED`,
    `SUBSCRIPTION_UPDATED`, `SUBSCRIPTION_INACTIVATED`, `SUBSCRIPTION_DELETED`. Another event (the
    `CHECKOUT_*` ones of before ADR 0070 included) is answered 200 and ignored.
-4. **Payer notices** (Configurações → Notificações): keep the due-date warning and the overdue notice,
-   the only billing emails until P1-6. The default overdue notice includes a phone call; turn it off
-   if that is too much for the product's customers.
+4. **Payer notices** (Configurações → Notificações). The API emails the owner when a payment is late,
+   with the day the organization becomes read only and a button to pay
+   ([ADR 0073](adr/0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md)),
+   so the payer gets one message per event: **turn off every overdue notice** ("Cobrança vencida":
+   email, SMS, WhatsApp and the phone call). Keep the notices the API does not send, which carry the
+   invoice: the charge created, the due-date warning and the payment received.
 5. **Charges created 7 days ahead** of their due date (40 by default, 14 or 7 as options), so a payer
    does not see next month's boleto at the start of this one.
 6. **Card tokenization** in production: Asaas changes a card subscription's value (an upgrade, a
@@ -343,6 +409,36 @@ the adapter.
 | Deleting a boleto right after it is created | Answers 500 for a few seconds when its registration ends at its due date, then works | Deleted one at once and 15 s later |
 | The job's reads, end to end | Verified: `subscription` read an active card subscription, a received boleto, an overdue card charge paid late, an unpaid Pix (`pending`), a deleted one (`cancelled`) and an unknown id (`null`), with the right periods; `payment` and `paymentPage` answered accordingly | Ran the adapter against the sandbox |
 | A Checkout's `link`, items without `imageBase64`, `GET /payments?checkoutSession=` | No longer used (ADR 0070); a Checkout without a customer did answer with `link`, without an image | Created one |
+
+## Terms and privacy
+
+The text of `/terms` and `/privacy` is the dictionary group `legal` of the web
+(`apps/web/src/shared/config/i18n/dictionaries/legal/`), and their version is `legal.version` in
+`@repo/contracts`; every account records the version in force when it was made ([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md)).
+
+To publish a new version:
+
+1. Change the texts in every language the product sells in, and `legal.version` to the day it takes effect, in
+   one commit.
+2. Before that day, email every user what changes and when (the notice period the text promises). The
+   addresses: `select email, "legalVersion" from auth."user" where "emailVerified"`.
+3. Deploy on that day. Accounts made from then on record the new version; the others keep theirs, which
+   says who accepted which.
+
+A change that needs consent rather than notice (a new purpose, a new paid term) needs re-acceptance in the
+app, which the template does not build: see the ADR.
+
+## Organization exports
+
+An owner asks in General; `data-export.build` builds a zip of CSV files and `data-export.send-email` tells
+them. One request per organization every 15 minutes; the file is kept 7 days, then the purge empties it
+([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md)).
+
+- **An owner says the export never arrived.** `job failed` with `kind: data-export.build` and its error:
+  `Query read timeout` or the job's 60 s means the organization outgrew a one-shot export (see the ADR's
+  "Revisit when"). The page lets them ask again 15 minutes after the first request; the email's failure is
+  [a failed notification](#a-failed-notification), and the page shows the export as ready anyway.
+- **Who downloaded it.** `export downloaded` lines, with the organization and the member's id.
 
 ## Set up once per product
 

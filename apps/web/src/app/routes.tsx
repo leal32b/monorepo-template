@@ -58,6 +58,9 @@ const DeleteAccountPage = lazy(() => import('#pages/delete-account').then((m) =>
 const PreferencesPage = lazy(() => import('#pages/preferences').then((m) => ({ default: m.PreferencesPage })))
 const SecurityPage = lazy(() => import('#pages/security').then((m) => ({ default: m.SecurityPage })))
 /** A tenant's public page, a chunk of its own: neither the sign-in nor the signed-in screens download it (ADR 0060). */
+/** The terms and the privacy notice (ADR 0074), with their texts: neither the sign-in nor the sign-up pays for them. */
+const TermsPage = lazy(() => import('#pages/legal/terms').then((m) => ({ default: m.TermsPage })))
+const PrivacyPage = lazy(() => import('#pages/legal/privacy').then((m) => ({ default: m.PrivacyPage })))
 const PublicOrganizationPage = lazy(() =>
   import('#pages/public-organization').then((m) => ({ default: m.PublicOrganizationPage }))
 )
@@ -156,6 +159,22 @@ const preloadBilling = onOpen(({ params }) => {
     if (!can(membership.permissions, 'billing', 'manage')) return entity.membersQuery(auth)(organization.id)
     const { billingQuery } = await import('#entities/subscriptions')
     return billingQuery(api)(organization.id)
+  })
+})
+/**
+ * The General screen's export row reads the organization's last export as it opens (ADR 0074), for the owner
+ * alone, who holds `organization:export`: it waits for the membership the frame reads anyway, so nobody
+ * else's console shows a refused call (ADR 0042).
+ */
+const preloadGeneral = onOpen(({ params }) => {
+  const slug = params.orgSlug as string
+  preload(organizations, async (entity, { auth, api }) => {
+    const organization = (await entity.organizationsQuery(auth)()).find((candidate) => candidate.slug === slug)
+    if (organization === undefined) return
+    const membership = await entity.membershipQuery(api)(organization.id)
+    if (!can(membership.permissions, 'organization', 'export')) return
+    const { organizationExportQuery } = await import('#entities/organization-exports')
+    await organizationExportQuery(api)(organization.id)
   })
 })
 const identityOptions = () => import('#entities/identity-options')
@@ -269,7 +288,7 @@ export const routes: RouteDefinition[] = [
                     path: '/settings',
                     children: [
                       { path: '/', component: SettingsOfOrganization },
-                      { path: '/general', ...screenOf(OrganizationGeneralPage, ['team']) },
+                      { path: '/general', ...screenOf(OrganizationGeneralPage, ['team'], preloadGeneral) },
                       { path: '/members', ...screenOf(OrganizationMembersPage, ['team'], preloadTeam) },
                       { path: '/roles', ...screenOf(OrganizationRolesPage, ['team'], preloadTeam) },
                       {
@@ -288,6 +307,9 @@ export const routes: RouteDefinition[] = [
     ]
   },
   { path: publicPath, ...screenOf(PublicOrganizationPage, ['public'], preloadPublic) },
+  // The terms and the privacy notice, in the entry frame, signed in or not (ADR 0074).
+  { path: '/terms', ...screenOf(TermsPage, ['legal']) },
+  { path: '/privacy', ...screenOf(PrivacyPage, ['legal']) },
   { path: '/account', component: AccountRedirect },
   ...entryScreens,
   { path: '*404', component: NotFoundPage }

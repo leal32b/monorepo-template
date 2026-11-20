@@ -1,14 +1,15 @@
-import { builtInRoles, passwordLength, statements } from '@repo/contracts'
+import { builtInRoles, legal, passwordLength, statements } from '@repo/contracts'
 import { betterAuth } from 'better-auth'
 import { createAuthMiddleware, getSessionFromCtx } from 'better-auth/api'
 import { haveIBeenPwned, organization, twoFactor } from 'better-auth/plugins'
 import { createAccessControl } from 'better-auth/plugins/access'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
-import * as z from 'zod/mini'
+import { type Locale, localeSchema } from '#libs/notifications/locales'
+import type { Clock } from '#libs/ports/clock.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
-import { type EmailKind, emailTexts, type Locale } from '../emails/email-texts'
-import { EMAIL_LINK_SECONDS, sendEmail } from '../jobs/send-email'
+import { EMAIL_LINK_SECONDS, type IdentityEmail, sendEmail } from '../jobs/send-email'
+import type { OrganizationCreationListener } from '../organization-creation.port'
 import type { OrganizationDeletionListener } from '../organization-deletion.port'
 import { KyselyAccountDeletion } from './kysely-account-deletion'
 import { checkOrganization, OrganizationReader, OrganizationRules, organizationLimits } from './organization-rules'
@@ -17,6 +18,8 @@ import { hashPassword, verifyPassword } from './password-hashing'
 export type AuthDeps = {
   db: Kysely<unknown>
   logger: Logger
+  /** When an account accepted the terms (ADR 0074). */
+  clock: Clock
   /** The queue on the pool: Better Auth's callbacks run outside any unit of work (ADR 0057). */
   jobs: JobQueue
   /** The web app's origin (ADR 0019): every link and callback comes through it. */
@@ -27,10 +30,9 @@ export type AuthDeps = {
   google: { clientId: string; clientSecret: string } | undefined
   /** Told of every organization about to be deleted (ADR 0063): billing ends its subscription at the provider. */
   organizationDeletion: OrganizationDeletionListener
+  /** Told of every organization just created (ADR 0073): billing enqueues the reminder of its trial's end. */
+  organizationCreation: OrganizationCreationListener
 }
-
-/** The languages emails are written in: a sign-up in any other is refused. */
-const localeSchema = z.enum(Object.keys(emailTexts) as [Locale, ...Locale[]])
 
 /** The access control of ADR 0033, built from the statements and built-in roles in `@repo/contracts`. */
 const accessControl = createAccessControl(statements)
@@ -41,12 +43,22 @@ const roles = {
 }
 
 /** Better Auth with the template's defaults (ADR 0020). */
-export function createAuth({ db, logger, jobs, webOrigin, secret, google, organizationDeletion }: AuthDeps) {
+export function createAuth({
+  db,
+  logger,
+  clock,
+  jobs,
+  webOrigin,
+  secret,
+  google,
+  organizationDeletion,
+  organizationCreation
+}: AuthDeps) {
   /**
    * Enqueued, not sent (ADR 0057): the response waits for one insert, never for the provider, and a
    * provider's failure is retried by the queue. A failed insert fails the request, so nothing is lost unseen.
    */
-  const send = async (kind: EmailKind, user: { email: string }, url: string, values?: Record<string, string>) => {
+  const send = async (kind: IdentityEmail, user: { email: string }, url: string, values?: Record<string, string>) => {
     const { email, locale } = user as { email: string; locale: Locale } // `locale` is our additional field
     await jobs.enqueue(sendEmail, { email: kind, to: email, locale, url, values })
   }
@@ -63,7 +75,10 @@ export function createAuth({ db, logger, jobs, webOrigin, secret, google, organi
     database: { db, type: 'postgres', schemaName: 'auth' },
     user: {
       additionalFields: {
-        locale: { type: 'string', required: true, defaultValue: 'en', input: true, validator: { input: localeSchema } }
+        locale: { type: 'string', required: true, defaultValue: 'en', input: true, validator: { input: localeSchema } },
+        // ADR 0074: never from the request; `databaseHooks` stamps both on every creation.
+        legalVersion: { type: 'string', required: false, input: false },
+        legalAcceptedAt: { type: 'date', required: false, input: false }
       },
       // T09: an account from a provider counts only with an email the provider has confirmed.
       validateUserInfo: ({ user, source }) =>
@@ -101,6 +116,17 @@ export function createAuth({ db, logger, jobs, webOrigin, secret, google, organi
       autoSignInAfterVerification: true,
       expiresIn: EMAIL_LINK_SECONDS,
       sendVerificationEmail: async ({ user, url }) => send('confirmEmail', user, url)
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          // ADR 0074: every way an account is made (the form, Google's first sign-in) is beside the words that
+          // name the terms and privacy notice in force, so the account records that version and when.
+          before: async (user) => ({
+            data: { ...user, legalVersion: legal.version, legalAcceptedAt: clock.now() }
+          })
+        }
+      }
     },
     // Every request reads the session row: GHSA-xg6x-h9c9-2m83 came from this cache.
     session: { cookieCache: { enabled: false } },
@@ -172,6 +198,8 @@ export function createAuth({ db, logger, jobs, webOrigin, secret, google, organi
           ),
         organizationHooks: {
           beforeCreateOrganization: async ({ organization }) => checkOrganization(organization),
+          afterCreateOrganization: async ({ organization }) =>
+            organizationCreation.afterCreate({ id: organization.id, createdAt: organization.createdAt }),
           beforeUpdateOrganization: async ({ organization }) => checkOrganization(organization),
           beforeCreateInvitation: async ({ inviter }) => rules.beforeInvitation(inviter.id),
           // Only an owner deletes (ADR 0033); then billing enqueues the end of its subscription (ADR 0063).

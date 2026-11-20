@@ -53,7 +53,7 @@ describe('RoleForm', () => {
         group('Organization')
           .getAllByRole('checkbox')
           .map((checkbox) => checkbox.getAttribute('name'))
-      ).toEqual(['organization:update', 'organization:delete'])
+      ).toEqual(['organization:update', 'organization:delete', 'organization:export'])
       expect(group('Members').getAllByRole('checkbox')).toHaveLength(3)
       expect(group('Invitations').getAllByRole('checkbox')).toHaveLength(2)
       expect(group('Roles').getAllByRole('checkbox')).toHaveLength(4)

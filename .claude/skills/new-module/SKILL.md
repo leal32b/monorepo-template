@@ -52,11 +52,14 @@ row-level-security lines (`enable row level security`, `create policy tenant_iso
 `grant` with only the verbs the module uses) copied from `0013_subscription.sql`; `0004` has none.
 Add `drop table if exists <n>` to the one long string of `apps/api/test/reset-database.ts`, before `schema_migration`. Tests that name a table without these lines:
 `libs/database/tenant-row-security.db.test.ts`.
+The organization export holds every tenant table: add the table to `tenantTables` in
+`modules/data-export/database/export-tables.ts`, each column held or left out with why, or name it in
+`notExported` (ADR 0074). Test that fails without it: `modules/data-export/database/data-export.db.test.ts`.
 
 ## 3. API module (`apps/api/src/modules/<ns>/`), in this order
 
 1. `domain/<n>.ts` + test, `domain/<ns>.errors.ts`: pure rules and `changedFields`.
-2. `<n>-repository.port.ts`, `<ns>-unit-of-work.port.ts` (with `audit: AuditTrail`), `<n>-audit.ts`,
+2. `<n>-repository.port.ts`, `<ns>-unit-of-work.port.ts` (with `audit: AuditTrail` and `jobs: JobQueue`), `<n>-audit.ts`,
    `<n>-response.ts` (`to<N>Response`) and `find-<n>.ts` (raises not found).
 3. `testing/in-memory-<n>-repository.ts` + test, `testing/test-<ns>.ts` (the actor and the `test<Ns>()`
    factory over `InMemoryUnitOfWork`) and `testing/in-memory-<ns>-unit-of-work.test.ts`,

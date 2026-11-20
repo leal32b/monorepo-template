@@ -34,6 +34,7 @@ The first time, install the browser: `pnpm --filter @repo/e2e exec playwright in
 | `two-factor.spec.ts` | Two-step verification turned on, then a sign-in with a code |
 | `accessibility.spec.ts` | No serious or critical axe violation on every screen, panel and the palette, light and dark; the phone menu's focus |
 | `bundle-budget.spec.ts` | The gzipped JavaScript of a cold load: 73 KB before sign-in, 115 KB before the first signed-in screen, 76 KB before a tenant's public page |
+| `client-errors.spec.ts` | An uncaught promise rejection in the built app posts a report that the API answers with 204: the CSP, the proxy and the origin check let it through |
 | `security-headers.spec.ts` | The page carries HSTS, the permissions policy and COOP from `public/_headers` |
 
 Rules for a new test:

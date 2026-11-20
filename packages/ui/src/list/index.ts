@@ -1,5 +1,5 @@
 export { ListPanel, type ListPanelProps } from './list-panel'
-export { ListRow, type ListRowProps } from './list-row'
+export { ListRow, type ListRowProps, useRowNote } from './list-row'
 export { ListSection, type ListSectionProps } from './list-section'
 export { ListSkeleton, type ListSkeletonProps } from './list-skeleton'
 export { ListToolbar, type ListToolbarProps } from './list-toolbar'

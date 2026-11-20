@@ -1,5 +1,8 @@
 import type { EmailMessage } from '#libs/ports/email-sender.port'
-import { type EmailKind, emailTexts, type Locale } from './email-texts'
+import type { Locale } from './locales'
+
+/** One message in one language: `{name}` tokens in the subject, the body and the footer take the values. */
+export type EmailText = { subject: string; body: string; action: string; footer: string }
 
 const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
 
@@ -11,12 +14,12 @@ const fill = (text: string, values: Record<string, string>): string =>
   text.replace(/\{(\w+)\}/g, (token, name: string) => values[name] ?? token)
 
 /**
- * An identity email in the user's language (ADR 0021): a paragraph, one link and a footer, as
- * plain text and as HTML. `values` fill the `{name}` tokens of the subject and the body, such as an
- * invitation's organization. The link and the values are escaped in the HTML.
+ * The one layout of every email (ADR 0021, ADR 0073): a paragraph, one link and a footer, as plain
+ * text and as HTML in the recipient's language. `values` fill the `{name}` tokens of the subject, the
+ * body and the footer, such as an invitation's organization. The link and the values are escaped in the HTML.
  */
 export function writeEmail(
-  kind: EmailKind,
+  texts: EmailText,
   {
     to,
     locale,
@@ -24,10 +27,10 @@ export function writeEmail(
     values = {}
   }: { to: string; locale: Locale; url: string; values?: Record<string, string> | undefined }
 ): EmailMessage {
-  const texts = emailTexts[locale][kind]
-  const { action, footer } = texts
+  const { action } = texts
   const subject = fill(texts.subject, values)
   const body = fill(texts.body, values)
+  const footer = fill(texts.footer, values)
   const html = `<!doctype html>
 <html lang="${locale}">
   <head><meta charset="utf-8"></head>

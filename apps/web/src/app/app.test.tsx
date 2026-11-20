@@ -280,6 +280,17 @@ describe('App', () => {
     expect(fetch).not.toHaveBeenCalledWith('/api/identity/options', expect.anything())
   })
 
+  it('tells the error reporter which screen is on view by its pattern, as the route changes (ADR 0072)', async () => {
+    const reporter = { report: vi.fn(), setRoute: vi.fn() }
+    const client = createApiClient({ fetch: async () => Response.json(null) })
+    const auth = createAuthClient({ fetch: async () => Response.json(null) })
+    window.history.replaceState(null, '', '/login')
+
+    render(() => <App client={client} auth={auth} reporter={reporter} locale="en" />)
+
+    await waitFor(() => expect(reporter.setRoute).toHaveBeenLastCalledWith('/login'))
+  })
+
   it('serves the sign-in page at /login', () => {
     const client = createApiClient({ fetch: async () => Response.json(null) })
     const auth = createAuthClient({ fetch: async () => Response.json(null) })
@@ -637,6 +648,73 @@ describe('App', () => {
       expect(await screen.findByText('The activity log is not in your plan')).toBeInTheDocument()
       await new Promise((resolve) => setTimeout(resolve, 50))
       expect(asked.filter((path) => path.includes('/audit-entries'))).toEqual([])
+    })
+
+    it('reads the owner’s last export as General opens, with the membership the frame reads (ADR 0074)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/general')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') return Response.json(membershipOf(['owner'], builtInRoles.owner))
+          return Response.json({ status: 'none' })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('button', { name: 'Export data' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.endsWith('/export'))).toEqual(['/api/organizations/org-1/export'])
+      expect(asked.filter((path) => path === '/api/organizations/org-1/me')).toHaveLength(1)
+    })
+
+    it('asks an admin for no export, whose role does not hold organization:export (ADR 0042)', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/acme/settings/general')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          if (path === '/api/organizations/org-1/me') return Response.json(membershipOf(['admin'], builtInRoles.admin))
+          return new Response(null, { status: 403 })
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'General' })).toBeInTheDocument()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(asked.filter((path) => path.endsWith('/export'))).toEqual([])
+    })
+
+    it('asks for no export at an address that names none of the user’s organizations', async () => {
+      rememberSession()
+      window.history.replaceState(null, '', '/globex/settings/general')
+      const asked: string[] = []
+      const client = createApiClient({
+        fetch: async (path) => {
+          asked.push(path)
+          return Response.json(null)
+        }
+      })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+      expect(asked.filter((path) => path.endsWith('/export'))).toEqual([])
+    })
+
+    it.each([
+      ['/terms', 'Terms of use'],
+      ['/privacy', 'Privacy notice']
+    ])('serves %s to a visitor, in the entry frame (ADR 0074)', async (path, title) => {
+      window.history.replaceState(null, '', path)
+      const client = createApiClient({ fetch: async () => Response.json({ google: false }) })
+
+      render(() => <App client={client} auth={inAcme().auth} locale="en" />)
+
+      expect(await screen.findByRole('heading', { level: 1, name: title })).toBeInTheDocument()
     })
 
     it('asks for no activity at an address that names none of the user’s organizations', async () => {

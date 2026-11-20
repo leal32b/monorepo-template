@@ -41,6 +41,7 @@ describe('identity emails through the job queue (ADR 0057)', () => {
   const email = new FlakyEmailSender()
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    webOrigin,
     billing,
     db,
     clock,

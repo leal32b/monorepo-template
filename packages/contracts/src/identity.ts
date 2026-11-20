@@ -40,3 +40,10 @@ export type IdentityOptions = z.infer<typeof identityOptionsSchema>
  * rules (NIST SP 800-63B-4). The API enforces it; the web says it before the user types.
  */
 export const passwordLength = { min: 15, max: 128 } as const
+
+/**
+ * The version of the terms of use and the privacy notice, as they read together (ADR 0074): the day it takes
+ * effect. The API stamps it on every account it makes and the web prints it on `/terms` and `/privacy`, so the
+ * two never disagree. A product changes it in the commit that changes either text.
+ */
+export const legal = { version: '2026-11-19' } as const

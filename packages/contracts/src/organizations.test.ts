@@ -33,14 +33,20 @@ describe('builtInRoles', () => {
   })
 
   it('keeps organization:delete for the owner only', () => {
-    expect(ownerOnlyPermissions).toMatchObject({ organization: ['delete'] })
+    expect(ownerOnlyPermissions.organization).toContain('delete')
     expect(can(builtInRoles.owner, 'organization', 'delete')).toBe(true)
     expect(can(builtInRoles.admin, 'organization', 'delete')).toBe(false)
     expect(can(builtInRoles.member, 'organization', 'delete')).toBe(false)
   })
 
+  it("keeps organization:export for the owner only, since it hands over the organization's data (ADR 0074)", () => {
+    expect(can(builtInRoles.owner, 'organization', 'export')).toBe(true)
+    expect(can(builtInRoles.admin, 'organization', 'export')).toBe(false)
+    expect(can(builtInRoles.member, 'organization', 'export')).toBe(false)
+  })
+
   it("keeps billing:manage for the owner only, since it spends the organization's money (ADR 0063)", () => {
-    expect(ownerOnlyPermissions).toEqual({ organization: ['delete'], billing: ['manage'] })
+    expect(ownerOnlyPermissions).toEqual({ organization: ['delete', 'export'], billing: ['manage'] })
     expect(can(builtInRoles.owner, 'billing', 'manage')).toBe(true)
     expect(can(builtInRoles.admin, 'billing', 'manage')).toBe(false)
     expect(can(builtInRoles.member, 'billing', 'manage')).toBe(false)

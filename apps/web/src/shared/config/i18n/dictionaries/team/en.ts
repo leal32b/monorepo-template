@@ -51,6 +51,21 @@ export const teamEn = {
         saved: 'Currency saved'
       }
     },
+    export: {
+      title: 'Your data',
+      description: 'A copy of everything in {{name}}, to keep or to take elsewhere.',
+      row: 'Export data',
+      none: 'A zip file with a spreadsheet for each kind of record: members, customers, activity and more. We email you when it is ready.',
+      pending: 'Being prepared. We email you when it is ready, and you can download it here.',
+      ready: 'Ready to download until {{date}} ({{size}}).',
+      expired: 'The last export was deleted on {{date}}. Ask for a new one.',
+      again: 'You can ask for a new one from {{time}}.',
+      request: 'Export data',
+      requestAgain: 'Export again',
+      download: 'Download',
+      failed: 'We could not ask for the export. Try again in a moment.',
+      unavailable: 'We could not read the last export. Check your connection, then try again.'
+    },
     delete: {
       title: 'Delete organization',
       description: 'For every member, this removes the organization and all it holds.',
@@ -152,7 +167,8 @@ export const teamEn = {
     permissions: {
       organization: {
         update: 'Change the name and the address',
-        delete: 'Delete the organization'
+        delete: 'Delete the organization',
+        export: 'Export all its data'
       },
       member: {
         create: 'Add members',

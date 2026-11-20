@@ -111,7 +111,16 @@ export const entryEs: typeof entryEn = {
     }
   },
   entryLayout: {
-    language: 'Idioma'
+    legal: 'Legal',
+    language: 'Idioma',
+    terms: 'Términos de uso',
+    privacy: 'Aviso de privacidad'
+  },
+  /** Beside every button that makes an account (ADR 0074): the links’ words are `entryLayout`’s. */
+  legalNotice: {
+    before: 'Al continuar, aceptas los',
+    and: 'y el',
+    after: '.'
   },
   mail: {
     open: 'Abrir {{provider}}',

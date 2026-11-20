@@ -34,7 +34,8 @@ export {
   type ListToolbarProps,
   PanelButton,
   type PanelButtonProps,
-  type Panels
+  type Panels,
+  useRowNote
 } from '#list'
 export {
   Menu,

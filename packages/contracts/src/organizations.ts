@@ -9,7 +9,8 @@ import { instantSchema, timeZoneSchema } from './time'
  * `ac` is the plugin's own resource for managing roles.
  */
 export const statements = {
-  organization: ['update', 'delete'],
+  /** `export` hands over the organization's data (ADR 0074). */
+  organization: ['update', 'delete', 'export'],
   member: ['create', 'update', 'delete'],
   invitation: ['create', 'cancel'],
   ac: ['create', 'read', 'update', 'delete'],
@@ -85,9 +86,13 @@ export type Invitation = z.infer<typeof invitationSchema>
 
 /**
  * Permissions only the owner holds; no custom role may include them (ADR 0033, D3). Deleting the
- * organization, and spending its money on a plan (ADR 0063), are the decisions of one person.
+ * organization, taking all its data out (ADR 0074), and spending its money on a plan (ADR 0063), are the
+ * decisions of one person.
  */
-export const ownerOnlyPermissions = { organization: ['delete'], billing: ['manage'] } as const satisfies Permissions
+export const ownerOnlyPermissions = {
+  organization: ['delete', 'export'],
+  billing: ['manage']
+} as const satisfies Permissions
 
 /** `owner`, `admin` and `member`: built in, never edited. */
 export const builtInRoles = {
@@ -137,9 +142,12 @@ export const reservedSlugs = [
   'organizations',
   /** A tenant's public pages, `/p/:orgSlug` (ADR 0060). */
   'p',
+  /** The privacy notice and the terms of use (ADR 0074). */
+  'privacy',
   'reset-password',
   'settings',
-  'signup'
+  'signup',
+  'terms'
 ] as const
 
 /** How long an organization's name may be; the web says it when the name is too long. */
