@@ -21,6 +21,23 @@ export const teamPtBR: typeof teamEn = {
         save: 'Salvar nome',
         saved: 'Nome salvo'
       },
+      logo: {
+        title: 'Logo',
+        none: 'Aparece ao lado do nome no menu lateral. Uma imagem PNG, JPEG ou WebP de até 1 MB; uma quadrada fica melhor.',
+        set: 'Aparece ao lado do nome no menu lateral.',
+        upload: 'Enviar logo',
+        replace: 'Trocar',
+        remove: 'Remover',
+        saved: 'Logo salvo',
+        replaced: 'Logo trocado',
+        removed: 'Logo removido',
+        wrongType: 'Use uma imagem PNG, JPEG ou WebP.',
+        tooLarge: 'Esta imagem tem {{size}}. O logo pode ter até 1 MB.',
+        dimensions: 'Use uma imagem de 64 a 4096 pixels em cada lado.',
+        failed: 'O envio não terminou. Confira sua conexão e tente de novo.',
+        removeFailed: 'Não foi possível remover o logo. Tente de novo em instantes.',
+        tooMany: 'Muitos envios na última hora. Tente mais tarde.'
+      },
       address: {
         title: 'Endereço',
         change: 'Alterar endereço',

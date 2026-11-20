@@ -2,6 +2,7 @@ import { createPanels, ListPanel, ListRow, ListSection, PanelButton } from '@rep
 import { useNavigate } from '@solidjs/router'
 import { batch, createSignal, Show } from 'solid-js'
 import { currencyName, timeZoneLabel, useOrganization, useOrganizations } from '#entities/organizations'
+import { LogoRow } from '#features/organizations/change-logo'
 import { DeleteOrganizationForm } from '#features/organizations/delete-organization'
 import {
   ChangeAddressForm,
@@ -18,7 +19,7 @@ import { AppShell } from '#widgets/app-shell'
 const EXAMPLE_AMOUNT = 123456
 
 /**
- * `/:orgSlug/settings/general`: the organization's name and address, its time zone and currency (ADR
+ * `/:orgSlug/settings/general`: the organization's name, logo (ADR 0076) and address, its time zone and currency (ADR
  * 0053, each shown as it reads: the time there now, an amount in it), and deleting it. What each role
  * may do comes from the permissions the API resolved (ADR 0033): whoever may update sees the buttons to
  * rename and to change the address, whoever may export sees the export of the data (ADR 0074), whoever may
@@ -123,6 +124,14 @@ export function OrganizationGeneralPage() {
               </ListPanel>
             </Show>
           }
+        />
+        <LogoRow
+          organizationId={organization().id}
+          name={organization().name}
+          logo={current.membership.logo}
+          canUpdate={canUpdate()}
+          readOnly={current.membership.subscription.access === 'read-only'}
+          disabled={panels.busy()}
         />
         <ListRow
           icon="globe"

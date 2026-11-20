@@ -14,6 +14,10 @@ type Options = {
   auth?: Fetch
   locale?: Locale
   api?: (input: string, init?: RequestInit) => Promise<Response>
+  /** The organization's logo, as the membership carries it (ADR 0076). */
+  logo?: OrganizationMembership['logo']
+  /** Read only while its plan is unpaid (ADR 0063). */
+  readOnly?: boolean
 }
 
 /** The export routes in memory (ADR 0074): what GET answers, in turn, and what POST answers. */
@@ -47,7 +51,9 @@ function renderPage({
   permissions = builtInRoles.owner,
   auth,
   locale = 'en',
-  api = exportApi([{ status: 'none' }]).api
+  api = exportApi([{ status: 'none' }]).api,
+  logo = null,
+  readOnly = false
 }: Options = {}) {
   const authFetch: Fetch =
     auth ??
@@ -60,7 +66,11 @@ function renderPage({
     auth: authFetch,
     api,
     locale,
-    membership: membershipOf(['member'], permissions as OrganizationMembership['permissions'])
+    membership: (() => {
+      const membership = membershipOf(['member'], permissions as OrganizationMembership['permissions'])
+      const access = readOnly ? 'read-only' : membership.subscription.access
+      return { ...membership, logo, subscription: { ...membership.subscription, access } }
+    })()
   }).history
 }
 
@@ -354,6 +364,159 @@ describe('OrganizationGeneralPage', () => {
 
       expect(await (await data()).findByText(/We could not read the last export/)).toBeInTheDocument()
       expect(details().getByText('Acme')).toBeInTheDocument()
+    })
+  })
+
+  describe('the logo (ADR 0076)', () => {
+    const upload = {
+      uploadId: '0b8f8a3e-6a4f-4c3a-9a39-2f9f1c1d2e3f',
+      url: 'https://store.example.com/files/uploads/org-1/x?X-Amz-Signature=s',
+      headers: { 'Content-Type': 'image/png' },
+      expiresAt: '2026-11-20T12:05:00.000Z'
+    }
+    const saved = { url: 'https://store.example.com/files/logos/org-1/l?X-Amz-Signature=s', width: 64, height: 64 }
+    const png = new File([new Uint8Array(2048)], 'logo.png', { type: 'image/png' })
+    const problem = (status: number, code: string) =>
+      Response.json({ type: 'about:blank', title: code, status, code }, { status })
+
+    /** The logo routes in memory, with the confirmation answering `confirmed`, and the export's state. */
+    function logoApi(confirmed: () => Response = () => Response.json(saved)) {
+      const calls: string[] = []
+      const api = async (input: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET'
+        calls.push(`${method} ${input}`)
+        if (input.endsWith('/logo/uploads')) return Response.json(upload, { status: 201 })
+        if (input.endsWith('/logo') && method === 'PUT') return confirmed()
+        if (input.endsWith('/logo')) return new Response(null, { status: 204 })
+        return Response.json({ status: 'none' })
+      }
+      return { api, calls }
+    }
+
+    const choose = (file: File) =>
+      fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, { target: { files: [file] } })
+
+    beforeEach(() => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(null))
+      )
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('shows an organization without a logo its letter, what a logo may be, and the way to upload one', () => {
+      renderPage()
+
+      expect(details().getByText(/A PNG, JPEG or WebP image up to 1 MB/)).toBeInTheDocument()
+      expect(details().getByRole('button', { name: 'Upload logo' })).toBeEnabled()
+      expect(details().queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
+    })
+
+    it('uploads a logo straight to the store, then says it was saved', async () => {
+      const { api, calls } = logoApi()
+      renderPage({ api })
+
+      choose(png)
+
+      expect(await screen.findByText('Logo saved')).toBeInTheDocument()
+      expect(globalThis.fetch).toHaveBeenCalledWith(upload.url, { method: 'PUT', headers: upload.headers, body: png })
+      expect(calls.filter((call) => call.includes('/logo'))).toEqual([
+        'POST /api/organizations/org-1/logo/uploads',
+        'PUT /api/organizations/org-1/logo'
+      ])
+    })
+
+    it('shows the logo there is, and replaces it', async () => {
+      renderPage({ api: logoApi().api, logo: saved })
+
+      expect(details().getByText('Shown beside the name in the side menu.')).toBeInTheDocument()
+      expect(document.querySelector(`img[src="${saved.url}"]`)).toBeInTheDocument()
+      choose(png)
+
+      expect(await screen.findByText('Logo replaced')).toBeInTheDocument()
+    })
+
+    it('removes the logo, and says so', async () => {
+      const { api, calls } = logoApi()
+      renderPage({ api, logo: saved })
+
+      fireEvent.click(details().getByRole('button', { name: 'Remove' }))
+
+      expect(await screen.findByText('Logo removed')).toBeInTheDocument()
+      expect(calls).toContain('DELETE /api/organizations/org-1/logo')
+    })
+
+    it('says when the logo could not be removed', async () => {
+      renderPage({
+        api: async (input, init) =>
+          init?.method === 'DELETE' ? problem(500, 'internal_error') : logoApi().api(input, init),
+        logo: saved
+      })
+
+      fireEvent.click(details().getByRole('button', { name: 'Remove' }))
+
+      expect(await screen.findByText('We could not remove the logo. Try again in a moment.')).toBeInTheDocument()
+    })
+
+    it.each([
+      [
+        'a file of another type, at once',
+        new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' }),
+        undefined,
+        'Use a PNG, JPEG or WebP image.'
+      ],
+      [
+        'a file too big, with its size, at once',
+        new File([new Uint8Array(2_400_000)], 'logo.png', { type: 'image/png' }),
+        undefined,
+        'This image is 2.4 MB. A logo can be up to 1 MB.'
+      ],
+      [
+        'an image too small, after the API read it',
+        png,
+        problem(400, 'logo_dimensions'),
+        'Use an image from 64 to 4096 pixels on each side.'
+      ],
+      [
+        'an upload that did not finish',
+        png,
+        problem(409, 'logo_upload_missing'),
+        'The upload did not finish. Check your connection, then try again.'
+      ]
+    ])('says what is wrong with %s', async (_case, file, refusal, message) => {
+      renderPage({ api: logoApi(() => refusal as Response).api })
+
+      choose(file)
+
+      expect(await screen.findByText(message)).toBeInTheDocument()
+    })
+
+    it('says the organization is read only when the API refuses to sign', async () => {
+      renderPage({
+        api: async (input, init) =>
+          input.endsWith('/uploads') ? problem(403, 'subscription_read_only') : logoApi().api(input, init)
+      })
+
+      choose(png)
+
+      expect(await screen.findByText(/read only/i)).toBeInTheDocument()
+    })
+
+    it('waits, read only, with the reason in the row, and still lets the logo be removed', () => {
+      renderPage({ readOnly: true, logo: saved })
+
+      expect(details().getByRole('button', { name: 'Replace' })).toBeDisabled()
+      expect(details().getByRole('button', { name: 'Remove' })).toBeEnabled()
+    })
+
+    it('shows a plain member the logo with no buttons', () => {
+      renderPage({ permissions: builtInRoles.member, logo: saved })
+
+      expect(details().getByText('Logo')).toBeInTheDocument()
+      expect(details().queryByRole('button', { name: 'Replace' })).not.toBeInTheDocument()
     })
   })
 })
