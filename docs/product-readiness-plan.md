@@ -44,11 +44,11 @@ the rest.
 | [P1-3](#p1-3-a-cheaper-mould) | A cheaper mould | P1 | Opus, then Sonnet | P0-1, P0-2, P1-2 | Done |
 | [P1-4](#p1-4-new-module-skill-and-product-mode) | `new-module` skill and product mode | P1 | Sonnet | P1-3 | Done |
 | [P1-5](#p1-5-file-storage) | File storage | P1 | Opus | | Todo |
-| [P1-6](#p1-6-product-notifications) | Product notifications | P1 | Opus, then Sonnet | P0-4 | Todo |
+| [P1-6](#p1-6-product-notifications) | Product notifications | P1 | Opus, then Sonnet | P0-4 | Done |
 | [P1-7](#p1-7-operator-back-office) | Operator back office | P1 | Opus | P1-1 | Todo |
-| [P1-8](#p1-8-browser-errors-reach-the-log) | Browser errors reach the log | P1 | Sonnet | | Todo |
+| [P1-8](#p1-8-browser-errors-reach-the-log) | Browser errors reach the log | P1 | Sonnet | | Done |
 | [P1-9](#p1-9-staging-and-backups) | Staging and backups | P1 | Opus | | Todo |
-| [P1-10](#p1-10-terms-privacy-and-data-export) | Terms, privacy and data export | P1 | Opus | P0-4 | Todo |
+| [P1-10](#p1-10-terms-privacy-and-data-export) | Terms, privacy and data export | P1 | Opus | P0-4 | Done |
 | [P1-11](#p1-11-split-the-dictionaries-by-slice) | Split the dictionaries by slice | P1 | Sonnet | | Done |
 | [P2-1](#p2-1-idempotent-writes) | Idempotent writes | P2 | Opus | P0-1 | Todo |
 | [P2-2](#p2-2-search-and-paging-at-scale) | Search and paging at scale | P2 | Sonnet | | Todo |
@@ -259,7 +259,7 @@ then P1 by need.
 ### P1-6. Product notifications
 
 - **Model:** Opus for the port, Sonnet for the texts
-- **Status:** Todo
+- **Status:** Done ([ADR 0073](adr/0073-write-each-modules-notifications-through-a-shared-library-and-send-them-on-its-own-job-kind.md)). `#libs/notifications` with one email job kind per module; customers email the owner on a public registration; billing emails the owner before the trial ends and when a payment fails. Organizations created before it get no trial reminder.
 - **Depends on:** P0-4
 - **Finding:** email texts and `writeEmail` live inside `modules/identity`, so another module
   cannot send an email without importing identity's internals. There is no channel but email.
@@ -286,7 +286,7 @@ then P1 by need.
 ### P1-8. Browser errors reach the log
 
 - **Model:** Sonnet
-- **Status:** Todo
+- **Status:** Done ([ADR 0072](adr/0072-report-browser-errors-to-the-api-log.md)). `POST /api/client-errors`, rate limited, logs one line with the release.
 - **Finding:** an exception in the browser reaches nobody. Error tracking waits for a trigger
   ([ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md)), which is fine
   for the API, whose errors are logged, and leaves the web blind.
@@ -312,7 +312,7 @@ then P1 by need.
 ### P1-10. Terms, privacy and data export
 
 - **Model:** Opus
-- **Status:** Todo
+- **Status:** Done ([ADR 0074](adr/0074-record-the-terms-accepted-at-sign-up-and-export-an-organization-by-a-job-and-a-link.md)). The export lives in Postgres until P1-5; a personal export is deferred.
 - **Depends on:** P0-4
 - **Finding:** sign-up records no acceptance of terms or of a privacy policy, and nothing exports
   an account's or an organization's data. Account deletion exists
