@@ -6,6 +6,7 @@ import pino from 'pino'
 import { inject } from 'vitest'
 import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { InMemoryFileStorage } from '#libs/adapters/in-memory-file-storage'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
@@ -16,6 +17,9 @@ import type { EmailMessage, EmailSender } from '#libs/ports/email-sender.port'
 import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
 import { createJobs } from './create-jobs'
+
+/** The file store of the run (ADR 0076): the jobs and the app share it. */
+const storage = new InMemoryFileStorage()
 
 const webOrigin = 'http://localhost:5173'
 const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
@@ -41,6 +45,7 @@ describe('identity emails through the job queue (ADR 0057)', () => {
   const email = new FlakyEmailSender()
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    storage,
     webOrigin,
     billing,
     db,
@@ -58,6 +63,7 @@ describe('identity emails through the job queue (ADR 0057)', () => {
     await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
+      storage,
       clock,
       logger: pino({ level: 'silent' }),
       serviceName: 'api',

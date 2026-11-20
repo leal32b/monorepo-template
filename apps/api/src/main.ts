@@ -1,6 +1,7 @@
 import { createApp } from '#app/create-app'
 import { createBillingProvider } from '#app/create-billing-provider'
 import { createEmailSender } from '#app/create-email-sender'
+import { createFileStorage } from '#app/create-file-storage'
 import { createJobs } from '#app/create-jobs'
 import { createShutdown } from '#app/shutdown'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
@@ -31,6 +32,8 @@ const billing = createBillingProvider(env.billing, {
   ids: new UuidGenerator(),
   autoComplete: { afterMs: 3_000, timer: new SystemTimer() }
 })
+// The file store (ADR 0076): R2 or another S3-compatible store deployed, a local folder in `pnpm dev`.
+const storage = createFileStorage(env.storage, { clock, authSecret: env.authSecret })
 // Background work (ADR 0056): this process runs the jobs unless a worker of its own does.
 const jobs = createJobs({
   db,
@@ -38,6 +41,7 @@ const jobs = createJobs({
   logger,
   emailSender,
   billing,
+  storage,
   webOrigin: env.webOrigin,
   idlePollMs: env.jobs.idlePollMs
 })
@@ -54,7 +58,8 @@ const server = createApp({
   jobsOn: jobs.bind,
   authSecret: env.authSecret,
   google: env.google,
-  billing
+  billing,
+  storage
 })
 const shutdown = createShutdown({
   server,

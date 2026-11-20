@@ -6,6 +6,7 @@ import { sql } from 'kysely'
 import { inject } from 'vitest'
 import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { InMemoryFileStorage } from '#libs/adapters/in-memory-file-storage'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
@@ -19,6 +20,9 @@ import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
 import { createJobs } from './create-jobs'
 
+/** The file store of the run (ADR 0076): the jobs and the app share it. */
+const storage = new InMemoryFileStorage()
+
 const webOrigin = 'http://localhost:5173'
 const proxySecret = 'the-worker-secret'
 const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
@@ -31,6 +35,7 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const email = new RecordingEmailSender()
   const jobs = createJobs({
+    storage,
     webOrigin,
     billing,
     db,
@@ -55,6 +60,7 @@ describe('the public tenant surface on the database (ADR 0059)', () => {
     await sql`insert into auth.member (id, "organizationId", "userId", role, "createdAt")
       values ('member-ada', 'org-acme', 'user-ada', 'owner', now())`.execute(db)
     server = createApp({
+      storage,
       clock,
       logger,
       serviceName: 'api',

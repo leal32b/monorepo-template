@@ -1,5 +1,6 @@
 import { createApp } from '#app/create-app'
 import { createBillingProvider } from '#app/create-billing-provider'
+import { createFileStorage } from '#app/create-file-storage'
 import { createJobs } from '#app/create-jobs'
 import { loadEnv } from '#config/env'
 import { FileEmailSender } from '#libs/adapters/file-email-sender'
@@ -11,7 +12,8 @@ import { enqueueQueueCheck } from '#modules/health/jobs/queue-check'
 
 /**
  * The API as the end-to-end suite runs it (ADR 0045): the production wiring, except that emails go
- * to a file the tests read (E2E_OUTBOX), the breached-password check answers offline, and billing is
+ * to a file the tests read (E2E_OUTBOX), files to a folder of the run, the breached-password check answers
+ * offline, and billing is
  * the fake the suite drives with commands (ADR 0063), so the suite needs no provider and no internet.
  * Never bundled, never deployed.
  */
@@ -33,12 +35,15 @@ const clock = new SystemClock()
 const emailSender = new FileEmailSender(outbox)
 // The billing fake, with no completion of its own: the suite sends its commands (ADR 0063).
 const billing = createBillingProvider(env.billing, { clock, ids: new UuidGenerator() })
+// The local store on a folder of the run (STORAGE_DIR), served by the API through the preview's proxy (ADR 0076).
+const storage = createFileStorage(env.storage, { clock, authSecret: env.authSecret })
 const jobs = createJobs({
   db,
   clock,
   logger,
   emailSender,
   billing,
+  storage,
   webOrigin: env.webOrigin,
   idlePollMs: env.jobs.idlePollMs
 })
@@ -55,7 +60,8 @@ const server = createApp({
   jobsOn: jobs.bind,
   authSecret: env.authSecret,
   google: env.google,
-  billing
+  billing,
+  storage
 })
 
 server.listen(env.port, env.host, () => {

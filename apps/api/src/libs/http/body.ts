@@ -5,8 +5,8 @@ import { HttpProblem } from './problem'
 /** Largest request body accepted, Fastify's default: our routes take forms, not files. */
 export const BODY_LIMIT_BYTES = 1_048_576
 
-const tooLarge = () =>
-  new HttpProblem(413, 'payload_too_large', { detail: `Request bodies are limited to ${BODY_LIMIT_BYTES} bytes.` })
+const tooLarge = (limit = BODY_LIMIT_BYTES) =>
+  new HttpProblem(413, 'payload_too_large', { detail: `Request bodies are limited to ${limit} bytes.` })
 
 /** True when the request declares a body: a length above zero, or chunked transfer. */
 function hasBody(req: IncomingMessage): boolean {
@@ -28,13 +28,16 @@ export function assertAcceptableBody(req: IncomingMessage): void {
   if (Number(req.headers['content-length']) > BODY_LIMIT_BYTES) throw tooLarge()
 }
 
-/** The raw body, refused as soon as it passes the limit: a chunked body declares no length. */
-export async function readBody(req: IncomingMessage): Promise<Buffer> {
+/**
+ * The raw body, refused as soon as it passes `limit` (the JSON limit unless said): a chunked body declares
+ * no length.
+ */
+export async function readBody(req: IncomingMessage, limit = BODY_LIMIT_BYTES): Promise<Buffer> {
   const chunks: Buffer[] = []
   let size = 0
   for await (const chunk of req as AsyncIterable<Buffer>) {
     size += chunk.length
-    if (size > BODY_LIMIT_BYTES) throw tooLarge()
+    if (size > limit) throw tooLarge(limit)
     chunks.push(chunk)
   }
   return Buffer.concat(chunks)

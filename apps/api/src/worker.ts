@@ -1,5 +1,6 @@
 import { createBillingProvider } from '#app/create-billing-provider'
 import { createEmailSender } from '#app/create-email-sender'
+import { createFileStorage } from '#app/create-file-storage'
 import { createJobs } from '#app/create-jobs'
 import { type ApiEnv, EnvError, loadEnv } from '#config/env'
 import { SystemClock } from '#libs/adapters/system-clock'
@@ -32,6 +33,8 @@ const jobs = createJobs({
   // A real provider holds its state itself. The billing fake keeps it in the API's process, so its
   // notices are synced only by the API's own worker: run the fake with JOB_WORKER on (ADR 0063).
   billing: createBillingProvider(env.billing, { clock, ids: new UuidGenerator() }),
+  // The same store as the API's (ADR 0076): the export is written there, and files deleted from it.
+  storage: createFileStorage(env.storage, { clock, authSecret: env.authSecret }),
   webOrigin: env.webOrigin,
   idlePollMs: env.jobs.idlePollMs
 })

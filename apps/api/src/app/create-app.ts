@@ -1,6 +1,7 @@
 import type { Server } from 'node:http'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
+import { LOCAL_STORAGE_PATH, LocalFileStorage } from '#libs/adapters/local-file-storage'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { isDatabaseUnavailable } from '#libs/database/database'
 import { KyselyRateLimiter } from '#libs/database/kysely-rate-limiter'
@@ -10,7 +11,9 @@ import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
 import type { BillingProvider, NoticeSource } from '#libs/ports/billing-provider.port'
 import type { Clock } from '#libs/ports/clock.port'
+import type { FileStorage } from '#libs/ports/file-storage.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
+import { StorageOrganizationDeletion } from '#libs/storage/delete-files'
 import { kyselyAuditUnitOfWork } from '#modules/audit/database/kysely-audit-unit-of-work'
 import { registerAuditRoutes } from '#modules/audit/index'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
@@ -73,6 +76,8 @@ export type AppDeps = {
   google: { clientId: string; clientSecret: string } | undefined
   /** The payment provider the configuration picked (ADR 0063); the job worker holds the same one. */
   billing: BillingProvider & Partial<NoticeSource>
+  /** The file store the configuration picked (ADR 0076); the job worker holds the same one. */
+  storage: FileStorage
 }
 
 /**
@@ -92,13 +97,23 @@ export function createApp({
   jobsOn,
   authSecret,
   google,
-  billing
+  billing,
+  storage
 }: AppDeps): Server {
   const router = new HttpRouter()
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
   const billingUnitOfWork = kyselyBillingUnitOfWork(db, jobsOn)
-  // Deleting an organization, alone or with its only member's account, ends its subscription (ADR 0063).
-  const organizationDeletion = new EnqueueCancellationService(billingUnitOfWork, jobs, clock, cancelAtProvider)
+  // Deleting an organization, alone or with its only member's account, ends its subscription (ADR 0063) and
+  // deletes its files (ADR 0076): each listener in turn, before the rows go.
+  const listeners = [
+    new EnqueueCancellationService(billingUnitOfWork, jobs, clock, cancelAtProvider),
+    new StorageOrganizationDeletion(jobs)
+  ]
+  const organizationDeletion = {
+    beforeDelete: async (organizationIds: readonly string[]) => {
+      for (const listener of listeners) await listener.beforeDelete(organizationIds)
+    }
+  }
   // A new organization's trial is recalled 3 days before it ends (ADR 0073).
   const organizationCreation = new ScheduleTrialReminderService(jobs, logger)
   const auth = createAuth({
@@ -160,6 +175,12 @@ export function createApp({
   // of work, the provider called outside it, and each notice's event id recorded with its sync job.
   const inbox = new KyselyWebhookInbox({ db, clock, jobsOn, job: syncSubscription, payloadOf: syncPayloadOf })
   billing.listen?.((notice) => inbox.receive(billing.name, notice).then(() => undefined))
+  // The local store's addresses are paths of the API (ADR 0076): in development and the suite only, which env
+  // validation keeps away from https. Its upload is the one route whose body is not JSON.
+  if (storage instanceof LocalFileStorage) {
+    router.get(`${LOCAL_STORAGE_PATH}/*`, storage.serve)
+    router.on('PUT', `${LOCAL_STORAGE_PATH}/*`, storage.receive, { rawBody: true })
+  }
   registerBillingRoutes(router, {
     session,
     membership,
