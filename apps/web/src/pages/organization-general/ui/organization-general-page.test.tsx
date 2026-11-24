@@ -356,7 +356,10 @@ describe('OrganizationGeneralPage', () => {
 
       fireEvent.click(await section.findByRole('button', { name: 'Export data' }))
 
-      expect(await section.findByText('We could not ask for the export. Try again in a moment.')).toBeInTheDocument()
+      // An error is an alert, never the green status of a success.
+      expect(await section.findByRole('alert')).toHaveTextContent(
+        'We could not ask for the export. Try again in a moment.'
+      )
       expect(section.getByRole('button', { name: 'Export data' })).toBeEnabled()
     })
 
