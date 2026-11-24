@@ -1,6 +1,6 @@
 # 0077. Run the SaaS from an operator back office that reads through a role of its own and enters an organization read only
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-20
 
 Amends [ADR 0061](0061-keep-one-append-only-audit-trail-per-organization.md) (the actor `operator`, its

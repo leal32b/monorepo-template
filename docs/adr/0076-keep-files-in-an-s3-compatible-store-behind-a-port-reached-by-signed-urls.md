@@ -1,6 +1,6 @@
 # 0076. Keep files in an S3-compatible store behind a port, reached by signed URLs the API issues
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-20
 
 ## Context and problem statement
