@@ -1,6 +1,6 @@
 # 0071. Load each screen's dictionary group with its route
 
-- Status: accepted
+- Status: accepted; its "Revisit when" on the `billing` group is settled by [0079](0079-load-the-subscription-words-with-the-frame.md)
 - Date: 2026-11-18
 
 Supersedes the **loading** part of [ADR 0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md)

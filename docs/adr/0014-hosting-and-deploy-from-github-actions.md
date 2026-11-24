@@ -1,6 +1,7 @@
 # 0014. Host on Neon, Render and Cloudflare, deployed from GitHub Actions
 
-- Status: accepted; the web Worker gains an API proxy in [0019](0019-reach-the-api-through-the-web-worker.md)
+- Status: accepted; the web Worker gains an API proxy in [0019](0019-reach-the-api-through-the-web-worker.md); an optional
+  staging environment and database restores in [0078](0078-deploy-an-optional-staging-environment-from-the-same-workflow-and-restore-the-database-from-the-providers-history.md)
 - Date: 2026-10-24
 
 ## Context and problem statement

@@ -57,7 +57,7 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
    | Secrets | Variables |
    | --- | --- |
-   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api.asaas.com/v3`, or the sandbox's `https://api-sandbox.asaas.com/v3` for a staging environment), `STORAGE_ENDPOINT` (`https://<account id>.r2.cloudflarestorage.com`), `STORAGE_BUCKET`, `STORAGE_REGION` (empty on R2) |
+   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api.asaas.com/v3`, or the sandbox's `https://api-sandbox.asaas.com/v3` for a staging environment), `STORAGE_ENDPOINT` (`https://<account id>.r2.cloudflarestorage.com`, without the `/<bucket>` the dashboard shows), `STORAGE_BUCKET`, `STORAGE_REGION` (empty on R2) |
 
 3. Push to `main`. The first run publishes the API image and stops at the configuration check: make
    the image's package public on GHCR, create a Render web service from it (free plan, health check
@@ -81,6 +81,71 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
    ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
 6. The deploy ends with smoke tests: headers, the Worker, the API through it, and the `release` that
    answers `/api/health` ([ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md)).
+7. Before real customers: how far back the database can be restored is the plan's history window, 6 hours
+   on Neon's Free plan. Move production to a paid plan and set the window to 7 days (on Neon, in the
+   project's settings; the paid default is 1 day), then rehearse
+   [Restore the database](operations.md#restore-the-database) once and write down its time.
+
+### Staging (optional)
+
+A second environment the same workflow deploys, to see a branch running on real hosts, with the Asaas
+sandbox, before it merges ([ADR 0078](adr/0078-deploy-an-optional-staging-environment-from-the-same-workflow-and-restore-the-database-from-the-providers-history.md)). Nothing changes for a product without it: the deploy after
+CI is always production, and staging runs only when chosen by hand.
+
+Staging shares nothing with production: its own database, API service, Worker, bucket, secrets, Asaas
+sandbox webhook, Google client (or none) and email key. Never paste a production value into it, and never
+copy production's rows into its database. The accounts can be the same; what they hand out is not.
+
+1. **Database.** A new Neon project, for example `<product>-staging`, in production's region (not a branch
+   of production: a branch carries its data and its roles' passwords). Its connection string, with
+   `sslmode=require`, is staging's `DATABASE_URL`. On another host, a second database with its own user.
+2. **API service.** On Render's free plan, a **second workspace** (Render counts 750 free hours per
+   workspace and suspends every free service of a workspace that runs out, production included); with
+   production on a paid instance, the same workspace will do. Its API key is staging's `RENDER_API_KEY`.
+   The service is created after the first staging run, as in step 3 above.
+3. **Bucket.** An R2 bucket of its own, for example `<product>-files-staging`, with a token for that bucket
+   only, the CORS rule naming staging's web origin, and the same lifecycle rules
+   ([operations](operations.md#what-the-owner-creates-cloudflare-r2-the-default)).
+4. **Cloudflare.** The same account; staging's Worker is `<name>-staging`
+   (`apps/web/wrangler.jsonc`, `env.staging`), so its web origin is
+   `https://<name>-staging.<account subdomain>.workers.dev`. A `CLOUDFLARE_API_TOKEN` of its own, with the
+   same permissions as production's.
+5. **Asaas.** A sandbox account at `sandbox.asaas.com`, its key (`$aact_hmlg_…`), and a webhook to
+   `<staging web origin>/api/webhooks/asaas` with a token of its own
+   ([operations](operations.md#what-the-owner-creates-in-asaas)). The deploy refuses any other URL for
+   staging.
+6. **Google sign-in** (optional): an OAuth client of its own, with the redirect URI
+   `<staging web origin>/api/auth/callback/google`. Never add that URI to production's client.
+7. **Email.** A Resend API key of its own; the verified domain may be the same, with a sender such as
+   `staging@<domain>`.
+8. **GitHub, Settings → Environments → New environment `staging`.** Under deployment branches, choose
+   which branches may deploy (all, or a pattern). Add the same names as production's (step 2 above), with
+   staging's values:
+
+   | Secrets | Variables |
+   | --- | --- |
+   | `DATABASE_URL`, `BETTER_AUTH_SECRET`, `PROXY_SECRET` (new, `openssl rand -hex 32` each), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET` (if any), `ASAAS_API_KEY` (sandbox), `ASAAS_WEBHOOK_TOKEN` (new), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `API_ORIGIN`, `WEB_ORIGIN` (staging's Worker), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID` (if any), `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api-sandbox.asaas.com/v3`), `STORAGE_ENDPOINT` (up to `.com`, without the `/<bucket>` the dashboard shows), `STORAGE_BUCKET`, `STORAGE_REGION` (empty on R2) |
+
+9. **Deploy.** Open a pull request for the branch and wait for its CI. Then **Actions → Deploy → Run
+   workflow**, choose the branch and `staging`. The first run publishes the image and stops at the
+   configuration check: create the staging Render service from that image (free plan, health check path
+   `/api/health/live`), set `RENDER_SERVICE_ID` and `API_ORIGIN`, and re-run the failed jobs. It ends with
+   the same smoke tests as production.
+
+Staging runs the branch's migrations on its own data when its API starts. A migration that rewrites or
+constrains existing rows is also tried on a copy of production's, without copying it anywhere:
+
+```bash
+# A branch of production that deletes itself after a day; no API or job ever runs on it.
+neon branches create --project-id <production project> --name migration-check --expires-at <ISO time a day ahead>
+neon connection-string migration-check --project-id <production project>
+DATABASE_URL='<that connection string>' pnpm --filter @repo/api migrate
+# Check what the migration did with psql on the same string, then:
+neon branches delete migration-check --project-id <production project>
+```
+
+Only someone who already holds production's `DATABASE_URL` does this, from the branch's checkout. Its rows
+are production's personal data: they never go to staging, a file or a laptop's own database.
 
 ## 4. Set up once
 
@@ -265,9 +330,9 @@ what it grants, in the statement it already makes.
    `#modules/billing/index` before it writes (`403 plan_limit_reached`, naming the limit and its
    number). With `null` it counts nothing. Copy `CreateCustomerService` and its route.
 4. The web reads the same `entitlement(membership, key)` from the membership it holds, to draw the
-   action disabled with the reason before the member tries. The words live in the billing dictionary (a screen that uses them names `billing` in its route, [ADR 0071](adr/0071-load-each-screens-dictionary-group-with-its-route.md)):
+   action disabled with the reason before the member tries. The words live in the billing and subscription dictionaries (a screen that uses them names `billing` and `subscription` in its route; the frame names `subscription`, [ADR 0071](adr/0071-load-each-screens-dictionary-group-with-its-route.md)):
    what the plan includes (`billing.limits.<limit>`, `billing.capabilities.<capability>`, shown on the
-   plan page) and what a refusal means (`billing.refusals.limits.<limit>` for the owner, an owner whose
+   plan page) and what a refusal means (`subscription.limitReached.<limit>` for the owner, an owner whose
    upgrade waits, and another member; `billing.refusals.capabilities.<capability>`). `usePlanRefusal`
    (`#entities/subscriptions`) says them in the row's note before and in the alert after a refusal, and
    `SeePlansLink` gives the owner the way to the plans; copy the customers screen and the activity

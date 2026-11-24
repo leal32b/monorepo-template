@@ -129,7 +129,7 @@ export function CheckoutForm(props: CheckoutFormProps) {
       <FormActions>
         <Button type="submit" variant="primary" disabled={pending()}>
           {props.free
-            ? t('billing.catalogue.change', { plan: t(`billing.plans.${props.plan}`) })
+            ? t('billing.catalogue.change', { plan: t(`subscription.plans.${props.plan}`) })
             : t('billing.actions.continue')}
         </Button>
         <Button variant="ghost" onClick={props.onCancel}>

@@ -8,7 +8,7 @@ export function SeePlansLink(props: { slug: string }) {
   const { t } = useI18n()
   return (
     <A href={plansPath(props.slug)} class={buttonVariants({ variant: 'secondary' })}>
-      {t('billing.actions.plans')}
+      {t('subscription.actions.plans')}
     </A>
   )
 }

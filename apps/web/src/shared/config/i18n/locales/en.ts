@@ -8,6 +8,7 @@ import type { legalEn } from '../dictionaries/legal/en'
 import type { organizationsEn } from '../dictionaries/organizations/en'
 import type { publicEn } from '../dictionaries/public/en'
 import { shellEn } from '../dictionaries/shell/en'
+import type { subscriptionEn } from '../dictionaries/subscription/en'
 import type { teamEn } from '../dictionaries/team/en'
 
 /** The core groups: what the first download needs, a visitor's screens and the frame (ADR 0071). */
@@ -29,4 +30,5 @@ export type Messages = typeof en &
   typeof legalEn &
   typeof organizationsEn &
   typeof publicEn &
+  typeof subscriptionEn &
   typeof teamEn

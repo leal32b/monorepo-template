@@ -26,7 +26,7 @@ export function usePlanWords() {
   return {
     money,
     /** The plan's name; the trial while no plan is paid for. */
-    name: (plan: PlanKey | null) => (plan === null ? t('billing.trial') : t(`billing.plans.${plan}`)),
+    name: (plan: PlanKey | null) => (plan === null ? t('subscription.trial') : t(`subscription.plans.${plan}`)),
     price,
     /** Each limit with its number, or none, then each capability the plan grants. */
     includes: (plan: PlanKey): string[] => {
@@ -49,7 +49,7 @@ export function usePlanWords() {
       new Intl.ListFormat(locale(), { type: 'disjunction' }).format(
         planKeys
           .filter((plan) => (plans[plan].entitlements.capabilities as readonly Capability[]).includes(capability))
-          .map((plan) => t(`billing.plans.${plan}`))
+          .map((plan) => t(`subscription.plans.${plan}`))
       ),
     /** Where the subscription stands, in one line, its dates the days they are in the organization's time zone. */
     standing: (subscription: Subscription, timeZone: string) => {

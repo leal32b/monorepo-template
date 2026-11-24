@@ -1,6 +1,6 @@
 # 0074. Record the terms accepted at sign-up, and export an organization by a job and a link
 
-- Status: proposed; where the file lives is settled by [0076](0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md)
+- Status: accepted; where the file lives is settled by [0076](0076-keep-files-in-an-s3-compatible-store-behind-a-port-reached-by-signed-urls.md)
 - Date: 2026-11-19
 
 ## Context and problem statement

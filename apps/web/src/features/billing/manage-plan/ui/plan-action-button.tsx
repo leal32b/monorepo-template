@@ -34,8 +34,8 @@ export function PlanActionButton(props: PlanActionButtonProps) {
 
   const label = () => {
     const { action } = props
-    if (action.kind === 'resume') return t('billing.actions.keep')
-    if (action.kind === 'keep') return t('billing.downgrade.keep', { plan: t(`billing.plans.${action.plan}`) })
+    if (action.kind === 'resume') return t('subscription.actions.keep')
+    if (action.kind === 'keep') return t('billing.downgrade.keep', { plan: t(`subscription.plans.${action.plan}`) })
     return t(action.checkout === 'upgrade' ? 'billing.checkout.cancelUpgrade' : 'billing.checkout.cancelSubscription')
   }
   const run = () => {

@@ -41,7 +41,7 @@ export function CancelPlanForm(props: CancelPlanFormProps) {
     <ConfirmForm
       message={props.message}
       confirmLabel={t('billing.cancel.action')}
-      cancelLabel={t('billing.actions.keep')}
+      cancelLabel={t('subscription.actions.keep')}
       pending={pending()}
       onConfirm={confirm}
       onCancel={props.onCancel}

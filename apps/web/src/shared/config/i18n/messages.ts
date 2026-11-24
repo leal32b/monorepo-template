@@ -41,6 +41,7 @@ export const lazyGroups = [
   'legal',
   'organizations',
   'public',
+  'subscription',
   'team'
 ] as const
 

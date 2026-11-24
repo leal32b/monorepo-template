@@ -49,7 +49,7 @@ export function DowngradeForm(props: DowngradeFormProps) {
       <p class="text-muted-foreground">{props.message}</p>
       <FormActions>
         <Button type="submit" variant="primary" disabled={pending()}>
-          {t('billing.catalogue.change', { plan: t(`billing.plans.${props.plan}`) })}
+          {t('billing.catalogue.change', { plan: t(`subscription.plans.${props.plan}`) })}
         </Button>
         <Button variant="ghost" onClick={props.onCancel}>
           {t('actions.cancel')}

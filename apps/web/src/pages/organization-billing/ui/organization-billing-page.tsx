@@ -233,7 +233,7 @@ function OwnerPlan() {
                       }
                       panel={
                         <Show when={panels.isOpen('pay')}>
-                          <ListPanel label={t('billing.actions.pay')}>
+                          <ListPanel label={t('subscription.actions.pay')}>
                             <CheckoutForm
                               organizationId={id}
                               plan={subscription().plan as PlanKey}

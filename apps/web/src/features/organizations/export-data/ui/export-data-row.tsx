@@ -44,7 +44,7 @@ function ExportState(props: ExportDataRowProps) {
   const key = () => query.keyFor(props.organizationId)
   const state = createRead(() => query(props.organizationId), key)
   const [pending, setPending] = createSignal(false)
-  const [status, setStatus] = createSignal<string>()
+  const [error, setError] = createSignal<string>()
 
   // A pending export is read again until the job has built it.
   createEffect(() => {
@@ -61,7 +61,7 @@ function ExportState(props: ExportDataRowProps) {
   })
 
   const request = async () => {
-    setStatus(undefined)
+    setError(undefined)
     setPending(true)
     let asked: OrganizationExport | undefined
     const failed = await callApi(async () => {
@@ -73,7 +73,7 @@ function ExportState(props: ExportDataRowProps) {
       return updateRead<OrganizationExport>(key(), () => done)
     }
     if (failed?.code === 'export_too_soon') return readAgain(key())
-    setStatus(t('organizationGeneral.export.failed'))
+    setError(t('organizationGeneral.export.failed'))
   }
 
   const day = (instant: string) => formatDate(new Date(instant), locale(), props.timeZone)
@@ -107,7 +107,7 @@ function ExportState(props: ExportDataRowProps) {
           title={t('organizationGeneral.export.row')}
           description={description(current())}
           note={note()}
-          status={status()}
+          error={error()}
           action={
             <Show when={current().status !== 'pending'}>
               <Show when={current().status === 'ready'}>

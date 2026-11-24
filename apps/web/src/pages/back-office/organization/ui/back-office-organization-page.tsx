@@ -74,7 +74,7 @@ function Organization() {
               description={
                 found().subscription.plan === null
                   ? t('backOffice.organization.state.noPlan')
-                  : t(`billing.plans.${found().subscription.plan as PlanKey}`)
+                  : t(`subscription.plans.${found().subscription.plan as PlanKey}`)
               }
             />
             <ListRow icon="globe" title={t('backOffice.organization.state.address')} description={`/${found().slug}`} />

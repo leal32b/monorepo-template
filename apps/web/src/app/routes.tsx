@@ -285,7 +285,11 @@ export const routes: RouteDefinition[] = [
           },
           {
             path: '/organizations/:organizationId',
-            ...screenOf(BackOfficeOrganizationPage, ['backOffice', 'billing', 'team'], preloadBackOfficeOrganization)
+            ...screenOf(
+              BackOfficeOrganizationPage,
+              ['backOffice', 'billing', 'subscription', 'team'],
+              preloadBackOfficeOrganization
+            )
           },
           { path: '/users', ...screenOf(BackOfficeUsersPage, ['backOffice', 'team'], preloadBackOfficeUsers) }
         ]
@@ -301,7 +305,7 @@ export const routes: RouteDefinition[] = [
             // onboarding and an invitation as well, which are drawn in it for someone who has an
             // organization and as entry screens, with the frame aside, for someone who has none.
             path: '/',
-            ...screenOf(AppFrame, ['billing']),
+            ...screenOf(AppFrame, ['subscription']),
             children: [
               { path: '/', component: OrganizationRedirect },
               { path: '/onboarding', ...screenOf(OnboardingPage, ['team'], preloadUserInvitations) },
@@ -323,7 +327,7 @@ export const routes: RouteDefinition[] = [
                 component: RequireOrganization,
                 children: [
                   { path: '/', component: HomePage },
-                  { path: '/customers', ...screenOf(CustomersPage, ['customers', 'billing'], preloadCustomers) },
+                  { path: '/customers', ...screenOf(CustomersPage, ['customers', 'subscription'], preloadCustomers) },
                   {
                     path: '/settings',
                     children: [
@@ -333,9 +337,12 @@ export const routes: RouteDefinition[] = [
                       { path: '/roles', ...screenOf(OrganizationRolesPage, ['team'], preloadTeam) },
                       {
                         path: '/activity',
-                        ...screenOf(OrganizationActivityPage, ['audit', 'billing'], preloadActivity)
+                        ...screenOf(OrganizationActivityPage, ['audit', 'billing', 'subscription'], preloadActivity)
                       },
-                      { path: '/billing', ...screenOf(OrganizationBillingPage, ['billing'], preloadBilling) }
+                      {
+                        path: '/billing',
+                        ...screenOf(OrganizationBillingPage, ['billing', 'subscription'], preloadBilling)
+                      }
                     ]
                   }
                 ]

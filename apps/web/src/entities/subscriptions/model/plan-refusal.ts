@@ -32,7 +32,7 @@ export function usePlanRefusal() {
   const limitReached = (limit: Limit, count: number, { membership, manages }: Reader) => {
     const upgrading = upgradingTo(membership.subscription)
     const audience = !manages ? 'member' : upgrading !== undefined ? 'upgrading' : 'owner'
-    return t(`billing.refusals.limits.${limit}.${audience}`, {
+    return t(`subscription.limitReached.${limit}.${audience}`, {
       limit: count,
       plan: upgrading === undefined ? '' : words.name(upgrading)
     })
@@ -41,7 +41,7 @@ export function usePlanRefusal() {
   return {
     limitReached,
     /** The reason a write waits while the organization is read only, in its row's note. */
-    readOnlyNote: () => t('billing.refusals.readOnly.note'),
+    readOnlyNote: () => t('subscription.readOnly.note'),
     /**
      * What a refused write says when the plan refused it: `plan_limit_reached` for `limit`, with the number
      * the API gave, or `subscription_read_only`; anything else is not the plan's.
@@ -56,7 +56,7 @@ export function usePlanRefusal() {
       }
       if (failure.code === subscriptionProblems.readOnly) {
         return {
-          message: t(`billing.refusals.readOnly.${reader.manages ? 'owner' : 'member'}`),
+          message: t(`subscription.readOnly.${reader.manages ? 'owner' : 'member'}`),
           offerPlans: reader.manages
         }
       }
