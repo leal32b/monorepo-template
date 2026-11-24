@@ -143,7 +143,7 @@ export const teamEn = {
     }
   },
   organizationRoles: {
-    title: 'Roles',
+    title: 'Roles and permissions',
     unavailable: 'We could not load the roles. Check your connection, then try again.',
     builtIn: {
       title: 'Built-in roles',

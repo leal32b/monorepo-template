@@ -740,7 +740,7 @@ describe('App', () => {
 
       render(() => <App {...inAcme()} locale="en" />)
 
-      expect(await screen.findByRole('heading', { level: 1, name: 'Roles' })).toBeInTheDocument()
+      expect(await screen.findByRole('heading', { level: 1, name: 'Roles and permissions' })).toBeInTheDocument()
       expect(await screen.findByRole('region', { name: 'Built-in roles' })).toBeInTheDocument()
     })
 
@@ -918,7 +918,9 @@ describe('App', () => {
       expect(await within(frame).findByRole('button', { name: /Globex/ }, { timeout: 2000 })).toBeInTheDocument()
       follow('/globex/settings/roles')
 
-      expect(await screen.findByRole('heading', { level: 1, name: 'Roles' }, { timeout: 2000 })).toBeInTheDocument()
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'Roles and permissions' }, { timeout: 2000 })
+      ).toBeInTheDocument()
       expect(document.querySelector('aside')).toBe(frame)
     })
   })
@@ -1025,7 +1027,7 @@ describe('App', () => {
       // Once the organizations are in, as the menu shows by offering the organization's settings.
       await within(frame).findByRole('link', { name: 'General' })
 
-      fireEvent.click(within(frame).getByRole('link', { name: 'Back to app' }))
+      fireEvent.click(within(frame).getByRole('link', { name: 'Back to Home' }))
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument()
       await waitFor(() => expect(window.location.pathname).toBe('/acme'))

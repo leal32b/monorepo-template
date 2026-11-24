@@ -1,4 +1,5 @@
 import { motion } from '@repo/ui'
+import { MemoryRouter, Route } from '@solidjs/router'
 import { render, screen } from '@solidjs/testing-library'
 import { I18nProvider } from '#shared/config'
 import { ShellSkeleton } from './shell-skeleton'
@@ -6,7 +7,10 @@ import { ShellSkeleton } from './shell-skeleton'
 function renderSkeleton() {
   return render(() => (
     <I18nProvider locale="en">
-      <ShellSkeleton />
+      {/* As in the app, where a route's guard draws it. */}
+      <MemoryRouter>
+        <Route path="*" component={ShellSkeleton} />
+      </MemoryRouter>
     </I18nProvider>
   ))
 }
@@ -28,8 +32,26 @@ describe('ShellSkeleton', () => {
 
     expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument()
     expect(screen.getAllByRole('status')[0]).toHaveTextContent('Loading…')
-    expect(container.querySelector('aside')).toHaveClass('hidden', 'md:block')
-    expect(container.querySelector('header')).toHaveClass('h-14', 'border-b')
+    expect(container.querySelector('aside')).toHaveClass('hidden', 'md:flex')
+  })
+
+  it('draws the places of the frame where they will be (ADR 0080): the side menu from md, the top row and the tab bar below', () => {
+    const { container } = renderSkeleton()
+
+    vi.advanceTimersByTime(motion.waitDelay)
+
+    const aside = container.querySelector('aside') as HTMLElement
+    // The organization's mark, square, at the top; the person's, round, at the foot.
+    expect(aside.firstElementChild).toHaveClass('h-14')
+    expect(aside.firstElementChild?.querySelector('.rounded-md.size-8')).toBeInTheDocument()
+    expect(aside.lastElementChild).toHaveClass('border-t')
+    expect(aside.lastElementChild?.querySelector('.rounded-full.size-8')).toBeInTheDocument()
+    const top = container.querySelector('header') as HTMLElement
+    expect(top).toHaveClass('h-14', 'border-b', 'md:hidden')
+    expect(top.querySelector('.rounded-md.size-8')).toBeInTheDocument()
+    const tabs = container.querySelector('.fixed.bottom-0') as HTMLElement
+    expect(tabs).toHaveClass('h-[calc(4rem+env(safe-area-inset-bottom))]', 'md:hidden')
+    expect(tabs.querySelectorAll('.size-6')).toHaveLength(4)
   })
 
   it('fills the frame with the places of the menu and of the page, so it reads as loading, not as broken', () => {
@@ -37,8 +59,11 @@ describe('ShellSkeleton', () => {
 
     vi.advanceTimersByTime(motion.waitDelay)
 
-    expect(container.querySelectorAll('aside .bg-secondary')).toHaveLength(4)
+    expect(container.querySelectorAll('aside nav .bg-secondary')).toHaveLength(4)
     expect(container.querySelector('main [aria-busy="true"]')).toBeInTheDocument()
+    expect(container.querySelector('main')?.parentElement?.parentElement).toHaveClass(
+      'pb-[calc(4rem+env(safe-area-inset-bottom))]'
+    )
   })
 
   it('says nothing about the wait while it is short', () => {

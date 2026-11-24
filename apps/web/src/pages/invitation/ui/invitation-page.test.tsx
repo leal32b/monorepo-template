@@ -242,7 +242,7 @@ describe('InvitationPage', () => {
       expect(await heading('Invitation to Acme')).toBeInTheDocument()
       expect(screen.getByText('Grace Hopper invited you. The invitation is open until Nov 11, 2026.')).toBeVisible()
       expect(screen.getByRole('button', { name: 'Accept invitation' })).toBeVisible()
-      expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+      expect(screen.getAllByRole('navigation', { name: 'Main' })).not.toHaveLength(0)
       expect(screen.queryByText(/Signed in as/)).not.toBeInTheDocument()
     })
 
@@ -250,7 +250,7 @@ describe('InvitationPage', () => {
       renderPage(apiFor(problem(404, 'invitation_not_found')), inInitech())
 
       expect(await heading('We could not find this invitation')).toBeInTheDocument()
-      expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+      expect(screen.getAllByRole('navigation', { name: 'Main' })).not.toHaveLength(0)
       expect(screen.getByRole('link', { name: 'Continue to the app' })).toHaveAttribute('href', '/')
     })
 

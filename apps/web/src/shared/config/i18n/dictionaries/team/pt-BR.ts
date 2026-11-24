@@ -146,7 +146,7 @@ export const teamPtBR: typeof teamEn = {
     }
   },
   organizationRoles: {
-    title: 'Papéis',
+    title: 'Papéis e permissões',
     unavailable: 'Não conseguimos carregar os papéis. Verifique sua conexão e tente de novo.',
     builtIn: {
       title: 'Papéis nativos',

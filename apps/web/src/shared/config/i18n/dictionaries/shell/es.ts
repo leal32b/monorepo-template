@@ -57,6 +57,7 @@ export const shellEs: typeof shellEn = {
         dark: 'Usar el tema oscuro'
       },
       keywords: {
+        home: 'inicio resumen',
         general: 'organización nombre dirección eliminar',
         members: 'personas equipo invitar quitar rol',
         roles: 'permisos acceso',
@@ -71,15 +72,11 @@ export const shellEs: typeof shellEn = {
         signOut: 'salir cerrar sesión desconectar'
       }
     },
-    openMenu: 'Abrir el menú',
-    closeMenu: 'Cerrar el menú',
-    menu: 'Menú',
-    breadcrumb: 'Estás aquí',
     nav: {
       main: 'Principal',
       home: 'Inicio',
       settings: 'Ajustes',
-      back: 'Volver a la app',
+      back: 'Volver a {{screen}}',
       account: 'Tu cuenta',
       profile: 'Perfil',
       security: 'Seguridad',
@@ -87,18 +84,28 @@ export const shellEs: typeof shellEn = {
       organization: 'Organización',
       general: 'General',
       members: 'Miembros',
-      roles: 'Roles',
+      roles: 'Roles y permisos',
       activity: 'Actividad',
       billing: 'Plan y facturación',
-      customers: 'Clientes'
+      customers: 'Clientes',
+      you: 'Tú',
+      modules: 'Módulos',
+      organizationSettings: 'Ajustes de la organización'
+    },
+    you: {
+      signedInAs: 'Iniciaste sesión como {{email}}'
     },
     account: {
-      settings: 'Ajustes',
       signOut: 'Cerrar sesión'
     },
     organizations: {
       label: 'Tus organizaciones',
-      create: 'Crear organización'
+      create: 'Crear organización',
+      invite: 'Invitar personas',
+      members: {
+        one: '1 miembro',
+        other: '{{count}} miembros'
+      }
     }
   },
   session: {

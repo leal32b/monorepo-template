@@ -57,6 +57,7 @@ export const shellPtBR: typeof shellEn = {
         dark: 'Usar o tema escuro'
       },
       keywords: {
+        home: 'início visão geral',
         general: 'organização nome endereço excluir',
         members: 'pessoas equipe convidar remover papel',
         roles: 'permissões acesso',
@@ -71,15 +72,11 @@ export const shellPtBR: typeof shellEn = {
         signOut: 'sair logout desconectar'
       }
     },
-    openMenu: 'Abrir o menu',
-    closeMenu: 'Fechar o menu',
-    menu: 'Menu',
-    breadcrumb: 'Você está em',
     nav: {
       main: 'Principal',
       home: 'Início',
       settings: 'Configurações',
-      back: 'Voltar ao app',
+      back: 'Voltar para {{screen}}',
       account: 'Sua conta',
       profile: 'Perfil',
       security: 'Segurança',
@@ -87,18 +84,28 @@ export const shellPtBR: typeof shellEn = {
       organization: 'Organização',
       general: 'Geral',
       members: 'Membros',
-      roles: 'Papéis',
+      roles: 'Papéis e permissões',
       activity: 'Atividade',
       billing: 'Plano e cobrança',
-      customers: 'Clientes'
+      customers: 'Clientes',
+      you: 'Você',
+      modules: 'Módulos',
+      organizationSettings: 'Configurações da organização'
+    },
+    you: {
+      signedInAs: 'Você entrou como {{email}}'
     },
     account: {
-      settings: 'Configurações',
       signOut: 'Sair'
     },
     organizations: {
       label: 'Suas organizações',
-      create: 'Criar organização'
+      create: 'Criar organização',
+      invite: 'Convidar pessoas',
+      members: {
+        one: '1 membro',
+        other: '{{count}} membros'
+      }
     }
   },
   session: {

@@ -55,6 +55,7 @@ export const shellEn = {
         dark: 'Use the dark theme'
       },
       keywords: {
+        home: 'start overview',
         general: 'organization name address delete',
         members: 'people team invite remove role',
         roles: 'permissions access',
@@ -69,15 +70,11 @@ export const shellEn = {
         signOut: 'log out logout'
       }
     },
-    openMenu: 'Open menu',
-    closeMenu: 'Close menu',
-    menu: 'Menu',
-    breadcrumb: 'You are here',
     nav: {
       main: 'Main',
       home: 'Home',
       settings: 'Settings',
-      back: 'Back to app',
+      back: 'Back to {{screen}}',
       account: 'Your account',
       profile: 'Profile',
       security: 'Security',
@@ -85,18 +82,28 @@ export const shellEn = {
       organization: 'Organization',
       general: 'General',
       members: 'Members',
-      roles: 'Roles',
+      roles: 'Roles and permissions',
       activity: 'Activity',
       billing: 'Plan and billing',
-      customers: 'Customers'
+      customers: 'Customers',
+      you: 'You',
+      modules: 'Modules',
+      organizationSettings: 'Organization settings'
+    },
+    you: {
+      signedInAs: 'Signed in as {{email}}'
     },
     account: {
-      settings: 'Settings',
       signOut: 'Sign out'
     },
     organizations: {
       label: 'Your organizations',
-      create: 'Create organization'
+      create: 'Create organization',
+      invite: 'Invite people',
+      members: {
+        one: '1 member',
+        other: '{{count}} members'
+      }
     }
   },
   session: {

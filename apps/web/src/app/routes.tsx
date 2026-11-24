@@ -1,5 +1,5 @@
 import { can, entitlement } from '@repo/contracts'
-import { Navigate, type RouteDefinition, type RoutePreloadFuncArgs, useParams } from '@solidjs/router'
+import { Navigate, type RouteDefinition, type RoutePreloadFuncArgs } from '@solidjs/router'
 import { lazy } from 'solid-js'
 import { ForgotPasswordPage } from '#pages/forgot-password'
 import { NotFoundPage } from '#pages/not-found'
@@ -31,6 +31,14 @@ const OrganizationRedirect = lazy(() =>
   import('./organization-redirect').then((m) => ({ default: m.OrganizationRedirect }))
 )
 const AppFrame = lazy(() => import('#widgets/app-shell').then((m) => ({ default: m.AppFrame })))
+/**
+ * `/settings` and `/:orgSlug/settings`: on phones the list of their group's settings (You, the organization's),
+ * from `md` the first of them (ADR 0080).
+ */
+const AccountSettingsIndex = lazy(() => import('#widgets/app-shell').then((m) => ({ default: m.AccountSettingsIndex })))
+const OrganizationSettingsIndex = lazy(() =>
+  import('#widgets/app-shell').then((m) => ({ default: m.OrganizationSettingsIndex }))
+)
 const RequireOrganization = lazy(() =>
   import('./require-organization').then((m) => ({ default: m.RequireOrganization }))
 )
@@ -230,12 +238,6 @@ const preloadPublic = onOpen(({ params }) => {
     .catch(() => undefined)
 })
 
-/** `/:orgSlug/settings` opens on General, as `/settings` opens on the profile. */
-function SettingsOfOrganization() {
-  const params = useParams<{ orgSlug: string }>()
-  return <Navigate href={`/${params.orgSlug}/settings/general`} />
-}
-
 /** The entry screens, a visitor's: signing up, signing in and choosing a new password. */
 const entryScreens: RouteDefinition[] = [
   { path: '/signup', component: SignUpPage },
@@ -314,7 +316,7 @@ export const routes: RouteDefinition[] = [
               {
                 path: '/settings',
                 children: [
-                  { path: '/', component: () => <Navigate href="/settings/profile" /> },
+                  { path: '/', component: AccountSettingsIndex },
                   { path: '/profile', ...screenOf(ProfilePage, ['account'], preloadAccountDeletion) },
                   // The link of the deletion email (ADR 0049); a visitor signs in and comes back.
                   { path: '/delete-account', ...screenOf(DeleteAccountPage, ['account'], preloadAccountDeletion) },
@@ -331,7 +333,7 @@ export const routes: RouteDefinition[] = [
                   {
                     path: '/settings',
                     children: [
-                      { path: '/', component: SettingsOfOrganization },
+                      { path: '/', component: OrganizationSettingsIndex },
                       { path: '/general', ...screenOf(OrganizationGeneralPage, ['team'], preloadGeneral) },
                       { path: '/members', ...screenOf(OrganizationMembersPage, ['team'], preloadTeam) },
                       { path: '/roles', ...screenOf(OrganizationRolesPage, ['team'], preloadTeam) },

@@ -14,8 +14,8 @@ export type AvatarProps = {
    * cropped. Until it loads, and if it cannot be loaded (an address that expired), the letter shows.
    */
   src?: string | undefined
-  /** `sm` in a menu's trigger, `md` beside a row's title. */
-  size?: 'sm' | 'md' | undefined
+  /** `xs` in a tab, `sm` in a menu's trigger, `md` beside a row's title. */
+  size?: 'xs' | 'sm' | 'md' | undefined
   class?: string | undefined
 }
 
@@ -34,9 +34,9 @@ export function Avatar(props: AvatarProps) {
     <span
       aria-hidden="true"
       class={cn(
-        'relative flex shrink-0 items-center justify-center overflow-hidden border border-border-subtle bg-background text-sm font-semibold text-foreground',
+        'relative flex shrink-0 items-center justify-center overflow-hidden border border-border-subtle bg-background font-semibold text-foreground',
         props.shape === 'square' ? 'rounded-md' : 'rounded-full',
-        props.size === 'sm' ? 'size-8' : 'size-9',
+        { xs: 'size-6 text-xs', sm: 'size-8 text-sm', md: 'size-9 text-sm' }[props.size ?? 'md'],
         props.class
       )}
     >
