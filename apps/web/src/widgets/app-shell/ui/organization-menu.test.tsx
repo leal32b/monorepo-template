@@ -49,7 +49,8 @@ function renderMenu({
   subscription = membershipOf(['owner'], {}).subscription,
   outside = false,
   visiting = false,
-  unseen = false
+  unseen = false,
+  invites = true
 }: {
   auth?: AuthFetch
   locale?: Locale
@@ -62,6 +63,8 @@ function renderMenu({
   visiting?: boolean
   /** No screen of Acme was on view yet, as on the person's settings after a fresh load. */
   unseen?: boolean
+  /** Whether the caller's role may invite people, as the screen's membership says. */
+  invites?: boolean
 } = {}) {
   if (visiting) rememberImpersonation()
   const history = createMemoryHistory()
@@ -71,7 +74,8 @@ function renderMenu({
     shell.enter({
       organization: () => acme,
       logo: () => logo ?? null,
-      subscription: () => subscription
+      subscription: () => subscription,
+      invites: () => invites
     })
   render(() => (
     <ShellContext.Provider value={shell}>
@@ -195,6 +199,15 @@ describe('OrganizationMenu (ADR 0080)', () => {
     ])
     expect(within(menu).getByRole('menuitemradio', { name: 'Acme' })).toHaveAttribute('aria-checked', 'true')
     expect(within(menu).getByRole('group', { name: 'Your organizations' })).toBeInTheDocument()
+  })
+
+  it('offers no invitation to a role that may not invite, as Home does not', async () => {
+    renderMenu({ invites: false })
+    open()
+
+    const menu = await screen.findByRole('menu')
+    expect(within(menu).queryByRole('menuitem', { name: 'Invite people' })).not.toBeInTheDocument()
+    expect(within(menu).getByRole('menuitem', { name: 'Organization settings' })).toBeInTheDocument()
   })
 
   it('invites people from the members screen', async () => {

@@ -93,8 +93,12 @@ export function OrganizationMenu(props: { organization: Organization | undefined
         const details = useOrganizationDetails(organization)
         const home = homeOf(organization)
         const known = () => organizations?.known() ?? [organization]
-        /** During an operator's visit the members screen asks Better Auth, which knows no visit (ADR 0077). */
-        const visiting = () => impersonation.current()?.organization.id === organization.id
+        /**
+         * Offered as Home offers it, to a role that may invite, while the frame does not know it cannot; never
+         * during an operator's visit, whose members screen asks Better Auth, which knows no visit (ADR 0077).
+         */
+        const invites = () =>
+          impersonation.current()?.organization.id !== organization.id && details()?.invites !== false
         return (
           <Menu
             placement="bottom-start"
@@ -108,7 +112,7 @@ export function OrganizationMenu(props: { organization: Organization | undefined
           >
             <OrganizationHeader organization={organization} details={details()} />
             <MenuSeparator />
-            <Show when={!visiting()}>
+            <Show when={invites()}>
               <MenuItem icon="invite" onSelect={() => navigate(`${home}/settings/members`)}>
                 {t('appShell.organizations.invite')}
               </MenuItem>

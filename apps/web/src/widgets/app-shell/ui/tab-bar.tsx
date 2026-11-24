@@ -21,16 +21,19 @@ export type TabBarProps = {
 const tabClass =
   'flex h-full w-full flex-col items-center justify-center gap-1 rounded-md text-xs text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground'
 
-/** An icon that turns duotone where its tab is the current one, as the side menu's do. */
+/** An icon that turns duotone where its tab is the current one, as the side menu's do, in the avatar's box. */
 function TabIcon(props: { name: IconName; current: boolean }) {
   const duotone = () => {
     const name = props.name
     return props.current && hasDuotone(name) ? name : undefined
   }
   return (
-    <Show when={duotone()} fallback={<Icon name={props.name} class="text-xl" />}>
-      {(name) => <Icon name={name()} weight="duotone" class="text-xl" />}
-    </Show>
+    // As tall as You's avatar, so every tab's label sits on one line.
+    <span class="flex size-6 items-center justify-center text-xl">
+      <Show when={duotone()} fallback={<Icon name={props.name} />}>
+        {(name) => <Icon name={name()} weight="duotone" />}
+      </Show>
+    </span>
   )
 }
 
@@ -97,7 +100,7 @@ export function TabBar(props: TabBarProps) {
         </Show>
         <li>
           <button type="button" class={tabClass} aria-keyshortcuts="Control+K Meta+K" onClick={props.onSearch}>
-            <Icon name="search" class="text-xl" />
+            <TabIcon name="search" current={false} />
             {t('appShell.search')}
           </button>
         </li>

@@ -42,6 +42,8 @@ describe('TabBar (ADR 0080)', () => {
     expect(tabs()).toEqual(['Home', 'Customers', 'Search', 'AYou'])
     const bar = screen.getByRole('navigation', { name: 'Main' })
     expect(bar).toHaveClass('fixed', 'bottom-0', 'pb-[env(safe-area-inset-bottom)]', 'md:hidden')
+    // Every mark in a box as tall as You's avatar, so the labels share one line.
+    for (const tab of bar.querySelectorAll('li > *')) expect(tab.firstElementChild).toHaveClass('size-6')
   })
 
   it('marks the screen on view, its icon in duotone', () => {

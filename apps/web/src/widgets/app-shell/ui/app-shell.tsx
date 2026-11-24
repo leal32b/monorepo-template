@@ -48,7 +48,8 @@ export function AppShell(props: AppShellProps) {
   const organization = createMemo(() => current?.organization)
   const logo = createMemo(() => current?.membership.logo)
   const subscription = createMemo(() => current?.membership.subscription)
-  onCleanup(shell.enter({ organization, logo, subscription }))
+  const invites = createMemo(() => current?.can('invitation', 'create'))
+  onCleanup(shell.enter({ organization, logo, subscription, invites }))
   /** The plan page, where the notice's action leads; that page says the state in its own rows, so it draws none. */
   const plansHref = (here: NonNullable<typeof current>) =>
     // As the side menu writes it; the subscriptions entity's `plansPath` would load the plan page's code here.

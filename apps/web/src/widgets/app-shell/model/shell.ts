@@ -11,12 +11,15 @@ export type ShellScreen = {
   logo?: Accessor<OrganizationLogo | null | undefined>
   /** Its subscription, whose plan the organization's menu names (ADR 0080); none outside an organization. */
   subscription?: Accessor<Subscription | undefined>
+  /** Whether the caller's role may invite people, which the organization's menu offers then only. */
+  invites?: Accessor<boolean | undefined>
 }
 
 /** What a screen of an organization knows of it from the membership, for the organization's menu. */
 export type OrganizationDetails = {
   logo: OrganizationLogo | null | undefined
   subscription: Subscription | undefined
+  invites: boolean | undefined
 }
 
 export type Shell = {
@@ -48,7 +51,7 @@ export function createShell(signOut: { signOut: () => void; failure: Accessor<Au
   createEffect(() => {
     const on = screen()
     const organization = on?.organization()
-    const known = { logo: on?.logo?.(), subscription: on?.subscription?.() }
+    const known = { logo: on?.logo?.(), subscription: on?.subscription?.(), invites: on?.invites?.() }
     // A placeholder knows only the organization: what its screens said stays.
     if (organization !== undefined && known.subscription !== undefined)
       setDetails((kept) => ({ ...kept, [organization.slug]: known }))
@@ -87,7 +90,9 @@ export function useOrganizationDetails(organization: Organization): Accessor<Org
   return () => {
     const on = shell.screen()
     const subscription = on?.organization()?.slug === slug ? on.subscription?.() : undefined
-    return subscription === undefined ? shell.detailsOf(slug) : { logo: on?.logo?.(), subscription }
+    return subscription === undefined
+      ? shell.detailsOf(slug)
+      : { logo: on?.logo?.(), subscription, invites: on?.invites?.() }
   }
 }
 

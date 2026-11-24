@@ -330,8 +330,11 @@ describe('AppShell', () => {
       expect(within(row).getByRole('button', { name: /Acme/ })).toBeInTheDocument()
     })
 
-    it('names its plan and invites people from it', async () => {
-      const history = renderShell({ organization: acme })
+    it('names its plan and invites people from it, for a role that may invite', async () => {
+      const history = renderShell({
+        organization: acme,
+        membership: membershipOf(['owner'], { invitation: ['create'] })
+      })
       fireEvent.keyDown(sideMenu().getByRole('button', { name: /Acme/ }), { key: 'Enter' })
 
       const menu = await screen.findByRole('menu')
