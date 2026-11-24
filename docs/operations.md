@@ -460,6 +460,9 @@ In the Cloudflare account that already serves the web:
 1. **A bucket**, private (no public access, no `r2.dev` address, no custom domain): R2 → Create bucket,
    for example `<product>-files`, location automatic. Its S3 endpoint is
    `https://<account id>.r2.cloudflarestorage.com` (R2 → the bucket → Settings → S3 API).
+   **Careful:** the dashboard shows that address with the bucket at the end,
+   `https://<account id>.r2.cloudflarestorage.com/<bucket>`. `STORAGE_ENDPOINT` takes only the part up to
+   `.com`; the bucket goes in `STORAGE_BUCKET`. With the bucket in the endpoint the deploy check refuses it.
 2. **An API token for it**: R2 → Manage API tokens → Create API token, permission **Object Read & Write**,
    applied to **that bucket only**, no expiry or the one your rotation uses. Keep the **Access Key ID** and the
    **Secret Access Key** it shows once.

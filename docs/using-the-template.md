@@ -57,7 +57,7 @@ work; only `deploy.yml` and `wrangler.jsonc` know the providers.
 
    | Secrets | Variables |
    | --- | --- |
-   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api.asaas.com/v3`, or the sandbox's `https://api-sandbox.asaas.com/v3` for a staging environment), `STORAGE_ENDPOINT` (`https://<account id>.r2.cloudflarestorage.com`), `STORAGE_BUCKET`, `STORAGE_REGION` (empty on R2) |
+   | `DATABASE_URL` (with `sslmode=require`), `BETTER_AUTH_SECRET`, `PROXY_SECRET` (each `openssl rand -hex 32`), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (`openssl rand -hex 32`), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `API_ORIGIN`, `WEB_ORIGIN` (both `https://host`), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID`, `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api.asaas.com/v3`, or the sandbox's `https://api-sandbox.asaas.com/v3` for a staging environment), `STORAGE_ENDPOINT` (`https://<account id>.r2.cloudflarestorage.com`, without the `/<bucket>` the dashboard shows), `STORAGE_BUCKET`, `STORAGE_REGION` (empty on R2) |
 
 3. Push to `main`. The first run publishes the API image and stops at the configuration check: make
    the image's package public on GHCR, create a Render web service from it (free plan, health check
@@ -124,7 +124,7 @@ copy production's rows into its database. The accounts can be the same; what the
 
    | Secrets | Variables |
    | --- | --- |
-   | `DATABASE_URL`, `BETTER_AUTH_SECRET`, `PROXY_SECRET` (new, `openssl rand -hex 32` each), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET` (if any), `ASAAS_API_KEY` (sandbox), `ASAAS_WEBHOOK_TOKEN` (new), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `API_ORIGIN`, `WEB_ORIGIN` (staging's Worker), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID` (if any), `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api-sandbox.asaas.com/v3`), `STORAGE_ENDPOINT`, `STORAGE_BUCKET`, `STORAGE_REGION` (empty on R2) |
+   | `DATABASE_URL`, `BETTER_AUTH_SECRET`, `PROXY_SECRET` (new, `openssl rand -hex 32` each), `RENDER_API_KEY`, `CLOUDFLARE_API_TOKEN`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET` (if any), `ASAAS_API_KEY` (sandbox), `ASAAS_WEBHOOK_TOKEN` (new), `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | `API_ORIGIN`, `WEB_ORIGIN` (staging's Worker), `RENDER_SERVICE_ID`, `CLOUDFLARE_ACCOUNT_ID`, `EMAIL_FROM`, `GOOGLE_CLIENT_ID` (if any), `CORS_ORIGINS` (empty), `ASAAS_API_URL` (`https://api-sandbox.asaas.com/v3`), `STORAGE_ENDPOINT` (up to `.com`, without the `/<bucket>` the dashboard shows), `STORAGE_BUCKET`, `STORAGE_REGION` (empty on R2) |
 
 9. **Deploy.** Open a pull request for the branch and wait for its CI. Then **Actions → Deploy → Run
    workflow**, choose the branch and `staging`. The first run publishes the image and stops at the
