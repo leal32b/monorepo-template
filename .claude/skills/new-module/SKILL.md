@@ -98,11 +98,15 @@ The organization export holds every tenant table: add the table to `tenantTables
    Cover each role's view and the empty, search and error states. `index.ts` re-exports the page.
 5. The route: in `app/routes.tsx` a `lazy` import, a `preload` that asks the list's first page with
    the same arguments the page asks, and `{ path: '/<ns>', ...screenOf(<N>Page, ['<ns>'], preload) }`
-   (add `'billing'` to the groups only if the page shows plan refusals). The menu item in
-   `widgets/app-shell/ui/sidebar.tsx` and the entry in `shell-palette.tsx`, with an icon from
-   `packages/ui` (`scripts/generate-icons.mjs` lists the names; add one there only if none fits).
+   (add `'billing'` to the groups only if the page shows plan refusals). The module registers itself
+   in one place: an entry `{ path: '/<ns>', label: '<ns>', icon }` in `productScreens`
+   (`widgets/app-shell/model/product-screens.ts`), which the side menu, the phone's tab bar (past three
+   screens, under "Modules") and the palette all read (ADR 0080), with an icon from `packages/ui`
+   (`scripts/generate-icons.mjs` lists the names, and its `duotone` list the side menu's; add one there only
+   if none fits).
    Tests: `app/app.test.tsx`, two as the customers route has them (the first page is asked as the address
-   opens; none is asked at an address naming no organization of the user), and a case in
+   opens; none is asked at an address naming no organization of the user), and the list in
+   `widgets/app-shell/model/product-screens.test.ts`, and a case in
    `widgets/app-shell/ui/app-shell.test.tsx` for the menu item and palette entry. A module with no plan
    limit leaves the read-only screen state to the API's refusal and the generic alert.
 
@@ -127,7 +131,7 @@ copied and do not use is a branch to delete, not to leave uncovered. A decision 
 ## Removing a module
 
 Removing a feature leaves nothing behind (`AGENTS.md`). Delete, in this order, with an ADR that says why:
-the e2e journey; the page, feature and entity folders and the route, menu item and palette entry; the
+the e2e journey; the page, feature and entity folders and the route and its `productScreens` entry; the
 dictionary group (and its `lazyGroups` and `Messages` lines) and the module's lines in `team`, `audit`
 and `shell`; the API module folder and its `create-app.ts` lines; the resource from `statements`,
 `permissionsSchema`, `builtInRoles`, `auditActions`; the limit or capability in `billing.ts`; the

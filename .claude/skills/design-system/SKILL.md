@@ -53,10 +53,15 @@ are the phone; breakpoints only add.
 - **Families share a layout.** All entry screens (sign-up, sign-in, MFA, forgot and reset password)
   use one layout: brand at the top, then the `h1`, a one-line description, the form, the primary
   action as the form's last element, and secondary links in the same place below the form. App
-  screens share the app shell: one `AppFrame` route (side menu, top bar, palette) drawn once and kept
-  between screens, and each screen an `AppShell` (its title and `main`), which tells the frame its title
-  and organization ([ADR 0037](../../../docs/adr/0037-keep-one-app-frame-across-screens.md)). Chrome
-  belongs in the frame, never copied into a screen. Every screen behind the session sits in that one
+  screens share the app shell: one `AppFrame` route drawn once and kept between screens, and each screen
+  an `AppShell` (its title and `main`), which tells the frame its organization
+  ([ADR 0037](../../../docs/adr/0037-keep-one-app-frame-across-screens.md)). The frame is split by owner
+  ([ADR 0080](../../../docs/adr/0080-put-the-organization-at-the-top-of-the-frame-the-person-at-its-foot-and-tabs-on-phones.md)):
+  from `md` a side menu with the organization's menu on top, the search, the product's screens and the
+  person's menu at the foot; below `md` a top row with the organization's menu and a tab bar at the
+  bottom (the screens, Search, You). There is no top bar: a screen's header is its `h1`, and a screen
+  deeper than one level draws a back link above it, named after where it goes. Chrome belongs in the
+  frame, never copied into a screen. Every screen behind the session sits in that one
   frame: onboarding and an invitation are app screens for someone who has an organization, with the
   `AppShell`'s one-line `description` for a screen that is one message and its actions, and entry
   screens, the frame aside, for a first one ([ADR 0039](../../../docs/adr/0039-draw-every-signed-in-screen-in-the-one-frame.md)).
@@ -67,9 +72,10 @@ are the phone; breakpoints only add.
   `py-8` on phones to `sm:py-12` above. Use these, not new values.
 - **Type:** one `h1` per screen (`text-2xl font-semibold tracking-tight`), body `text-base` on
   phones, labels `text-sm font-medium`, hints and secondary text `text-sm text-muted-foreground`.
-- **A floating control covers nothing.** A panel with a control in its corner (the close button of a
-  `Sheet`) has the content's first row leave that corner free (`pr-14` for a 44px button), and the control
-  shares that row's centre line. Look for it at 375px, where the panel is as wide as the content.
+- **A floating control covers nothing.** A panel with a control in its corner (a close button) has the
+  content's first row leave that corner free (`pr-14` for a 44px button), and the control shares that
+  row's centre line. Look for it at 375px, where the panel is as wide as the content. The same holds for
+  what is fixed to the screen: the phone's tab bar keeps its room at the foot of every screen.
 - **Alignment:** text and forms are left-aligned; centred text only for a short standalone message
   (`EmptyState`).
 - **Where buttons go.** Two kinds, two places:
@@ -99,6 +105,7 @@ The same idea looks and behaves the same everywhere. Before building, find it he
 | A group of controls with one label and one error | `Fieldset`; a resource's checkboxes in a `CheckboxGroup` | a `fieldset` whose `legend` sits on the border, a `p role=alert` by hand |
 | A person, an organization, an invited address | `Avatar` (circle, square, `mail` icon) | `icon="profile"`, `letter="@"` |
 | Who or what a menu is about (organization, account) | `menuTriggerClass` + `MenuTriggerContent` | trigger classes copied |
+| A screen of the product in the navigation ([ADR 0080](../../../docs/adr/0080-put-the-organization-at-the-top-of-the-frame-the-person-at-its-foot-and-tabs-on-phones.md)) | one entry in `productScreens` (`widgets/app-shell/model`), which the side menu, the tab bar and the palette read | a link added to one of them by hand |
 | Waiting for the server ([ADR 0035](../../../docs/adr/0035-show-the-server-working-with-one-progress-bar.md), [ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | nothing drawn yet: the family's skeleton (`ListSkeleton`, `EntrySkeleton`, `ShellSkeleton`, and `PageSkeleton` for a screen in the frame that cannot be drawn yet), timed once from boot by `createLate`, which a new skeleton uses too; moving to another screen: the next one at once, its title and its family's skeleton until its data is in, the chosen menu item marked at once; a screen read before: its last value at once, read again behind it; an action: its button's `pending`; the screen already drawn: the app's `ProgressBar`, which follows every request and every navigation that waits by itself; a wait past `motion.slowWaitDelay` (5 s) says why in an `Alert` of kind `info`, timed with `createLate(motion.slowWaitDelay)`, and a frame's skeleton holds the places of its menu and page, never an empty frame ([ADR 0041](../../../docs/adr/0041-say-why-a-cold-start-takes-long-and-end-the-wait.md)) | a spinner, an overlay, a "Loading…" text, a bar of one's own, a delay of one's own instead of `createLate`, the old screen held while the next one's data comes |
 
 | Reading data from the server ([ADR 0038](../../../docs/adr/0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md)) | a `createQuery` in the entity's `api` segment, keyed by its arguments, started by the route's `preload` as it opens, never for a link only hovered ([ADR 0040](../../../docs/adr/0040-start-a-screens-reads-when-it-opens-not-on-hover.md)), reading its `params` at once, and read in the screen with `createRead`, which draws a key read before at once; after a change, `updateRead` or `readAgain` by its key; a read that fails, `ReadFailure`: the one alert with its retry, or the screen's own words for a case such as "not found" | `createResource` in a page, a `state === 'ready'` gate, a fallback of one's own, an `ErrorBoundary` of one's own, a page's private copy of data another screen reads |
@@ -213,9 +220,9 @@ Elements must not "tremble" between states or screens.
 - Errors are `role="alert"`; progress and success are `role="status"`.
 - Landmarks: `header`, `main`; one `h1` per screen.
 - Motion ([ADR 0031](../../../docs/adr/0031-animate-layers-with-short-transform-and-opacity-motion.md)):
-  a layer that comes and goes (drawer, dialog, menu) is animated; nothing else moves (a form that opens inside
+  a layer that comes and goes (dialog, menu) is animated; nothing else moves (a form that opens inside
   a page appears at once). Use the classes of the preset, never a duration of your own:
-  `ds-scrim` (the veil), `ds-sheet` (a panel from the left), `ds-dialog`, and `ds-pop` (from its button),
+  `ds-scrim` (the veil), `ds-dialog`, and `ds-pop` (from its button),
   with the Kobalte layer's `data-expanded` and `data-closed`. Only `transform` and
   `opacity`, so nothing shifts; a layer centred with a `translate` utility must be centred another way
   (`inset-x-4 mx-auto`), or the animation undoes it. With `prefers-reduced-motion` they only fade.
