@@ -1,6 +1,6 @@
 # 0080. Put the organization at the top of the frame, the person at its foot, and tabs on phones
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-11-24
 
 Amends [ADR 0037](0037-keep-one-app-frame-across-screens.md): the frame keeps its side menu and its

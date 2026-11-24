@@ -1,6 +1,6 @@
 # 0037. Keep one app frame across screens
 
-- Status: accepted; a guard's placeholder standing the frame aside is superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md); the screens the frame holds are extended by [0039](0039-draw-every-signed-in-screen-in-the-one-frame.md)
+- Status: accepted; a guard's placeholder standing the frame aside is superseded by [0038](0038-load-screen-data-through-router-queries-and-swap-screens-at-once.md); the screens the frame holds are extended by [0039](0039-draw-every-signed-in-screen-in-the-one-frame.md); its top bar and phone drawer are replaced by [0080](0080-put-the-organization-at-the-top-of-the-frame-the-person-at-its-foot-and-tabs-on-phones.md)
 - Date: 2026-11-05
 
 ## Context and problem statement
