@@ -580,6 +580,11 @@ git merge --allow-unrelated-histories template/main   # the first time; later: g
 Merge it on a branch, resolve what the product renamed (the guide's section 2 lists those places) and
 run the definition of done before it lands.
 
+One product can serve several kinds of business: a barbershop and a pilates studio are one service
+business with a schedule. The kind is a setting of the organization (its words, its entitlements and the
+data its onboarding seeds), and the domain never asks for it by name. Start a new repository only when
+the centre of the domain changes, such as a business with no schedule.
+
 ## 6. Keep it healthy
 
 - Every change ends green: `pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm lint:deps &&
@@ -598,3 +603,17 @@ Waiting for a trigger:
 
 - Solid 2 and Kobalte 2: migrate when Kobalte 2 leaves alpha (2.0.0-alpha.4 on 2026-11-07).
 - Error tracking, metrics and tracing: the signals in [ADR 0046](adr/0046-observe-through-structured-logs-tagged-with-the-release.md).
+- Idempotent writes: an `Idempotency-Key` the web sends per form submission, stored with its answer
+  for a day, when the product itself first moves money (a sale, a refund). The plan checkout needs none:
+  one checkout per organization, claimed on its row ([ADR 0063](adr/0063-subscribe-each-organization-through-a-billing-port-and-check-entitlements-not-plans.md)).
+- Search and paging at scale: a `pg_trgm` index for the search and a keyset variant of the list, when
+  one organization holds tens of thousands of rows in a list or a list grows without end ([ADR 0044](adr/0044-build-customers-as-the-reference-vertical-module.md)).
+- Installable web app: a manifest, icons and theme colours from the tokens, with the
+  `Content-Security-Policy` and `_headers` entries they need, when a product is used mostly on a phone at
+  the counter. Offline stays out of scope.
+- One round trip for the tenant guard: read the session and the membership in one query, without the
+  session cache, when the guard dominates a tenant route's latency ([operations.md](operations.md)).
+- The product's name in one place: one constant the API and the web read, and a check that fails while
+  the template's name remains, when the next product starts (section 2 lists the places today).
+- Components of `@repo/ui`: each one arrives with the first screen that uses it, through the
+  `design-system` skill; none is added without a user.
