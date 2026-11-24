@@ -47,7 +47,7 @@ the rest.
 | [P1-6](#p1-6-product-notifications) | Product notifications | P1 | Opus, then Sonnet | P0-4 | Done |
 | [P1-7](#p1-7-operator-back-office) | Operator back office | P1 | Opus | P1-1 | Done |
 | [P1-8](#p1-8-browser-errors-reach-the-log) | Browser errors reach the log | P1 | Sonnet | | Done |
-| [P1-9](#p1-9-staging-and-backups) | Staging and backups | P1 | Opus | | Todo |
+| [P1-9](#p1-9-staging-and-backups) | Staging and backups | P1 | Opus | | Done |
 | [P1-10](#p1-10-terms-privacy-and-data-export) | Terms, privacy and data export | P1 | Opus | P0-4 | Done |
 | [P1-11](#p1-11-split-the-dictionaries-by-slice) | Split the dictionaries by slice | P1 | Sonnet | | Done |
 | [P2-1](#p2-1-idempotent-writes) | Idempotent writes | P2 | Opus | P0-1 | Todo |
@@ -299,7 +299,7 @@ then P1 by need.
 ### P1-9. Staging and backups
 
 - **Model:** Opus
-- **Status:** Todo
+- **Status:** Done ([ADR 0078](adr/0078-deploy-an-optional-staging-environment-from-the-same-workflow-and-restore-the-database-from-the-providers-history.md)). An optional `staging` environment deployed by hand from the same workflow, sharing nothing with production; a point-in-time "Restore the database" runbook in [operations.md](operations.md). The timed rehearsal is the owner's, with its table left in the runbook.
 - **Finding:** the deploy has one environment, `production`. There is no place to try a migration
   on real-shaped data, and the runbook does not say how to restore the database.
 - **Scope:** a second environment the same workflow deploys (a branch of the database, a second
