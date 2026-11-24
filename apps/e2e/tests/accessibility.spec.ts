@@ -16,7 +16,7 @@ const APP = [
   { path: '/:org/customers', heading: 'Customers' },
   { path: '/:org/settings/general', heading: 'General' },
   { path: '/:org/settings/members', heading: 'Members' },
-  { path: '/:org/settings/roles', heading: 'Roles' },
+  { path: '/:org/settings/roles', heading: 'Roles and permissions' },
   { path: '/:org/settings/activity', heading: 'Activity' },
   { path: '/:org/settings/billing', heading: 'Plan and billing' },
   { path: '/onboarding', heading: 'Create an organization' },
@@ -92,17 +92,30 @@ for (const colorScheme of ['light', 'dark'] as const) {
         expect(await seriousViolations(page)).toEqual([])
       })
 
-      test('on a phone, the open menu takes the focus, has no serious axe violation, and gives it back', async ({
+      test('on a phone, the tab bar and the settings lists have no serious axe violation (ADR 0080)', async ({
         page
       }) => {
         await page.setViewportSize({ width: 375, height: 812 })
-        const open = page.getByRole('button', { name: 'Open menu' })
-        await open.click()
-        await expect(page.getByRole('link', { name: 'Customers' })).toBeVisible()
-        await expect(page.getByRole('dialog').locator(':focus')).toHaveCount(1)
+        const tabs = page.getByRole('navigation', { name: 'Main' })
+        await expect(tabs.getByRole('link', { name: 'Customers' })).toBeVisible()
         expect(await seriousViolations(page)).toEqual([])
+
+        await tabs.getByRole('link', { name: 'You' }).click()
+        await expect(page.getByRole('heading', { name: 'You', level: 1 })).toBeVisible()
+        expect(await seriousViolations(page)).toEqual([])
+
+        await page.goto(`/${org}/settings`)
+        await expect(page.getByRole('heading', { name: 'Organization settings', level: 1 })).toBeVisible()
+        expect(await seriousViolations(page)).toEqual([])
+      })
+
+      test('on a phone, Search opens the palette, which gives the focus back', async ({ page }) => {
+        await page.setViewportSize({ width: 375, height: 812 })
+        const search = page.getByRole('button', { name: 'Search', exact: true })
+        await search.click()
+        await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible()
         await page.keyboard.press('Escape')
-        await expect(open).toBeFocused()
+        await expect(search).toBeFocused()
       })
     })
   })
