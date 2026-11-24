@@ -7,7 +7,8 @@ How to see what production is doing, and what to do when it misbehaves. The deci
 [ADR 0050](adr/0050-purge-expired-rows-daily-from-a-job-of-its-own.md) (the daily purge),
 [ADR 0056](adr/0056-run-background-work-from-a-job-table-in-postgres.md) (background jobs) and
 [ADR 0059](adr/0059-open-a-public-surface-per-tenant-behind-a-rate-limiter-of-our-own.md) (public routes and their rate limits) and
-[ADR 0072](adr/0072-report-browser-errors-to-the-api-log.md) (browser errors).
+[ADR 0072](adr/0072-report-browser-errors-to-the-api-log.md) (browser errors) and
+[ADR 0078](adr/0078-deploy-an-optional-staging-environment-from-the-same-workflow-and-restore-the-database-from-the-providers-history.md) (staging and restoring the database).
 Neon, Render and Cloudflare are the template's own hosts; on others, the same signals live elsewhere.
 
 ## Signals
@@ -329,8 +330,8 @@ every subscription and charge the adapter creates.
 ### Trying it in the sandbox
 
 A local API cannot receive Asaas's notices (they need a public https URL): `pnpm dev` keeps the fake.
-Try Asaas on a staging environment on https with the sandbox's key and URL and a sandbox webhook to
-its origin. Pay a card on its invoice with Asaas's fictitious test cards (Visa `4539 6560 4839 2220`
+Try Asaas on the staging environment ([using-the-template.md](using-the-template.md#staging-optional)),
+on https with the sandbox's key and URL and a sandbox webhook to its origin. Pay a card on its invoice with Asaas's fictitious test cards (Visa `4539 6560 4839 2220`
 approves; the documented refusal card was approved too on 2026-11-18); pay a Pix by its QR code;
 confirm a boleto with `POST /v3/sandbox/payment/{id}/confirm`, which makes it `RECEIVED` at once (it
 fails for a Pix, and leaves the charge a boleto); make a charge late with
@@ -476,7 +477,8 @@ In the Cloudflare account that already serves the web:
    ]
    ```
 
-   Add a staging web origin to `AllowedOrigins` only if staging shares the bucket (better: a bucket of its own).
+   Staging has a bucket of its own, with its own token and its own web origin here; it never shares
+   production's ([ADR 0078](adr/0078-deploy-an-optional-staging-environment-from-the-same-workflow-and-restore-the-database-from-the-providers-history.md)).
 4. **Lifecycle rules** (the bucket → Settings → Object lifecycle rules):
    - prefix `uploads/`: delete objects **1 day** after creation (uploads never confirmed: a closed tab, a
      refused file);
@@ -576,6 +578,118 @@ when someone leaves the team or loses a device; their account itself stays a pla
   for the host's retention; it names no records.
 - A visit that never ended (its job failed) shows in the query above with no `ended_at` past `expires_at`; the
   membership read already refuses it, and `job failed` names `back-office.end-impersonation`.
+
+## Restore the database
+
+Back to a point in time with the provider's history ([ADR 0078](adr/0078-deploy-an-optional-staging-environment-from-the-same-workflow-and-restore-the-database-from-the-providers-history.md)). Everything written after
+that point is lost; a restore is for a bad migration, a wrong mass delete or a corrupted table, not for one
+record (read that one from a branch at the point, step 2, and write it back by hand).
+
+How far back: Neon's Free plan keeps **6 hours** (up to 1 GB of changes); Launch up to 7 days, Scale up to 30
+(read on 2026-11-24, [Neon plans](https://neon.com/docs/introduction/plans)). A paid project starts at 1 day:
+set its window in the project's settings. Past the window there is nothing to restore.
+
+The steps below are Neon's, where production is the project's root branch and is restored **in place**: its
+connection string does not change, so GitHub and Render keep their values, and Neon keeps the state before
+the restore as a branch `<branch>_old_<timestamp>` to switch back to
+([Instant restore](https://neon.com/docs/introduction/branch-restore)). Each step works from the console or
+the [Neon CLI](https://neon.com/docs/cli/branches) (`neon auth` once); the CLI lines name the project with
+`--project-id`, and `production` stands for the root branch's name (`main` on older projects).
+
+### 1. Choose the point (5 minutes)
+
+- The point `T` is the last moment the data was right, in UTC: a minute before the `Deploy` run that
+  applied the bad migration (its start time in Actions), or before the first `time` of the bad lines in the
+  API log. It must be inside the window.
+- Write down the time now: the rehearsal table below wants each step's time.
+- Tell the users, if any are on: the product will lose what they did after `T`.
+- **If the cause is a migration**, take it out of the running API first, or the restart of step 3 applies it
+  again (the container runs its migrations every time it starts): in Render, the API service → **Events**,
+  the last deploy before the bad one → **Rollback** (the image `ghcr.io/<owner>/<repo>-api:<sha>` from before),
+  and revert the migration's commit on `main` before anything deploys again. The older image finds nothing
+  to migrate.
+
+### 2. Look at the data at that point (5 minutes)
+
+Make a branch at `T`, which changes nothing in production, and read it:
+
+```bash
+neon branches create --project-id <id> --name restore-check --parent 2026-11-24T13:05:00Z --expires-at 2026-11-25T13:05:00Z
+psql "$(neon connection-string restore-check --project-id <id>)"
+```
+
+(Console: **Branches → New branch**, parent production, **Past data**, the time in UTC.) In `psql`:
+
+```sql
+select id, applied_at from schema_migration order by applied_at desc limit 3; -- the migrations at T
+select max("createdAt") as last_sign_up, count(*) as accounts from auth."user";
+select max(at) as last_change from audit_entry;                               -- the last tenant change
+```
+
+plus whatever shows the damage is not there (the table the migration broke, the rows deleted). If the
+damage is there, choose an earlier `T` and look again. Then `\q`; the branch deletes itself the next day.
+
+### 3. Restore production (2 minutes)
+
+Console: the project → **Backup & Restore** → **Restore from history**, branch production, the time `T` in
+UTC, **Restore**. Or:
+
+```bash
+neon branches restore production ^self@2026-11-24T13:05:00Z --preserve-under-name production_before_restore --project-id <id>
+```
+
+It takes seconds and drops open connections. Note the name of the branch that keeps the state before
+(`production_old_<timestamp>` from the console, `production_before_restore` from the CLI line).
+
+**Switch the API over:** Render → the API service → **Manual Deploy → Restart service**, so no connection
+opened before the restore stays in the pool. The deploy workflow is not needed: no variable changed.
+
+### 4. Verify (5 minutes)
+
+- `<web origin>/api/health` answers `ok` with the same `release` as before.
+- The queries of step 2, against production (`psql` on the production `DATABASE_URL`), give the same
+  answers as on `restore-check`.
+- Sign in on the web with an account older than `T` and open a list the damage touched.
+- The API log shows no `fatal`, and its last start says `database up to date`, not `migrations applied`.
+
+### 5. Roll back the switch, if the restore was wrong (3 minutes)
+
+Restore production from the branch that kept the state before:
+
+```bash
+neon branches restore production production_before_restore --project-id <id>
+```
+
+(Console: **Restore from history → From another branch**, that branch, at its latest data.) Restart the
+API service again and repeat step 4. Writes made between the two restores are lost.
+
+### 6. Afterwards
+
+- Delete the kept branch once the restore is confirmed (`neon branches delete production_before_restore
+  --project-id <id>`): it counts against the project's branches (10 on Free) and its storage.
+- Reconcile what lives outside the database: in Asaas's dashboard, the charges, payments and subscriptions
+  changed after `T`, whose notices the restore undid; files uploaded or deleted in the bucket after `T`
+  (a logo deleted since shows its organization's letter); accounts made after `T`, which must sign up again.
+- Jobs that were waiting at `T` run again, so some emails may go twice.
+
+### On another host
+
+Most hosts restore into a **new** database (RDS, Cloud SQL, Supabase, Render Postgres). Then: restore to
+`T` into a new instance; check it with the queries of step 2; **switch** by setting the GitHub `production`
+secret `DATABASE_URL` to the new one and running **Actions → Deploy → Run workflow** on `main`; verify as in
+step 4; **roll back** by setting the old value back and running the deploy again. The roles `app_tenant` and
+`app_operator` come with the restored copy; if the host restored only the database, create them as in
+[When something breaks](#when-something-breaks). Keep the old database until the new one is confirmed.
+
+### Rehearsals
+
+Rehearse once before real customers, and after a change of host or plan. On a production without users, or
+on staging (the same steps on its own project), restore to a point ten minutes back, verify, roll back, and
+fill a row:
+
+| Date | Environment | Plan and window | Point `T` | Steps 1–2 | Step 3 | Step 4 | Step 5 | Total | By | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| | | | | | | | | | | |
 
 ## Set up once per product
 
