@@ -14,5 +14,11 @@
     "binding": "ASSETS",
     // The script runs first on /api/*, page loads included: OAuth callbacks and links in emails.
     "run_worker_first": ["/api/*"]
+  },
+  // The optional staging environment (ADR 0078): `wrangler deploy --env staging` deploys a second
+  // Worker, `<name>-staging`, from the same build. Its API_ORIGIN and PROXY_SECRET are its own,
+  // set by the deploy like production's; the rest is inherited.
+  "env": {
+    "staging": {}
   }
 }

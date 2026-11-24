@@ -1,40 +1,66 @@
 name: Deploy
 
-# Production deploy after CI passes on main (ADR 0014). Re-run it by hand to redeploy main.
+# Production deploy after CI passes on main (ADR 0014). Re-run it by hand to redeploy main, or run it
+# by hand on any branch with `staging` to deploy the optional staging environment (ADR 0078).
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Where to deploy. Production takes main only; staging takes any branch.
+        type: choice
+        options: [production, staging]
+        default: production
 
 permissions:
   contents: read
 
-# One deploy at a time; a newer one waits instead of cancelling a deploy in progress.
+# The GitHub environment deployed: production unless a manual run chose staging (ADR 0078).
+env:
+  DEPLOY_ENV: ${{ inputs.environment || 'production' }}
+
+# One deploy at a time per environment; a newer one waits instead of cancelling one in progress.
 concurrency:
-  group: deploy-production
+  group: deploy-${{ inputs.environment || 'production' }}
   cancel-in-progress: false
 
 jobs:
   image:
     name: Publish the API image
     # Only a green CI run of a push to main in this repository, or a manual run on main: never a
-    # pull request, a fork or another branch.
+    # pull request, a fork or another branch. Staging, by hand only, takes any branch of this repository.
     if: >-
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
+      actions: read
       contents: read
       packages: write
     outputs:
       image: ${{ steps.ref.outputs.image }}
       sha: ${{ steps.ref.outputs.sha }}
     steps:
+      # Production deploys only what CI passed on main; staging holds a branch to the same rule.
+      - name: Check that CI passed on this commit
+        if: inputs.environment == 'staging'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          passed=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow CI --commit "$SHA" --status success \
+            --limit 1 --json databaseId --jq length)
+          if [ "$passed" != 1 ]; then
+            echo "::error::No green CI run for $SHA: push the branch, open its pull request, and wait for CI."
+            exit 1
+          fi
       - name: Name the image
         id: ref
         env:
@@ -73,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
-      name: production
+      name: ${{ inputs.environment || 'production' }}
       url: ${{ vars.API_ORIGIN }}/api/health
     env:
       RENDER_API: https://api.render.com/v1/services/${{ vars.RENDER_SERVICE_ID }}
@@ -110,7 +136,7 @@ jobs:
           if [ -n "$GOOGLE_CLIENT_ID" ] && [ -z "$GOOGLE_CLIENT_SECRET" ]; then missing="$missing GOOGLE_CLIENT_SECRET"; fi
           if [ -z "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ]; then missing="$missing GOOGLE_CLIENT_ID"; fi
           if [ -n "$missing" ]; then
-            echo "::error::Set these in the production environment:$missing"
+            echo "::error::Set these in the $DEPLOY_ENV environment:$missing"
             echo "::error::First deploy: create the Render service from $IMAGE, then re-run the failed jobs."
             exit 1
           fi
@@ -132,6 +158,11 @@ jobs:
           esac
           if [[ "$ASAAS_API_KEY" != "$prefix"* ]]; then
             echo "::error::ASAAS_API_KEY is not a key of the environment of ASAAS_API_URL (it must start with $prefix)"
+            exit 1
+          fi
+          # Staging never charges anyone (ADR 0078).
+          if [ "$DEPLOY_ENV" = staging ] && [ "$prefix" != '$aact_hmlg_' ]; then
+            echo "::error::Staging bills on the Asaas sandbox: set ASAAS_API_URL to https://api-sandbox.asaas.com/v3"
             exit 1
           fi
       - name: Replace the service variables
@@ -224,7 +255,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
-      name: production
+      name: ${{ inputs.environment || 'production' }}
       url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -237,12 +268,12 @@ jobs:
           STORAGE_ENDPOINT: ${{ vars.STORAGE_ENDPOINT }}
         run: |
           if [ -z "$PROXY_SECRET" ]; then
-            echo "::error::Set the PROXY_SECRET secret in the production environment (ADR 0022)."
+            echo "::error::Set the PROXY_SECRET secret in the $DEPLOY_ENV environment (ADR 0022)."
             exit 1
           fi
           # The CSP names the file store, so the page may show logos and send uploads (ADR 0076).
           if [ -z "$STORAGE_ENDPOINT" ]; then
-            echo "::error::Set the STORAGE_ENDPOINT variable in the production environment (ADR 0076)."
+            echo "::error::Set the STORAGE_ENDPOINT variable in the $DEPLOY_ENV environment (ADR 0076)."
             exit 1
           fi
       - uses: ./.github/actions/setup
@@ -264,6 +295,8 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/web
           packageManager: pnpm
+          # Staging is the Worker `<name>-staging` of wrangler.jsonc; production, the top-level one.
+          environment: ${{ inputs.environment == 'staging' && 'staging' || '' }}
           command: deploy
           vars: API_ORIGIN
           secrets: PROXY_SECRET
