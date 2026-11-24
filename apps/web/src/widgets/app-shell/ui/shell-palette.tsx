@@ -2,75 +2,50 @@ import { type CommandItem, CommandPalette, type IconName } from '@repo/ui'
 import { useNavigate } from '@solidjs/router'
 import { homeOf } from '#entities/organizations'
 import { type Theme, themes, useI18n, usePalette, useTheme } from '#shared/config'
-import { useShellOrganization } from '../model/shell'
+import { screensOf } from '../model/product-screens'
+import { accountSettings, organizationSettings } from '../model/settings-items'
+import { useFrameOrganization } from '../model/shell'
 
 const themeIcons: Record<Theme, IconName> = { system: 'monitor', light: 'sun', dark: 'moon' }
 
 /**
  * The command palette of the shell: the screens to go to and a few actions to run (the theme, signing
- * out). The keys that open it live in the app; here is what it holds and what each item does.
+ * out). The keys that open it live in the app; here is what it holds and what each item does. Its screens
+ * are the side menu's: the product's, the person's settings and the organization's.
  */
-/** The icons of the organization's screens, as the side menu draws them. */
-const organizationIcons = {
-  general: 'organization',
-  members: 'users',
-  roles: 'role',
-  activity: 'activity',
-  billing: 'billing'
-} as const
-
 export function ShellPalette(props: { signOut: () => void }) {
   const { t } = useI18n()
   const palette = usePalette()
   const navigate = useNavigate()
   const { setTheme } = useTheme()
-  const current = useShellOrganization()
+  const current = useFrameOrganization()
 
   const go = t('appShell.palette.go')
   const actions = t('appShell.palette.actions')
 
   const items = (organization = current()): CommandItem[] => [
-    { id: `go:${homeOf(organization)}`, label: t('appShell.nav.home'), group: go, icon: 'home' },
+    ...screensOf(organization).map((screen) => ({
+      id: `go:${screen.href}`,
+      label: t(`appShell.nav.${screen.label}`),
+      group: go,
+      icon: screen.icon,
+      keywords: t(`appShell.palette.keywords.${screen.label}`)
+    })),
+    ...accountSettings.map((item) => ({
+      id: `go:${item.href}`,
+      label: t(`appShell.nav.${item.label}`),
+      group: go,
+      icon: item.icon,
+      keywords: t(`appShell.palette.keywords.${item.label}`)
+    })),
+    // The organization's own settings, when the screen is one of its: the same as the side menu offers.
     ...(organization
-      ? [
-          {
-            id: `go:${homeOf(organization)}/customers`,
-            label: t('appShell.nav.customers'),
-            group: go,
-            icon: 'customers' as const,
-            keywords: t('appShell.palette.keywords.customers')
-          }
-        ]
-      : []),
-    {
-      id: 'go:/settings/profile',
-      label: t('appShell.nav.profile'),
-      group: go,
-      icon: 'profile',
-      keywords: t('appShell.palette.keywords.profile')
-    },
-    {
-      id: 'go:/settings/security',
-      label: t('appShell.nav.security'),
-      group: go,
-      icon: 'security',
-      keywords: t('appShell.palette.keywords.security')
-    },
-    {
-      id: 'go:/settings/preferences',
-      label: t('appShell.nav.preferences'),
-      group: go,
-      icon: 'monitor',
-      keywords: t('appShell.palette.keywords.preferences')
-    },
-    // The organization's own screens, when the screen is one of its: the same as the side menu offers.
-    ...(organization
-      ? (['general', 'members', 'roles', 'activity', 'billing'] as const).map((screen) => ({
-          id: `go:${homeOf(organization)}/settings/${screen}`,
-          label: t(`appShell.nav.${screen}`),
+      ? organizationSettings(homeOf(organization)).map((item) => ({
+          id: `go:${item.href}`,
+          label: t(`appShell.nav.${item.label}`),
           group: go,
-          icon: organizationIcons[screen],
-          keywords: t(`appShell.palette.keywords.${screen}`)
+          icon: item.icon,
+          keywords: t(`appShell.palette.keywords.${item.label}`)
         }))
       : []),
     {

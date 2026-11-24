@@ -24,13 +24,13 @@ const icons = {
   help: 'question',
   home: 'house',
   info: 'info',
+  invite: 'user-plus',
   key: 'key',
   list: 'list-bullets',
   mail: 'envelope-simple',
-  menu: 'list',
+  modules: 'squares-four',
   monitor: 'monitor',
   moon: 'moon',
-  next: 'caret-right',
   organization: 'buildings',
   phone: 'device-mobile',
   plus: 'plus',
@@ -64,7 +64,8 @@ const weights = {
     'role',
     'customers',
     'activity',
-    'billing'
+    'billing',
+    'modules'
   ]
 }
 

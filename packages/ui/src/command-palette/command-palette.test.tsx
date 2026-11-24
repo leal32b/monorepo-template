@@ -182,6 +182,51 @@ describe('CommandPalette', () => {
     expect(await screen.findByRole('dialog', { hidden: true })).toHaveAttribute('data-closed')
   })
 
+  describe('the focus once it closes', () => {
+    /** A palette opened from a button of the app's, outside it (no Kobalte trigger), as Search is. */
+    async function openFromOutside() {
+      const opener = document.createElement('button')
+      document.body.append(opener)
+      opener.focus()
+      const [open, setOpen] = createSignal(false)
+      const view = render(() => (
+        <CommandPalette
+          open={open()}
+          onOpenChange={setOpen}
+          title="Command palette"
+          placeholder="Search screens and actions…"
+          emptyLabel="Nothing matches."
+          items={items}
+          onSelect={() => {}}
+        />
+      ))
+      setOpen(true)
+      const dialog = await screen.findByRole('dialog')
+      await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement))
+      return { opener, view }
+    }
+
+    it('goes back to what had it as the palette opened, once the content has left', async () => {
+      const { opener, view } = await openFromOutside()
+
+      view.unmount() // the content leaves, as it does once its closing motion ends
+
+      await waitFor(() => expect(opener).toHaveFocus())
+      opener.remove()
+    })
+
+    it('is left to the app once an item is chosen, which moves it where the choice leads', async () => {
+      const { opener, view } = await openFromOutside()
+
+      fireEvent.keyDown(search(), { key: 'Enter' })
+      view.unmount()
+
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(opener).not.toHaveFocus()
+      opener.remove()
+    })
+  })
+
   it('shows an icon only on the items that have one, hidden from screen readers', () => {
     render(() => <Palette />)
 

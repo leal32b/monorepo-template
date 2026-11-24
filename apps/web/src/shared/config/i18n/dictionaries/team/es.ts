@@ -148,7 +148,7 @@ export const teamEs: typeof teamEn = {
     }
   },
   organizationRoles: {
-    title: 'Roles',
+    title: 'Roles y permisos',
     unavailable: 'No pudimos cargar los roles. Revisa tu conexión y vuelve a intentarlo.',
     builtIn: {
       title: 'Roles integrados',

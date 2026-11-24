@@ -126,8 +126,9 @@ describe('OnboardingPage', () => {
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Create an organization' })).toBeInTheDocument()
       expect(screen.getByText('Another organization, with its own people and roles.')).toBeInTheDocument()
-      const menu = within(screen.getByRole('navigation', { name: 'Main' }))
-      expect(menu.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
+      // The frame keeps the organization `/` would open, and its screens (ADR 0080).
+      const menu = within(screen.getAllByRole('navigation', { name: 'Main' })[0] as HTMLElement)
+      expect(await menu.findByRole('link', { name: 'Home' })).toHaveAttribute('href', '/acme')
       expect(screen.queryByRole('link', { name: 'Back to app' })).not.toBeInTheDocument()
     })
 

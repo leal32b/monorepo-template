@@ -10,7 +10,7 @@ const variables = (theme: ThemeName) => roles.map((role) => `--ds-${role}:${colo
  * The tokens and the page's base: light by default, dark when the system prefers it, and a theme
  * chosen on the device (`data-theme` on <html>) over the system's (ADR 0028). The scrollbar gutter
  * stays reserved, so a page that scrolls and one that does not line up. The motion of the layers
- * (`ds-sheet`, `ds-pop`...) comes with it (ADR 0031).
+ * (`ds-dialog`, `ds-pop`...) comes with it (ADR 0031).
  */
 const base = [
   'html{scrollbar-gutter:stable}',

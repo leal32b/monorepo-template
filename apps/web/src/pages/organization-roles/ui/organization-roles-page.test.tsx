@@ -116,7 +116,7 @@ describe('OrganizationRolesPage', () => {
   it('shows the three built-in roles, marked so, with how much each can do and a way to view it', async () => {
     renderPage()
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Roles' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Roles and permissions' })).toBeInTheDocument()
     const builtIn = within(await screen.findByRole('region', { name: 'Built-in roles' }))
     expect(builtIn.getAllByText('Built in')).toHaveLength(3)
     expect((await rowOf('Owner')).getByText('18 of 18 permissions')).toBeInTheDocument()
@@ -364,7 +364,7 @@ describe('OrganizationRolesPage', () => {
   it('speaks the language of the provider', async () => {
     renderPage({ locale: 'pt-BR' })
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Papéis' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Papéis e permissões' })).toBeInTheDocument()
     expect(await screen.findByText('Proprietário', { selector: 'div' })).toBeInTheDocument()
     expect((await rowOf('Editor')).getByText(/Quem tem: Ken e new@example\.com \(convidado\)/)).toBeInTheDocument()
   })

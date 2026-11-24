@@ -1,25 +1,18 @@
-import { Sheet } from '@repo/ui'
 import { useLocation, useNavigate } from '@solidjs/router'
-import { createEffect, createSignal, lazy, on, type ParentProps, Show } from 'solid-js'
+import { createEffect, lazy, type ParentProps, Show } from 'solid-js'
 import { useImpersonation } from '#entities/impersonations'
 import { createSignOut } from '#features/sign-out'
 import { loadGroups, useI18n, usePalette } from '#shared/config'
-import { useInSettings } from '../model/in-settings'
+import { createLastScreens } from '../model/last-screen'
 import { createMarkedPath } from '../model/marked-path'
-import { createShell, ShellContext } from '../model/shell'
+import { screensOf } from '../model/product-screens'
+import { createShell, type Shell, ShellContext, useFrameOrganization, useShellOrganization } from '../model/shell'
+import { OrganizationMenu } from './organization-menu'
+import { tabBarRoom } from './screen-class'
 import { ShellPalette } from './shell-palette'
 import { Sidebar } from './sidebar'
-import { type Crumb, TopBar } from './top-bar'
+import { TabBar } from './tab-bar'
 
-/**
- * The frame the app screens share, drawn once and kept while the user moves between them (ADR 0037,
- * ADR 0039): the side menu (a drawer on phones), the sticky top bar with where you are, and the command
- * palette. Each screen is an `AppShell`, which tells the frame its title and its organization and draws its
- * own `main`. While no screen is on view (an entry screen of a first organization, a guard's "not found",
- * a first read), the frame stands aside and that page draws itself whole. The phone drawer closes when the screen changes, however it changed, except on the way
- * to the settings from its own account menu: the settings have a menu of their own, and the user is
- * likely to want another screen than the first.
- */
 /** The banner of an operator's visit (ADR 0077), with its words, downloaded only by a device where one is on. */
 const ImpersonationBanner = lazy(() =>
   Promise.all([import('#features/leave-impersonation'), loadGroups(['backOffice'])]).then(([m]) => ({
@@ -27,80 +20,72 @@ const ImpersonationBanner = lazy(() =>
   }))
 )
 
+/**
+ * The frame the app screens share, drawn once and kept while the user moves between them (ADR 0037,
+ * ADR 0039), split by owner (ADR 0080): from `md` the side menu, the organization's menu at its top and the
+ * person's at its foot; below it a top row with the organization's menu and a tab bar at the bottom; and the
+ * command palette. Each screen is an `AppShell`, which tells the frame its organization and
+ * draws its own `main`. While no screen is on view (an entry screen of a first organization, a guard's "not
+ * found", a first read), the frame stands aside and that page draws itself whole. The frame remembers the
+ * last product screen of each organization, which the settings go back to.
+ */
 export function AppFrame(props: ParentProps) {
-  const { t } = useI18n()
-  const impersonation = useImpersonation()
   const navigate = useNavigate()
   const signOut = createSignOut(() => navigate('/login', { replace: true }))
-  const palette = usePalette()
-  const [drawerOpen, setDrawerOpen] = createSignal(false)
-  const location = useLocation()
-  let keepDrawer = false
-  createEffect(
-    on(
-      () => location.pathname,
-      () => {
-        if (!keepDrawer) setDrawerOpen(false)
-        keepDrawer = false
-      },
-      { defer: true }
-    )
-  )
-  const inSettings = useInSettings()
-  const marked = createMarkedPath()
-  const shell = createShell(signOut.failure)
-  const framed = () => shell.screen() !== undefined
-  /** Where the screen sits, read from the route: a settings screen is under "Settings". */
-  const parents = (): Crumb[] =>
-    inSettings() ? [{ href: '/settings/profile', label: t('appShell.account.settings') }] : []
-
-  const sidebar = (onNavigate?: () => void, onSettings?: () => void) => (
-    <Sidebar
-      path={marked}
-      signOut={signOut.signOut}
-      onNavigate={onNavigate}
-      onSettings={onSettings}
-      inDrawer={onNavigate !== undefined}
-    />
-  )
+  const shell = createShell(signOut)
 
   return (
     <ShellContext.Provider value={shell}>
+      <Frame shell={shell}>{props.children}</Frame>
+    </ShellContext.Provider>
+  )
+}
+
+/** The frame's parts, inside the shell's context, from which they read the organization they draw. */
+function Frame(props: ParentProps<{ shell: Shell }>) {
+  const { t } = useI18n()
+  const impersonation = useImpersonation()
+  const palette = usePalette()
+  const location = useLocation()
+  const marked = createMarkedPath()
+  const current = useShellOrganization()
+  const organization = useFrameOrganization()
+  const last = createLastScreens()
+  createEffect(() => last.see(location.pathname, current()))
+  const framed = () => props.shell.screen() !== undefined
+  const search = () => palette.setOpen(true)
+
+  return (
+    <>
       <Show when={impersonation.current()}>
         <ImpersonationBanner />
       </Show>
-      <div class={framed() ? 'md:grid md:grid-cols-[16rem_minmax(0,1fr)]' : undefined}>
+      <div class={framed() ? `md:grid md:grid-cols-[16rem_minmax(0,1fr)] ${tabBarRoom}` : undefined}>
         <Show when={framed()}>
-          <aside class="sticky top-0 hidden h-screen border-r border-border-subtle md:block">{sidebar()}</aside>
-          <Sheet
-            open={drawerOpen()}
-            onOpenChange={setDrawerOpen}
-            title={t('appShell.menu')}
-            closeLabel={t('appShell.closeMenu')}
-          >
-            {sidebar(
-              () => setDrawerOpen(false),
-              () => {
-                keepDrawer = true
-              }
-            )}
-          </Sheet>
-          <ShellPalette signOut={signOut.signOut} />
+          <aside class="sticky top-0 hidden h-screen border-r border-border-subtle md:block">
+            <Sidebar
+              organization={organization()}
+              path={marked}
+              back={last.of(organization())}
+              onSearch={search}
+              signOut={props.shell.signOut}
+            />
+          </aside>
+          <header class="sticky top-0 z-30 flex h-14 items-center border-b border-border-subtle bg-background px-3 md:hidden">
+            <OrganizationMenu organization={organization()} />
+          </header>
+          <TabBar
+            screens={screensOf(organization()).map((screen) => ({
+              ...screen,
+              label: t(`appShell.nav.${screen.label}`)
+            }))}
+            path={marked}
+            onSearch={search}
+          />
+          <ShellPalette signOut={props.shell.signOut} />
         </Show>
-        <div class={framed() ? 'min-w-0' : undefined}>
-          <Show when={shell.screen()}>
-            {(screen) => (
-              <TopBar
-                parents={parents()}
-                title={screen().title()}
-                onOpenMenu={() => setDrawerOpen(true)}
-                onSearch={() => palette.setOpen(true)}
-              />
-            )}
-          </Show>
-          {props.children}
-        </div>
+        <div class={framed() ? 'min-w-0' : undefined}>{props.children}</div>
       </div>
-    </ShellContext.Provider>
+    </>
   )
 }

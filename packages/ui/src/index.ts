@@ -61,5 +61,4 @@ export {
   type SegmentedControlProps
 } from '#segmented-control'
 export { Select, SelectField, type SelectFieldProps, type SelectOption, type SelectProps } from '#select'
-export { Sheet, type SheetProps } from '#sheet'
 export { Stepper, type StepperProps } from '#stepper'

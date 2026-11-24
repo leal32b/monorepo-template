@@ -1,5 +1,5 @@
 import { Dialog } from '@kobalte/core/dialog'
-import { createEffect, createMemo, createSignal, createUniqueId, For, Show } from 'solid-js'
+import { createComputed, createEffect, createMemo, createSignal, createUniqueId, For, Show } from 'solid-js'
 import { Icon, type IconName } from '#icon'
 import { cn } from '#libs'
 
@@ -37,13 +37,36 @@ const plain = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toL
  * what the list holds, when to open it (a shortcut, a button) and what each item does.
  */
 export function CommandPalette(props: CommandPaletteProps) {
+  // Kobalte gives the focus back to its own trigger; the app opens the palette from a button outside it
+  // (Search) or a shortcut, so the palette remembers what had the focus as it opened, before its content
+  // takes it, and focuses it again once the content has left. Not after a choice: the app moves the focus
+  // where the choice leads, such as the title of the screen chosen.
+  let opener: HTMLElement = document.body
+  let chose = false
+  createComputed(() => {
+    if (!props.open) return
+    opener = document.activeElement as HTMLElement
+    chose = false
+  })
+  const giveFocusBack = (event: Event) => {
+    event.preventDefault()
+    if (!chose) opener.focus()
+  }
+  const choose = (id: string) => {
+    chose = true
+    props.onSelect(id)
+  }
+
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay class="ds-scrim fixed inset-0 z-40 bg-scrim/60" />
-        <Dialog.Content class="ds-dialog fixed inset-x-4 top-[10vh] z-50 mx-auto flex max-h-[70vh] max-w-lg flex-col overflow-hidden rounded-md border border-border-subtle bg-background outline-none">
+        <Dialog.Content
+          onCloseAutoFocus={giveFocusBack}
+          class="ds-dialog fixed inset-x-4 top-[10vh] z-50 mx-auto flex max-h-[70vh] max-w-lg flex-col overflow-hidden rounded-md border border-border-subtle bg-background outline-none"
+        >
           <Dialog.Title class="sr-only">{props.title}</Dialog.Title>
-          <Search {...props} />
+          <Search {...props} onSelect={choose} />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog>

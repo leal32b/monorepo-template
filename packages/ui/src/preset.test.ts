@@ -59,7 +59,7 @@ describe('presetUi', () => {
   it('brings the motion of the layers with its base styles', async () => {
     const css = await generate('', { preflights: true })
 
-    expect(css).toContain('.ds-sheet[data-expanded]{animation:ds-sheet ')
+    expect(css).toContain('.ds-dialog[data-expanded]{animation:ds-dialog ')
     expect(css).toContain('@media (prefers-reduced-motion: reduce)')
   })
 

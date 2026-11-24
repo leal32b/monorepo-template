@@ -48,7 +48,7 @@ const shown = 'opacity:1'
 
 /**
  * The classes that animate a layer, and their keyframes, for the preset's base styles. `ds-scrim` fades
- * the veil; `ds-sheet` slides a panel in from the left; `ds-dialog` lifts a dialog a little as it
+ * the veil; `ds-dialog` lifts a dialog a little as it
  * fades; `ds-pop` grows a menu from its button (Kobalte's transform origin); `ds-progress`
  * sweeps the progress bar's stripe across, the one motion that is not a layer (ADR 0035). With `prefers-reduced-motion` every one of them
  * only fades, and the fade is as long.
@@ -58,10 +58,6 @@ export const motionCss = [
   keyframes('ds-scrim', hidden, shown),
   keyframes('ds-scrim-out', shown, hidden),
   layer('ds-scrim', 'ds-scrim', motion.exit, motion.enter),
-  // A panel from the left edge.
-  keyframes('ds-sheet', `${hidden};transform:translateX(-100%)`, `${shown};transform:translateX(0)`),
-  keyframes('ds-sheet-out', `${shown};transform:translateX(0)`, `${hidden};transform:translateX(-100%)`),
-  layer('ds-sheet', 'ds-sheet', motion.exit, motion.enter),
   // A dialog over the page.
   keyframes('ds-dialog', `${hidden};transform:translateY(-4px) scale(0.98)`, `${shown};transform:none`),
   keyframes('ds-dialog-out', `${shown};transform:none`, `${hidden};transform:translateY(-4px) scale(0.98)`),
@@ -76,7 +72,7 @@ export const motionCss = [
   keyframes('ds-progress-pulse', shown, 'opacity:0.4'),
   `.ds-progress{animation:ds-progress ${motion.progress}ms linear infinite}`,
   // Reduced motion: nothing moves, everything only fades; the progress bar stands still and pulses.
-  `@media (prefers-reduced-motion: reduce){${['sheet', 'dialog', 'pop']
+  `@media (prefers-reduced-motion: reduce){${['dialog', 'pop']
     .map((name) => `.ds-${name}${open}{animation-name:ds-scrim}.ds-${name}${closed}{animation-name:ds-scrim-out}`)
     .join(
       ''

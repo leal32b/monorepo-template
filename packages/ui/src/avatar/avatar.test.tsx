@@ -18,6 +18,12 @@ describe('Avatar', () => {
     expect(container.firstElementChild).toHaveClass('rounded-md', 'size-8', 'mt-1')
   })
 
+  it('draws a person smaller still in a tab, the letter to its size', () => {
+    const { container } = render(() => <Avatar name="Ada" size="xs" />)
+
+    expect(container.firstElementChild).toHaveClass('rounded-full', 'size-6', 'text-xs')
+  })
+
   it('draws an icon instead of a letter, for someone with no name yet', () => {
     const { container } = render(() => <Avatar icon="mail" />)
 
