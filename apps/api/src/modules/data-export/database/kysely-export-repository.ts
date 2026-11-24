@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely'
 import type { ExportRepository } from '../export-repository.port'
 import type { ExportRecord } from '../organization-export'
 
-/** The table of `migrations/0016_organization_export.sql`. */
+/** The table of `migrations/0016_organization_export.sql`, its file moved to the store by `0018` (ADR 0076). */
 type ExportRow = {
   organization_id: string
   id: string
@@ -11,10 +11,9 @@ type ExportRow = {
   ready_at: Date | null
   expires_at: Date | null
   size: number | null
-  file: Buffer | null
 }
 
-const recordOf = (row: Omit<ExportRow, 'file'>): ExportRecord => ({
+const recordOf = (row: ExportRow): ExportRecord => ({
   id: row.id,
   organizationId: row.organization_id,
   requestedBy: row.requested_by,
@@ -48,8 +47,7 @@ export class KyselyExportRepository implements ExportRepository {
       requested_at: record.requestedAt,
       ready_at: null,
       expires_at: null,
-      size: null,
-      file: null
+      size: null
     }
     await this.#db
       .insertInto('organization_export')
@@ -58,23 +56,14 @@ export class KyselyExportRepository implements ExportRepository {
       .execute()
   }
 
-  async complete(record: ExportRecord, file: Buffer): Promise<boolean> {
+  async complete(record: ExportRecord): Promise<boolean> {
     const result = await this.#db
       .updateTable('organization_export')
-      .set({ ready_at: record.readyAt, expires_at: record.expiresAt, size: record.size, file })
+      .set({ ready_at: record.readyAt, expires_at: record.expiresAt, size: record.size })
       .where('organization_id', '=', record.organizationId)
       .where('id', '=', record.id)
       .where('ready_at', 'is', null)
       .executeTakeFirst()
     return result.numUpdatedRows > 0n
-  }
-
-  async file(organizationId: string): Promise<Buffer | null> {
-    const row = await this.#db
-      .selectFrom('organization_export')
-      .select('file')
-      .where('organization_id', '=', organizationId)
-      .executeTakeFirst()
-    return row?.file ?? null
   }
 }

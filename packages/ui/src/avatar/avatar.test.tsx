@@ -1,4 +1,5 @@
-import { render } from '@solidjs/testing-library'
+import { fireEvent, render } from '@solidjs/testing-library'
+import { createSignal } from 'solid-js'
 import { Avatar } from './avatar'
 
 describe('Avatar', () => {
@@ -22,5 +23,34 @@ describe('Avatar', () => {
 
     expect(container.querySelector('svg')).toBeInTheDocument()
     expect(container.firstElementChild?.textContent).toBe('')
+  })
+})
+
+describe('Avatar with an image (ADR 0076)', () => {
+  it('shows the letter until the image loads, then the image alone, fitted whole in the same box', () => {
+    const { container } = render(() => <Avatar name="Acme" shape="square" src="/logo.png" />)
+    const image = container.querySelector('img') as HTMLImageElement
+
+    expect(image).toHaveAttribute('alt', '')
+    expect(image).toHaveClass('object-contain', 'size-full', 'opacity-0')
+    expect(container.firstElementChild).toHaveTextContent('A')
+
+    fireEvent.load(image)
+
+    expect(image).toHaveClass('opacity-100')
+    expect(container.firstElementChild?.textContent).toBe('')
+    expect(container.firstElementChild).toHaveClass('size-9')
+  })
+
+  it('keeps the letter when the image cannot be loaded, and tries a new one when the address changes', () => {
+    const [src, setSrc] = createSignal('/expired.png')
+    const { container } = render(() => <Avatar name="Acme" src={src()} />)
+
+    fireEvent.error(container.querySelector('img') as HTMLImageElement)
+
+    expect(container.querySelector('img')).toBeNull()
+    expect(container.firstElementChild).toHaveTextContent('A')
+    setSrc('/new.png')
+    expect(container.querySelector('img')).toHaveAttribute('src', '/new.png')
   })
 })

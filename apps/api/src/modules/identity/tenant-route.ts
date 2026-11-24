@@ -1,15 +1,21 @@
 import type { IncomingMessage } from 'node:http'
-import { type Capability, entitlement, type Permissions, subscriptionProblems } from '@repo/contracts'
+import {
+  backOfficeProblems,
+  type Capability,
+  entitlement,
+  type Permissions,
+  subscriptionProblems
+} from '@repo/contracts'
 import type * as z from 'zod/mini'
 import { readValidJson } from '#libs/http/body'
-import { FileDownload, sendFile } from '#libs/http/file'
+import { FileRedirect, sendRedirect } from '#libs/http/file'
 import { sendJson } from '#libs/http/json'
 import { HttpProblem } from '#libs/http/problem'
 import { readValidQuery } from '#libs/http/query'
 import type { HttpHandler, HttpRouter } from '#libs/http/router'
 import type { CurrentSession } from './current-session.port'
 import type { Member, Membership } from './membership.port'
-import { requireMember } from './require-member'
+import { requireMember, requirePermission } from './require-member'
 
 /** What the tenant guard reads: the session, then the membership (ADR 0033). */
 export type TenantGuard = { session: CurrentSession; membership: Membership }
@@ -92,23 +98,30 @@ function handler<Path extends TenantPath, Schema extends InputSchema>(
 ): HttpHandler {
   return async (req, res, { params }) => {
     const organizationId = params.organizationId as string
-    const member = await requireMember(guard, req, organizationId, spec.permission)
+    const member = await requireMember(guard, req, organizationId)
+    // An operator inside the organization only looks (ADR 0077): no write, whatever the route declares.
+    if (member.impersonation !== undefined && method !== 'GET') {
+      throw new HttpProblem(403, backOfficeProblems.readOnly, {
+        detail: 'An operator inside an organization only looks: nothing was changed.'
+      })
+    }
+    requirePermission(member, spec.permission)
     checkSubscription(member, method, spec)
     const input = (await readInput(req, method, spec.input)) as TenantRequest<Path, Schema>['input']
     const output = await run({ organizationId, input, params, actor: { kind: 'member', id: member.userId }, member })
     if (output === undefined) res.writeHead(204).end()
-    else if (output instanceof FileDownload) sendFile(res, output)
+    else if (output instanceof FileRedirect) sendRedirect(res, output)
     else sendJson(res, spec.status ?? 200, output)
   }
 }
 
 /**
  * How a module declares its tenant routes (ADR 0065): the path, what the route asks of the member and
- * of the input, and the use case. Each request runs the tenant guard (`requireMember`, ADR 0033) with
- * the route's permission, then what the subscription refuses (ADR 0063), then parses its input with
+ * of the input, and the use case. Each request runs the tenant guard (`requireMember`, ADR 0033), refuses
+ * any write from an operator inside the organization (ADR 0077), checks the route's permission, then what the subscription refuses (ADR 0063), then parses its input with
  * the contract schema, then hands the use case the organization's id, the input, the path's
  * parameters, the member as the audit actor (ADR 0061) and the member itself, and answers with what
- * it returns: JSON, nothing (204), or a `FileDownload` as an attachment (ADR 0074). The organization's id comes only out of here, so no tenant route runs without the
+ * it returns: JSON, nothing (204), or a `FileRedirect` to the store's signed address (ADR 0076). The organization's id comes only out of here, so no tenant route runs without the
  * guard; a use case does its database work in `unitOfWork.run(organizationId, …)` (ADR 0055).
  */
 export function tenantRoutes(router: HttpRouter, guard: TenantGuard): Record<Lowercase<Method>, Declare> {

@@ -19,6 +19,23 @@ export const teamEn = {
         save: 'Save name',
         saved: 'Name saved'
       },
+      logo: {
+        title: 'Logo',
+        none: 'Shown beside the name in the side menu. A PNG, JPEG or WebP image up to 1 MB; a square one works best.',
+        set: 'Shown beside the name in the side menu.',
+        upload: 'Upload logo',
+        replace: 'Replace',
+        remove: 'Remove',
+        saved: 'Logo saved',
+        replaced: 'Logo replaced',
+        removed: 'Logo removed',
+        wrongType: 'Use a PNG, JPEG or WebP image.',
+        tooLarge: 'This image is {{size}}. A logo can be up to 1 MB.',
+        dimensions: 'Use an image from 64 to 4096 pixels on each side.',
+        failed: 'The upload did not finish. Check your connection, then try again.',
+        removeFailed: 'We could not remove the logo. Try again in a moment.',
+        tooMany: 'Too many uploads in the last hour. Try again later.'
+      },
       address: {
         title: 'Address',
         change: 'Change address',

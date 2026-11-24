@@ -7,11 +7,14 @@ import { API_PORT, DB_PORT, FAKE_BILLING_TOKEN, WEB_ORIGIN, WEB_PORT } from './s
 /**
  * The production build of the web app (`vite preview`, with the production CSP) on the API's
  * end-to-end entry and an in-memory Postgres, fresh on every run (ADR 0045). No outside service:
- * emails go to a file the tests read, the breached-password check answers offline.
+ * emails go to a file the tests read, files to a folder of the run, the breached-password check answers
+ * offline.
  */
 const repo = path.resolve(import.meta.dirname, '../..')
 // Set once by the runner process; its workers inherit it.
 process.env.E2E_OUTBOX ??= path.join(mkdtempSync(path.join(tmpdir(), 'e2e-')), 'outbox.jsonl')
+// The local file store of the run (ADR 0076): a fresh folder, served by the API through the preview's proxy.
+process.env.E2E_STORAGE_DIR ??= mkdtempSync(path.join(tmpdir(), 'e2e-storage-'))
 
 export default defineConfig({
   testDir: 'tests',
@@ -46,6 +49,7 @@ export default defineConfig({
         WEB_ORIGIN,
         BETTER_AUTH_SECRET: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         E2E_OUTBOX: process.env.E2E_OUTBOX,
+        STORAGE_DIR: process.env.E2E_STORAGE_DIR,
         // Billing is the fake, driven by the tests' commands (ADR 0063).
         FAKE_BILLING_TOKEN,
         LOG_LEVEL: 'warn'

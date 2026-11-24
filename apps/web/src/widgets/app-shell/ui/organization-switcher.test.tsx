@@ -4,6 +4,7 @@ import { Show } from 'solid-js'
 import { OrganizationsProvider, useOrganizations } from '#entities/organizations'
 import { ApiProvider, AuthProvider, createApiClient, createAuthClient } from '#shared/api'
 import { I18nProvider, type Locale } from '#shared/config'
+import { createShell, ShellContext } from '../model/shell'
 import { OrganizationSwitcher } from './organization-switcher'
 
 type AuthFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -26,35 +27,42 @@ function ReadAgain() {
 function renderSwitcher({
   auth = async () => Response.json([acme, globex]),
   locale = 'en',
-  onNavigate
+  onNavigate,
+  logo
 }: {
   auth?: AuthFetch
   locale?: Locale
   onNavigate?: () => void
+  /** The logo the screen on view tells the frame (ADR 0076). */
+  logo?: { url: string; width: number; height: number }
 } = {}) {
   const history = createMemoryHistory()
   history.set({ value: '/acme' })
+  const shell = createShell(() => undefined)
+  shell.enter({ title: () => 'Home', organization: () => acme, logo: () => logo ?? null })
   render(() => (
-    <I18nProvider locale={locale}>
-      <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
-        <AuthProvider client={createAuthClient({ fetch: auth })}>
-          <MemoryRouter history={history}>
-            <Route path="/" component={OrganizationsProvider}>
-              <Route
-                path="/:orgSlug"
-                component={() => (
-                  <>
-                    <OrganizationSwitcher organization={acme} onNavigate={onNavigate} />
-                    <ReadAgain />
-                  </>
-                )}
-              />
-              <Route path="/onboarding" component={() => <p>The onboarding</p>} />
-            </Route>
-          </MemoryRouter>
-        </AuthProvider>
-      </ApiProvider>
-    </I18nProvider>
+    <ShellContext.Provider value={shell}>
+      <I18nProvider locale={locale}>
+        <ApiProvider client={createApiClient({ fetch: async () => Response.json(null) })}>
+          <AuthProvider client={createAuthClient({ fetch: auth })}>
+            <MemoryRouter history={history}>
+              <Route path="/" component={OrganizationsProvider}>
+                <Route
+                  path="/:orgSlug"
+                  component={() => (
+                    <>
+                      <OrganizationSwitcher organization={acme} onNavigate={onNavigate} />
+                      <ReadAgain />
+                    </>
+                  )}
+                />
+                <Route path="/onboarding" component={() => <p>The onboarding</p>} />
+              </Route>
+            </MemoryRouter>
+          </AuthProvider>
+        </ApiProvider>
+      </I18nProvider>
+    </ShellContext.Provider>
   ))
   return history
 }
@@ -72,6 +80,15 @@ describe('OrganizationSwitcher', () => {
     renderSwitcher()
 
     expect(screen.getByRole('button', { name: /Acme/ })).toHaveTextContent('Acme')
+  })
+
+  it('draws the organization’s logo as its mark once it has one, its letter otherwise (ADR 0076)', () => {
+    renderSwitcher({ logo: { url: '/api/storage/logos/org-1/l?signature=s', width: 64, height: 64 } })
+
+    expect(screen.getByRole('button', { name: /Acme/ }).querySelector('img')).toHaveAttribute(
+      'src',
+      '/api/storage/logos/org-1/l?signature=s'
+    )
   })
 
   it('lists the organizations of the user, the current one checked, and offers to create one', async () => {

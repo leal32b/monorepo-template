@@ -5,6 +5,7 @@ import { sql } from 'kysely'
 import { inject } from 'vitest'
 import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { InMemoryFileStorage } from '#libs/adapters/in-memory-file-storage'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
@@ -14,6 +15,9 @@ import { memoryLogger } from '#libs/jobs/testing/memory-logger'
 import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
 import { createJobs } from './create-jobs'
+
+/** The file store of the run (ADR 0076): the jobs and the app share it. */
+const storage = new InMemoryFileStorage()
 
 const webOrigin = 'http://localhost:5173'
 const proxySecret = 'the-worker-secret'
@@ -29,6 +33,7 @@ describe('browser error reports on the database (ADR 0072)', () => {
   const clock = new FixedClock(new Date('2026-11-12T10:00:00.000Z'))
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    storage,
     webOrigin,
     billing,
     db,
@@ -46,6 +51,7 @@ describe('browser error reports on the database (ADR 0072)', () => {
     await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
+      storage,
       clock,
       logger,
       serviceName: 'api',

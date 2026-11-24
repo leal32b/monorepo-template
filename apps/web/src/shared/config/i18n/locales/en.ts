@@ -1,5 +1,6 @@
 import type { accountEn } from '../dictionaries/account/en'
 import type { auditEn } from '../dictionaries/audit/en'
+import type { backOfficeEn } from '../dictionaries/backOffice/en'
 import type { billingEn } from '../dictionaries/billing/en'
 import type { customersEn } from '../dictionaries/customers/en'
 import { entryEn } from '../dictionaries/entry/en'
@@ -22,6 +23,7 @@ export const en = {
 export type Messages = typeof en &
   typeof accountEn &
   typeof auditEn &
+  typeof backOfficeEn &
   typeof billingEn &
   typeof customersEn &
   typeof legalEn &

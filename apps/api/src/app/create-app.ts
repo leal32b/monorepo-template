@@ -1,6 +1,7 @@
 import type { Server } from 'node:http'
 import type { Kysely } from 'kysely'
 import type { Logger } from 'pino'
+import { LOCAL_STORAGE_PATH, LocalFileStorage } from '#libs/adapters/local-file-storage'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { isDatabaseUnavailable } from '#libs/database/database'
 import { KyselyRateLimiter } from '#libs/database/kysely-rate-limiter'
@@ -10,9 +11,13 @@ import { HttpRouter } from '#libs/http/router'
 import { createHttpServer } from '#libs/http/server'
 import type { BillingProvider, NoticeSource } from '#libs/ports/billing-provider.port'
 import type { Clock } from '#libs/ports/clock.port'
+import type { FileStorage } from '#libs/ports/file-storage.port'
 import type { JobQueue } from '#libs/ports/job-queue.port'
+import { StorageOrganizationDeletion } from '#libs/storage/delete-files'
 import { kyselyAuditUnitOfWork } from '#modules/audit/database/kysely-audit-unit-of-work'
 import { registerAuditRoutes } from '#modules/audit/index'
+import { kyselyBackOfficeUnitOfWork } from '#modules/back-office/database/kysely-back-office-unit-of-work'
+import { registerBackOfficeRoutes } from '#modules/back-office/index'
 import { kyselyBillingUnitOfWork } from '#modules/billing/database/kysely-billing-unit-of-work'
 import {
   cancelAtProvider,
@@ -44,6 +49,8 @@ import { GetMeController } from '#modules/identity/queries/get-me/get-me.http-co
 import { GetMembershipController } from '#modules/identity/queries/get-membership/get-membership.http-controller'
 import { GetPublicOrganizationController } from '#modules/identity/queries/get-public-organization/get-public-organization.http-controller'
 import { ReportClientErrorController } from '#modules/observability/commands/report-client-error/report-client-error.http-controller'
+import { kyselyOrganizationLogoUnitOfWork } from '#modules/organization-logo/database/kysely-organization-logo-unit-of-work'
+import { GetLogoService, registerOrganizationLogoRoutes } from '#modules/organization-logo/index'
 import { PUBLIC_PATHS, registerRoutes } from './http-routes'
 
 /** Long enough for Neon to wake from suspension, short enough for a status page to wait. */
@@ -73,6 +80,8 @@ export type AppDeps = {
   google: { clientId: string; clientSecret: string } | undefined
   /** The payment provider the configuration picked (ADR 0063); the job worker holds the same one. */
   billing: BillingProvider & Partial<NoticeSource>
+  /** The file store the configuration picked (ADR 0076); the job worker holds the same one. */
+  storage: FileStorage
 }
 
 /**
@@ -92,13 +101,23 @@ export function createApp({
   jobsOn,
   authSecret,
   google,
-  billing
+  billing,
+  storage
 }: AppDeps): Server {
   const router = new HttpRouter()
   const databaseProbe = new PostgresDatabaseProbe(db, DATABASE_PROBE_TIMEOUT_MS)
   const billingUnitOfWork = kyselyBillingUnitOfWork(db, jobsOn)
-  // Deleting an organization, alone or with its only member's account, ends its subscription (ADR 0063).
-  const organizationDeletion = new EnqueueCancellationService(billingUnitOfWork, jobs, clock, cancelAtProvider)
+  // Deleting an organization, alone or with its only member's account, ends its subscription (ADR 0063) and
+  // deletes its files (ADR 0076): each listener in turn, before the rows go.
+  const listeners = [
+    new EnqueueCancellationService(billingUnitOfWork, jobs, clock, cancelAtProvider),
+    new StorageOrganizationDeletion(jobs)
+  ]
+  const organizationDeletion = {
+    beforeDelete: async (organizationIds: readonly string[]) => {
+      for (const listener of listeners) await listener.beforeDelete(organizationIds)
+    }
+  }
   // A new organization's trial is recalled 3 days before it ends (ADR 0073).
   const organizationCreation = new ScheduleTrialReminderService(jobs, logger)
   const auth = createAuth({
@@ -123,13 +142,18 @@ export function createApp({
     organizations: new KyselyPublicOrganizations(db),
     logger
   }
+  // The organization's logo (ADR 0076): its routes, and the read the membership carries.
+  const logoUnitOfWork = kyselyOrganizationLogoUnitOfWork(db, jobsOn)
+  const getLogo = new GetLogoService({ unitOfWork: logoUnitOfWork, storage, clock })
   registerRoutes(router, {
     getHealth: new GetHealthController(new GetHealthService(clock, { name: serviceName, release }, databaseProbe)),
     getLiveness: new GetLivenessController(),
     auth: fromFetchHandler(auth.handler, webOrigin),
     getMe: new GetMeController(session),
     getAccountDeletion: new GetAccountDeletionController(session, new KyselyAccountDeletion(db, organizationDeletion)),
-    getMembership: new GetMembershipController(session, membership),
+    getMembership: new GetMembershipController(session, membership, {
+      logoOf: (organizationId) => getLogo.execute(organizationId)
+    }),
     getInvitation: new GetInvitationController(session, new KyselyInvitations(db), membership, clock),
     getIdentityOptions: new GetIdentityOptionsController({ google: google !== undefined }),
     getPublicOrganization: new GetPublicOrganizationController(publicSurface),
@@ -147,11 +171,21 @@ export function createApp({
   })
   // The organization's audit trail, read only: every module writes its entries in its own unit of work (ADR 0061).
   registerAuditRoutes(router, { session, membership, unitOfWork: kyselyAuditUnitOfWork(db) })
+  registerOrganizationLogoRoutes(router, {
+    session,
+    membership,
+    unitOfWork: logoUnitOfWork,
+    storage,
+    limiter: publicSurface.limiter,
+    clock,
+    ids
+  })
   // The owner's export of the organization's data (ADR 0074): the request, its state and the file.
   registerDataExportRoutes(router, {
     session,
     membership,
     unitOfWork: kyselyDataExportUnitOfWork(db, jobsOn),
+    storage,
     clock,
     ids,
     logger
@@ -160,6 +194,12 @@ export function createApp({
   // of work, the provider called outside it, and each notice's event id recorded with its sync job.
   const inbox = new KyselyWebhookInbox({ db, clock, jobsOn, job: syncSubscription, payloadOf: syncPayloadOf })
   billing.listen?.((notice) => inbox.receive(billing.name, notice).then(() => undefined))
+  // The local store's addresses are paths of the API (ADR 0076): in development and the suite only, which env
+  // validation keeps away from https. Its upload is the one route whose body is not JSON.
+  if (storage instanceof LocalFileStorage) {
+    router.get(`${LOCAL_STORAGE_PATH}/*`, storage.serve)
+    router.on('PUT', `${LOCAL_STORAGE_PATH}/*`, storage.receive, { rawBody: true })
+  }
   registerBillingRoutes(router, {
     session,
     membership,
@@ -171,6 +211,8 @@ export function createApp({
     inbox,
     logger
   })
+  // The operator back office (ADR 0077): every route under /api/admin/ answers 404 to whoever is not an operator.
+  registerBackOfficeRoutes(router, { session, unitOfWork: kyselyBackOfficeUnitOfWork(db, jobsOn), ids, clock })
   return createHttpServer({
     router,
     logger,

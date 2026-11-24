@@ -44,7 +44,8 @@ export function AppShell(props: AppShellProps) {
   const location = useLocation()
   // A memo keeps its last value once its screen has left, when the guard's context no longer can.
   const organization = createMemo(() => current?.organization)
-  onCleanup(shell.enter({ title: () => props.title, organization }))
+  const logo = createMemo(() => current?.membership.logo)
+  onCleanup(shell.enter({ title: () => props.title, organization, logo }))
   /** The plan page, where the notice's action leads; that page says the state in its own rows, so it draws none. */
   const plansHref = (here: NonNullable<typeof current>) =>
     // As the side menu writes it; the subscriptions entity's `plansPath` would load the plan page's code here.

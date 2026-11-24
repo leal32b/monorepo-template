@@ -35,8 +35,14 @@ describe('auditActions', () => {
 })
 
 describe('auditActions of the organization', () => {
-  it('lists the export an owner asked for (ADR 0074)', () => {
-    expect(auditActions.organization).toEqual(['export-requested'])
+  it('lists the export an owner asked for (ADR 0074), the logo set or removed (ADR 0076) and an operator’s visit (ADR 0077)', () => {
+    expect(auditActions.organization).toEqual([
+      'export-requested',
+      'logo-changed',
+      'logo-removed',
+      'impersonation-started',
+      'impersonation-ended'
+    ])
   })
 })
 
@@ -57,8 +63,13 @@ describe('auditEntrySchema (ADR 0061)', () => {
     expect(auditEntrySchema.parse(paid)).toEqual(paid)
   })
 
-  it('reads a member who left, with no name, a visitor and the system', () => {
-    for (const actor of [{ kind: 'member', id: 'user-gone', name: null }, { kind: 'visitor' }, { kind: 'system' }]) {
+  it('reads a member who left, with no name, an operator, a visitor and the system', () => {
+    for (const actor of [
+      { kind: 'member', id: 'user-gone', name: null },
+      { kind: 'operator', id: 'user-op', name: 'Otto' },
+      { kind: 'visitor' },
+      { kind: 'system' }
+    ]) {
       expect(auditEntrySchema.parse({ ...entry, actor }).actor).toEqual(actor)
     }
   })

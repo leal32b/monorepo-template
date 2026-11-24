@@ -9,15 +9,25 @@ export type RouteContext = {
 
 export type HttpHandler = (req: IncomingMessage, res: ServerResponse, ctx: RouteContext) => void | Promise<void>
 
+/** What a route declares beside its handler. */
+export type RouteOptions = {
+  /**
+   * Its body is not JSON, and the pipeline leaves it unread for the handler, which checks its type and
+   * length itself: the local file store's upload (ADR 0076), and nothing else.
+   */
+  rawBody?: true
+}
+
 type Route = {
   method: string
   pattern: string
   segments: string[]
   handler: HttpHandler
+  options: RouteOptions
 }
 
 export type RouteMatch =
-  | { kind: 'found'; pattern: string; handler: HttpHandler; params: Record<string, string> }
+  | ({ kind: 'found'; pattern: string; handler: HttpHandler; params: Record<string, string> } & RouteOptions)
   | { kind: 'method-not-allowed'; pattern: string; allow: string[] }
   | { kind: 'not-found' }
 
@@ -62,8 +72,8 @@ function matchSegments(pattern: string[], parts: string[]): Record<string, strin
 export class HttpRouter {
   readonly #routes: Route[] = []
 
-  on(method: string, pattern: string, handler: HttpHandler): void {
-    this.#routes.push({ method: method.toUpperCase(), pattern, segments: splitPath(pattern), handler })
+  on(method: string, pattern: string, handler: HttpHandler, options: RouteOptions = {}): void {
+    this.#routes.push({ method: method.toUpperCase(), pattern, segments: splitPath(pattern), handler, options })
   }
 
   get(pattern: string, handler: HttpHandler): void {
@@ -96,7 +106,7 @@ export class HttpRouter {
         continue
       }
       const params = Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, decode(value)]))
-      return { kind: 'found', pattern: route.pattern, handler: route.handler, params }
+      return { kind: 'found', pattern: route.pattern, handler: route.handler, params, ...route.options }
     }
     if (allow.length === 0) return { kind: 'not-found' }
     return { kind: 'method-not-allowed', pattern, allow: allowed(allow) }

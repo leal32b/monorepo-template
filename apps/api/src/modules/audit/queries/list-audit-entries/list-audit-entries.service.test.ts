@@ -16,6 +16,32 @@ describe('ListAuditEntriesService (ADR 0061)', () => {
   }
   const minutes = (n: number) => new Date(auditDay.getTime() + n * 60 * 1000)
 
+  it('names an operator who entered the organization, and says none for an account that is gone (ADR 0077)', async () => {
+    const audit = new InMemoryAuditTrail()
+    const membership = new FakeMembership()
+    membership.addOperator('user-otto', 'Otto Operator')
+    const service = new ListAuditEntriesService(new InMemoryUnitOfWork({ audit }), membership)
+    const visit = { resourceType: 'organization', resourceId: 'org-1', fields: [] }
+    await audit.record(
+      anEntry('e1', { ...visit, actor: { kind: 'operator', id: 'user-otto' }, action: 'impersonation-started' })
+    )
+    await audit.record(
+      anEntry('e2', {
+        ...visit,
+        at: minutes(1),
+        actor: { kind: 'operator', id: 'user-gone' },
+        action: 'impersonation-ended'
+      })
+    )
+
+    const page = await service.execute('org-1', undefined)
+
+    expect(page.items.map(({ actor }) => actor)).toEqual([
+      { kind: 'operator', id: 'user-gone', name: null },
+      { kind: 'operator', id: 'user-otto', name: 'Otto Operator' }
+    ])
+  })
+
   it('answers the newest entries in the shape of the contract, naming the members who are still here', async () => {
     const { audit, service } = setup()
     await audit.record(anEntry('e1', { actor: { kind: 'visitor' }, action: 'created', fields: ['name'] }))

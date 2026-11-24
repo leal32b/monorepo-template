@@ -16,6 +16,13 @@ describe('loadEnv', () => {
     ASAAS_WEBHOOK_TOKEN: 'c3'.repeat(32)
   }
 
+  const r2 = {
+    STORAGE_ENDPOINT: 'https://account.r2.cloudflarestorage.com',
+    STORAGE_BUCKET: 'files',
+    STORAGE_ACCESS_KEY_ID: 'key-id',
+    STORAGE_SECRET_ACCESS_KEY: 'the-storage-secret'
+  }
+
   it('uses safe defaults for everything but the database, the web origin and the auth secret', () => {
     expect(loadEnv({ ...required })).toEqual({
       host: '127.0.0.1',
@@ -29,6 +36,7 @@ describe('loadEnv', () => {
       email: { kind: 'log' },
       google: undefined,
       billing: { kind: 'fake', token: undefined },
+      storage: { kind: 'local', dir: '.storage' },
       jobs: { worker: true, idlePollMs: 3_600_000 },
       databaseUrl: required.DATABASE_URL,
       databasePoolSize: undefined
@@ -138,7 +146,7 @@ describe('loadEnv', () => {
   })
 
   it('requires PROXY_SECRET when the web origin is https, as when deployed (ADR 0022)', () => {
-    const deployed = { ...required, ...resend, ...asaas, WEB_ORIGIN: 'https://app.example.com' }
+    const deployed = { ...required, ...resend, ...asaas, ...r2, WEB_ORIGIN: 'https://app.example.com' }
 
     expect(() => loadEnv({ ...deployed, PROXY_SECRET: '' })).toThrow(
       expect.objectContaining({ variables: ['PROXY_SECRET'] })
@@ -182,7 +190,7 @@ describe('loadEnv', () => {
   })
 
   it('refuses the log transport when the web origin is https, as when deployed (ADR 0021)', () => {
-    const deployed = { ...required, ...asaas, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
+    const deployed = { ...required, ...asaas, ...r2, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
 
     expect(() => loadEnv(deployed)).toThrow(expect.objectContaining({ variables: ['RESEND_API_KEY'] }))
     expect(loadEnv({ ...deployed, ...resend }).email.kind).toBe('resend')
@@ -203,7 +211,7 @@ describe('loadEnv', () => {
   })
 
   it('refuses the billing fake when the web origin is https: deployed, payments must be real (ADR 0063)', () => {
-    const deployed = { ...required, ...resend, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
+    const deployed = { ...required, ...resend, ...r2, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
 
     expect(() => loadEnv(deployed)).toThrow(expect.objectContaining({ variables: ['ASAAS_API_KEY'] }))
   })
@@ -229,7 +237,13 @@ describe('loadEnv', () => {
     })
 
     it('lets a deployed environment start once Asaas is configured, on the sandbox for staging', () => {
-      const deployed = { ...required, ...resend, WEB_ORIGIN: 'https://app.example.com', PROXY_SECRET: proxySecret }
+      const deployed = {
+        ...required,
+        ...resend,
+        ...r2,
+        WEB_ORIGIN: 'https://app.example.com',
+        PROXY_SECRET: proxySecret
+      }
 
       expect(loadEnv({ ...deployed, ...production }).billing.kind).toBe('asaas')
       expect(loadEnv({ ...deployed, ...sandbox }).billing.kind).toBe('asaas')
@@ -305,6 +319,63 @@ describe('loadEnv', () => {
       expect(() => loadEnv({ ...required, ...wrong })).toThrow(
         expect.objectContaining({ message: 'Invalid environment: ASAAS_WEBHOOK_TOKEN, ASAAS_API_KEY' })
       )
+    })
+  })
+
+  describe('file storage (ADR 0076)', () => {
+    it('keeps files in a local folder when no store is configured, in STORAGE_DIR if set', () => {
+      expect(loadEnv({ ...required, STORAGE_DIR: '/tmp/files' }).storage).toEqual({ kind: 'local', dir: '/tmp/files' })
+      expect(loadEnv({ ...required, STORAGE_DIR: '' }).storage).toEqual({ kind: 'local', dir: '.storage' })
+    })
+
+    it('keeps files in an S3-compatible store when its endpoint, bucket and keys are set, in region auto unless said', () => {
+      expect(loadEnv({ ...required, ...r2 }).storage).toEqual({
+        kind: 's3',
+        endpoint: 'https://account.r2.cloudflarestorage.com',
+        bucket: 'files',
+        region: 'auto',
+        accessKeyId: 'key-id',
+        secretAccessKey: 'the-storage-secret'
+      })
+      expect(loadEnv({ ...required, ...r2, STORAGE_REGION: 'us-east-1' }).storage).toMatchObject({
+        region: 'us-east-1'
+      })
+    })
+
+    it.each(Object.keys(r2))('refuses a store configured without %s', (name) => {
+      expect(() => loadEnv({ ...required, ...r2, [name]: '' })).toThrow(expect.objectContaining({ variables: [name] }))
+    })
+
+    it.each([
+      'http://account.r2.cloudflarestorage.com',
+      'https://account.r2.cloudflarestorage.com/files',
+      'account.r2.cloudflarestorage.com'
+    ])('refuses the endpoint %j: an https origin, the bucket apart', (endpoint) => {
+      expect(() => loadEnv({ ...required, ...r2, STORAGE_ENDPOINT: endpoint })).toThrow(
+        expect.objectContaining({ variables: ['STORAGE_ENDPOINT'] })
+      )
+    })
+
+    it('refuses the local folder when the web origin is https: the next deploy erases its disk', () => {
+      const deployed = {
+        ...required,
+        ...resend,
+        ...asaas,
+        WEB_ORIGIN: 'https://app.example.com',
+        PROXY_SECRET: proxySecret
+      }
+
+      expect(() => loadEnv(deployed)).toThrow(expect.objectContaining({ variables: ['STORAGE_ENDPOINT'] }))
+      expect(loadEnv({ ...deployed, ...r2 }).storage.kind).toBe('s3')
+    })
+
+    it('never prints the secret key', () => {
+      try {
+        loadEnv({ ...required, ...r2, STORAGE_BUCKET: '' })
+      } catch (error) {
+        expect(String((error as Error).message)).not.toContain('the-storage-secret')
+      }
+      expect.assertions(1)
     })
   })
 

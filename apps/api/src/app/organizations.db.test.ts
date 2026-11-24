@@ -7,6 +7,7 @@ import pino from 'pino'
 import { inject } from 'vitest'
 import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { InMemoryFileStorage } from '#libs/adapters/in-memory-file-storage'
 import { ManualTimer } from '#libs/adapters/manual-timer'
 import { RecordingEmailSender } from '#libs/adapters/recording-email-sender'
 import { SystemClock } from '#libs/adapters/system-clock'
@@ -16,6 +17,9 @@ import { runMigrations } from '#libs/database/migrations'
 import { resetDatabase } from '../../test/reset-database'
 import { createApp } from './create-app'
 import { createJobs } from './create-jobs'
+
+/** The file store of the run (ADR 0076): the jobs and the app share it. */
+const storage = new InMemoryFileStorage()
 
 const webOrigin = 'http://localhost:5173'
 const migrations = fileURLToPath(new URL('../../migrations/', import.meta.url))
@@ -34,6 +38,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
    */
   const billing = new FakeBillingProvider({ clock, ids: new UuidGenerator(), token: undefined })
   const jobs = createJobs({
+    storage,
     webOrigin,
     billing,
     db,
@@ -57,6 +62,7 @@ describe('organizations through Better Auth (ADR 0033)', () => {
     await resetDatabase(db)
     await runMigrations(db, migrations)
     server = createApp({
+      storage,
       clock,
       logger,
       serviceName: 'api',

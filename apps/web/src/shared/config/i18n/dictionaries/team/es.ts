@@ -21,6 +21,23 @@ export const teamEs: typeof teamEn = {
         save: 'Guardar nombre',
         saved: 'Nombre guardado'
       },
+      logo: {
+        title: 'Logo',
+        none: 'Aparece junto al nombre en el menú lateral. Una imagen PNG, JPEG o WebP de hasta 1 MB; una cuadrada se ve mejor.',
+        set: 'Aparece junto al nombre en el menú lateral.',
+        upload: 'Subir logo',
+        replace: 'Cambiar',
+        remove: 'Quitar',
+        saved: 'Logo guardado',
+        replaced: 'Logo cambiado',
+        removed: 'Logo quitado',
+        wrongType: 'Usa una imagen PNG, JPEG o WebP.',
+        tooLarge: 'Esta imagen pesa {{size}}. El logo puede pesar hasta 1 MB.',
+        dimensions: 'Usa una imagen de 64 a 4096 píxeles por lado.',
+        failed: 'La subida no terminó. Revisa tu conexión y vuelve a intentarlo.',
+        removeFailed: 'No pudimos quitar el logo. Vuelve a intentarlo en un momento.',
+        tooMany: 'Demasiadas subidas en la última hora. Inténtalo más tarde.'
+      },
       address: {
         title: 'Dirección',
         change: 'Cambiar dirección',

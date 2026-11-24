@@ -4,10 +4,14 @@ import pino from 'pino'
 import { inject } from 'vitest'
 import { FakeBillingProvider } from '#libs/adapters/fake-billing-provider'
 import { FixedClock } from '#libs/adapters/fixed-clock'
+import { InMemoryFileStorage } from '#libs/adapters/in-memory-file-storage'
 import { InMemoryJobs } from '#libs/adapters/in-memory-jobs'
 import { UuidGenerator } from '#libs/adapters/uuid-generator'
 import { createDatabase, createPool } from '#libs/database/database'
 import { createApp } from './create-app'
+
+/** The file store of the run (ADR 0076): the jobs and the app share it. */
+const storage = new InMemoryFileStorage()
 
 const clock = new FixedClock(new Date('2026-10-17T12:00:00.000Z'))
 const logger = pino({ level: 'silent' })
@@ -19,6 +23,7 @@ const authSecret = 'fedcba9876543210'.repeat(2)
 describe('API', () => {
   const db = createDatabase(createPool(inject('databaseUrl'), logger))
   const server = createApp({
+    storage,
     clock,
     logger,
     serviceName: 'api',
@@ -105,6 +110,7 @@ describe('API', () => {
 describe('API without its database', () => {
   const db = createDatabase(createPool('postgres://app:secret@127.0.0.1:1/app?sslmode=disable', logger))
   const server = createApp({
+    storage,
     clock,
     logger,
     serviceName: 'api',

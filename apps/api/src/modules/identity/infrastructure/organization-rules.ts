@@ -3,6 +3,7 @@ import {
   type CheckoutKind,
   covers,
   currencySchema,
+  impersonationPermissions,
   organizationNameSchema,
   organizationSlugSchema,
   ownerOnlyPermissions,
@@ -34,6 +35,15 @@ type OrganizationTables = {
   }
   user: { id: string; email: string }
   organization: { id: string; createdAt: Date }
+  /** The back office's tables (`migrations/0019_operator_back_office.sql`), as far as the membership read joins them. */
+  'public.impersonation': {
+    id: string
+    operator_id: string
+    organization_id: string
+    expires_at: Date
+    ended_at: Date | null
+  }
+  'public.operator': { id: string; user_id: string; revoked_at: Date | null }
   /** Billing's table (`migrations/0013_subscription.sql`), as far as the membership read joins it (ADR 0063). */
   'public.subscription': {
     organization_id: string
@@ -158,19 +168,42 @@ export class OrganizationReader {
    */
   async memberOf(
     organizationId: string,
-    userId: string
-  ): Promise<{ roles: string; permissions: Permissions; subscription: SubscriptionState } | undefined> {
+    userId: string,
+    now: Date
+  ): Promise<
+    { roles: string; permissions: Permissions; subscription: SubscriptionState; impersonationEndsAt?: Date } | undefined
+  > {
     const row = await this.#db
-      .selectFrom('member')
-      .innerJoin('organization', 'organization.id', 'member.organizationId')
-      .leftJoin('public.subscription as row', 'row.organization_id', 'member.organizationId')
+      .selectFrom('organization')
+      .leftJoin('member', (join) =>
+        join.onRef('member.organizationId', '=', 'organization.id').on('member.userId', '=', userId)
+      )
+      // An operator's visit (ADR 0077): not ended, not past its time, by an operator who is not revoked.
+      .leftJoin('public.impersonation as visit', (join) =>
+        join
+          .onRef('visit.organization_id', '=', 'organization.id')
+          .on('visit.operator_id', '=', userId)
+          .on('visit.ended_at', 'is', null)
+          .on('visit.expires_at', '>', now)
+          .on((eb) =>
+            eb.exists(
+              eb
+                .selectFrom('public.operator as active')
+                .select('active.id')
+                .whereRef('active.user_id', '=', 'visit.operator_id')
+                .where('active.revoked_at', 'is', null)
+            )
+          )
+      )
+      .leftJoin('public.subscription as row', 'row.organization_id', 'organization.id')
       .select((eb) => [
         'member.role',
+        'visit.expires_at as visitEndsAt',
         jsonArrayFrom(
           eb
             .selectFrom('organizationRole')
             .select(['organizationRole.role', 'organizationRole.permission'])
-            .whereRef('organizationRole.organizationId', '=', 'member.organizationId')
+            .whereRef('organizationRole.organizationId', '=', 'organization.id')
         ).as('customRoles'),
         'organization.createdAt',
         'row.status',
@@ -185,11 +218,20 @@ export class OrganizationReader {
         'row.checkout_plan',
         'row.checkout_amount'
       ])
-      .where('member.organizationId', '=', organizationId)
-      .where('member.userId', '=', userId)
+      .where('organization.id', '=', organizationId)
+      .where((eb) => eb.or([eb('member.userId', 'is not', null), eb('visit.id', 'is not', null)]))
       .executeTakeFirst()
     if (row === undefined) return undefined
-    const { role, customRoles, createdAt, ...subscription } = row
+    const { role, visitEndsAt, customRoles, createdAt, ...subscription } = row
+    if (role === null) {
+      // Not a member: an operator inside it, who sees it as its owner, read only (ADR 0077).
+      return {
+        roles: 'owner',
+        permissions: impersonationPermissions,
+        subscription: subscriptionOf(subscription, createdAt),
+        impersonationEndsAt: visitEndsAt as Date
+      }
+    }
     const custom = new Map(customRoles.map((custom) => [custom.role, parseRolePermission(custom.permission)]))
     return {
       roles: role,

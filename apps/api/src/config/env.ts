@@ -27,6 +27,18 @@ function isOrigin(value: string): boolean {
   }
 }
 
+/** An S3 API's origin (ADR 0076): https, a host and nothing after it; the bucket is a variable of its own. */
+const isHttpsOrigin = (value: string) => isOrigin(value) && value.startsWith('https:')
+
+/** What selects the S3 store (ADR 0076), all four or none; `STORAGE_REGION` has a default. */
+const STORAGE_VARIABLES = [
+  'STORAGE_ENDPOINT',
+  'STORAGE_BUCKET',
+  'STORAGE_ACCESS_KEY_ID',
+  'STORAGE_SECRET_ACCESS_KEY'
+] as const
+type StorageVariables = { [Name in (typeof STORAGE_VARIABLES)[number]]?: string | undefined }
+
 /** An optional value where empty means unset, as an unset GitHub secret arrives. */
 const optional = <T extends z.ZodMiniType>(schema: T) =>
   z.pipe(
@@ -71,6 +83,12 @@ const envSchema = z
     ASAAS_API_URL: optional(z.enum(Object.keys(ASAAS_KEY_PREFIXES))),
     // Asaas's own rules for a webhook's token: 32 to 255 characters, no spaces.
     ASAAS_WEBHOOK_TOKEN: optional(z.string().check(z.minLength(32), z.maxLength(255), z.regex(/^\S+$/))),
+    STORAGE_ENDPOINT: optional(z.string().check(z.refine(isHttpsOrigin))),
+    STORAGE_BUCKET: optional(z.string().check(z.regex(/^[a-z0-9][a-z0-9.-]{1,62}$/))),
+    STORAGE_REGION: optional(z.string().check(z.regex(/^[a-z0-9-]{1,32}$/))),
+    STORAGE_ACCESS_KEY_ID: optional(z.string()),
+    STORAGE_SECRET_ACCESS_KEY: optional(z.string()),
+    STORAGE_DIR: optional(z.string()),
     JOB_WORKER: optional(z.enum(['on', 'off'])),
     JOB_IDLE_POLL_SECONDS: optional(z.pipe(z.coerce.number(), z.int().check(z.gte(1), z.lte(86_400))))
   })
@@ -115,6 +133,19 @@ const envSchema = z
     z.refine((env) => env.ASAAS_WEBHOOK_TOKEN === undefined || env.ASAAS_WEBHOOK_TOKEN !== env.ASAAS_API_KEY, {
       path: ['ASAAS_WEBHOOK_TOKEN']
     }),
+    // A store needs its endpoint, its bucket and both keys (ADR 0076): one without the others is a mistake.
+    ...STORAGE_VARIABLES.map((name) =>
+      z.refine<StorageVariables>(
+        (env) => env[name] !== undefined || !STORAGE_VARIABLES.some((v) => env[v] !== undefined),
+        {
+          path: [name]
+        }
+      )
+    ),
+    // Deployed, files must outlive a deploy: the local folder is erased with the host's disk (ADR 0076).
+    z.refine((env) => env.STORAGE_ENDPOINT !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
+      path: ['STORAGE_ENDPOINT']
+    }),
     // Deployed, payments must be real: the fake marks an organization paid on a command (ADR 0063). A
     // provider's key selects its adapter (ADR 0064); with none configured, the fake is all there is.
     z.refine((env) => env.ASAAS_API_KEY !== undefined || !env.WEB_ORIGIN.startsWith('https:'), {
@@ -130,6 +161,14 @@ export type BillingConfig =
   | { kind: 'fake'; token: string | undefined }
   /** Asaas (ADR 0064): the key (a secret, never logged), its environment's URL and the token its notices carry. */
   | { kind: 'asaas'; apiKey: string; apiUrl: string; webhookToken: string }
+
+/**
+ * Where files live (ADR 0076): a folder in development and tests, or an S3-compatible store (R2 by default).
+ * The secret key signs in memory, never logged, never in an address.
+ */
+export type StorageConfig =
+  | { kind: 'local'; dir: string }
+  | { kind: 's3'; endpoint: string; bucket: string; region: string; accessKeyId: string; secretAccessKey: string }
 
 /** How email leaves the API (ADR 0021): logged in development, or sent through Resend. */
 export type EmailTransport = { kind: 'log' } | { kind: 'resend'; apiKey: string; from: string }
@@ -156,6 +195,7 @@ export type ApiEnv = {
   /** Google sign-in (ADR 0020): off unless both credentials are set. */
   google: { clientId: string; clientSecret: string } | undefined
   billing: BillingConfig
+  storage: StorageConfig
   /**
    * Background work (ADR 0056). `worker`: whether this process runs the jobs; off when a process of
    * its own does (`dist/worker.js`). `idlePollMs`: the longest an idle worker sleeps before it looks
@@ -221,6 +261,18 @@ export function loadEnv(source: Record<string, string | undefined>): ApiEnv {
             apiKey: env.ASAAS_API_KEY,
             apiUrl: env.ASAAS_API_URL as string,
             webhookToken: env.ASAAS_WEBHOOK_TOKEN as string
+          },
+    // The rules above allow all four or none.
+    storage:
+      env.STORAGE_ENDPOINT === undefined
+        ? { kind: 'local', dir: env.STORAGE_DIR ?? '.storage' }
+        : {
+            kind: 's3',
+            endpoint: env.STORAGE_ENDPOINT,
+            bucket: env.STORAGE_BUCKET as string,
+            region: env.STORAGE_REGION ?? 'auto',
+            accessKeyId: env.STORAGE_ACCESS_KEY_ID as string,
+            secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY as string
           },
     jobs: { worker: env.JOB_WORKER !== 'off', idlePollMs: (env.JOB_IDLE_POLL_SECONDS ?? 3_600) * 1000 }
   }

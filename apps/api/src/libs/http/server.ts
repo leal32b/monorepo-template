@@ -63,7 +63,7 @@ function pathOf(req: IncomingMessage): string {
 
 /**
  * The HTTP pipeline, in order: request id, security headers, CORS, the Worker's secret, the origin
- * of writes, routing (404, 405, OPTIONS), body headers, handler, error boundary. Every failure ends
+ * of writes, routing (404, 405, OPTIONS), body headers (but on a route whose body is raw), handler, error boundary. Every failure ends
  * as an RFC 9457 problem response; nothing escapes as an unhandled rejection. A dependency out of
  * reach is a 503 with its reason in one warning, not a stack. One access-log line
  * is written per request; headers and bodies are never logged.
@@ -95,7 +95,7 @@ export function createHttpServer({
       }
       throw new HttpProblem(405, 'method_not_allowed', { headers: { Allow: allow } })
     }
-    assertAcceptableBody(req)
+    if (match.rawBody !== true) assertAcceptableBody(req)
     await match.handler(req, res, { params: match.params, requestId: request.id })
   }
 

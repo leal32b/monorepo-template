@@ -7,6 +7,8 @@ coverage
 !.env.example
 .DS_Store
 .data
+# The local file store of `pnpm dev` (ADR 0076)
+.storage
 .wrangler
 .dev.vars
 

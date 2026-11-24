@@ -12,7 +12,7 @@ type AuditEntryRow = {
   organization_id: string
   at: Date
   actor_kind: AuditActor['kind']
-  /** The member's id; null for a visitor and the system, which have none. */
+  /** The member's or the operator's id; null for a visitor and the system, which have none. */
   actor_id: string | null
   resource_type: string
   resource_id: string
@@ -41,7 +41,7 @@ export class KyselyAuditTrail implements AuditTrail {
         organization_id: entry.organizationId,
         at: entry.at,
         actor_kind: entry.actor.kind,
-        actor_id: entry.actor.kind === 'member' ? entry.actor.id : null,
+        actor_id: 'id' in entry.actor ? entry.actor.id : null,
         resource_type: entry.resourceType,
         resource_id: entry.resourceId,
         action: entry.action,
@@ -74,8 +74,11 @@ function toEntry(row: AuditEntryRow): AuditEntry {
     id: row.id,
     organizationId: row.organization_id,
     at: row.at,
-    // The table's check keeps a member's id beside the kind `member`, and none beside the others.
-    actor: row.actor_kind === 'member' ? { kind: 'member', id: row.actor_id as string } : { kind: row.actor_kind },
+    // The table's check keeps an id beside the kinds `member` and `operator`, and none beside the others.
+    actor:
+      row.actor_kind === 'member' || row.actor_kind === 'operator'
+        ? { kind: row.actor_kind, id: row.actor_id as string }
+        : { kind: row.actor_kind },
     resourceType: row.resource_type,
     resourceId: row.resource_id,
     action: row.action,

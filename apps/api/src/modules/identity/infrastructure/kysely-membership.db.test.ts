@@ -140,4 +140,56 @@ describe('KyselyMembership (ADR 0033)', () => {
     await counted.memberOf('org-other', 'user-ada')
     expect(queries).toBe(3)
   })
+
+  describe("an operator's visit (ADR 0077)", () => {
+    beforeAll(async () => {
+      await sql`insert into auth."user" (id, name, email, "emailVerified", "createdAt", "updatedAt", locale)
+        values ('user-otto', 'Otto', 'otto@example.com', true, now(), now(), 'en'),
+               ('user-rex', 'Rex', 'rex@example.com', true, now(), now(), 'en')`.execute(db)
+      await sql`insert into operator (id, user_id, granted_at, granted_by, revoked_at, revoked_by)
+        values ('op-otto', 'user-otto', now(), 'test', null, null),
+               ('op-rex', 'user-rex', now(), 'test', now(), 'test')`.execute(db)
+      await sql`insert into impersonation (id, operator_id, organization_id, started_at, expires_at, ended_at, end_reason)
+        values ('visit-paid', 'user-otto', 'org-paid', '2026-11-10T08:50:00Z', '2026-11-10T09:20:00Z', null, null),
+               ('visit-ended', 'user-ada', 'org-other', '2026-11-10T08:50:00Z', '2026-11-10T09:20:00Z', now(), 'left'),
+               ('visit-late', 'user-bob', 'org-late', '2026-11-10T08:00:00Z', '2026-11-10T08:30:00Z', null, null),
+               ('visit-revoked', 'user-rex', 'org-acme', '2026-11-10T08:50:00Z', '2026-11-10T09:20:00Z', null, null)`.execute(
+        db
+      )
+    })
+
+    it('answers for the operator inside it as its owner, holding only the read actions, until its end', async () => {
+      const member = await membership.memberOf('org-paid', 'user-otto')
+
+      expect(member).toMatchObject({
+        userId: 'user-otto',
+        organizationId: 'org-paid',
+        roles: ['owner'],
+        permissions: { ac: ['read'], customer: ['read'], audit: ['read'] },
+        subscription: { status: 'active', plan: 'basic' },
+        impersonation: { endsAt: new Date('2026-11-10T09:20:00Z') }
+      })
+      expect(member?.entitlements).toBe(plans.basic.entitlements)
+      expect(await membership.memberOf('org-acme', 'user-otto')).toBeNull()
+    })
+
+    it('finds nothing for a visit that ended, is past its time, or whose operator was revoked', async () => {
+      expect(await membership.memberOf('org-other', 'user-ada')).toBeNull()
+      expect(await membership.memberOf('org-late', 'user-bob')).toBeNull()
+      expect(await membership.memberOf('org-acme', 'user-rex')).toBeNull()
+    })
+
+    it("leaves a member's own membership as it is", async () => {
+      expect(await membership.memberOf('org-acme', 'user-ada')).not.toHaveProperty('impersonation')
+    })
+
+    it('names operators, revoked or not, and nobody else', async () => {
+      expect(await membership.operatorNamesOf(['user-otto', 'user-rex', 'user-ada', 'user-gone'])).toEqual(
+        new Map([
+          ['user-otto', 'Otto'],
+          ['user-rex', 'Rex']
+        ])
+      )
+    })
+  })
 })

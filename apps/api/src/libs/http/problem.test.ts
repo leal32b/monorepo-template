@@ -68,6 +68,14 @@ describe('HttpProblem', () => {
     expect(new HttpProblem(403, 'plan_required', { entitlement: 'activity-log' }).toJSON()).not.toHaveProperty('limit')
   })
 
+  it("says why an operator's session was refused, when given (ADR 0077)", () => {
+    const body = new HttpProblem(403, 'operator_session_refused', { reason: 'two-factor' }).toJSON()
+
+    expect(body).toMatchObject({ reason: 'two-factor' })
+    expect(apiProblemSchema.safeParse(body).success).toBe(true)
+    expect(new HttpProblem(404, 'not_found').toJSON()).not.toHaveProperty('reason')
+  })
+
   it('falls back to a generic title for an unknown status', () => {
     expect(new HttpProblem(499, 'odd').toJSON().title).toBe('Error')
   })

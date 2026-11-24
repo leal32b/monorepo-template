@@ -1,9 +1,16 @@
+import type { OrganizationLogo } from '@repo/contracts'
 import type { Member } from '../../membership.port'
 
 const iso = (date: Date | null) => date?.toISOString() ?? null
 
-/** A member in the shape of `OrganizationMembership`: the subscription's instants as ISO 8601 (ADR 0053). */
-export function toMembershipResponse({ roles, permissions, subscription, entitlements }: Member) {
+/**
+ * A member in the shape of `OrganizationMembership`: the subscription's instants as ISO 8601 (ADR 0053), and
+ * the organization's logo, or `null` (ADR 0076).
+ */
+export function toMembershipResponse(
+  { roles, permissions, subscription, entitlements }: Member,
+  logo: OrganizationLogo | null
+) {
   return {
     roles,
     permissions,
@@ -19,6 +26,7 @@ export function toMembershipResponse({ roles, permissions, subscription, entitle
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
       checkout: subscription.checkout
     },
-    entitlements
+    entitlements,
+    logo
   }
 }

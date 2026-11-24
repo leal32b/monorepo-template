@@ -1,7 +1,8 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import UnoCSS from 'unocss/vite'
-import { defineConfig, type ProxyOptions } from 'vite'
+import { defineConfig, type Plugin, type ProxyOptions } from 'vite'
 import solid from 'vite-plugin-solid'
 
 /**
@@ -19,9 +20,36 @@ const api: ProxyOptions = {
   }
 }
 
+/**
+ * The file store's origin in the CSP (ADR 0076): `STORAGE_ORIGIN` from the build's environment, an https
+ * origin such as `https://<account>.r2.cloudflarestorage.com`, or nothing, where the store is the page's
+ * own origin (the local store of `pnpm dev` and the end-to-end suite).
+ */
+function storageOrigin(): string {
+  const origin = process.env.STORAGE_ORIGIN ?? ''
+  if (origin !== '' && !/^https:\/\/[^/?#\s]+$/.test(origin)) {
+    throw new Error('STORAGE_ORIGIN must be https://host, with no path and no trailing slash')
+  }
+  return origin
+}
+
+/** `_headers` with its `$STORAGE_ORIGIN` token replaced by the store's origin, or dropped. */
+const withStorageOrigin = (headers: string) =>
+  headers.replaceAll(' $STORAGE_ORIGIN', storageOrigin() === '' ? '' : ` ${storageOrigin()}`)
+
+/** Writes the store's origin into the `_headers` the build publishes, which `public/` copies as it is. */
+const storageOriginInHeaders: Plugin = {
+  name: 'storage-origin-in-headers',
+  apply: 'build',
+  writeBundle(options) {
+    const file = path.join(options.dir as string, '_headers')
+    writeFileSync(file, withStorageOrigin(readFileSync(file, 'utf8')))
+  }
+}
+
 /** The headers `public/_headers` gives every path (`/*`), so `vite preview` serves the production CSP. */
 function headersForEveryPath(): Record<string, string> {
-  const file = readFileSync(new URL('public/_headers', import.meta.url), 'utf8')
+  const file = withStorageOrigin(readFileSync(new URL('public/_headers', import.meta.url), 'utf8'))
   const block = /(?:^|\n)\/\*\n([\s\S]*?)(?:\n\n|\n?$)/.exec(file)?.[1] ?? ''
   return Object.fromEntries(
     block
@@ -35,7 +63,7 @@ function headersForEveryPath(): Record<string, string> {
 export default defineConfig({
   // The config by its path: UnoCSS looks in the working directory, which is the repository root when
   // a tool such as knip loads this file from there.
-  plugins: [UnoCSS(fileURLToPath(new URL('uno.config.ts', import.meta.url))), solid()],
+  plugins: [UnoCSS(fileURLToPath(new URL('uno.config.ts', import.meta.url))), solid(), storageOriginInHeaders],
   server: {
     // Exactly this port: the API's WEB_ORIGIN names it, and a write from any other origin is refused
     // (origin_not_allowed). With the port taken, Vite stops with an error instead of moving to 5174.

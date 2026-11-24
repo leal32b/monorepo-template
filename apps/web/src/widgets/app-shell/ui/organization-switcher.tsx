@@ -12,12 +12,13 @@ import { useNavigate } from '@solidjs/router'
 import { For } from 'solid-js'
 import { homeOf, type Organization, useOrganizations } from '#entities/organizations'
 import { useI18n } from '#shared/config'
+import { useShellLogo } from '../model/shell'
 
 /**
  * The organization you are in, at the top of the side menu, and a menu to move to another of yours or
  * to create one (ADR 0034). Choosing one opens its home, since the screens differ by what the roles
  * allow. While the list is read again it keeps the last one (W10); if it cannot be read, the menu holds
- * the current organization alone.
+ * the current organization alone. Its mark is the organization's logo once it has one (ADR 0076).
  */
 export function OrganizationSwitcher(props: {
   /** The organization of the screen. */
@@ -28,6 +29,7 @@ export function OrganizationSwitcher(props: {
   const { t } = useI18n()
   const navigate = useNavigate()
   const { known } = useOrganizations()
+  const logo = useShellLogo()
   const organizations = () => known() ?? [props.organization]
 
   const open = (path: string) => {
@@ -41,7 +43,7 @@ export function OrganizationSwitcher(props: {
       triggerClass={menuTriggerClass}
       trigger={
         <MenuTriggerContent
-          avatar={<Avatar name={props.organization.name} shape="square" size="sm" />}
+          avatar={<Avatar name={props.organization.name} src={logo()?.url} shape="square" size="sm" />}
           label={props.organization.name}
         />
       }
