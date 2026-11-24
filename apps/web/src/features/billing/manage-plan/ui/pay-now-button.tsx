@@ -37,7 +37,7 @@ export function PayNowButton(props: PayNowButtonProps) {
 
   return (
     <Button ref={props.ref} variant="secondary" disabled={pending() || props.disabled} onClick={press}>
-      {t('billing.actions.pay')}
+      {t('subscription.actions.pay')}
     </Button>
   )
 }

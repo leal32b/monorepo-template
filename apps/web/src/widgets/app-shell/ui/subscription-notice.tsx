@@ -28,7 +28,7 @@ export function SubscriptionNotice(props: SubscriptionNoticeProps) {
   const notice = createMemo(() => noticeOf(props.subscription, { manages: props.manages, now: new Date() }))
   const day = (date: Date | undefined) => (date === undefined ? '' : formatDate(date, locale(), props.timeZone))
   const text = (said: Notice) =>
-    t(`billing.notice.${said.audience}.${said.key}`, {
+    t(`subscription.notice.${said.audience}.${said.key}`, {
       date: day(said.dates.date),
       due: day(said.dates.due),
       until: day(said.dates.until)
@@ -43,7 +43,7 @@ export function SubscriptionNotice(props: SubscriptionNoticeProps) {
           action={
             said().action !== undefined ? (
               <A href={props.plansHref} class={buttonVariants({ variant: 'secondary' })}>
-                {t(`billing.actions.${said().action as NoticeAction}`)}
+                {t(`subscription.actions.${said().action as NoticeAction}`)}
               </A>
             ) : undefined
           }

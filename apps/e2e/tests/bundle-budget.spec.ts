@@ -15,7 +15,9 @@ import { expect, newPerson, test } from '../support/test'
  * 2026-11-20 for the avatar's image and a row's error in `@repo/ui`, and the logo's contract (ADR 0076); the sign-in's and
  * the public page's by 1 KB and the signed-in screen's by 2 KB the same day, to the measure, for the back office's
  * routes in the route table and the operator's visit read behind the session, after its lists, its banner and the
- * banner's words were moved out of every other user's download (ADR 0077). Lower a
+ * banner's words were moved out of every other user's download (ADR 0077); the signed-in screen's measure fell from
+ * 119.4 to 117.7 KB on 2026-11-24, when the frame's notice and the plan refusals left the `billing` group for
+ * `subscription` (ADR 0071's update), so its budget is that measure plus 1 KB, 119 KB, and the others held. Lower a
  * budget when the number drops; raising one is a decision to write down
  * (it checks the choice of `zod/mini`, ADR 0024).
  */

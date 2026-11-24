@@ -7,6 +7,9 @@ Supersedes the **loading** part of [ADR 0058](0058-split-the-i18n-dictionaries-b
 (one chunk per language, which its option 4 rejected "for now"). Its layout, its per-slice files, its merge types
 and its tests stay.
 
+**Update, 2026-11-24:** the `billing` group on the frame, which "Revisit when" below names, was split out: see
+"Update: the subscription group" at the end. Nothing else here changed.
+
 ## Context and problem statement
 
 [ADR 0058](0058-split-the-i18n-dictionaries-by-slice-and-merge-them-per-language.md) split the texts by slice but
@@ -108,7 +111,7 @@ The budgets are the new measure plus 1 KB, the margin the earlier lowerings kept
   groups in its routes.
 - Bad: the `billing` group is still on every signed-in screen, because the frame's notice and the plan refusals
   draw its keys; splitting those few keys into a group of their own would save about 2 KB more and is left until a
-  budget asks for it.
+  budget asks for it. (Done on 2026-11-24, below.)
 - Bad: a language chosen later loads each group asked for so far for that language: one small request per group,
   once.
 
@@ -116,3 +119,20 @@ The budgets are the new measure plus 1 KB, the margin the earlier lowerings kept
 
 A signed-in screen's first load waits visibly for its words (measure it with the slow network profile), or
 the `billing` group on the frame costs the signed-in budget more than 2 KB of its room.
+
+## Update: the subscription group (2026-11-24)
+
+The "Revisit when" case came true in the way this ADR foresaw, so it is a note here, not a new ADR: the group
+split changes no rule, only what the lists hold.
+
+- A lazy group `subscription` (`dictionaries/subscription/`, top-level key `subscription`) holds what every
+  screen of an organization can draw: the frame's notice (`subscription.notice.*`), its actions (`actions.plans`,
+  `actions.pay`, `actions.keep`), what a plan limit or read only refuses (`limitReached`, `readOnly`) and the
+  plans' names (`plans`, `trial`). A group's keys cannot repeat in another group, so these moved out of
+  `billing`; call sites changed from `billing.…` to `subscription.…` and nothing else.
+- `billing` keeps the plan page's words and the activity log's capability refusal. Its routes (the plan page,
+  the activity log, the back office's organization) name `subscription` too; the app frame names only
+  `subscription`, so the first signed-in download no longer carries the plan page's words.
+- Measured by `bundle-budget.spec.ts`, gzipped: the first signed-in screen 119.4 KB before and 117.7 KB after,
+  sign-in 74.77 to 74.83 KB, the public page 78.58 to 78.63 KB (the three names in the route table). The
+  signed-in budget stays at 119 KB, which is the new measure (118) plus 1 KB; the other two did not move.

@@ -330,9 +330,9 @@ what it grants, in the statement it already makes.
    `#modules/billing/index` before it writes (`403 plan_limit_reached`, naming the limit and its
    number). With `null` it counts nothing. Copy `CreateCustomerService` and its route.
 4. The web reads the same `entitlement(membership, key)` from the membership it holds, to draw the
-   action disabled with the reason before the member tries. The words live in the billing dictionary (a screen that uses them names `billing` in its route, [ADR 0071](adr/0071-load-each-screens-dictionary-group-with-its-route.md)):
+   action disabled with the reason before the member tries. The words live in the billing and subscription dictionaries (a screen that uses them names `billing` and `subscription` in its route; the frame names `subscription`, [ADR 0071](adr/0071-load-each-screens-dictionary-group-with-its-route.md)):
    what the plan includes (`billing.limits.<limit>`, `billing.capabilities.<capability>`, shown on the
-   plan page) and what a refusal means (`billing.refusals.limits.<limit>` for the owner, an owner whose
+   plan page) and what a refusal means (`subscription.limitReached.<limit>` for the owner, an owner whose
    upgrade waits, and another member; `billing.refusals.capabilities.<capability>`). `usePlanRefusal`
    (`#entities/subscriptions`) says them in the row's note before and in the alert after a refusal, and
    `SeePlansLink` gives the owner the way to the plans; copy the customers screen and the activity
